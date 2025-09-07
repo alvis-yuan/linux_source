@@ -82,8 +82,8 @@ static int printf_mac_arginfo(const struct printf_info *info, size_t n, int *arg
 
 // 处理 %*N（十六进制内存打印）
 static int printf_hex_memory(FILE *stream, const struct printf_info *info, const void *const *args) {
-    int length = *(const int *)args[0];      // 第一个参数：长度
-    const uint8_t *addr = *(const uint8_t **)args[1];  // 第二个参数：地址
+    int length = info->width;
+    const uint8_t *addr = *(const uint8_t **)args[0];  // 第一个参数：地址
 
     for (int i = 0; i < length; i++) {
         fprintf(stream, "0x%02X ", addr[i]);   // 每字节两位十六进制，空格分隔
@@ -97,11 +97,10 @@ static int printf_hex_memory(FILE *stream, const struct printf_info *info, const
 
 // 参数信息函数（告诉 printf 如何解析参数）
 static int printf_hex_memory_arginfo(const struct printf_info *info, size_t n, int *argtypes, int *size) {
-    if (n >= 2) {
-        argtypes[0] = PA_INT;      // 第一个参数是 int（长度）
-        argtypes[1] = PA_POINTER;  // 第二个参数是指针（地址）
+    if (n >= 0) {
+        argtypes[0] = PA_POINTER;  // 第一个参数是指针（地址）
     }
-    return 2;  // 声明需要 2 个参数
+    return 1;  // 声明需要 1 个参数
 }
 
 __attribute__((constructor))
@@ -147,7 +146,7 @@ int main() {
 	for (int i = 0; i < 34; i++) {
 		data[i] = 0xa0 + i;
 	}
-    custom_printf("Memory: \n%N\n", 34, data);  // 输出: 00 11 22 33 44 55 66 77
+    custom_printf("Memory: \n%*N\n", 34, data);  // 输出: 00 11 22 33 44 55 66 77
 
 	// 测试
     uint8_t mac[6] = {0x00, 0x1A, 0x2B, 0x3C, 0x4D, 0x5E};
