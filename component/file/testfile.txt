@@ -1,0 +1,3 @@
+这是异步写入的额外数据。
+Additional data written asynchronously.
+t for async I/O operations.
