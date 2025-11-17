@@ -2,14 +2,13 @@
  * @file uref.h
  * @brief 用户态引用计数对象处理库
  * 
- * 基于Linux内核uref实现，用于处理通用引用计数对象
+ * 基于Linux内核kref实现，用于处理通用引用计数对象
  */
 
 #ifndef _UREF_H_
 #define _UREF_H_
 
-#include <stdbool.h>
-#include "refcount.h"
+#include "vos.h"
 
 /**
  * @brief 引用计数结构体
@@ -90,4 +89,4 @@ int uref_get_unless_zero(struct uref *uref)
     return refcount_inc_not_zero(&uref->refcount);
 }
 
-#endif /* _KREF_H_ */
+#endif /* _UREF_H_ */

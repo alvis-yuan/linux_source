@@ -278,6 +278,7 @@ static void *epoll_test(void *arg)
         if (cnt == 5) {
             vos_timer_stop(timer);
             //vos_timer_delete(timer);
+            vos_signal_stop();
         } else if (cnt == 10) {
             vos_timer_set_period(timer, 2000);
             //vos_timer_set_repeat_count(timer, 3);
@@ -330,9 +331,6 @@ int main()
     // 初始化信号处理器
     ret = vos_signal_init();
     assert(ret == 0);
-
-
-
 
 
     ret = epoll_instance_create();

@@ -1,267 +1,540 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <limits.h>
-#include "atomic.h"
+/**
+ * @file test_atomic.c
+ * @brief atomic.h接口单元测试
+ */
+#include "vos.h"
 
-#define TEST_ASSERT(expr, msg) \
-    do { \
-        if (!(expr)) { \
-            printf("FAIL: %s (%s:%d)\n", msg, __FILE__, __LINE__); \
-            exit(1); \
-        } else { \
-            printf("PASS: %s\n", msg); \
-        } \
-    } while (0)
+/**
+ * @brief 测试atomic_read和atomic_set
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_read_set(void)
+{
+    atomic_t var;
 
-/* 测试共享变量 */
-static atomic_int g_counter = 0;
-static atomic_uint g_uint_counter = 0;
-static atomic_int32 g_int32_counter = 0;
-static atomic_uint32 g_uint32_counter = 0;
-static atomic_int64 g_int64_counter = 0;
-static atomic_uint64 g_uint64_counter = 0;
-static atomic_ptr g_ptr = NULL;
+    atomic_set(&var, 100);
+    TEST_ASSERT_EQUAL(100, atomic_read(&var));
 
-/* 多线程测试辅助结构 */
-#define NUM_THREADS 10
-#define OPERATIONS_PER_THREAD 10000
+    atomic_set(&var, -50);
+    TEST_ASSERT_EQUAL(-50, atomic_read(&var));
 
-static void* test_add_thread(void* arg) {
-    for (int i = 0; i < OPERATIONS_PER_THREAD; i++) {
-        atomic_fetch_add(&g_counter, 1);
-        atomic_fetch_add(&g_uint_counter, 1);
-        atomic_fetch_add(&g_int32_counter, 1);
-        atomic_fetch_add(&g_uint32_counter, 1);
-        atomic_fetch_add((atomic_int64*)&g_int64_counter, 1);
-        atomic_fetch_add((atomic_uint64*)&g_uint64_counter, 1);
-    }
-    return NULL;
-}
+    atomic_set(&var, 0);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
 
-static void* test_bitops_thread(void* arg) {
-    for (int i = 0; i < OPERATIONS_PER_THREAD; i++) {
-        atomic_fetch_or(&g_uint32_counter, 0x1);
-        atomic_fetch_and(&g_uint32_counter, ~0x2);
-        atomic_fetch_xor(&g_uint32_counter, 0x4);
-    }
-    return NULL;
-}
-
-/* 测试基本原子操作 */
-void test_basic_operations() {
-    printf("=== Testing Basic Operations ===\n");
-    
-    atomic_int a = 0;
-    atomic_uint b = 0;
-    
-    /* 测试 atomic_store 和 atomic_load */
-    atomic_store(&a, 42);
-    TEST_ASSERT(atomic_load(&a) == 42, "atomic_store/load int");
-    
-    atomic_store(&b, 100);
-    TEST_ASSERT(atomic_load(&b) == 100, "atomic_store/load uint");
-    
-    /* 测试 atomic_exchange */
-    int old = atomic_exchange(&a, 99);
-    TEST_ASSERT(old == 42 && a == 99, "atomic_exchange");
-    
-    /* 测试 atomic_compare_exchange_strong */
-    int expected = 99;
-    int success = atomic_compare_exchange_strong(&a, &expected, 123);
-    TEST_ASSERT(success && a == 123, "CAS success case");
-    
-    expected = 999; // Wrong expected value
-    success = atomic_compare_exchange_strong(&a, &expected, 456);
-    TEST_ASSERT(!success && expected == 123 && a == 123, "CAS fail case");
-}
-
-/* 测试算术操作 */
-void test_arithmetic_operations() {
-    printf("\n=== Testing Arithmetic Operations ===\n");
-    
-    atomic_int a = 10;
-    atomic_uint b = 10;
-    
-    /* 测试 fetch_and_add/sub */
-    TEST_ASSERT(atomic_fetch_add(&a, 5) == 10 && a == 15, "atomic_fetch_add");
-    TEST_ASSERT(atomic_fetch_sub(&a, 3) == 15 && a == 12, "atomic_fetch_sub");
-    
-    TEST_ASSERT(atomic_fetch_add(&b, 5) == 10 && b == 15, "atomic_fetch_add uint");
-    TEST_ASSERT(atomic_fetch_sub(&b, 3) == 15 && b == 12, "atomic_fetch_sub uint");
-    
-    /* 测试 add/sub_fetch */
-    TEST_ASSERT(atomic_add_fetch(&a, 3) == 15, "atomic_add_fetch");
-    TEST_ASSERT(atomic_sub_fetch(&a, 5) == 10, "atomic_sub_fetch");
-    
-    /* 测试 inc/dec 操作 */
-    TEST_ASSERT(atomic_fetch_inc(&a) == 10 && a == 11, "atomic_fetch_inc");
-    TEST_ASSERT(atomic_fetch_dec(&a) == 11 && a == 10, "atomic_fetch_dec");
-    
-    TEST_ASSERT(atomic_inc_fetch(&a) == 11, "atomic_inc_fetch");
-    TEST_ASSERT(atomic_dec_fetch(&a) == 10, "atomic_dec_fetch");
-}
-
-/* 测试位操作 */
-void test_bit_operations() {
-    printf("\n=== Testing Bit Operations ===\n");
-    
-    atomic_uint value = 0;
-    
-    /* 测试位操作 */
-    TEST_ASSERT(atomic_fetch_or(&value, 0x3) == 0 && value == 0x3, "atomic_fetch_or");
-    TEST_ASSERT(atomic_fetch_and(&value, 0x1) == 0x3 && value == 0x1, "atomic_fetch_and");
-    TEST_ASSERT(atomic_fetch_xor(&value, 0x3) == 0x1 && value == 0x2, "atomic_fetch_xor");
-    
-    /* 测试 or/and/xor_fetch */
-    TEST_ASSERT(atomic_or_fetch(&value, 0x1) == 0x3, "atomic_or_fetch");
-    TEST_ASSERT(atomic_and_fetch(&value, 0x1) == 0x1, "atomic_and_fetch");
-    TEST_ASSERT(atomic_xor_fetch(&value, 0x3) == 0x2, "atomic_xor_fetch");
-    
-    /* 测试位测试和设置操作 */
-    value = 0;
-    TEST_ASSERT(atomic_bit_test_and_set(&value, 3) == 0 && value == 0x8, "atomic_bit_test_and_set");
-    TEST_ASSERT(atomic_bit_test_and_clear(&value, 3) == 0x8 && value == 0, "atomic_bit_test_and_clear");
-    TEST_ASSERT(atomic_bit_test_and_toggle(&value, 2) == 0 && value == 0x4, "atomic_bit_test_and_toggle");
-    TEST_ASSERT(atomic_bit_test_and_toggle(&value, 2) == 0x4 && value == 0, "atomic_bit_test_and_toggle");
-}
-
-/* 测试内存屏障 */
-void test_memory_barriers() {
-    printf("\n=== Testing Memory Barriers ===\n");
-    
-    int x = 0, y = 0;
-    
-    /* 编译器屏障测试 */
-    x = 1;
-    compiler_barrier();
-    y = 2;
-    
-    /* 完整内存屏障 */
-    memory_barrier();
-    
-    /* 读写屏障 */
-    read_barrier();
-    write_barrier();
-    
-    TEST_ASSERT(1, "memory barriers completed");
-}
-
-/* 测试指针操作 */
-void test_pointer_operations() {
-    printf("\n=== Testing Pointer Operations ===\n");
-    
-    int data1 = 100, data2 = 200;
-    atomic_ptr ptr = NULL;
-    
-    atomic_store(&ptr, &data1);
-    TEST_ASSERT(atomic_load(&ptr) == &data1, "atomic pointer store/load");
-    
-    void* old_ptr = atomic_exchange(&ptr, &data2);
-    TEST_ASSERT(old_ptr == &data1 && atomic_load(&ptr) == &data2, "atomic pointer exchange");
-    
-    void* expected = &data2;
-    int success = atomic_compare_exchange_strong(&ptr, &expected, &data1);
-    TEST_ASSERT(success && atomic_load(&ptr) == &data1, "atomic pointer CAS");
-}
-
-/* 测试高级操作 */
-void test_advanced_operations() {
-    printf("\n=== Testing Advanced Operations ===\n");
-    
-    atomic_int lock = 0;
-    
-    /* 测试尝试获取 */
-    TEST_ASSERT(atomic_try_acquire(&lock), "atomic_try_acquire first attempt");
-    TEST_ASSERT(!atomic_try_acquire(&lock), "atomic_try_acquire second attempt (should fail)");
-    
-    /* 测试释放 */
-    atomic_release(&lock);
-    TEST_ASSERT(atomic_load(&lock) == 0, "atomic_release");
-    TEST_ASSERT(atomic_try_acquire(&lock), "atomic_try_acquire after release");
-    
-    atomic_release(&lock);
-}
-
-/* 测试多线程安全性 */
-void test_thread_safety() {
-    printf("\n=== Testing Thread Safety ===\n");
-    
-    pthread_t threads[NUM_THREADS];
-    
-    /* 重置计数器 */
-    g_counter = 0;
-    g_uint_counter = 0;
-    g_int32_counter = 0;
-    g_uint32_counter = 0;
-    g_int64_counter = 0;
-    g_uint64_counter = 0;
-    
-    /* 创建线程进行加法操作 */
-    for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_create(&threads[i], NULL, test_add_thread, NULL);
-    }
-    
-    /* 等待所有线程完成 */
-    for (int i = 0; i < NUM_THREADS; i++) {
-        pthread_join(threads[i], NULL);
-    }
-    
-    /* 验证结果 */
-    int expected = NUM_THREADS * OPERATIONS_PER_THREAD;
-    TEST_ASSERT(atomic_load(&g_counter) == expected, "thread-safe int counter");
-    TEST_ASSERT(atomic_load(&g_uint_counter) == (unsigned int)expected, "thread-safe uint counter");
-    TEST_ASSERT(atomic_load(&g_int32_counter) == expected, "thread-safe int32 counter");
-    TEST_ASSERT(atomic_load(&g_uint32_counter) == (uint32_t)expected, "thread-safe uint32 counter");
-    TEST_ASSERT(atomic_load((atomic_int64*)&g_int64_counter) == (int64_t)expected, "thread-safe int64 counter");
-    TEST_ASSERT(atomic_load((atomic_uint64*)&g_uint64_counter) == (uint64_t)expected, "thread-safe uint64 counter");
-    
-    printf("Final counter values: %d (expected: %d)\n", atomic_load(&g_counter), expected);
-}
-
-/* 测试边界条件 */
-void test_edge_cases() {
-    printf("\n=== Testing Edge Cases ===\n");
-    
-    /* 测试最大值边界 */
-    atomic_int max_val = INT_MAX;
-    atomic_fetch_inc(&max_val);
-    TEST_ASSERT(max_val == INT_MIN, "integer overflow handling");
-    
-    /* 测试零值 */
-    atomic_int zero = 0;
-    TEST_ASSERT(atomic_fetch_dec(&zero) == 0 && zero == -1, "decrement from zero");
-    
-    /* 测试负值 */
-    atomic_int neg = -5;
-    TEST_ASSERT(atomic_fetch_add(&neg, 10) == -5 && neg == 5, "add to negative value");
-    
-    /* 测试所有位操作 */
-    atomic_uint all_ones = ~0U;
-    atomic_fetch_and(&all_ones, 0);
-    TEST_ASSERT(all_ones == 0, "clear all bits");
-    
-    atomic_fetch_or(&all_ones, ~0U);
-    TEST_ASSERT(all_ones == ~0U, "set all bits");
-}
-
-int main() {
-    printf("Starting atomic operations tests...\n");
-
-    atomic_int rc = 15;
-    atomic_store(&rc, 0);
-    atomic_fetch_add(&rc, 1);
-    printf("rc: %d\n", atomic_load(&rc));
-    
-    test_basic_operations();
-    test_arithmetic_operations();
-    test_bit_operations();
-    test_memory_barriers();
-    test_pointer_operations();
-    test_advanced_operations();
-    test_edge_cases();
-    test_thread_safety();
-    
-    printf("\n=== All Tests Passed! ===\n");
     return 0;
 }
+
+/**
+ * @brief 测试atomic_add和atomic_sub
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_add_sub(void)
+{
+    atomic_t var = ATOMIC_INIT(10);
+
+    atomic_add(5, &var);
+    TEST_ASSERT_EQUAL(15, atomic_read(&var));
+
+    atomic_sub(8, &var);
+    TEST_ASSERT_EQUAL(7, atomic_read(&var));
+
+    atomic_add(-3, &var);
+    TEST_ASSERT_EQUAL(4, atomic_read(&var));
+
+    atomic_sub(-6, &var);
+    TEST_ASSERT_EQUAL(10, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_inc和atomic_dec
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_inc_dec(void)
+{
+    atomic_t var = ATOMIC_INIT(5);
+
+    atomic_inc(&var);
+    TEST_ASSERT_EQUAL(6, atomic_read(&var));
+
+    atomic_dec(&var);
+    TEST_ASSERT_EQUAL(5, atomic_read(&var));
+
+    for (int i = 0; i < 10; i++) {
+        atomic_inc(&var);
+    }
+    TEST_ASSERT_EQUAL(15, atomic_read(&var));
+
+    for (int i = 0; i < 5; i++) {
+        atomic_dec(&var);
+    }
+    TEST_ASSERT_EQUAL(10, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_add_return和atomic_sub_return
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_add_sub_return(void)
+{
+    atomic_t var = ATOMIC_INIT(20);
+    int result;
+
+    result = atomic_add_return(10, &var);
+    TEST_ASSERT_EQUAL(30, result);
+    TEST_ASSERT_EQUAL(30, atomic_read(&var));
+
+    result = atomic_sub_return(15, &var);
+    TEST_ASSERT_EQUAL(15, result);
+    TEST_ASSERT_EQUAL(15, atomic_read(&var));
+
+    result = atomic_add_return(-5, &var);
+    TEST_ASSERT_EQUAL(10, result);
+    TEST_ASSERT_EQUAL(10, atomic_read(&var));
+
+    result = atomic_sub_return(-8, &var);
+    TEST_ASSERT_EQUAL(18, result);
+    TEST_ASSERT_EQUAL(18, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_inc_return和atomic_dec_return
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_inc_dec_return(void)
+{
+    atomic_t var = ATOMIC_INIT(0);
+    int result;
+
+    result = atomic_inc_return(&var);
+    TEST_ASSERT_EQUAL(1, result);
+    TEST_ASSERT_EQUAL(1, atomic_read(&var));
+
+    result = atomic_dec_return(&var);
+    TEST_ASSERT_EQUAL(0, result);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    result = atomic_inc_return(&var);
+    result = atomic_inc_return(&var);
+    result = atomic_inc_return(&var);
+    TEST_ASSERT_EQUAL(3, result);
+    TEST_ASSERT_EQUAL(3, atomic_read(&var));
+
+    result = atomic_dec_return(&var);
+    result = atomic_dec_return(&var);
+    TEST_ASSERT_EQUAL(1, result);
+    TEST_ASSERT_EQUAL(1, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_fetch_add和atomic_fetch_sub
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_fetch_add_sub(void)
+{
+    atomic_t var = ATOMIC_INIT(100);
+    int old_val;
+
+    old_val = atomic_fetch_add(20, &var);
+    TEST_ASSERT_EQUAL(100, old_val);
+    TEST_ASSERT_EQUAL(120, atomic_read(&var));
+
+    old_val = atomic_fetch_sub(30, &var);
+    TEST_ASSERT_EQUAL(120, old_val);
+    TEST_ASSERT_EQUAL(90, atomic_read(&var));
+
+    old_val = atomic_fetch_add(-10, &var);
+    TEST_ASSERT_EQUAL(90, old_val);
+    TEST_ASSERT_EQUAL(80, atomic_read(&var));
+
+    old_val = atomic_fetch_sub(-15, &var);
+    TEST_ASSERT_EQUAL(80, old_val);
+    TEST_ASSERT_EQUAL(95, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_fetch_inc和atomic_fetch_dec
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_fetch_inc_dec(void)
+{
+    atomic_t var = ATOMIC_INIT(5);
+    int old_val;
+
+    old_val = atomic_fetch_inc(&var);
+    TEST_ASSERT_EQUAL(5, old_val);
+    TEST_ASSERT_EQUAL(6, atomic_read(&var));
+
+    old_val = atomic_fetch_dec(&var);
+    TEST_ASSERT_EQUAL(6, old_val);
+    TEST_ASSERT_EQUAL(5, atomic_read(&var));
+
+    old_val = atomic_fetch_inc(&var);
+    old_val = atomic_fetch_inc(&var);
+    TEST_ASSERT_EQUAL(6, old_val);
+    TEST_ASSERT_EQUAL(7, atomic_read(&var));
+
+    old_val = atomic_fetch_dec(&var);
+    old_val = atomic_fetch_dec(&var);
+    TEST_ASSERT_EQUAL(6, old_val);
+    TEST_ASSERT_EQUAL(5, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_and和atomic_or
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_and_or(void)
+{
+    atomic_t var = ATOMIC_INIT(0xFF);
+
+    atomic_and(0x0F, &var);
+    TEST_ASSERT_EQUAL(0x0F, atomic_read(&var));
+
+    atomic_or(0xF0, &var);
+    TEST_ASSERT_EQUAL(0xFF, atomic_read(&var));
+
+    atomic_and(0xAA, &var);
+    TEST_ASSERT_EQUAL(0xAA, atomic_read(&var));
+
+    atomic_or(0x55, &var);
+    TEST_ASSERT_EQUAL(0xFF, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_xor
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_xor(void)
+{
+    atomic_t var = ATOMIC_INIT(0x55);
+
+    atomic_xor(0xFF, &var);
+    TEST_ASSERT_EQUAL(0xAA, atomic_read(&var));
+
+    atomic_xor(0xAA, &var);
+    TEST_ASSERT_EQUAL(0x00, atomic_read(&var));
+
+    atomic_xor(0xFF, &var);
+    TEST_ASSERT_EQUAL(0xFF, atomic_read(&var));
+
+    atomic_xor(0x0F, &var);
+    TEST_ASSERT_EQUAL(0xF0, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_fetch_and和atomic_fetch_or
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_fetch_and_or(void)
+{
+    atomic_t var = ATOMIC_INIT(0xFF);
+    int old_val;
+
+    old_val = atomic_fetch_and(0x0F, &var);
+    TEST_ASSERT_EQUAL(0xFF, old_val);
+    TEST_ASSERT_EQUAL(0x0F, atomic_read(&var));
+
+    old_val = atomic_fetch_or(0xF0, &var);
+    TEST_ASSERT_EQUAL(0x0F, old_val);
+    TEST_ASSERT_EQUAL(0xFF, atomic_read(&var));
+
+    old_val = atomic_fetch_and(0x33, &var);
+    TEST_ASSERT_EQUAL(0xFF, old_val);
+    TEST_ASSERT_EQUAL(0x33, atomic_read(&var));
+
+    old_val = atomic_fetch_or(0xCC, &var);
+    TEST_ASSERT_EQUAL(0x33, old_val);
+    TEST_ASSERT_EQUAL(0xFF, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_fetch_xor
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_fetch_xor(void)
+{
+    atomic_t var = ATOMIC_INIT(0x55);
+    int old_val;
+
+    old_val = atomic_fetch_xor(0xFF, &var);
+    TEST_ASSERT_EQUAL(0x55, old_val);
+    TEST_ASSERT_EQUAL(0xAA, atomic_read(&var));
+
+    old_val = atomic_fetch_xor(0xAA, &var);
+    TEST_ASSERT_EQUAL(0xAA, old_val);
+    TEST_ASSERT_EQUAL(0x00, atomic_read(&var));
+
+    old_val = atomic_fetch_xor(0xFF, &var);
+    TEST_ASSERT_EQUAL(0x00, old_val);
+    TEST_ASSERT_EQUAL(0xFF, atomic_read(&var));
+
+    old_val = atomic_fetch_xor(0x0F, &var);
+    TEST_ASSERT_EQUAL(0xFF, old_val);
+    TEST_ASSERT_EQUAL(0xF0, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_cmpxchg
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_cmpxchg(void)
+{
+    atomic_t var = ATOMIC_INIT(100);
+    int expected;
+    bool success;
+
+    expected = 100;
+    success = atomic_cmpxchg(&var, expected, 200);
+    TEST_ASSERT(success);
+    TEST_ASSERT_EQUAL(200, atomic_read(&var));
+
+    expected = 300;
+    success = atomic_cmpxchg(&var, expected, 400);
+    TEST_ASSERT(!success);
+    TEST_ASSERT_EQUAL(200, atomic_read(&var));
+
+    expected = 200;
+    success = atomic_cmpxchg(&var, expected, 0);
+    TEST_ASSERT(success);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    expected = -1;
+    success = atomic_cmpxchg(&var, expected, 500);
+    TEST_ASSERT(!success);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_xchg
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_xchg(void)
+{
+    atomic_t var = ATOMIC_INIT(50);
+    int old_val;
+
+    old_val = atomic_xchg(&var, 100);
+    TEST_ASSERT_EQUAL(50, old_val);
+    TEST_ASSERT_EQUAL(100, atomic_read(&var));
+
+    old_val = atomic_xchg(&var, -25);
+    TEST_ASSERT_EQUAL(100, old_val);
+    TEST_ASSERT_EQUAL(-25, atomic_read(&var));
+
+    old_val = atomic_xchg(&var, 0);
+    TEST_ASSERT_EQUAL(-25, old_val);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    old_val = atomic_xchg(&var, 999);
+    TEST_ASSERT_EQUAL(0, old_val);
+    TEST_ASSERT_EQUAL(999, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_dec_and_test
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_dec_and_test(void)
+{
+    atomic_t var;
+    bool result;
+
+    atomic_set(&var, 1);
+    result = atomic_dec_and_test(&var);
+    TEST_ASSERT(result);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    atomic_set(&var, 2);
+    result = atomic_dec_and_test(&var);
+    TEST_ASSERT(!result);
+    TEST_ASSERT_EQUAL(1, atomic_read(&var));
+
+    atomic_set(&var, 0);
+    result = atomic_dec_and_test(&var);
+    TEST_ASSERT(!result);
+    TEST_ASSERT_EQUAL(-1, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_inc_and_test
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_inc_and_test(void)
+{
+    atomic_t var;
+    bool result;
+
+    atomic_set(&var, -1);
+    result = atomic_inc_and_test(&var);
+    TEST_ASSERT(result);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    atomic_set(&var, 0);
+    result = atomic_inc_and_test(&var);
+    TEST_ASSERT(!result);
+    TEST_ASSERT_EQUAL(1, atomic_read(&var));
+
+    atomic_set(&var, 5);
+    result = atomic_inc_and_test(&var);
+    TEST_ASSERT(!result);
+    TEST_ASSERT_EQUAL(6, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_sub_and_test
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_sub_and_test(void)
+{
+    atomic_t var;
+    bool result;
+
+    atomic_set(&var, 5);
+    result = atomic_sub_and_test(5, &var);
+    TEST_ASSERT(result);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    atomic_set(&var, 10);
+    result = atomic_sub_and_test(5, &var);
+    TEST_ASSERT(!result);
+    TEST_ASSERT_EQUAL(5, atomic_read(&var));
+
+    atomic_set(&var, 3);
+    result = atomic_sub_and_test(10, &var);
+    TEST_ASSERT(!result);
+    TEST_ASSERT_EQUAL(-7, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试atomic_test_and_set
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_test_and_set(void)
+{
+    atomic_t var;
+    bool result;
+
+    atomic_set(&var, 0);
+    result = atomic_test_and_set(&var);
+    TEST_ASSERT(!result);
+
+    atomic_set(&var, 1);
+    result = atomic_test_and_set(&var);
+    TEST_ASSERT(result);
+
+    atomic_set(&var, -1);
+    result = atomic_test_and_set(&var);
+    TEST_ASSERT(result);
+
+    atomic_set(&var, 100);
+    result = atomic_test_and_set(&var);
+    TEST_ASSERT(result);
+
+    return 0;
+}
+
+/**
+ * @brief 测试边界值和极端情况
+ * @return 成功返回0，失败返回-1
+ */
+static int test_edge_cases(void)
+{
+    atomic_t var;
+    int result;
+
+    atomic_set(&var, 2147483647);
+    atomic_inc(&var);
+    TEST_ASSERT_EQUAL(-2147483648, atomic_read(&var));
+
+    atomic_set(&var, -2147483648);
+    atomic_dec(&var);
+    TEST_ASSERT_EQUAL(2147483647, atomic_read(&var));
+
+    atomic_set(&var, 0);
+    for (int i = 0; i < 1000; i++) {
+        atomic_inc(&var);
+    }
+    TEST_ASSERT_EQUAL(1000, atomic_read(&var));
+
+    for (int i = 0; i < 1000; i++) {
+        atomic_dec(&var);
+    }
+    TEST_ASSERT_EQUAL(0, atomic_read(&var));
+
+    return 0;
+}
+
+/**
+ * @brief 测试ATOMIC_INIT宏
+ * @return 成功返回0，失败返回-1
+ */
+static int test_atomic_init(void)
+{
+    atomic_t var1 = ATOMIC_INIT(0);
+    TEST_ASSERT_EQUAL(0, atomic_read(&var1));
+
+    atomic_t var2 = ATOMIC_INIT(100);
+    TEST_ASSERT_EQUAL(100, atomic_read(&var2));
+
+    atomic_t var3 = ATOMIC_INIT(-50);
+    TEST_ASSERT_EQUAL(-50, atomic_read(&var3));
+
+    return 0;
+}
+
+/**
+ * @brief 主测试套件
+ */
+TEST_SUITE_BEGIN()
+
+    TEST_RUN(test_atomic_read_set);
+    TEST_RUN(test_atomic_add_sub);
+    TEST_RUN(test_atomic_inc_dec);
+    TEST_RUN(test_atomic_add_sub_return);
+    TEST_RUN(test_atomic_inc_dec_return);
+    TEST_RUN(test_atomic_fetch_add_sub);
+    TEST_RUN(test_atomic_fetch_inc_dec);
+    TEST_RUN(test_atomic_and_or);
+    TEST_RUN(test_atomic_xor);
+    TEST_RUN(test_atomic_fetch_and_or);
+    TEST_RUN(test_atomic_fetch_xor);
+    TEST_RUN(test_atomic_cmpxchg);
+    TEST_RUN(test_atomic_xchg);
+    TEST_RUN(test_atomic_dec_and_test);
+    TEST_RUN(test_atomic_inc_and_test);
+    TEST_RUN(test_atomic_sub_and_test);
+    TEST_RUN(test_atomic_test_and_set);
+    TEST_RUN(test_edge_cases);
+    TEST_RUN(test_atomic_init);
+
+TEST_SUITE_END()

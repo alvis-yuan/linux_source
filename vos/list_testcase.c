@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include "list.h"
+#include "vos.h"
 
 // 测试数据结构
 struct test_data {

@@ -202,6 +202,7 @@ int vos_signal_start(void)
     // 如果当前fd已存在，先删除旧的
     if (sig_handler->fd >= 0) {
         LogInfo("sig_handler fd already exists");
+        return -1;
     }
 
     // 检查信号集是否为空
@@ -237,5 +238,38 @@ int vos_signal_start(void)
     return 0;
 }
 
+/**
+ * @brief 停止信号处理器
+ * @return 成功返回0，失败返回-1
+ */
+int vos_signal_stop(void)
+{
+    if (!sig_handler) {
+        LogError("sig_handler is NULL");
+        return -1;
+    }
 
+    if (!sig_handler->polled) {
+        LogInfo("sig_handler not polled");
+        return -1;
+    }
+
+    if (epoll_remove_event(sig_handler->fd) < 0) {
+        LogError("epoll_remove_signal failed");
+        return -1;
+    }
+
+    if (close(sig_handler->fd) < 0) {
+        LogError("close sig_handler fd failed: %s", strerror(errno));
+        return -1;
+    }
+
+    // 解除之前阻塞的信号
+    sigprocmask(SIG_UNBLOCK, &sig_handler->sigset, NULL);
+
+    sig_handler->fd = -1;
+    sig_handler->polled = false;
+
+    return 0;
+}
 

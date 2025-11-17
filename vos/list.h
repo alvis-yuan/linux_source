@@ -1,8 +1,7 @@
 #ifndef _USER_LIST_H
 #define _USER_LIST_H
 
-#include <stddef.h>
-#include <stdbool.h>
+#include "vos.h"
 
 /*
  * 简单双向链表实现
@@ -261,11 +260,6 @@ static inline void list_splice_tail_init(struct list_head *list,
         INIT_LIST_HEAD(list);
     }
 }
-
-#define container_of(ptr, type, member) ({ \
-    const typeof( ((type *)0)->member ) *__mptr = (ptr); \
-    (type *)( (char *)__mptr - offsetof(type,member) ); \
-})
 
 /**
  * list_entry - 获取此条目的结构体

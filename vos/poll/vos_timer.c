@@ -62,9 +62,9 @@ vos_timer_t *vos_timer_create(timer_cb_t timer_cb, uint32_t period, void *user_d
 
     return timer;
 
-  err_free:
+err_free:
     free(timer);
-  err_out:
+err_out:
     return NULL;
 }
 

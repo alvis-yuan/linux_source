@@ -1,5 +1,5 @@
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef VOS_TIMER_H
+#define VOS_TIMER_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -108,4 +108,4 @@ bool vos_timer_get_paused(vos_timer_t * timer);
  */
 void *vos_timer_get_user_data(vos_timer_t * timer);
 
-#endif /* TIMER_H */
+#endif /* VOS_TIMER_H */

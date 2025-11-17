@@ -1,186 +1,228 @@
-#ifndef _ATOMIC_H_
-#define _ATOMIC_H_
-
-#include <stdint.h>
-
 /**
  * @file atomic.h
- * @brief 原子操作封装，基于GCC __sync内置函数
- * 
- * 提供类似C11标准的原子操作接口，兼容C99之前的标准
+ * @brief 基于GCC内置原子操作的用户态实现，接口与Linux内核保持一致
+ * @note 此实现仅用于用户态程序，依赖于GCC的__atomic内置函数
  */
 
-typedef int atomic_int;
-typedef unsigned int atomic_uint;
-typedef int32_t atomic_int32;
-typedef uint32_t atomic_uint32;
-typedef int64_t atomic_int64;
-typedef uint64_t atomic_uint64;
-typedef void* atomic_ptr;
+#ifndef _USER_ATOMIC_H
+#define _USER_ATOMIC_H
 
-/* 内存顺序（简化版本，实际GCC __sync函数使用顺序一致性） */
-#define memory_order_relaxed 0
-#define memory_order_acquire 1
-#define memory_order_release 2
-#define memory_order_acq_rel 3
-#define memory_order_seq_cst 4
+#include "vos.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
- * @brief 原子加载（带内存顺序）
+ * @defgroup atomic_api 原子操作接口
+ * @{
  */
-#define atomic_load(ptr) (*(ptr))
+
+typedef struct {
+    int counter;
+} atomic_t;
 
 /**
- * @brief 原子存储（带内存顺序）
+ * @brief 原子变量初始化器
+ * @param i 初始值
  */
-#define atomic_store(ptr, value) do { \
-    __sync_synchronize(); \
-    *(ptr) = (value); \
-    __sync_synchronize(); \
-} while (0)
+#define ATOMIC_INIT(i) { (i) }
 
 /**
- * @brief 原子交换
+ * @brief 读取原子变量的值
+ * @param v 原子变量指针
+ * @return 当前值
  */
-#define atomic_exchange(ptr, value) __sync_lock_test_and_set(ptr, value)
+#define atomic_read(v) __atomic_load_n(&(v)->counter, __ATOMIC_RELAXED)
 
 /**
- * @brief 比较并交换（CAS）
+ * @brief 设置原子变量的值
+ * @param v 原子变量指针
+ * @param i 要设置的值
  */
-#define atomic_compare_exchange_strong(ptr, expected, desired) \
-    __sync_bool_compare_and_swap(ptr, *(expected), desired) ? \
-    (*(expected) = *(expected), 1) : (*(expected) = *(ptr), 0)
-
-/* ========== 整数原子操作 ========== */
+#define atomic_set(v, i) __atomic_store_n(&(v)->counter, i, __ATOMIC_RELAXED)
 
 /**
- * @brief 原子获取并加
+ * @brief 原子加法
+ * @param i 要加的值
+ * @param v 原子变量指针
  */
-#define atomic_fetch_add(ptr, value) __sync_fetch_and_add(ptr, value)
+#define atomic_add(i, v) __atomic_add_fetch(&(v)->counter, i, __ATOMIC_RELAXED)
 
 /**
- * @brief 原子获取并减
+ * @brief 原子减法
+ * @param i 要减的值
+ * @param v 原子变量指针
  */
-#define atomic_fetch_sub(ptr, value) __sync_fetch_and_sub(ptr, value)
+#define atomic_sub(i, v) __atomic_sub_fetch(&(v)->counter, i, __ATOMIC_RELAXED)
 
 /**
- * @brief 原子获取并或
+ * @brief 原子自增
+ * @param v 原子变量指针
  */
-#define atomic_fetch_or(ptr, value) __sync_fetch_and_or(ptr, value)
+#define atomic_inc(v) atomic_add(1, v)
 
 /**
- * @brief 原子获取并与
+ * @brief 原子自减
+ * @param v 原子变量指针
  */
-#define atomic_fetch_and(ptr, value) __sync_fetch_and_and(ptr, value)
+#define atomic_dec(v) atomic_sub(1, v)
 
 /**
- * @brief 原子获取并异或
+ * @brief 原子加法并返回新值
+ * @param i 要加的值
+ * @param v 原子变量指针
+ * @return 加法后的新值
  */
-#define atomic_fetch_xor(ptr, value) __sync_fetch_and_xor(ptr, value)
-
-/* ========== 返回新值的原子操作 ========== */
+#define atomic_add_return(i, v) __atomic_add_fetch(&(v)->counter, i, __ATOMIC_SEQ_CST)
 
 /**
- * @brief 原子加并获取
+ * @brief 原子减法并返回新值
+ * @param i 要减的值
+ * @param v 原子变量指针
+ * @return 减法后的新值
  */
-#define atomic_add_fetch(ptr, value) __sync_add_and_fetch(ptr, value)
-
-/**
- * @brief 原子减并获取
- */
-#define atomic_sub_fetch(ptr, value) __sync_sub_and_fetch(ptr, value)
-
-/**
- * @brief 原子或并获取
- */
-#define atomic_or_fetch(ptr, value) __sync_or_and_fetch(ptr, value)
-
-/**
- * @brief 原子与并获取
- */
-#define atomic_and_fetch(ptr, value) __sync_and_and_fetch(ptr, value)
-
-/**
- * @brief 原子异或并获取
- */
-#define atomic_xor_fetch(ptr, value) __sync_xor_and_fetch(ptr, value)
-
-/* ========== 位操作原子操作 ========== */
-
-/**
- * @brief 原子位测试并设置
- */
-#define atomic_bit_test_and_set(ptr, bit) \
-    __sync_fetch_and_or(ptr, (1U << (bit)))
-
-/**
- * @brief 原子位测试并清除
- */
-#define atomic_bit_test_and_clear(ptr, bit) \
-    __sync_fetch_and_and(ptr, ~(1U << (bit)))
-
-/**
- * @brief 原子位测试并翻转
- */
-#define atomic_bit_test_and_toggle(ptr, bit) \
-    __sync_fetch_and_xor(ptr, (1U << (bit)))
-
-/* ========== 内存屏障 ========== */
-
-/**
- * @brief 编译器内存屏障
- */
-#define compiler_barrier() asm volatile("" ::: "memory")
-
-/**
- * @brief 完整内存屏障
- */
-#define memory_barrier() __sync_synchronize()
-
-/**
- * @brief 读内存屏障（获取屏障）
- */
-#define read_barrier() __sync_synchronize()
-
-/**
- * @brief 写内存屏障（释放屏障）
- */
-#define write_barrier() __sync_synchronize()
-
-/* ========== 高级操作 ========== */
-
-/**
- * @brief 原子自增并返回旧值
- */
-#define atomic_fetch_inc(ptr) atomic_fetch_add(ptr, 1)
-
-/**
- * @brief 原子自减并返回旧值
- */
-#define atomic_fetch_dec(ptr) atomic_fetch_sub(ptr, 1)
+#define atomic_sub_return(i, v) __atomic_sub_fetch(&(v)->counter, i, __ATOMIC_SEQ_CST)
 
 /**
  * @brief 原子自增并返回新值
+ * @param v 原子变量指针
+ * @return 自增后的新值
  */
-#define atomic_inc_fetch(ptr) atomic_add_fetch(ptr, 1)
+#define atomic_inc_return(v) atomic_add_return(1, v)
 
 /**
  * @brief 原子自减并返回新值
+ * @param v 原子变量指针
+ * @return 自减后的新值
  */
-#define atomic_dec_fetch(ptr) atomic_sub_fetch(ptr, 1)
+#define atomic_dec_return(v) atomic_sub_return(1, v)
 
 /**
- * @brief 如果值为0则设置为1（类似尝试获取锁）
+ * @brief 原子加法并返回旧值
+ * @param i 要加的值
+ * @param v 原子变量指针
+ * @return 加法前的旧值
  */
-static inline int atomic_try_acquire(atomic_int *ptr) {
-    return __sync_bool_compare_and_swap(ptr, 0, 1);
-}
+#define atomic_fetch_add(i, v) __atomic_fetch_add(&(v)->counter, i, __ATOMIC_SEQ_CST)
 
 /**
- * @brief 释放（设置为0）
+ * @brief 原子减法并返回旧值
+ * @param i 要减的值
+ * @param v 原子变量指针
+ * @return 减法前的旧值
  */
-static inline void atomic_release(atomic_int *ptr) {
-    __sync_lock_release(ptr);
-}
+#define atomic_fetch_sub(i, v) __atomic_fetch_sub(&(v)->counter, i, __ATOMIC_SEQ_CST)
 
-#endif /* _ATOMIC_H_ */
+/**
+ * @brief 原子自增并返回旧值
+ * @param v 原子变量指针
+ * @return 自增前的旧值
+ */
+#define atomic_fetch_inc(v) atomic_fetch_add(1, v)
+
+/**
+ * @brief 原子自减并返回旧值
+ * @param v 原子变量指针
+ * @return 自减前的旧值
+ */
+#define atomic_fetch_dec(v) atomic_fetch_sub(1, v)
+
+/**
+ * @brief 原子与操作
+ * @param i 操作数
+ * @param v 原子变量指针
+ */
+#define atomic_and(i, v) __atomic_and_fetch(&(v)->counter, i, __ATOMIC_RELAXED)
+
+/**
+ * @brief 原子或操作
+ * @param i 操作数
+ * @param v 原子变量指针
+ */
+#define atomic_or(i, v) __atomic_or_fetch(&(v)->counter, i, __ATOMIC_RELAXED)
+
+/**
+ * @brief 原子异或操作
+ * @param i 操作数
+ * @param v 原子变量指针
+ */
+#define atomic_xor(i, v) __atomic_xor_fetch(&(v)->counter, i, __ATOMIC_RELAXED)
+
+/**
+ * @brief 原子与操作并返回旧值
+ * @param i 操作数
+ * @param v 原子变量指针
+ * @return 操作前的旧值
+ */
+#define atomic_fetch_and(i, v) __atomic_fetch_and(&(v)->counter, i, __ATOMIC_SEQ_CST)
+
+/**
+ * @brief 原子或操作并返回旧值
+ * @param i 操作数
+ * @param v 原子变量指针
+ * @return 操作前的旧值
+ */
+#define atomic_fetch_or(i, v) __atomic_fetch_or(&(v)->counter, i, __ATOMIC_SEQ_CST)
+
+/**
+ * @brief 原子异或操作并返回旧值
+ * @param i 操作数
+ * @param v 原子变量指针
+ * @return 操作前的旧值
+ */
+#define atomic_fetch_xor(i, v) __atomic_fetch_xor(&(v)->counter, i, __ATOMIC_SEQ_CST)
+
+/**
+ * @brief 原子比较交换
+ * @param v 原子变量指针
+ * @param old 期望的旧值
+ * @param new 要设置的新值
+ * @return 如果交换成功返回true，否则返回false
+ */
+#define atomic_cmpxchg(v, old, new) \
+    __atomic_compare_exchange_n(&(v)->counter, &(old), new, 0, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED)
+
+/**
+ * @brief 原子交换
+ * @param v 原子变量指针
+ * @param new 新值
+ * @return 交换前的旧值
+ */
+#define atomic_xchg(v, new) __atomic_exchange_n(&(v)->counter, new, __ATOMIC_SEQ_CST)
+
+/**
+ * @brief 原子变量减1后测试是否为0
+ * @param v 原子变量指针
+ * @return 如果减1后为0返回true，否则返回false
+ */
+#define atomic_dec_and_test(v) (atomic_sub_return(1, v) == 0)
+
+/**
+ * @brief 原子变量加1后测试是否为0
+ * @param v 原子变量指针
+ * @return 如果加1后为0返回true，否则返回false
+ */
+#define atomic_inc_and_test(v) (atomic_add_return(1, v) == 0)
+
+/**
+ * @brief 测试原子变量是否为负
+ * @param v 原子变量指针
+ * @return 如果值为负返回true，否则返回false
+ */
+#define atomic_sub_and_test(i, v) (atomic_sub_return(i, v) == 0)
+
+/**
+ * @brief 测试原子变量是否为0
+ * @param v 原子变量指针
+ * @return 如果值为0返回true，否则返回false
+ */
+#define atomic_test_and_set(v) (atomic_read(v) != 0)
+
+/** @} */ // atomic_api
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _USER_ATOMIC_H */
