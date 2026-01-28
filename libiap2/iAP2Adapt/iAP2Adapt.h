@@ -24,19 +24,19 @@ enum {
  * @param len 数据长度
  * @return 处理的字节数
  */
-int iAP2AdaptDataHandler(unsigned char* data, unsigned int len);
+int iAP2AdaptDataHandler(unsigned char *data, unsigned int len);
 
 /*
  * 会话数据回调类型
  */
-typedef int8_t (*iAP2SessionDataCB_t)(const uint8_t* data,
-                                    uint32_t dataLen,
-                                    void* context);
+typedef int8_t (*iAP2SessionDataCB_t)(const uint8_t *data,
+                                      uint32_t dataLen,
+                                      void *context);
 
 /* 物理层数据发送回调 - 用户实现，将数据通过物理层发送 */
-typedef int (*iAP2TransportSendDataCB_t)(const uint8_t* data, 
-                                          uint32_t dataLen, 
-                                          void* context);
+typedef int (*iAP2TransportSendDataCB_t)(const uint8_t *data,
+        uint32_t dataLen,
+        void *context);
 
 /**
  * @brief iAP2连接建立时调用
@@ -48,7 +48,8 @@ typedef int (*iAP2TransportSendDataCB_t)(const uint8_t* data,
 
  * @return 0 on success, -1 on failure
  */
-int iAP2AdaptOnConnected(int type, iAP2SessionDataCB_t sessionDataCB, iAP2TransportSendDataCB_t sendDataCB, void *context);
+int iAP2AdaptOnConnected(int type, iAP2SessionDataCB_t sessionDataCB,
+                         iAP2TransportSendDataCB_t sendDataCB, void *context);
 
 /**
  * @brief iAP2 BSA连接断开时调用

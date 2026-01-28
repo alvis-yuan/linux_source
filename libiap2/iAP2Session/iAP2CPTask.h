@@ -33,20 +33,22 @@ typedef enum {
  * 在CP任务完成操作后调用，通知主线程
  * 注意：此回调可能在不同线程中调用，需要线程安全
  */
-typedef void (*iAP2CPResultCB_t)(iAP2CPMsgType_t type, 
-                                  const uint8_t* data, 
-                                  uint16_t dataLen, 
-                                  BOOL success,
-                                  void* context);
+typedef void (*iAP2CPResultCB_t)(iAP2CPMsgType_t type,
+                                 const uint8_t *data,
+                                 uint16_t dataLen,
+                                 BOOL success,
+                                 void *context);
 
 /*
  * CP任务配置
  */
 typedef struct {
-    iAP2CPResultCB_t    resultCallback;     /* 结果回调（可选，用于日志） */
-    void*               context;            /* 用户上下文 */
+    iAP2CPResultCB_t
+    resultCallback;     /* 结果回调（可选，用于日志） */
+    void               *context;            /* 用户上下文 */
     BOOL                useThread;          /* 是否使用独立线程 */
-    int                 threadPriority;     /* 线程优先级（仅线程模式） */
+    int
+    threadPriority;     /* 线程优先级（仅线程模式） */
 } iAP2CPTaskConfig_t;
 
 /*
@@ -65,7 +67,7 @@ typedef struct {
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2CPTaskInit(const iAP2CPTaskConfig_t* config);
+int iAP2CPTaskInit(const iAP2CPTaskConfig_t *config);
 
 /*
  * iAP2CPTaskDeinit
@@ -93,7 +95,8 @@ BOOL iAP2CPTaskRequestReadCert(void);
  * Return:
  *   请求成功返回TRUE
  */
-BOOL iAP2CPTaskRequestSignChallenge(const uint8_t* challengeData, uint32_t challengeLen);
+BOOL iAP2CPTaskRequestSignChallenge(const uint8_t *challengeData,
+                                    uint32_t challengeLen);
 
 /*
  * iAP2CPTaskRequestReadSerial
@@ -107,7 +110,7 @@ BOOL iAP2CPTaskRequestReadSerial(void);
 /*
  * iAP2CPTaskProcess
  * CP任务处理函数
- * 
+ *
  * 轮询模式：在主循环中调用，检查并处理完成的操作
  * 线程模式：不需要调用，结果通过回调通知
  *

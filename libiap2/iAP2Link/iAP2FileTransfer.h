@@ -1,54 +1,54 @@
 /*
- *	File: iAP2FileTransfer.h
- *	Package: iAP2Link
- *	Abstract: n/a 
+ *  File: iAP2FileTransfer.h
+ *  Package: iAP2Link
+ *  Abstract: n/a
  *
- *	Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
- * 	Inc. ("Apple"), in your capacity as a current, and in good standing,
- *	Licensee in the MFi Licensing Program. Use of this Apple software is
- *	governed by and subject to the terms and conditions of your MFi License,
- *	including, but not limited to, the restrictions specified in the provision
- *	entitled “Public Software”, and is further subject to your agreement to
- *	the following additional terms, and your agreement that the use,
- *	installation, modification or redistribution of this Apple software
- * 	constitutes acceptance of these additional terms. If you do not agree with
- * 	these additional terms, please do not use, install, modify or redistribute
- *	this Apple software.
+ *  Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
+ *  Inc. ("Apple"), in your capacity as a current, and in good standing,
+ *  Licensee in the MFi Licensing Program. Use of this Apple software is
+ *  governed by and subject to the terms and conditions of your MFi License,
+ *  including, but not limited to, the restrictions specified in the provision
+ *  entitled “Public Software”, and is further subject to your agreement to
+ *  the following additional terms, and your agreement that the use,
+ *  installation, modification or redistribution of this Apple software
+ *  constitutes acceptance of these additional terms. If you do not agree with
+ *  these additional terms, please do not use, install, modify or redistribute
+ *  this Apple software.
  *
- *	In consideration of your agreement to abide by the following terms, and
- *	subject to these terms, Apple grants you a personal, non-exclusive
- *	license, under Apple's copyrights in this original Apple software (the
- *	"Apple Software"), to use, reproduce, and modify the Apple Software in
- *	source form, and to use, reproduce, modify, and redistribute the Apple
- *	Software, with or without modifications, in binary form. While you may not
- *	redistribute the Apple Software in source form, should you redistribute
- *	the Apple Software in binary form, in its entirety and without
- *	modifications, you must retain this notice and the following text and
- *	disclaimers in all such redistributions of the Apple Software. Neither the
- *	name, trademarks, service marks, or logos of Apple Inc. may be used to
- *	endorse or promote products derived from the Apple Software without
- *	specific prior written permission from Apple. Except as expressly stated
- *	in this notice, no other rights or licenses, express or implied, are
- *	granted by Apple herein, including but not limited to any patent rights
- *	that may be infringed by your derivative works or by other works in which
- *	the Apple Software may be incorporated.
- *	
- *	The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
- *	NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
- *	IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
- *	PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
- *	ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
+ *  In consideration of your agreement to abide by the following terms, and
+ *  subject to these terms, Apple grants you a personal, non-exclusive
+ *  license, under Apple's copyrights in this original Apple software (the
+ *  "Apple Software"), to use, reproduce, and modify the Apple Software in
+ *  source form, and to use, reproduce, modify, and redistribute the Apple
+ *  Software, with or without modifications, in binary form. While you may not
+ *  redistribute the Apple Software in source form, should you redistribute
+ *  the Apple Software in binary form, in its entirety and without
+ *  modifications, you must retain this notice and the following text and
+ *  disclaimers in all such redistributions of the Apple Software. Neither the
+ *  name, trademarks, service marks, or logos of Apple Inc. may be used to
+ *  endorse or promote products derived from the Apple Software without
+ *  specific prior written permission from Apple. Except as expressly stated
+ *  in this notice, no other rights or licenses, express or implied, are
+ *  granted by Apple herein, including but not limited to any patent rights
+ *  that may be infringed by your derivative works or by other works in which
+ *  the Apple Software may be incorporated.
  *
- *	IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
- *	MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
- *	WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
- *	LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
- *	OF SUCH DAMAGE.
+ *  The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
+ *  NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
+ *  IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+ *  PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
+ *  ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
  *
- *	Copyright (C) 2012 Apple Inc. All Rights Reserved.
+ *  IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
+ *  MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
+ *  WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
+ *  LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ *
+ *  Copyright (C) 2012 Apple Inc. All Rights Reserved.
  *
  */
 
@@ -137,8 +137,7 @@ extern "C" {
 #define IAP2_SERV_BUFF_HI_BYTE(X) (((X) >> 8) & 0xFF)
 #define IAP2_SERV_BUFF_LO_BYTE(X) ((X) & 0xFF)
 
-typedef enum
-{
+typedef enum {
     kiAP2FileTransferStateIdle = 0,
     kiAP2FileTransferStateSetup,
     kiAP2FileTransferStateSend,
@@ -155,16 +154,14 @@ typedef enum
 
 } iAP2FileTransferState_t;
 
-typedef enum
-{
+typedef enum {
     kiAP2FileTransferControlFirst  = 0x80,
     kiAP2FileTransferControlLast   = 0x40,
     kiAP2FileTransferControlType   = 0x0F
 
 } iAP2FileTransferControl_t;
 
-typedef enum
-{
+typedef enum {
     kiAP2FileTransferPacketTypeData    = 0x00,
     kiAP2FileTransferPacketTypeStart   = 0x01,
     kiAP2FileTransferPacketTypeCancel  = 0x02,
@@ -175,8 +172,7 @@ typedef enum
 
 } iAP2FileTransferPacketType_t;
 
-enum
-{
+enum {
     kiAP2FileTransferHdrIdxID          = 0,
     kiAP2FileTransferHdrIdxControl     = 1,
     kiAP2FileTransferHdrBaseLen        = 2,
@@ -196,17 +192,18 @@ enum
 struct iAP2FileTransfer_st;
 
 /* Callback to indicate send has finished/cancelled */
-typedef BOOL (*iAP2FileTransferEndCB_t) (struct iAP2FileTransfer_st* fileXfer, void* userInfo);
+typedef BOOL (*iAP2FileTransferEndCB_t)(struct iAP2FileTransfer_st *fileXfer,
+                                        void *userInfo);
 
 /* Callback to indicate data received */
-typedef BOOL (*iAP2FileTransferGotDataCB_t) (struct iAP2FileTransfer_st* fileXfer, void* userInfo);
+typedef BOOL (*iAP2FileTransferGotDataCB_t)(struct iAP2FileTransfer_st
+        *fileXfer, void *userInfo);
 
-typedef struct iAP2FileTransfer_st
-{
-    iAP2Link_t* link;
+typedef struct iAP2FileTransfer_st {
+    iAP2Link_t *link;
 
-    uint8_t*    pCurPos;
-    uint8_t*    pBuffer;
+    uint8_t    *pCurPos;
+    uint8_t    *pBuffer;
 
     uint64_t    sentSize;
     uint64_t    totalSize;
@@ -214,17 +211,17 @@ typedef struct iAP2FileTransfer_st
     uint64_t    buffSentSize;
 
     iAP2FileTransferEndCB_t     endCB;
-    void*                       endCBUserInfo;
+    void                       *endCBUserInfo;
     iAP2FileTransferGotDataCB_t gotCB;
-    void*                       gotCBUserInfo;
+    void                       *gotCBUserInfo;
 
     iAP2FileTransferState_t state;
     uint8_t     session;
     uint8_t     bufferID;
 
-    BOOL        bDeleteBuffOnFinish:1;
-    BOOL        bStream:1;
-    BOOL        bIsReceive:1;
+    BOOL        bDeleteBuffOnFinish: 1;
+    BOOL        bStream: 1;
+    BOOL        bIsReceive: 1;
 
 } iAP2FileTransfer_t;
 
@@ -250,9 +247,9 @@ typedef struct iAP2FileTransfer_st
 **
 *****************************************************************
 */
-BOOL iAP2FileTransferValidateBufferID (iAP2Link_t*  link,
-                                       uint8_t      session,
-                                       uint8_t      bufferID);
+BOOL iAP2FileTransferValidateBufferID(iAP2Link_t  *link,
+                                      uint8_t      session,
+                                      uint8_t      bufferID);
 
 
 /*
@@ -274,9 +271,9 @@ BOOL iAP2FileTransferValidateBufferID (iAP2Link_t*  link,
 **
 *****************************************************************
 */
-void iAP2FileTransferCancelSetup (iAP2Link_t*  link,
-                                  uint8_t      session,
-                                  uint8_t      bufferID);
+void iAP2FileTransferCancelSetup(iAP2Link_t  *link,
+                                 uint8_t      session,
+                                 uint8_t      bufferID);
 
 
 /*
@@ -308,13 +305,13 @@ void iAP2FileTransferCancelSetup (iAP2Link_t*  link,
 **
 *****************************************************************
 */
-iAP2FileTransfer_t* iAP2FileTransferCreate (iAP2Link_t*                 link,
-                                            uint8_t                     session,
-                                            uint8_t                     bufferID,
-                                            iAP2FileTransferGotDataCB_t callback,
-                                            void*                       userInfo,
-                                            BOOL                        bRecvAsStream,
-                                            iAP2FileTransfer_t*         fileXferBuff);
+iAP2FileTransfer_t *iAP2FileTransferCreate(iAP2Link_t                 *link,
+        uint8_t                     session,
+        uint8_t                     bufferID,
+        iAP2FileTransferGotDataCB_t callback,
+        void                       *userInfo,
+        BOOL                        bRecvAsStream,
+        iAP2FileTransfer_t         *fileXferBuff);
 
 
 /*
@@ -333,7 +330,7 @@ iAP2FileTransfer_t* iAP2FileTransferCreate (iAP2Link_t*                 link,
 **
 *****************************************************************
 */
-void iAP2FileTransferDelete (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferDelete(iAP2FileTransfer_t *fileXfer);
 
 
 /*
@@ -352,7 +349,7 @@ void iAP2FileTransferDelete (iAP2FileTransfer_t* fileXfer);
 **
 *****************************************************************
 */
-void iAP2FileTransferCleanup (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferCleanup(iAP2FileTransfer_t *fileXfer);
 
 
 /*
@@ -390,14 +387,14 @@ void iAP2FileTransferCleanup (iAP2FileTransfer_t* fileXfer);
 **
 *****************************************************************
 */
-BOOL iAP2FileTransferStart (iAP2FileTransfer_t*     fileXfer,
-                            uint8_t*                buff,
-                            uint32_t                buffLen,
-                            uint32_t                totalLen,
-                            iAP2FileTransferEndCB_t callback,
-                            void*                   userInfo,
-                            BOOL                    bSendAsStream,
-                            BOOL                    bDeleteBuffOnFinish);
+BOOL iAP2FileTransferStart(iAP2FileTransfer_t     *fileXfer,
+                           uint8_t                *buff,
+                           uint32_t                buffLen,
+                           uint32_t                totalLen,
+                           iAP2FileTransferEndCB_t callback,
+                           void                   *userInfo,
+                           BOOL                    bSendAsStream,
+                           BOOL                    bDeleteBuffOnFinish);
 
 
 /*
@@ -428,11 +425,11 @@ BOOL iAP2FileTransferStart (iAP2FileTransfer_t*     fileXfer,
 **
 *****************************************************************
 */
-void iAP2FileTransferSendNext (iAP2FileTransfer_t*   fileXfer,
-                               uint8_t*              buff,
-                               uint32_t              buffLen,
-                               BOOL                  bDeleteBuffOnFinish,
-                               BOOL                  bFinal);
+void iAP2FileTransferSendNext(iAP2FileTransfer_t   *fileXfer,
+                              uint8_t              *buff,
+                              uint32_t              buffLen,
+                              BOOL                  bDeleteBuffOnFinish,
+                              BOOL                  bFinal);
 
 
 /*
@@ -463,9 +460,9 @@ void iAP2FileTransferSendNext (iAP2FileTransfer_t*   fileXfer,
 **                  to cleanup the transfer state.
 *****************************************************************
 */
-BOOL iAP2FileTransferHandleRecv (iAP2FileTransfer_t* fileXfer,
-                                 const uint8_t*      data,
-                                 uint32_t            dataLen);
+BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t *fileXfer,
+                                const uint8_t      *data,
+                                uint32_t            dataLen);
 
 
 /*
@@ -484,7 +481,7 @@ BOOL iAP2FileTransferHandleRecv (iAP2FileTransfer_t* fileXfer,
 **
 *****************************************************************
 */
-void iAP2FileTransferCancel (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferCancel(iAP2FileTransfer_t *fileXfer);
 
 
 /*
@@ -503,7 +500,7 @@ void iAP2FileTransferCancel (iAP2FileTransfer_t* fileXfer);
 **
 *****************************************************************
 */
-void iAP2FileTransferPause (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferPause(iAP2FileTransfer_t *fileXfer);
 
 
 /*
@@ -522,7 +519,7 @@ void iAP2FileTransferPause (iAP2FileTransfer_t* fileXfer);
 **
 *****************************************************************
 */
-void iAP2FileTransferResume (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferResume(iAP2FileTransfer_t *fileXfer);
 
 
 /*
@@ -541,7 +538,7 @@ void iAP2FileTransferResume (iAP2FileTransfer_t* fileXfer);
 **
 *****************************************************************
 */
-void iAP2FileTransferSuccess (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferSuccess(iAP2FileTransfer_t *fileXfer);
 
 
 /*
@@ -560,7 +557,7 @@ void iAP2FileTransferSuccess (iAP2FileTransfer_t* fileXfer);
 **
 *****************************************************************
 */
-void iAP2FileTransferFailure (iAP2FileTransfer_t* fileXfer);
+void iAP2FileTransferFailure(iAP2FileTransfer_t *fileXfer);
 
 
 #ifdef __cplusplus

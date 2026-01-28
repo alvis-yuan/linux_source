@@ -1,54 +1,54 @@
 /*
- *	File: iAP2LinkRunLoop.h
- *	Package: iAP2Link
- *	Abstract: n/a 
+ *  File: iAP2LinkRunLoop.h
+ *  Package: iAP2Link
+ *  Abstract: n/a
  *
- *	Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
- * 	Inc. ("Apple"), in your capacity as a current, and in good standing,
- *	Licensee in the MFi Licensing Program. Use of this Apple software is
- *	governed by and subject to the terms and conditions of your MFi License,
- *	including, but not limited to, the restrictions specified in the provision
- *	entitled “Public Software”, and is further subject to your agreement to
- *	the following additional terms, and your agreement that the use,
- *	installation, modification or redistribution of this Apple software
- * 	constitutes acceptance of these additional terms. If you do not agree with
- * 	these additional terms, please do not use, install, modify or redistribute
- *	this Apple software.
+ *  Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
+ *  Inc. ("Apple"), in your capacity as a current, and in good standing,
+ *  Licensee in the MFi Licensing Program. Use of this Apple software is
+ *  governed by and subject to the terms and conditions of your MFi License,
+ *  including, but not limited to, the restrictions specified in the provision
+ *  entitled “Public Software”, and is further subject to your agreement to
+ *  the following additional terms, and your agreement that the use,
+ *  installation, modification or redistribution of this Apple software
+ *  constitutes acceptance of these additional terms. If you do not agree with
+ *  these additional terms, please do not use, install, modify or redistribute
+ *  this Apple software.
  *
- *	In consideration of your agreement to abide by the following terms, and
- *	subject to these terms, Apple grants you a personal, non-exclusive
- *	license, under Apple's copyrights in this original Apple software (the
- *	"Apple Software"), to use, reproduce, and modify the Apple Software in
- *	source form, and to use, reproduce, modify, and redistribute the Apple
- *	Software, with or without modifications, in binary form. While you may not
- *	redistribute the Apple Software in source form, should you redistribute
- *	the Apple Software in binary form, in its entirety and without
- *	modifications, you must retain this notice and the following text and
- *	disclaimers in all such redistributions of the Apple Software. Neither the
- *	name, trademarks, service marks, or logos of Apple Inc. may be used to
- *	endorse or promote products derived from the Apple Software without
- *	specific prior written permission from Apple. Except as expressly stated
- *	in this notice, no other rights or licenses, express or implied, are
- *	granted by Apple herein, including but not limited to any patent rights
- *	that may be infringed by your derivative works or by other works in which
- *	the Apple Software may be incorporated.
- *	
- *	The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
- *	NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
- *	IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
- *	PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
- *	ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
+ *  In consideration of your agreement to abide by the following terms, and
+ *  subject to these terms, Apple grants you a personal, non-exclusive
+ *  license, under Apple's copyrights in this original Apple software (the
+ *  "Apple Software"), to use, reproduce, and modify the Apple Software in
+ *  source form, and to use, reproduce, modify, and redistribute the Apple
+ *  Software, with or without modifications, in binary form. While you may not
+ *  redistribute the Apple Software in source form, should you redistribute
+ *  the Apple Software in binary form, in its entirety and without
+ *  modifications, you must retain this notice and the following text and
+ *  disclaimers in all such redistributions of the Apple Software. Neither the
+ *  name, trademarks, service marks, or logos of Apple Inc. may be used to
+ *  endorse or promote products derived from the Apple Software without
+ *  specific prior written permission from Apple. Except as expressly stated
+ *  in this notice, no other rights or licenses, express or implied, are
+ *  granted by Apple herein, including but not limited to any patent rights
+ *  that may be infringed by your derivative works or by other works in which
+ *  the Apple Software may be incorporated.
  *
- *	IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
- *	MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
- *	WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
- *	LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
- *	OF SUCH DAMAGE.
+ *  The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
+ *  NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
+ *  IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+ *  PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
+ *  ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
  *
- *	Copyright (C) 2012 Apple Inc. All Rights Reserved.
+ *  IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
+ *  MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
+ *  WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
+ *  LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ *
+ *  Copyright (C) 2012 Apple Inc. All Rights Reserved.
  *
  */
 
@@ -145,8 +145,7 @@ extern "C" {
 #endif
 
 
-typedef enum
-{
+typedef enum {
     kiAP2LinkRunLoopEventMaskAttach             = 0x0001,
     kiAP2LinkRunLoopEventMaskDetach             = 0x0002,
     kiAP2LinkRunLoopEventMaskSuspend            = 0x0004,
@@ -161,16 +160,15 @@ typedef enum
 } iAP2LinkRunLoopEventMask_t;
 
 
-typedef struct iAP2LinkRunLoop_st
-{
+typedef struct iAP2LinkRunLoop_st {
 #if iAP2_LINK_ALLOW_MALLOC != 0
 #define iAP2_LINK_RUNLOOP_BUFFER_OFFSET 4
 #endif
-    uint8_t*            linkRLBuffer;
-    uint8_t*            linkRLBufferNext;
-    void*               context;
-    iAP2Link_t*         link;
-    void*               otherData;
+    uint8_t            *linkRLBuffer;
+    uint8_t            *linkRLBufferNext;
+    void               *context;
+    iAP2Link_t         *link;
+    void               *otherData;
     uint32_t            eventMask;
     BOOL                shuttingDown;
 
@@ -195,7 +193,7 @@ typedef struct iAP2LinkRunLoop_st
 **
 *****************************************************************
 */
-uint32_t iAP2LinkRunLoopGetBuffSize (uint8_t maxPacketSentAtOnce);
+uint32_t iAP2LinkRunLoopGetBuffSize(uint8_t maxPacketSentAtOnce);
 
 
 /*
@@ -233,38 +231,40 @@ uint32_t iAP2LinkRunLoopGetBuffSize (uint8_t maxPacketSentAtOnce);
 **
 *****************************************************************
 */
-iAP2LinkRunLoop_t* iAP2LinkRunLoopCreate (iAP2LinkType_t              type,
-                                          void*                       context,
-                                          iAP2PacketSYNData_t*        synParam,
-                                          iAP2LinkSendPacketCB_t      sendPacketCB,
-                                          iAP2LinkSendPacketWaitCB_t  sendPacketWaitCB,
-                                          iAP2LinkDataReadyCB_t       recvDataCB,
-                                          iAP2LinkConnectedCB_t       connectedCB,
-                                          iAP2LinkSendDetectCB_t      sendDetectCB,
-                                          BOOL                        bValidateSYN,
-                                          uint8_t                     maxPacketSentAtOnce,
-                                          uint8_t*                    linkRLBuffer);
+iAP2LinkRunLoop_t *iAP2LinkRunLoopCreate(iAP2LinkType_t              type,
+        void                       *context,
+        iAP2PacketSYNData_t        *synParam,
+        iAP2LinkSendPacketCB_t      sendPacketCB,
+        iAP2LinkSendPacketWaitCB_t  sendPacketWaitCB,
+        iAP2LinkDataReadyCB_t       recvDataCB,
+        iAP2LinkConnectedCB_t       connectedCB,
+        iAP2LinkSendDetectCB_t      sendDetectCB,
+        BOOL                        bValidateSYN,
+        uint8_t                     maxPacketSentAtOnce,
+        uint8_t                    *linkRLBuffer);
 
-iAP2LinkRunLoop_t* iAP2LinkRunLoopCreateAccessory (iAP2PacketSYNData_t*       synParam,
-                                                   void*                      context,
-                                                   iAP2LinkSendPacketCB_t     sendPacketCB,
-                                                   iAP2LinkDataReadyCB_t      recvDataCB,
-                                                   iAP2LinkConnectedCB_t      connectedCB,
-                                                   iAP2LinkSendDetectCB_t     sendDetectCB,
-                                                   BOOL                       bValidateSYN,
-                                                   uint8_t                    maxPacketSentAtOnce,
-                                                   uint8_t*                   linkRLBuffer);
+iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateAccessory(iAP2PacketSYNData_t
+        *synParam,
+        void                      *context,
+        iAP2LinkSendPacketCB_t     sendPacketCB,
+        iAP2LinkDataReadyCB_t      recvDataCB,
+        iAP2LinkConnectedCB_t      connectedCB,
+        iAP2LinkSendDetectCB_t     sendDetectCB,
+        BOOL                       bValidateSYN,
+        uint8_t                    maxPacketSentAtOnce,
+        uint8_t                   *linkRLBuffer);
 
-iAP2LinkRunLoop_t* iAP2LinkRunLoopCreateDevice (iAP2PacketSYNData_t*          synParam,
-                                                void*                         context,
-                                                iAP2LinkSendPacketCB_t        sendPacketCB,
-                                                iAP2LinkSendPacketWaitCB_t    sendPacketWaitCB,
-                                                iAP2LinkDataReadyCB_t         recvDataCB,
-                                                iAP2LinkConnectedCB_t         connectedCB,
-                                                iAP2LinkSendDetectCB_t        sendDetectCB,
-                                                BOOL                          bValidateSYN,
-                                                uint8_t                       maxPacketSentAtOnce,
-                                                uint8_t*                      linkRLBuffer);
+iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateDevice(iAP2PacketSYNData_t
+        *synParam,
+        void                         *context,
+        iAP2LinkSendPacketCB_t        sendPacketCB,
+        iAP2LinkSendPacketWaitCB_t    sendPacketWaitCB,
+        iAP2LinkDataReadyCB_t         recvDataCB,
+        iAP2LinkConnectedCB_t         connectedCB,
+        iAP2LinkSendDetectCB_t        sendDetectCB,
+        BOOL                          bValidateSYN,
+        uint8_t                       maxPacketSentAtOnce,
+        uint8_t                      *linkRLBuffer);
 
 
 /*
@@ -283,7 +283,7 @@ iAP2LinkRunLoop_t* iAP2LinkRunLoopCreateDevice (iAP2PacketSYNData_t*          sy
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopDelete (iAP2LinkRunLoop_t* linkRunLoop);
+void iAP2LinkRunLoopDelete(iAP2LinkRunLoop_t *linkRunLoop);
 
 
 /*
@@ -307,9 +307,9 @@ void iAP2LinkRunLoopDelete (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-BOOL iAP2LinkRunLoopRunOnce (iAP2LinkRunLoop_t* linkRunLoop, void* arg);
-    
-    
+BOOL iAP2LinkRunLoopRunOnce(iAP2LinkRunLoop_t *linkRunLoop, void *arg);
+
+
 /*
 *****************************************************************
 **
@@ -329,9 +329,9 @@ BOOL iAP2LinkRunLoopRunOnce (iAP2LinkRunLoop_t* linkRunLoop, void* arg);
 **
 *****************************************************************
 */
-BOOL iAP2LinkRunLoopRun (iAP2LinkRunLoop_t* linkRunLoop);
-    
-    
+BOOL iAP2LinkRunLoopRun(iAP2LinkRunLoop_t *linkRunLoop);
+
+
 /*
 *****************************************************************
 **
@@ -353,10 +353,10 @@ BOOL iAP2LinkRunLoopRun (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopTimeout (iAP2LinkRunLoop_t* linkRunLoop,
-                             uint16_t           timeoutID,
-                             uint8_t            timeoutType,
-                             uint32_t           curTime);
+void iAP2LinkRunLoopTimeout(iAP2LinkRunLoop_t *linkRunLoop,
+                            uint16_t           timeoutID,
+                            uint8_t            timeoutType,
+                            uint32_t           curTime);
 
 
 /*
@@ -377,7 +377,7 @@ void iAP2LinkRunLoopTimeout (iAP2LinkRunLoop_t* linkRunLoop,
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopAttached (iAP2LinkRunLoop_t* linkRunLoop);
+void iAP2LinkRunLoopAttached(iAP2LinkRunLoop_t *linkRunLoop);
 
 
 /*
@@ -398,7 +398,7 @@ void iAP2LinkRunLoopAttached (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopDetached (iAP2LinkRunLoop_t* linkRunLoop);
+void iAP2LinkRunLoopDetached(iAP2LinkRunLoop_t *linkRunLoop);
 
 
 /*
@@ -417,7 +417,7 @@ void iAP2LinkRunLoopDetached (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopHandleSuspend (struct iAP2LinkRunLoop_st* linkRunLoop);
+void iAP2LinkRunLoopHandleSuspend(struct iAP2LinkRunLoop_st *linkRunLoop);
 
 
 /*
@@ -441,8 +441,8 @@ void iAP2LinkRunLoopHandleSuspend (struct iAP2LinkRunLoop_st* linkRunLoop);
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopHandleReadyPacket (iAP2LinkRunLoop_t* linkRunLoop,
-                                       void*              packetArg);
+void iAP2LinkRunLoopHandleReadyPacket(iAP2LinkRunLoop_t *linkRunLoop,
+                                      void              *packetArg);
 
 
 /*
@@ -470,12 +470,12 @@ void iAP2LinkRunLoopHandleReadyPacket (iAP2LinkRunLoop_t* linkRunLoop,
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopQueueSendData (iAP2LinkRunLoop_t*   linkRunLoop,
-                                   const uint8_t*       payload,
-                                   uint32_t             payloadLen,
-                                   uint8_t              session,
-                                   void*                context,
-                                   iAP2LinkDataSentCB_t callback);
+void iAP2LinkRunLoopQueueSendData(iAP2LinkRunLoop_t   *linkRunLoop,
+                                  const uint8_t       *payload,
+                                  uint32_t             payloadLen,
+                                  uint8_t              session,
+                                  void                *context,
+                                  iAP2LinkDataSentCB_t callback);
 
 
 /*
@@ -498,11 +498,11 @@ void iAP2LinkRunLoopQueueSendData (iAP2LinkRunLoop_t*   linkRunLoop,
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopDebugPrint (iAP2LinkRunLoop_t* linkRunLoop,
-                                const char*        file,
-                                int                line,
-                                const char*        tag,
-                                BOOL               bDebug);
+void iAP2LinkRunLoopDebugPrint(iAP2LinkRunLoop_t *linkRunLoop,
+                               const char        *file,
+                               int                line,
+                               const char        *tag,
+                               BOOL               bDebug);
 
 
 /*
@@ -534,7 +534,7 @@ void iAP2LinkRunLoopDebugPrint (iAP2LinkRunLoop_t* linkRunLoop,
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopInitImplementation (iAP2LinkRunLoop_t* linkRunLoop);
+void iAP2LinkRunLoopInitImplementation(iAP2LinkRunLoop_t *linkRunLoop);
 
 
 /*
@@ -557,7 +557,7 @@ void iAP2LinkRunLoopInitImplementation (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopCleanupImplementation (iAP2LinkRunLoop_t* linkRunLoop);
+void iAP2LinkRunLoopCleanupImplementation(iAP2LinkRunLoop_t *linkRunLoop);
 
 
 /*
@@ -580,7 +580,7 @@ void iAP2LinkRunLoopCleanupImplementation (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-BOOL iAP2LinkRunLoopWait (iAP2LinkRunLoop_t* linkRunLoop);
+BOOL iAP2LinkRunLoopWait(iAP2LinkRunLoop_t *linkRunLoop);
 
 
 /*
@@ -603,7 +603,7 @@ BOOL iAP2LinkRunLoopWait (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopSignal (iAP2LinkRunLoop_t* linkRunLoop, void* arg);
+void iAP2LinkRunLoopSignal(iAP2LinkRunLoop_t *linkRunLoop, void *arg);
 
 
 /*
@@ -627,9 +627,9 @@ void iAP2LinkRunLoopSignal (iAP2LinkRunLoop_t* linkRunLoop, void* arg);
 **
 *****************************************************************
 */
-BOOL iAP2LinkRunLoopProtectedCall (iAP2LinkRunLoop_t* linkRunLoop,
-                                   void* arg,
-                                   BOOL (*func)(iAP2LinkRunLoop_t* linkRunLoop, void* arg));
+BOOL iAP2LinkRunLoopProtectedCall(iAP2LinkRunLoop_t *linkRunLoop,
+                                  void *arg,
+                                  BOOL (*func)(iAP2LinkRunLoop_t *linkRunLoop, void *arg));
 
 
 /*
@@ -653,8 +653,8 @@ BOOL iAP2LinkRunLoopProtectedCall (iAP2LinkRunLoop_t* linkRunLoop,
 **
 *****************************************************************
 */
-void iAP2LinkRunLoopSetEventMaskBit (iAP2LinkRunLoop_t*         linkRunLoop,
-                                     iAP2LinkRunLoopEventMask_t bit);
+void iAP2LinkRunLoopSetEventMaskBit(iAP2LinkRunLoop_t         *linkRunLoop,
+                                    iAP2LinkRunLoopEventMask_t bit);
 
 
 /*
@@ -678,7 +678,7 @@ void iAP2LinkRunLoopSetEventMaskBit (iAP2LinkRunLoop_t*         linkRunLoop,
 **
 *****************************************************************
 */
-uint32_t iAP2LinkRunLoopGetResetEventMask (iAP2LinkRunLoop_t* linkRunLoop);
+uint32_t iAP2LinkRunLoopGetResetEventMask(iAP2LinkRunLoop_t *linkRunLoop);
 
 /*
 *****************************************************************
@@ -700,7 +700,7 @@ uint32_t iAP2LinkRunLoopGetResetEventMask (iAP2LinkRunLoop_t* linkRunLoop);
 **
 *****************************************************************
 */
-void* iAP2LinkRunLoopGetPendingPacket (iAP2LinkRunLoop_t* linkRunLoop);
+void *iAP2LinkRunLoopGetPendingPacket(iAP2LinkRunLoop_t *linkRunLoop);
 
 #ifdef __cplusplus
 }

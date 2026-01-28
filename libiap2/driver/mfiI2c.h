@@ -1,7 +1,7 @@
 /*
- *	File: mfiI2c.h
- *	Package: MFIDriver
- *	Abstract: MFi Authentication Chip I2C Driver Interface
+ *  File: mfiI2c.h
+ *  Package: MFIDriver
+ *  Abstract: MFi Authentication Chip I2C Driver Interface
  */
 
 #ifndef MFIDriver_mfiI2c_h
@@ -43,7 +43,7 @@ extern "C" {
 **
 ****************************************************************
 */
-int mfiOpen (void);
+int mfiOpen(void);
 
 /*
 ****************************************************************
@@ -63,7 +63,7 @@ int mfiOpen (void);
 **
 ****************************************************************
 */
-void mfiClose (void);
+void mfiClose(void);
 
 /*
 ****************************************************************
@@ -81,7 +81,7 @@ void mfiClose (void);
 **
 ****************************************************************
 */
-int mfiGetInfo (uint8_t* info);
+int mfiGetInfo(uint8_t *info);
 
 /*
 ****************************************************************
@@ -99,7 +99,7 @@ int mfiGetInfo (uint8_t* info);
 **
 ****************************************************************
 */
-int mfiGetDeviceCertificateSerialNumber (uint8_t* serialNumber);
+int mfiGetDeviceCertificateSerialNumber(uint8_t *serialNumber);
 
 /*
 ****************************************************************
@@ -117,7 +117,7 @@ int mfiGetDeviceCertificateSerialNumber (uint8_t* serialNumber);
 **
 ****************************************************************
 */
-int mfiReadAuthControlStatus (uint8_t* status);
+int mfiReadAuthControlStatus(uint8_t *status);
 
 /*
 ****************************************************************
@@ -135,7 +135,7 @@ int mfiReadAuthControlStatus (uint8_t* status);
 **
 ****************************************************************
 */
-int mfiWriteAuthControlStatus (uint8_t status);
+int mfiWriteAuthControlStatus(uint8_t status);
 
 /*
 ****************************************************************
@@ -153,7 +153,7 @@ int mfiWriteAuthControlStatus (uint8_t status);
 **
 ****************************************************************
 */
-int mfiReadSelfTestStatus (uint8_t* status);
+int mfiReadSelfTestStatus(uint8_t *status);
 
 /*
 ****************************************************************
@@ -172,7 +172,7 @@ int mfiReadSelfTestStatus (uint8_t* status);
 **
 ****************************************************************
 */
-int mfiReadChallengeResponseData (uint8_t* responseData, uint16_t len);
+int mfiReadChallengeResponseData(uint8_t *responseData, uint16_t len);
 
 /*
 ****************************************************************
@@ -190,7 +190,7 @@ int mfiReadChallengeResponseData (uint8_t* responseData, uint16_t len);
 **
 ****************************************************************
 */
-uint16_t mfiReadChallengeResponseDataLength (void);
+uint16_t mfiReadChallengeResponseDataLength(void);
 
 /*
 ****************************************************************
@@ -208,7 +208,7 @@ uint16_t mfiReadChallengeResponseDataLength (void);
 **
 ****************************************************************
 */
-int mfiReadChallengeData (uint8_t* challengeData);
+int mfiReadChallengeData(uint8_t *challengeData);
 
 /*
 ****************************************************************
@@ -227,7 +227,7 @@ int mfiReadChallengeData (uint8_t* challengeData);
 **
 ****************************************************************
 */
-int mfiWriteChallengeData (uint8_t* challengeData, uint16_t len);
+int mfiWriteChallengeData(uint8_t *challengeData, uint16_t len);
 
 /*
 ****************************************************************
@@ -247,7 +247,7 @@ int mfiWriteChallengeData (uint8_t* challengeData, uint16_t len);
 **
 ****************************************************************
 */
-int mfiReadAccessoryCertificateData (uint8_t* certData, uint16_t* pLen);
+int mfiReadAccessoryCertificateData(uint8_t *certData, uint16_t *pLen);
 
 /*
 ****************************************************************
@@ -267,7 +267,7 @@ int mfiReadAccessoryCertificateData (uint8_t* certData, uint16_t* pLen);
 **
 ****************************************************************
 */
-int mfiAuthenticationCertificate (uint8_t* x509Certificate, uint16_t* pLen);
+int mfiAuthenticationCertificate(uint8_t *x509Certificate, uint16_t *pLen);
 
 /*
 ****************************************************************
@@ -289,9 +289,9 @@ int mfiAuthenticationCertificate (uint8_t* x509Certificate, uint16_t* pLen);
 **
 ****************************************************************
 */
-int mfiAuthenticationResponse (uint8_t* challengeData, uint16_t challengeDataLen,
-                               uint8_t* challengeResponseData, 
-                               uint16_t* pLen);
+int mfiAuthenticationResponse(uint8_t *challengeData, uint16_t challengeDataLen,
+                              uint8_t *challengeResponseData,
+                              uint16_t *pLen);
 
 #ifdef __cplusplus
 }

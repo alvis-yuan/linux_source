@@ -1,54 +1,54 @@
 /*
- *	File: iAP2Link.c
- *	Package: iAP2Link
- *	Abstract: n/a 
+ *  File: iAP2Link.c
+ *  Package: iAP2Link
+ *  Abstract: n/a
  *
- *	Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
- * 	Inc. ("Apple"), in your capacity as a current, and in good standing,
- *	Licensee in the MFi Licensing Program. Use of this Apple software is
- *	governed by and subject to the terms and conditions of your MFi License,
- *	including, but not limited to, the restrictions specified in the provision
- *	entitled “Public Software”, and is further subject to your agreement to
- *	the following additional terms, and your agreement that the use,
- *	installation, modification or redistribution of this Apple software
- * 	constitutes acceptance of these additional terms. If you do not agree with
- * 	these additional terms, please do not use, install, modify or redistribute
- *	this Apple software.
+ *  Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
+ *  Inc. ("Apple"), in your capacity as a current, and in good standing,
+ *  Licensee in the MFi Licensing Program. Use of this Apple software is
+ *  governed by and subject to the terms and conditions of your MFi License,
+ *  including, but not limited to, the restrictions specified in the provision
+ *  entitled “Public Software”, and is further subject to your agreement to
+ *  the following additional terms, and your agreement that the use,
+ *  installation, modification or redistribution of this Apple software
+ *  constitutes acceptance of these additional terms. If you do not agree with
+ *  these additional terms, please do not use, install, modify or redistribute
+ *  this Apple software.
  *
- *	In consideration of your agreement to abide by the following terms, and
- *	subject to these terms, Apple grants you a personal, non-exclusive
- *	license, under Apple's copyrights in this original Apple software (the
- *	"Apple Software"), to use, reproduce, and modify the Apple Software in
- *	source form, and to use, reproduce, modify, and redistribute the Apple
- *	Software, with or without modifications, in binary form. While you may not
- *	redistribute the Apple Software in source form, should you redistribute
- *	the Apple Software in binary form, in its entirety and without
- *	modifications, you must retain this notice and the following text and
- *	disclaimers in all such redistributions of the Apple Software. Neither the
- *	name, trademarks, service marks, or logos of Apple Inc. may be used to
- *	endorse or promote products derived from the Apple Software without
- *	specific prior written permission from Apple. Except as expressly stated
- *	in this notice, no other rights or licenses, express or implied, are
- *	granted by Apple herein, including but not limited to any patent rights
- *	that may be infringed by your derivative works or by other works in which
- *	the Apple Software may be incorporated.
- *	
- *	The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
- *	NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
- *	IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
- *	PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
- *	ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
+ *  In consideration of your agreement to abide by the following terms, and
+ *  subject to these terms, Apple grants you a personal, non-exclusive
+ *  license, under Apple's copyrights in this original Apple software (the
+ *  "Apple Software"), to use, reproduce, and modify the Apple Software in
+ *  source form, and to use, reproduce, modify, and redistribute the Apple
+ *  Software, with or without modifications, in binary form. While you may not
+ *  redistribute the Apple Software in source form, should you redistribute
+ *  the Apple Software in binary form, in its entirety and without
+ *  modifications, you must retain this notice and the following text and
+ *  disclaimers in all such redistributions of the Apple Software. Neither the
+ *  name, trademarks, service marks, or logos of Apple Inc. may be used to
+ *  endorse or promote products derived from the Apple Software without
+ *  specific prior written permission from Apple. Except as expressly stated
+ *  in this notice, no other rights or licenses, express or implied, are
+ *  granted by Apple herein, including but not limited to any patent rights
+ *  that may be infringed by your derivative works or by other works in which
+ *  the Apple Software may be incorporated.
  *
- *	IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
- *	MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
- *	WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
- *	LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
- *	OF SUCH DAMAGE.
+ *  The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
+ *  NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
+ *  IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+ *  PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
+ *  ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
  *
- *	Copyright (C) 2012 Apple Inc. All Rights Reserved.
+ *  IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
+ *  MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
+ *  WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
+ *  LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ *
+ *  Copyright (C) 2012 Apple Inc. All Rights Reserved.
  *
  */
 
@@ -90,8 +90,7 @@ extern const iAP2FSMState_t iAP2LinkDeviceStates [kiAP2LinkStateCount];
 
 
 #if iAP2LINK_DEBUG
-const char* stateNames [kiAP2LinkStateCount] =
-{
+const char *stateNames [kiAP2LinkStateCount] = {
     "Init",
     "Detached",
     "Detect",
@@ -102,8 +101,7 @@ const char* stateNames [kiAP2LinkStateCount] =
     "Failed"
 };
 
-const char* eventNames [kiAP2LinkEventCount] =
-{
+const char *eventNames [kiAP2LinkEventCount] = {
     "InitDone",
     "Attach",
     "RecvSYN",
@@ -145,19 +143,18 @@ uint32_t        kIap2PacketDetectBadDataLen = 8;
 **
 ****************************************************************
 */
-static BOOL __AnySessionSendListHasPacket (iAP2Link_t* link)
+static BOOL __AnySessionSendListHasPacket(iAP2Link_t *link)
 {
-    if (link)
-    {
+    if (link) {
         int i;
-        for (i = 0; i < kIAP2PacketServiceTypeCount; ++i)
-        {
-            if (iAP2ListArrayGetCount (link->sessSendPckList[i]) > 0)
-            {
+
+        for (i = 0; i < kIAP2PacketServiceTypeCount; ++i) {
+            if (iAP2ListArrayGetCount(link->sessSendPckList[i]) > 0) {
                 return TRUE;
             }
         }
     }
+
     return FALSE;
 }
 
@@ -170,14 +167,13 @@ static BOOL __AnySessionSendListHasPacket (iAP2Link_t* link)
 **
 ****************************************************************
 */
-static void _DeletePckCB (void* item)
+static void _DeletePckCB(void *item)
 {
-    if (item != NULL)
-    {
-        iAP2Packet_t* pck = *((iAP2Packet_t**) item);
-        if (pck)
-        {
-            iAP2PacketDelete (pck);
+    if (item != NULL) {
+        iAP2Packet_t *pck = *((iAP2Packet_t **) item);
+
+        if (pck) {
+            iAP2PacketDelete(pck);
         }
     }
 }
@@ -192,11 +188,11 @@ static void _DeletePckCB (void* item)
 **
 ****************************************************************
 */
-static intptr_t _ComparePckTimerIdCB (void* a, void* b, uint8_t dataSize)
+static intptr_t _ComparePckTimerIdCB(void *a, void *b, uint8_t dataSize)
 {
-    iAP2Packet_t* aPck = *((iAP2Packet_t**) a);
-    iAP2Packet_t* bPck = *((iAP2Packet_t**) b);
-    assert (aPck && bPck && dataSize == sizeof(uintptr_t));
+    iAP2Packet_t *aPck = *((iAP2Packet_t **) a);
+    iAP2Packet_t *bPck = *((iAP2Packet_t **) b);
+    assert(aPck && bPck && dataSize == sizeof(uintptr_t));
     return aPck->timer - bPck->timer;
 }
 
@@ -209,12 +205,15 @@ static intptr_t _ComparePckTimerIdCB (void* a, void* b, uint8_t dataSize)
  **
  ****************************************************************
  */
-static void __printPacketItemWithIndexAndParam (void* item, uint8_t index, void* param)
+static void __printPacketItemWithIndexAndParam(void *item, uint8_t index,
+        void *param)
 {
-    iAP2LogType_t* pType = (iAP2LogType_t*) param;
-    iAP2Packet_t* pck = *((iAP2Packet_t**) item);
-    iAP2LogTypeNL(*pType, "        [%03u] entry(%p): control=%xh seq=%u ack=%u sessID=%u pckLen=%u\n",
-                  index, pck, pck->pckData->ctl, pck->pckData->seq, pck->pckData->ack, pck->pckData->sess, pck->packetLen);
+    iAP2LogType_t *pType = (iAP2LogType_t *) param;
+    iAP2Packet_t *pck = *((iAP2Packet_t **) item);
+    iAP2LogTypeNL(*pType,
+                  "        [%03u] entry(%p): control=%xh seq=%u ack=%u sessID=%u pckLen=%u\n",
+                  index, pck, pck->pckData->ctl, pck->pckData->seq, pck->pckData->ack,
+                  pck->pckData->sess, pck->packetLen);
 }
 #endif /* #if iAP2LINK_DEBUG */
 
@@ -226,33 +225,37 @@ static void __printPacketItemWithIndexAndParam (void* item, uint8_t index, void*
 **
 ****************************************************************
 */
-static void __printPacketList (const char*  tag,
-                               const char*  typeStr,
-                               iAP2Link_t*  link,
-                               uint8_t*     listBuffer,
-                               BOOL         needStartStop,
-                               BOOL         bDebug)
+static void __printPacketList(const char  *tag,
+                              const char  *typeStr,
+                              iAP2Link_t  *link,
+                              uint8_t     *listBuffer,
+                              BOOL         needStartStop,
+                              BOOL         bDebug)
 {
 #if iAP2LINK_DEBUG
     iAP2LogType_t type = (bDebug ? kiAP2LogTypeData : kiAP2LogTypeLog);
-    if (needStartStop)
-    {
+
+    if (needStartStop) {
         iAP2LogStart();
     }
+
     iAP2LogTypeNL(type, "%s%sPACKET LIST - %s (%p): link=%p\n",
                   (tag ? tag : ""), (tag ? ": " : ""), typeStr, listBuffer, link);
     iAP2LogTypeNL(type, "%s%s    count=%u first=%u last=%u\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
-                  iAP2ListArrayGetCount (listBuffer),
-                  iAP2ListArrayGetFirstItemIndex (listBuffer), iAP2ListArrayGetLastItemIndex (listBuffer));
-    if (bDebug)
-    {
-        iAP2ListArrayForEachWithIndexAndParam (listBuffer, __printPacketItemWithIndexAndParam, &type);
+                  iAP2ListArrayGetCount(listBuffer),
+                  iAP2ListArrayGetFirstItemIndex(listBuffer),
+                  iAP2ListArrayGetLastItemIndex(listBuffer));
+
+    if (bDebug) {
+        iAP2ListArrayForEachWithIndexAndParam(listBuffer,
+                                              __printPacketItemWithIndexAndParam, &type);
     }
-    if (needStartStop)
-    {
+
+    if (needStartStop) {
         iAP2LogStop();
     }
+
 #endif /* #if iAP2LINK_DEBUG */
 }
 
@@ -268,22 +271,22 @@ static void __printPacketList (const char*  tag,
 **
 ****************************************************************
 */
-static intptr_t _iAP2LinkComparePacketSeq (void* a, void* b, uint8_t dataSize)
+static intptr_t _iAP2LinkComparePacketSeq(void *a, void *b, uint8_t dataSize)
 {
-    iAP2Packet_t* pck1 = *((iAP2Packet_t**) a);
-    iAP2Packet_t* pck2 = *((iAP2Packet_t**) b);
-    iAP2Link_t* link;
-    long result = iAP2PacketCalcSeqGap (pck1->pckData->seq, pck2->pckData->seq);
-    assert (pck1->link == pck2->link);
-    link = (iAP2Link_t*) pck1->link;
-    if (0 == result)
-    {
+    iAP2Packet_t *pck1 = *((iAP2Packet_t **) a);
+    iAP2Packet_t *pck2 = *((iAP2Packet_t **) b);
+    iAP2Link_t *link;
+    long result = iAP2PacketCalcSeqGap(pck1->pckData->seq, pck2->pckData->seq);
+    assert(pck1->link == pck2->link);
+    link = (iAP2Link_t *) pck1->link;
+
+    if (0 == result) {
         return result;
-    }
-    else if (result > link->param.peerMaxOutstandingPackets)
-    {
+
+    } else if (result > link->param.peerMaxOutstandingPackets) {
         return result - 256;
     }
+
     return result;
 }
 
@@ -291,9 +294,9 @@ static intptr_t _iAP2LinkComparePacketSeq (void* a, void* b, uint8_t dataSize)
 /*
 ** Reset the sendPckList
 */
-static void _ResetAckedPackets (iAP2Link_t* link)
+static void _ResetAckedPackets(iAP2Link_t *link)
 {
-    iAP2ListArrayCleanup (link->sendPckList, _DeletePckCB);
+    iAP2ListArrayCleanup(link->sendPckList, _DeletePckCB);
 }
 
 
@@ -301,20 +304,20 @@ static void _ResetAckedPackets (iAP2Link_t* link)
 ** Clean up the sendPckList based on received ACK#.
 ** - remove from list all packets that have been ACK'd.
 */
-static void _CleanupAckedPackets (iAP2Link_t* link)
+static void _CleanupAckedPackets(iAP2Link_t *link)
 {
     BOOL bNeedNotify = FALSE;
-    uint8_t item = iAP2ListArrayGetFirstItemIndex (link->sendPckList);
-    __printPacketList (NULL, "SEND", link, link->sendPckList, TRUE, TRUE);
-    while (item != kiAP2ListArrayInvalidIndex)
-    {
-        uint8_t nextItem = iAP2ListArrayGetNextItemIndex (link->sendPckList, item);
-        iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->sendPckList, item);
+    uint8_t item = iAP2ListArrayGetFirstItemIndex(link->sendPckList);
+    __printPacketList(NULL, "SEND", link, link->sendPckList, TRUE, TRUE);
+
+    while (item != kiAP2ListArrayInvalidIndex) {
+        uint8_t nextItem = iAP2ListArrayGetNextItemIndex(link->sendPckList, item);
+        iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->sendPckList, item);
+
         if (pck &&
-            iAP2PacketIsSeqACKd (pck->pckData->seq + pck->seqPlus,
-                                 link->recvAck,
-                                 link->param.peerMaxOutstandingPackets))
-        {
+            iAP2PacketIsSeqACKd(pck->pckData->seq + pck->seqPlus,
+                                link->recvAck,
+                                link->param.peerMaxOutstandingPackets)) {
 #if iAP2LINK_DEBUG
             iAP2LogStart();
             iAP2LogDbg("%s:%d _CleanupAckedPackets DeleteACK'd seq=%u seqPlus=%u recvAck=%u window=%u\n",
@@ -324,7 +327,8 @@ static void _CleanupAckedPackets (iAP2Link_t* link)
                        link->recvAck,
                        link->param.peerMaxOutstandingPackets);
 #if iAP2LINK_DEBUG_PACKET
-            iAP2PacketDebugPrintPacketNL (pck, __func__, __LINE__, "_CleanupAckedPackets", "");
+            iAP2PacketDebugPrintPacketNL(pck, __func__, __LINE__, "_CleanupAckedPackets",
+                                         "");
 #endif
             iAP2LogStop();
 #endif
@@ -338,14 +342,15 @@ static void _CleanupAckedPackets (iAP2Link_t* link)
             }
 #endif /*#if iAP2_LINK_ALLOW_STATS*/
 #endif
-            iAP2ListArrayDeleteItem (link->sendPckList, item, _DeletePckCB);
-            __printPacketList (NULL, "SEND after deleteItem", link, link->sendPckList, TRUE, TRUE);
+            iAP2ListArrayDeleteItem(link->sendPckList, item, _DeletePckCB);
+            __printPacketList(NULL, "SEND after deleteItem", link, link->sendPckList, TRUE,
+                              TRUE);
             bNeedNotify = TRUE;
         }
+
 #if iAP2LINK_DEBUG
-        else
-        if (0)
-        {
+
+        else if (0) {
             iAP2LogDbg("%s:%d _CleanupAckedPackets unACK'd seq=%u seqPlus=%u recvAck=%u window=%u\n",
                        __func__, __LINE__,
                        pck->pckData->seq,
@@ -353,12 +358,13 @@ static void _CleanupAckedPackets (iAP2Link_t* link)
                        link->recvAck,
                        link->param.peerMaxOutstandingPackets);
         }
+
 #endif
         item = nextItem;
     }
-    if (bNeedNotify)
-    {
-        link->signalSendBuffCB (link);
+
+    if (bNeedNotify) {
+        link->signalSendBuffCB(link);
     }
 }
 
@@ -366,9 +372,9 @@ static void _CleanupAckedPackets (iAP2Link_t* link)
 /*
 ** Reset the recvPckList
 */
-static void _ResetRecvPackets (iAP2Link_t* link)
+static void _ResetRecvPackets(iAP2Link_t *link)
 {
-    iAP2ListArrayCleanup (link->sendPckList, _DeletePckCB);
+    iAP2ListArrayCleanup(link->sendPckList, _DeletePckCB);
 }
 
 
@@ -376,23 +382,23 @@ static void _ResetRecvPackets (iAP2Link_t* link)
 ** Clean up the recvPckList based on received SEQ#.
 ** - process and remove from list all packets that have been received in sequence.
 */
-static void _CleanupRecvPackets (iAP2Link_t* link)
+static void _CleanupRecvPackets(iAP2Link_t *link)
 {
-    uint8_t item = iAP2ListArrayGetFirstItemIndex (link->recvPckList);
-    __printPacketList (NULL, "RECV", link, link->recvPckList, TRUE, TRUE);
-    while (item != kiAP2ListArrayInvalidIndex)
-    {
-        iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->recvPckList, item);
-        uint8_t nextItem = iAP2ListArrayGetNextItemIndex (link->recvPckList, item);
-        if (pck)
-        {
+    uint8_t item = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
+    __printPacketList(NULL, "RECV", link, link->recvPckList, TRUE, TRUE);
+
+    while (item != kiAP2ListArrayInvalidIndex) {
+        iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->recvPckList, item);
+        uint8_t nextItem = iAP2ListArrayGetNextItemIndex(link->recvPckList, item);
+
+        if (pck) {
             uint8_t seqDiff = (link->bValidRecvSeq
-                               ? iAP2PacketCalcSeqGap (link->recvSeq, pck->pckData->seq)
+                               ? iAP2PacketCalcSeqGap(link->recvSeq, pck->pckData->seq)
                                : kiAP2LinkSynValMaxOutstandingMax + 1);
+
             if (!link->bValidRecvSeq ||
                 (seqDiff <= link->param.maxOutstandingPackets &&
-                 iAP2PacketNextSeq(link->recvSeq) == pck->pckData->seq))
-            {
+                 iAP2PacketNextSeq(link->recvSeq) == pck->pckData->seq)) {
                 /* In sequence */
 #if iAP2LINK_DEBUG
                 iAP2LogDbg("%s:%d _CleanupRecvPackets ProcessPacket seq=%u seqPlus=%u recvSeq=%u window=%u\n",
@@ -402,23 +408,24 @@ static void _CleanupRecvPackets (iAP2Link_t* link)
                            link->recvSeq,
                            link->param.maxOutstandingPackets);
 #endif
-                iAP2ListArrayDeleteItem (link->recvPckList, item, NULL);
-                __printPacketList (NULL, "RECV after deleteItem", link, link->recvPckList, TRUE, TRUE);
-                iAP2LinkProcessInOrderPacket (link, pck);
-                iAP2PacketDelete (pck);
-                nextItem = iAP2ListArrayGetFirstItemIndex (link->recvPckList);
-            }
-            else if (seqDiff > link->param.maxOutstandingPackets)
-            {
+                iAP2ListArrayDeleteItem(link->recvPckList, item, NULL);
+                __printPacketList(NULL, "RECV after deleteItem", link, link->recvPckList, TRUE,
+                                  TRUE);
+                iAP2LinkProcessInOrderPacket(link, pck);
+                iAP2PacketDelete(pck);
+                nextItem = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
+
+            } else if (seqDiff > link->param.maxOutstandingPackets) {
                 /* Outside window... delete. */
-                iAP2ListArrayDeleteItem (link->recvPckList, item, _DeletePckCB);
-                __printPacketList (NULL, "RECV after deleteItem", link, link->recvPckList, TRUE, TRUE);
-            }
-            else
-            {
+                iAP2ListArrayDeleteItem(link->recvPckList, item, _DeletePckCB);
+                __printPacketList(NULL, "RECV after deleteItem", link, link->recvPckList, TRUE,
+                                  TRUE);
+
+            } else {
                 /* Not in sequence yet, skip. */
             }
         }
+
         item = nextItem;
     }
 }
@@ -427,16 +434,18 @@ static void _CleanupRecvPackets (iAP2Link_t* link)
 /*
 ** Return TRUE if packet has been received already
 */
-static BOOL _IsReceivedPacket (iAP2Link_t*   link,
-                               iAP2Packet_t* packet)
+static BOOL _IsReceivedPacket(iAP2Link_t   *link,
+                              iAP2Packet_t *packet)
 {
     BOOL bReceived = FALSE;
-    uint8_t seqDiff = iAP2PacketCalcSeqGap (link->recvSeq, packet->pckData->seq);
-    if (seqDiff <= link->param.maxOutstandingPackets)
-    {
-        uint8_t item = iAP2LinkFindPacket (link->recvPckList, &packet, _iAP2LinkComparePacketSeq);
+    uint8_t seqDiff = iAP2PacketCalcSeqGap(link->recvSeq, packet->pckData->seq);
+
+    if (seqDiff <= link->param.maxOutstandingPackets) {
+        uint8_t item = iAP2LinkFindPacket(link->recvPckList, &packet,
+                                          _iAP2LinkComparePacketSeq);
         bReceived = (item != kiAP2ListArrayInvalidIndex);
     }
+
 #if iAP2LINK_DEBUG
     iAP2LogDbg("%s:%d _IsReceivedPacket bReceived=%d pck-seq=%u seqPlus=%u\n",
                __func__, __LINE__,
@@ -448,65 +457,63 @@ static BOOL _IsReceivedPacket (iAP2Link_t*   link,
 }
 
 
-static void _iAP2LinkHandleTimerCancel (iAP2Timer_t* timer, uint8_t timerID)
+static void _iAP2LinkHandleTimerCancel(iAP2Timer_t *timer, uint8_t timerID)
 {
-    if (timer)
-    {
+    if (timer) {
         iAP2Packet_t tmpPck;
-        iAP2Packet_t* pTmpPck = &tmpPck;
+        iAP2Packet_t *pTmpPck = &tmpPck;
         uint8_t      item;
-        iAP2Link_t*  link = iAP2TimeGetContext (timer);
+        iAP2Link_t  *link = iAP2TimeGetContext(timer);
         tmpPck.timer = timerID;
         item = iAP2LinkFindPacket(link->sendPckList, &pTmpPck, _ComparePckTimerIdCB);
-        if (item != kiAP2ListArrayInvalidIndex)
-        {
-            iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->sendPckList, item);
-            iAP2PacketRemoveTimer (pck);
-        }
-        else
-        {
-            item = iAP2ListArrayGetFirstItemIndex (link->recvPckList);
-            if (item != kiAP2ListArrayInvalidIndex)
-            {
-                iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->recvPckList, item);
-                iAP2PacketRemoveTimer (pck);
+
+        if (item != kiAP2ListArrayInvalidIndex) {
+            iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->sendPckList, item);
+            iAP2PacketRemoveTimer(pck);
+
+        } else {
+            item = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
+
+            if (item != kiAP2ListArrayInvalidIndex) {
+                iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->recvPckList, item);
+                iAP2PacketRemoveTimer(pck);
             }
         }
     }
 }
 
 
-static void _iAP2LinkHandleTimerExpire (iAP2Timer_t* timer,
-                                        uint8_t      timeoutID,
-                                        uint8_t      timeoutType,
-                                        uint32_t     curTime)
+static void _iAP2LinkHandleTimerExpire(iAP2Timer_t *timer,
+                                       uint8_t      timeoutID,
+                                       uint8_t      timeoutType,
+                                       uint32_t     curTime)
 {
-    if (timer)
-    {
-        iAP2Link_t* link = (iAP2Link_t*) iAP2TimeGetContext (timer);
-        if (link)
-        {
+    if (timer) {
+        iAP2Link_t *link = (iAP2Link_t *) iAP2TimeGetContext(timer);
+
+        if (link) {
 #if iAP2_LINK_USE_LINKRUNLOOP
-            if (link->bUseiAP2LinkRunLoop)
-            {
-                iAP2LinkRunLoopTimeout (link->context,
-                                        timeoutID,
-                                        timeoutType,
-                                        curTime);
-            }
-            else
+
+            if (link->bUseiAP2LinkRunLoop) {
+                iAP2LinkRunLoopTimeout(link->context,
+                                       timeoutID,
+                                       timeoutType,
+                                       curTime);
+
+            } else
 #endif
             {
-                switch (timeoutType)
-                {
+                switch (timeoutType) {
                     case kiAP2LinkEventWaitACKTimeout:
-                        iAP2LinkHandleWaitACKTimeoutLink (link, curTime);
+                        iAP2LinkHandleWaitACKTimeoutLink(link, curTime);
                         break;
+
                     case kiAP2LinkEventSendACKTimeout:
-                        iAP2LinkHandleSendACKTimeoutLink (link, curTime);
+                        iAP2LinkHandleSendACKTimeoutLink(link, curTime);
                         break;
+
                     case kiAP2LinkEventWaitDetectTimeout:
-                        iAP2LinkHandleWaitDetectTimeoutLink (link, curTime);
+                        iAP2LinkHandleWaitDetectTimeoutLink(link, curTime);
                         break;
                 }
             }
@@ -518,38 +525,41 @@ static void _iAP2LinkHandleTimerExpire (iAP2Timer_t* timer,
 /*
 ** Prepare a packet with out of order packet seq#s payload
 */
-static iAP2Packet_t* _PrepareEAKDataPacket (iAP2Link_t*  link)
+static iAP2Packet_t *_PrepareEAKDataPacket(iAP2Link_t  *link)
 {
-    iAP2Packet_t* packet = NULL;
-    if (link)
-    {
+    iAP2Packet_t *packet = NULL;
+
+    if (link) {
         uint8_t  max = iAP2ListArrayGetCount(link->recvPckList);
-        if (max > iAP2LinkGetMaxSendPayloadSize (link))
-        {
-            max = iAP2LinkGetMaxSendPayloadSize (link);
+
+        if (max > iAP2LinkGetMaxSendPayloadSize(link)) {
+            max = iAP2LinkGetMaxSendPayloadSize(link);
         }
-        packet = iAP2PacketCreateEAKPacket (link,
-                                            link->sentSeq,
-                                            link->recvSeq,
-                                            NULL,
-                                            max);
-        if (packet)
-        {
+
+        packet = iAP2PacketCreateEAKPacket(link,
+                                           link->sentSeq,
+                                           link->recvSeq,
+                                           NULL,
+                                           max);
+
+        if (packet) {
             uint8_t  count = 0;
-            uint8_t* pt = packet->pckData->data;
-            uint8_t  item = iAP2ListArrayGetFirstItemIndex (link->recvPckList);
-            while (count < max && item != kiAP2ListArrayInvalidIndex)
-            {
-                iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->recvPckList, item);
-                if (pck)
-                {
+            uint8_t *pt = packet->pckData->data;
+            uint8_t  item = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
+
+            while (count < max && item != kiAP2ListArrayInvalidIndex) {
+                iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->recvPckList, item);
+
+                if (pck) {
                     *(pt++) = pck->pckData->seq;
                     ++count;
                 }
-                item = iAP2ListArrayGetNextItemIndex (link->recvPckList, item);
+
+                item = iAP2ListArrayGetNextItemIndex(link->recvPckList, item);
             }
         }
     }
+
     return packet;
 }
 
@@ -561,14 +571,14 @@ static iAP2Packet_t* _PrepareEAKDataPacket (iAP2Link_t*  link)
 **
 ****************************************************************
 */
-static void _iAP2LinkStartSendAckTimerIfNotRunning (iAP2Link_t* link, uint8_t seq)
+static void _iAP2LinkStartSendAckTimerIfNotRunning(iAP2Link_t *link,
+        uint8_t seq)
 {
     /* Set SendAckTimer once until expiry */
-    if (INVALID_TIMEOUT_ID == link->sendAckTimeoutID)
-    {
+    if (INVALID_TIMEOUT_ID == link->sendAckTimeoutID) {
         link->sendAckTimeoutID = iAP2TimeCallbackAfter(link->mainTimer,
-                                                       kiAP2LinkEventSendACKTimeout,
-                                                       link->param.cumAckTimeout);
+                                 kiAP2LinkEventSendACKTimeout,
+                                 link->param.cumAckTimeout);
     }
 }
 
@@ -580,33 +590,35 @@ static void _iAP2LinkStartSendAckTimerIfNotRunning (iAP2Link_t* link, uint8_t se
 **
 ****************************************************************
 */
-static BOOL _iAP2LinkNeedEAK (iAP2Link_t* link)
+static BOOL _iAP2LinkNeedEAK(iAP2Link_t *link)
 {
     BOOL result = FALSE;
-    if (link->recvPckList && iAP2ListArrayGetCount(link->recvPckList) > 0)
-    {
-        uint8_t item = iAP2ListArrayGetFirstItemIndex (link->recvPckList);
+
+    if (link->recvPckList && iAP2ListArrayGetCount(link->recvPckList) > 0) {
+        uint8_t item = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
         uint8_t lowSeqDiff = 0xff;
-        while (item != kiAP2ListArrayInvalidIndex)
-        {
-            iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->recvPckList, item);
-            if (pck)
-            {
+
+        while (item != kiAP2ListArrayInvalidIndex) {
+            iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->recvPckList, item);
+
+            if (pck) {
                 uint8_t seqDiff = (link->bValidRecvSeq
-                                   ? iAP2PacketCalcSeqGap (link->recvSeq, pck->pckData->seq)
+                                   ? iAP2PacketCalcSeqGap(link->recvSeq, pck->pckData->seq)
                                    : kiAP2LinkSynValMaxOutstandingMax + 1);
-                if (seqDiff < lowSeqDiff)
-                {
+
+                if (seqDiff < lowSeqDiff) {
                     lowSeqDiff = seqDiff;
                 }
             }
-            item = iAP2ListArrayGetNextItemIndex (link->recvPckList, item);
+
+            item = iAP2ListArrayGetNextItemIndex(link->recvPckList, item);
         }
-        if (lowSeqDiff > 1 && lowSeqDiff <= link->param.maxOutstandingPackets)
-        {
+
+        if (lowSeqDiff > 1 && lowSeqDiff <= link->param.maxOutstandingPackets) {
             result = TRUE;
         }
     }
+
     return result;
 }
 
@@ -628,7 +640,7 @@ static BOOL _iAP2LinkNeedEAK (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkActionNone (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionNone(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
     assert(fsm);
     assert(nextEvent);
@@ -642,18 +654,15 @@ void iAP2LinkActionNone (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionHandleACK (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionHandleACK(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
     /* ACK received */
-
 #if iAP2LINK_DEBUG
     {
-        iAP2Link_t* link = (iAP2Link_t*) fsm->data;
-        
+        iAP2Link_t *link = (iAP2Link_t *) fsm->data;
         iAP2LogDbg("%s:%d %s sendSeq=%u recvAck=%u\n", __func__, __LINE__,
                    (link->type == kiAP2LinkTypeAccessory
                     ? "Accessory:HandleACK"
@@ -671,17 +680,14 @@ void iAP2LinkActionHandleACK (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionSendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionSendData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
-
+    iAP2Link_t *link;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
-
-    iAP2LinkProcessOutQueue (link);
+    link = (iAP2Link_t *) fsm->data;
+    iAP2LinkProcessOutQueue(link);
 }
 
 
@@ -692,21 +698,18 @@ void iAP2LinkActionSendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionDetach (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionDetach(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
-
+    iAP2Link_t *link;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
+    link = (iAP2Link_t *) fsm->data;
 
     /* Call connected callback */
-    if (link->connectedCB)
-    {
+    if (link->connectedCB) {
         /* Notify about the connection establishment */
-        (*link->connectedCB) (link, FALSE);
+        (*link->connectedCB)(link, FALSE);
     }
 }
 
@@ -718,62 +721,56 @@ void iAP2LinkActionDetach (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionSendACK (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionSendACK(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
-
+    iAP2Link_t *link;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
-
+    link = (iAP2Link_t *) fsm->data;
     iAP2TimeCancelTimer(link->mainTimer, link->sendAckTimeoutID);
     link->sendAckTimeoutID = INVALID_TIMEOUT_ID;
 
     /* Check if we need to send an EAK instead. */
-    if ( ! _iAP2LinkNeedEAK (link) )
-    {
+    if (! _iAP2LinkNeedEAK(link)) {
         /* Send ACK */
-        iAP2Packet_t* pck = iAP2PacketCreateACKPacket (link,
-                                                       link->sentSeq,
-                                                       link->recvSeq,
-                                                       NULL,
-                                                       0,
-                                                       kIAP2PacketReservedSessionID);
+        iAP2Packet_t *pck = iAP2PacketCreateACKPacket(link,
+                            link->sentSeq,
+                            link->recvSeq,
+                            NULL,
+                            0,
+                            kIAP2PacketReservedSessionID);
 #if iAP2LINK_DEBUG
-        iAP2LogDbg ("%s:%d %s recvSeq=%u sentAck=%u\n",
-                    __func__, __LINE__,
-                    (link->type == kiAP2LinkTypeAccessory
-                     ? "Accessory:SendACK"
-                     : "Device:SendACK"),
-                    link->recvSeq,
-                    link->sentAck);
+        iAP2LogDbg("%s:%d %s recvSeq=%u sentAck=%u\n",
+                   __func__, __LINE__,
+                   (link->type == kiAP2LinkTypeAccessory
+                    ? "Accessory:SendACK"
+                    : "Device:SendACK"),
+                   link->recvSeq,
+                   link->sentAck);
 #endif
 #if iAP2_LINK_ALLOW_STATS
         ++(link->numSentACK);
 #endif
-        iAP2LinkSendPacket (link, pck, FALSE,
-                            (link->type == kiAP2LinkTypeAccessory
-                             ? "Accessory:SendACK"
-                             : "Device:SendACK"));
-    }
-    else
-    {
+        iAP2LinkSendPacket(link, pck, FALSE,
+                           (link->type == kiAP2LinkTypeAccessory
+                            ? "Accessory:SendACK"
+                            : "Device:SendACK"));
+
+    } else {
         /* Send EAK */
-        if (iAP2ListArrayGetCount(link->recvPckList))
-        {
-            iAP2Packet_t* eakPacket = _PrepareEAKDataPacket (link);
-            if (eakPacket)
-            {
+        if (iAP2ListArrayGetCount(link->recvPckList)) {
+            iAP2Packet_t *eakPacket = _PrepareEAKDataPacket(link);
+
+            if (eakPacket) {
 #if iAP2LINK_DEBUG
-                iAP2LogDbg ("%s:%d %s recvSeq=%u sentAck=%u\n",
-                            __func__, __LINE__,
-                            (link->type == kiAP2LinkTypeAccessory
-                             ? "Accessory:SendACK"
-                             : "Device:SendACK"),
-                            link->recvSeq,
-                            link->sentAck);
+                iAP2LogDbg("%s:%d %s recvSeq=%u sentAck=%u\n",
+                           __func__, __LINE__,
+                           (link->type == kiAP2LinkTypeAccessory
+                            ? "Accessory:SendACK"
+                            : "Device:SendACK"),
+                           link->recvSeq,
+                           link->sentAck);
 #endif
 #if iAP2_LINK_ALLOW_STATS
                 ++(link->numOutOfOrder);
@@ -783,14 +780,12 @@ void iAP2LinkActionSendACK (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
                                    (link->type == kiAP2LinkTypeAccessory
                                     ? "Accessory:SendEAK"
                                     : "Device:SendEAK"));
-            }
-            else
-            {
+
+            } else {
                 assert(FALSE);
             }
-        }
-        else
-        {
+
+        } else {
             assert(FALSE);
         }
     }
@@ -804,51 +799,48 @@ void iAP2LinkActionSendACK (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionResendMissing (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionResendMissing(struct iAP2FSM_st *fsm,
+                                 unsigned int *nextEvent)
 {
-    iAP2Link_t*     link;
-    iAP2Packet_t*   eakPacket;
+    iAP2Link_t     *link;
+    iAP2Packet_t   *eakPacket;
     uint32_t        missingLen;
-    uint8_t*        missing;
-
+    uint8_t        *missing;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
     /* EACK received */
-
-    link = (iAP2Link_t*) fsm->data;
-
+    link = (iAP2Link_t *) fsm->data;
 #if iAP2LINK_DEBUG_PACKET
-    iAP2PacketDebugPrintPacket (link->recvPck, __func__, __LINE__,
-                                (link->type == kiAP2LinkTypeAccessory
-                                 ? "Accessory:ResendMissing"
-                                 : "Device:ResendMissing"),
-                                "");
+    iAP2PacketDebugPrintPacket(link->recvPck, __func__, __LINE__,
+                               (link->type == kiAP2LinkTypeAccessory
+                                ? "Accessory:ResendMissing"
+                                : "Device:ResendMissing"),
+                               "");
 #endif
-
     eakPacket  = link->recvPck;
     missingLen = 0;
-    missing    = iAP2PacketGetMissingSeqFromEAK (eakPacket,
-                                                 link->param.peerMaxOutstandingPackets,
-                                                 &missingLen);
-    if (missing != NULL && missingLen > 0)
-    {
-        uint8_t*      pt = missing;
-        uint8_t*      ptEnd = pt + missingLen;
-        iAP2Packet_t* pTmpPck = iAP2PacketCreateEmptySendPacket (link);
+    missing    = iAP2PacketGetMissingSeqFromEAK(eakPacket,
+                 link->param.peerMaxOutstandingPackets,
+                 &missingLen);
+
+    if (missing != NULL && missingLen > 0) {
+        uint8_t      *pt = missing;
+        uint8_t      *ptEnd = pt + missingLen;
+        iAP2Packet_t *pTmpPck = iAP2PacketCreateEmptySendPacket(link);
         pTmpPck->link = link;
-        while (pt < ptEnd)
-        {
+
+        while (pt < ptEnd) {
             uint8_t item;
             pTmpPck->pckData->seq = *pt;
-            item = iAP2LinkFindPacket(link->sendPckList, &pTmpPck, _iAP2LinkComparePacketSeq);
-            if (item != kiAP2ListArrayInvalidIndex)
-            {
-                iAP2Packet_t* pck = iAP2LinkPacketForIndex (link->sendPckList, item);
+            item = iAP2LinkFindPacket(link->sendPckList, &pTmpPck,
+                                      _iAP2LinkComparePacketSeq);
+
+            if (item != kiAP2ListArrayInvalidIndex) {
+                iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->sendPckList, item);
                 assert(pck);
-                if (!iAP2PacketIsACKOnly(pck))
-                {
+
+                if (!iAP2PacketIsACKOnly(pck)) {
 #if iAP2LINK_DEBUG
                     iAP2LogDbg("%s:%d %s Found (look for seq=%u) seq=%u recvAck=%u timeStamp=%u reTxCount=%d/%d\n",
                                __func__, __LINE__,
@@ -860,20 +852,19 @@ void iAP2LinkActionResendMissing (struct iAP2FSM_st* fsm, unsigned int* nextEven
                                pck->timeStamp, pck->retransmitCount,
                                link->param.maxRetransmissions);
 #endif
-                    if (pck->retransmitCount < link->param.maxRetransmissions)
-                    {
+
+                    if (pck->retransmitCount < link->param.maxRetransmissions) {
                         ++(pck->retransmitCount);
 #if iAP2_LINK_ALLOW_STATS
                         ++(link->missingReTxCount);
                         ++(link->numResentDATA);
 #endif
-                        iAP2LinkSendPacket (link, pck, TRUE,
-                                            (link->type == kiAP2LinkTypeAccessory
-                                             ? "Accessory:ResendMissing"
-                                             : "Device:ResendMissing"));
-                    }
-                    else
-                    {
+                        iAP2LinkSendPacket(link, pck, TRUE,
+                                           (link->type == kiAP2LinkTypeAccessory
+                                            ? "Accessory:ResendMissing"
+                                            : "Device:ResendMissing"));
+
+                    } else {
                         iAP2LogError("%s:%d %s Resend too many times!\n",
                                      __func__, __LINE__,
                                      (link->type == kiAP2LinkTypeAccessory
@@ -881,22 +872,22 @@ void iAP2LinkActionResendMissing (struct iAP2FSM_st* fsm, unsigned int* nextEven
                                       : "Device:ResendMissing"));
                         *nextEvent = kiAP2LinkEventMaxResend;
                     }
-                }
-                else
-                {
+
+                } else {
                     /* Cleanup old ACK packet */
                     iAP2ListArrayDeleteItem(link->sendPckList, item, _DeletePckCB);
                 }
             }
+
             ++pt;
         }
-        iAP2PacketDelete (pTmpPck);
+
+        iAP2PacketDelete(pTmpPck);
         pTmpPck = NULL;
     }
 
-    if (missing != NULL)
-    {
-        iAP2BuffPoolReturn (link->buffPool, missing);
+    if (missing != NULL) {
+        iAP2BuffPoolReturn(link->buffPool, missing);
     }
 }
 
@@ -908,24 +899,21 @@ void iAP2LinkActionResendMissing (struct iAP2FSM_st* fsm, unsigned int* nextEven
 **
 ****************************************************************
 */
-void iAP2LinkActionResendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionResendData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
+    iAP2Link_t *link;
     uint32_t curTime;
     uint32_t expireTime;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
-
+    link = (iAP2Link_t *) fsm->data;
     /* Retransmit unack'd packets */
     curTime = iAP2TimeGetCurTimeMs();
     expireTime = curTime + link->param.retransmitTimeout;
 
-    if (iAP2ListArrayGetCount(link->sendPckList) > 0)
-    {
-        uint8_t item = iAP2ListArrayGetFirstItemIndex (link->sendPckList);
+    if (iAP2ListArrayGetCount(link->sendPckList) > 0) {
+        uint8_t item = iAP2ListArrayGetFirstItemIndex(link->sendPckList);
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d %s sendSeq=%u recvAck=%u\n", __func__, __LINE__,
                    (link->type == kiAP2LinkTypeAccessory
@@ -934,19 +922,19 @@ void iAP2LinkActionResendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
                    link->sentSeq,
                    link->recvAck);
 #endif
-        while (item != kiAP2ListArrayInvalidIndex)
-        {
-            uint8_t nextItem = iAP2ListArrayGetNextItemIndex (link->sendPckList, item);
-            iAP2Packet_t* packet = iAP2LinkPacketForIndex (link->sendPckList, item);
-            if (packet && packet->timeStamp <= expireTime)
-            {
+
+        while (item != kiAP2ListArrayInvalidIndex) {
+            uint8_t nextItem = iAP2ListArrayGetNextItemIndex(link->sendPckList, item);
+            iAP2Packet_t *packet = iAP2LinkPacketForIndex(link->sendPckList, item);
+
+            if (packet && packet->timeStamp <= expireTime) {
                 uint8_t seqDiff = (link->bValidRecvSeq
-                                   ? iAP2PacketCalcSeqGap (link->recvAck, packet->pckData->seq)
+                                   ? iAP2PacketCalcSeqGap(link->recvAck, packet->pckData->seq)
                                    : kiAP2LinkSynValMaxOutstandingMax + 1);
+
                 if (seqDiff > 0 &&
                     seqDiff <= link->param.maxOutstandingPackets &&
-                    !iAP2PacketIsACKOnly(packet))
-                {
+                    !iAP2PacketIsACKOnly(packet)) {
 #if iAP2LINK_DEBUG
                     iAP2LogDbg("%s:%d %s seq=%u seqPlus=%u recvAck=%u timeStamp=%u expireTime=%u reTxCount=%d/%d\n",
                                __func__, __LINE__,
@@ -958,20 +946,19 @@ void iAP2LinkActionResendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
                                packet->retransmitCount,
                                link->param.maxRetransmissions);
 #endif
-                    if (packet->retransmitCount < link->param.maxRetransmissions)
-                    {
+
+                    if (packet->retransmitCount < link->param.maxRetransmissions) {
                         ++(packet->retransmitCount);
 #if iAP2_LINK_ALLOW_STATS
                         ++(link->noAckReTxCount);
                         ++(link->numResentDATA);
 #endif
-                        iAP2LinkSendPacket (link, packet, TRUE,
-                                            (link->type == kiAP2LinkTypeAccessory
-                                             ? "Accessory:ResendData"
-                                             : "Device:ResendData"));
-                    }
-                    else
-                    {
+                        iAP2LinkSendPacket(link, packet, TRUE,
+                                           (link->type == kiAP2LinkTypeAccessory
+                                            ? "Accessory:ResendData"
+                                            : "Device:ResendData"));
+
+                    } else {
                         iAP2LogError("%s:%d %s Resend too many times!\n",
                                      __func__, __LINE__,
                                      (link->type == kiAP2LinkTypeAccessory
@@ -979,13 +966,13 @@ void iAP2LinkActionResendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
                                       : "Device:ResendData"));
                         *nextEvent = kiAP2LinkEventMaxResend;
                     }
-                }
-                else
-                {
+
+                } else {
                     /* Cleanup old/ACK packet */
-                    iAP2ListArrayDeleteItem (link->sendPckList, item, _DeletePckCB);
+                    iAP2ListArrayDeleteItem(link->sendPckList, item, _DeletePckCB);
                 }
             }
+
             item = nextItem;
         }
     }
@@ -999,26 +986,23 @@ void iAP2LinkActionResendData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionHandleData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionHandleData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
-    iAP2Packet_t* pck;
-    iAP2PacketSessionInfo_t* pSession;
-
+    iAP2Link_t *link;
+    iAP2Packet_t *pck;
+    iAP2PacketSessionInfo_t *pSession;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
-
+    link = (iAP2Link_t *) fsm->data;
     pck = link->recvPck;
 #if iAP2_LINK_ALLOW_STATS
-    link->dataBytesRcvd += iAP2PacketGetPayloadLen (pck);
+    link->dataBytesRcvd += iAP2PacketGetPayloadLen(pck);
     ++(link->dataPacketsRcvd);
 #endif
-    pSession = iAP2LinkGetSessionInfo (link, pck->pckData->sess);
-    if (pSession)
-    {
+    pSession = iAP2LinkGetSessionInfo(link, pck->pckData->sess);
+
+    if (pSession) {
 #if iAP2LINK_DEBUG
         iAP2PacketDebugPrintPacket(pck, __func__, __LINE__,
                                    (link->type == kiAP2LinkTypeAccessory
@@ -1026,17 +1010,17 @@ void iAP2LinkActionHandleData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
                                     : "Device:HandleData"),
                                    "");
 #endif
-        (*link->recvDataCB) (link,
-                             iAP2PacketGetPayload (pck),
-                             iAP2PacketGetPayloadLen (pck),
-                             pck->pckData->sess);
-    }
-    else
-    {
-        iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__, pck->pckData->sess);
+        (*link->recvDataCB)(link,
+                            iAP2PacketGetPayload(pck),
+                            iAP2PacketGetPayloadLen(pck),
+                            pck->pckData->sess);
+
+    } else {
+        iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__,
+                     pck->pckData->sess);
     }
 
-    _iAP2LinkStartSendAckTimerIfNotRunning (link, pck->pckData->seq);
+    _iAP2LinkStartSendAckTimerIfNotRunning(link, pck->pckData->seq);
 }
 
 
@@ -1047,16 +1031,14 @@ void iAP2LinkActionHandleData (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
 **
 ****************************************************************
 */
-void iAP2LinkActionNotifyConnectionFail (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionNotifyConnectionFail(struct iAP2FSM_st *fsm,
+                                        unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
-
+    iAP2Link_t *link;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
-
+    link = (iAP2Link_t *) fsm->data;
 #if iAP2LINK_DEBUG
     iAP2LogDbg("%s:%d %s connectedCB=%p\n",
                __func__, __LINE__,
@@ -1065,10 +1047,10 @@ void iAP2LinkActionNotifyConnectionFail (struct iAP2FSM_st* fsm, unsigned int* n
                 : "Device:ConnectionFail"),
                link->connectedCB);
 #endif
-    if (link->connectedCB)
-    {
+
+    if (link->connectedCB) {
         /* Notify about the connection establishment */
-        (*link->connectedCB) (link, FALSE);
+        (*link->connectedCB)(link, FALSE);
     }
 }
 
@@ -1080,16 +1062,13 @@ void iAP2LinkActionNotifyConnectionFail (struct iAP2FSM_st* fsm, unsigned int* n
 **
 ****************************************************************
 */
-void iAP2LinkActionSwitchToiAP1 (struct iAP2FSM_st* fsm, unsigned int* nextEvent)
+void iAP2LinkActionSwitchToiAP1(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 {
-    iAP2Link_t* link;
-
+    iAP2Link_t *link;
     assert(fsm);
     assert(nextEvent);
     *nextEvent = kiAP2LinkEventCount;
-
-    link = (iAP2Link_t*) fsm->data;
-
+    link = (iAP2Link_t *) fsm->data;
 #if iAP2LINK_DEBUG
     iAP2LogDbg("%s:%d %s sendDetectCB=%p\n",
                __func__, __LINE__,
@@ -1099,15 +1078,14 @@ void iAP2LinkActionSwitchToiAP1 (struct iAP2FSM_st* fsm, unsigned int* nextEvent
                link->sendDetectCB);
 #endif
 
-    if (link->sendDetectCB)
-    {
+    if (link->sendDetectCB) {
         /* Send Detect BAD ACK byte seqeunce */
-        (*link->sendDetectCB) (link, TRUE);
+        (*link->sendDetectCB)(link, TRUE);
     }
-    if (link->connectedCB)
-    {
+
+    if (link->connectedCB) {
         /* Notify about the connection failure */
-        (*link->connectedCB) (link, FALSE);
+        (*link->connectedCB)(link, FALSE);
     }
 }
 
@@ -1139,10 +1117,9 @@ void iAP2LinkActionSwitchToiAP1 (struct iAP2FSM_st* fsm, unsigned int* nextEvent
 **
 ****************************************************************
 */
-void iAP2LinkSetDefaultSYNParam (iAP2PacketSYNData_t* param)
+void iAP2LinkSetDefaultSYNParam(iAP2PacketSYNData_t *param)
 {
-    if (param != NULL)
-    {
+    if (param != NULL) {
         param->version               = kiAP2LinkSynDefaultVersion;
         param->maxOutstandingPackets = kiAP2LinkSynDefaultMaxOutstanding;
         param->maxPacketSize         = kiAP2LinkSynDefaultMaxPacketSize;
@@ -1157,16 +1134,18 @@ void iAP2LinkSetDefaultSYNParam (iAP2PacketSYNData_t* param)
 }
 
 
-static BOOL _IsSessionDuplicate (iAP2PacketSYNData_t *synData, iAP2PacketSessionInfo_t *session)
+static BOOL _IsSessionDuplicate(iAP2PacketSYNData_t *synData,
+                                iAP2PacketSessionInfo_t *session)
 {
     uint32_t i;
-    for (i = 0; i < synData->numSessionInfo; ++i)
-    {
-        if (synData->sessionInfo[i].id == session->id || synData->sessionInfo[i].type == session->type)
-        {
+
+    for (i = 0; i < synData->numSessionInfo; ++i) {
+        if (synData->sessionInfo[i].id == session->id
+            || synData->sessionInfo[i].type == session->type) {
             return TRUE;
         }
     }
+
     return FALSE;
 }
 
@@ -1187,11 +1166,11 @@ static BOOL _IsSessionDuplicate (iAP2PacketSYNData_t *synData, iAP2PacketSession
 **
 ****************************************************************
 */
-BOOL iAP2LinkIsValidSynParam (iAP2PacketSYNData_t* synParam)
+BOOL iAP2LinkIsValidSynParam(iAP2PacketSYNData_t *synParam)
 {
     BOOL result = FALSE;
-    if (synParam != NULL)
-    {
+
+    if (synParam != NULL) {
         result = (synParam->maxOutstandingPackets >= kiAP2LinkSynValMaxOutstandingMin &&
                   synParam->maxOutstandingPackets <= kiAP2LinkSynValMaxOutstandingMax &&
                   synParam->maxPacketSize >= kiAP2LinkSynValMaxPacketSizeMin &&
@@ -1204,50 +1183,48 @@ BOOL iAP2LinkIsValidSynParam (iAP2PacketSYNData_t* synParam)
                   synParam->maxRetransmissions <= kiAP2LinkSynValMaxRetransmitMax &&
                   synParam->maxCumAck >= kiAP2LinkSynValMaxCumAckMin &&
                   synParam->maxCumAck <= kiAP2LinkSynValMaxCumAckMax);
-        if (result)
-        {
+
+        if (result) {
             BOOL    bControlSessionFound = FALSE;
             iAP2PacketSYNData_t tempParam;
             uint32_t i;
 
-            for (i = 0; i < synParam->numSessionInfo; ++i)
-            {
+            for (i = 0; i < synParam->numSessionInfo; ++i) {
                 /* Check for duplicate sessionIDs */
                 tempParam.numSessionInfo = 0;
-                if (_IsSessionDuplicate(&tempParam, &synParam->sessionInfo[i]))
-                {
+
+                if (_IsSessionDuplicate(&tempParam, &synParam->sessionInfo[i])) {
                     result = FALSE;
                     break;
                 }
-                tempParam.sessionInfo[tempParam.numSessionInfo].id      = synParam->sessionInfo[i].id;
-                tempParam.sessionInfo[tempParam.numSessionInfo].type    = synParam->sessionInfo[i].type;
-                tempParam.sessionInfo[tempParam.numSessionInfo].version = synParam->sessionInfo[i].version;
+
+                tempParam.sessionInfo[tempParam.numSessionInfo].id      =
+                    synParam->sessionInfo[i].id;
+                tempParam.sessionInfo[tempParam.numSessionInfo].type    =
+                    synParam->sessionInfo[i].type;
+                tempParam.sessionInfo[tempParam.numSessionInfo].version =
+                    synParam->sessionInfo[i].version;
                 ++tempParam.numSessionInfo;
 
                 /* Session ID 0x0 is reserved and shall not be used for any session types */
                 if ((synParam->sessionInfo[i].id == kIAP2PacketReservedSessionID) ||
-                    (synParam->sessionInfo[i].type >= kIAP2PacketServiceTypeCount))
-                {
+                    (synParam->sessionInfo[i].type >= kIAP2PacketServiceTypeCount)) {
                     result = FALSE;
                     break;
-                }
-                else if (synParam->sessionInfo[i].type == kIAP2PacketServiceTypeControl)
-                {
+
+                } else if (synParam->sessionInfo[i].type == kIAP2PacketServiceTypeControl) {
                     /* Required control session type has been found */
                     bControlSessionFound = TRUE;
                 }
             }
 
-            if (FALSE == bControlSessionFound)
-            {
+            if (FALSE == bControlSessionFound) {
                 result = FALSE;     /* ERROR: Control session missing ! */
             }
         }
 
-        if (!result)
-        {
+        if (!result) {
             int i;
-
             iAP2LogStart();
             iAP2LogErrorNL("Invalid SYN Params detected:\n");
             iAP2LogErrorNL("    maxOutstanding=%d maxPacketSize=%d\n",
@@ -1258,17 +1235,19 @@ BOOL iAP2LinkIsValidSynParam (iAP2PacketSYNData_t* synParam)
                            synParam->maxRetransmissions, synParam->maxCumAck);
             iAP2LogErrorNL("    numSessionInfo=%u\n",
                            synParam->numSessionInfo);
-            for (i = 0; i < synParam->numSessionInfo; ++i)
-            {
+
+            for (i = 0; i < synParam->numSessionInfo; ++i) {
                 iAP2LogErrorNL("    session %u [id=%u type=%u ver=%u]\n",
                                i,
                                synParam->sessionInfo[i].id,
                                synParam->sessionInfo[i].type,
                                synParam->sessionInfo[i].version);
             }
+
             iAP2LogStop();
         }
     }
+
     return result;
 } /* iAP2LinkIsValidSynParam */
 
@@ -1290,67 +1269,66 @@ BOOL iAP2LinkIsValidSynParam (iAP2PacketSYNData_t* synParam)
 **
 ****************************************************************
 */
-BOOL iAP2LinkValidateSynParam (iAP2PacketSYNData_t* synParam)
+BOOL iAP2LinkValidateSynParam(iAP2PacketSYNData_t *synParam)
 {
     iAP2PacketSYNData_t tempParam;
     BOOL bControlSessionFound;
     uint32_t i;
     BOOL result = FALSE;
-    if (synParam != NULL)
-    {
+
+    if (synParam != NULL) {
         result = TRUE;
 
-        if (synParam->retransmitTimeout < kiAP2LinkSynValRetransmitTimeoutMin)
-        {
+        if (synParam->retransmitTimeout < kiAP2LinkSynValRetransmitTimeoutMin) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: retransmitTimeout=%d->%d\n",
                          synParam->retransmitTimeout, kiAP2LinkSynValRetransmitTimeoutMin);
             synParam->retransmitTimeout = kiAP2LinkSynValRetransmitTimeoutMin;
         }
-        if (synParam->retransmitTimeout > kiAP2LinkSynValRetransmitTimeoutMax)
-        {
+
+        if (synParam->retransmitTimeout > kiAP2LinkSynValRetransmitTimeoutMax) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: retransmitTimeout=%d->%d\n",
                          synParam->retransmitTimeout, kiAP2LinkSynValRetransmitTimeoutMax);
             synParam->retransmitTimeout = kiAP2LinkSynValRetransmitTimeoutMax;
         }
-        if (synParam->cumAckTimeout < kiAP2LinkSynValCumAckTimeoutMin)
-        {
+
+        if (synParam->cumAckTimeout < kiAP2LinkSynValCumAckTimeoutMin) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: cumAckTimeout=%d->%d\n",
                          synParam->cumAckTimeout, kiAP2LinkSynValCumAckTimeoutMin);
             synParam->cumAckTimeout = kiAP2LinkSynValCumAckTimeoutMin;
         }
-        if (synParam->cumAckTimeout > kiAP2LinkSynValCumAckTimeoutMax)
-        {
+
+        if (synParam->cumAckTimeout > kiAP2LinkSynValCumAckTimeoutMax) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: cumAckTimeout=%d->%d\n",
                          synParam->cumAckTimeout, kiAP2LinkSynValCumAckTimeoutMax);
             synParam->cumAckTimeout = kiAP2LinkSynValCumAckTimeoutMax;
         }
-        if (synParam->maxRetransmissions < kiAP2LinkSynValMaxRetransmitMin)
-        {
+
+        if (synParam->maxRetransmissions < kiAP2LinkSynValMaxRetransmitMin) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: maxRetransmissions=%d->%d\n",
                          synParam->maxRetransmissions, kiAP2LinkSynValMaxRetransmitMin);
             synParam->maxRetransmissions = kiAP2LinkSynValMaxRetransmitMin;
         }
-        if (synParam->maxRetransmissions > kiAP2LinkSynValMaxRetransmitMax)
-        {
+
+        if (synParam->maxRetransmissions > kiAP2LinkSynValMaxRetransmitMax) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: maxRetransmissions=%d->%d\n",
                          synParam->maxRetransmissions, kiAP2LinkSynValMaxRetransmitMax);
             synParam->maxRetransmissions = kiAP2LinkSynValMaxRetransmitMax;
         }
-        if (synParam->maxCumAck < kiAP2LinkSynValMaxCumAckMin)
-        {
+
+        if (synParam->maxCumAck < kiAP2LinkSynValMaxCumAckMin) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: maxCumAck=%d->%d\n",
                          synParam->maxCumAck, kiAP2LinkSynValMaxCumAckMin);
             synParam->maxCumAck = kiAP2LinkSynValMaxCumAckMin;
         }
-        if (synParam->maxCumAck > kiAP2LinkSynValMaxCumAckMax)
-        {
+
+        if (synParam->maxCumAck > kiAP2LinkSynValMaxCumAckMax) {
             result = FALSE;
             iAP2LogError("Invalid SYN Params detected: maxCumAck=%d->%d\n",
                          synParam->maxCumAck, kiAP2LinkSynValMaxCumAckMax);
@@ -1359,15 +1337,14 @@ BOOL iAP2LinkValidateSynParam (iAP2PacketSYNData_t* synParam)
 
         tempParam.numSessionInfo = 0;
         bControlSessionFound = FALSE;
-        for (i = 0; i < synParam->numSessionInfo; ++i)
-        {
+
+        for (i = 0; i < synParam->numSessionInfo; ++i) {
             if (synParam->sessionInfo[i].type == kIAP2PacketServiceTypeControl) {
                 bControlSessionFound = TRUE;
             }
-            
+
             if ((synParam->sessionInfo[i].id != kIAP2PacketReservedSessionID) &&
-                (synParam->sessionInfo[i].type < kIAP2PacketServiceTypeCount))
-            {
+                (synParam->sessionInfo[i].type < kIAP2PacketServiceTypeCount)) {
                 if (!_IsSessionDuplicate(&tempParam, &synParam->sessionInfo[i])) {
                     tempParam.sessionInfo[tempParam.numSessionInfo].id
                         = synParam->sessionInfo[i].id;
@@ -1376,6 +1353,7 @@ BOOL iAP2LinkValidateSynParam (iAP2PacketSYNData_t* synParam)
                     tempParam.sessionInfo[tempParam.numSessionInfo].version
                         = synParam->sessionInfo[i].version;
                     ++tempParam.numSessionInfo;
+
                 } else {
                     iAP2LogError("Duplicate SYN Params detected: session %u [id=%u type=%u ver=%u]\n",
                                  i,
@@ -1383,9 +1361,8 @@ BOOL iAP2LinkValidateSynParam (iAP2PacketSYNData_t* synParam)
                                  synParam->sessionInfo[i].type,
                                  synParam->sessionInfo[i].version);
                 }
-            }
-            else
-            {
+
+            } else {
                 iAP2LogError("Invalid SYN Params detected: session %u [id=%u type=%u ver=%u]\n",
                              i,
                              synParam->sessionInfo[i].id,
@@ -1394,39 +1371,45 @@ BOOL iAP2LinkValidateSynParam (iAP2PacketSYNData_t* synParam)
                 result = FALSE;
             }
         }
-        
+
         /* Add control session if not present and max sessions not exceeded */
-        if (!bControlSessionFound && tempParam.numSessionInfo < kIAP2PacketMaxSessions) {
+        if (!bControlSessionFound
+            && tempParam.numSessionInfo < kIAP2PacketMaxSessions) {
             /* find unique session id for the control session */
             uint8_t sessionId = (tempParam.numSessionInfo > 0
-                                 ? tempParam.sessionInfo[tempParam.numSessionInfo -1].id + 1
+                                 ? tempParam.sessionInfo[tempParam.numSessionInfo - 1].id + 1
                                  : 1);
             BOOL uniqueIdFound = FALSE;
+
             while (!uniqueIdFound) {
                 uint8_t j;
+
                 for (j = 0; j < tempParam.numSessionInfo; ++j) {
                     if (tempParam.sessionInfo[j].id == sessionId) {
                         sessionId++;
                         break;
                     }
                 }
+
                 if (j == tempParam.numSessionInfo) {
                     uniqueIdFound = TRUE;
                 }
             }
-            
+
             tempParam.sessionInfo[tempParam.numSessionInfo].id = sessionId;
-            tempParam.sessionInfo[tempParam.numSessionInfo].type = kIAP2PacketServiceTypeControl;
+            tempParam.sessionInfo[tempParam.numSessionInfo].type =
+                kIAP2PacketServiceTypeControl;
             tempParam.sessionInfo[tempParam.numSessionInfo].version = 1;
             ++tempParam.numSessionInfo;
         }
-        
+
         /* Copy the sessionInfo from tempParam to synParam incase it changed due to duplicates or adding a control session */
         synParam->numSessionInfo = tempParam.numSessionInfo;
-        memcpy (&(synParam->sessionInfo),
-                &(tempParam.sessionInfo),
-                sizeof(tempParam.sessionInfo));
+        memcpy(&(synParam->sessionInfo),
+               &(tempParam.sessionInfo),
+               sizeof(tempParam.sessionInfo));
     }
+
     return result;
 } /* iAP2LinkValidateSynParam */
 
@@ -1449,7 +1432,7 @@ BOOL iAP2LinkValidateSynParam (iAP2PacketSYNData_t* synParam)
 **
 ****************************************************************
 */
-uint32_t iAP2LinkGetBuffSize (uint8_t maxPacketSentRcvdAtOnce)
+uint32_t iAP2LinkGetBuffSize(uint8_t maxPacketSentRcvdAtOnce)
 {
     int i;
 #if iAP2_LINK_ALLOW_MALLOC != 0
@@ -1466,20 +1449,21 @@ uint32_t iAP2LinkGetBuffSize (uint8_t maxPacketSentRcvdAtOnce)
                            2); /* +2, one for DETECT timeout and one for sendACK timeout */
     result += iAP2FSMGetBuffSize();
     result += iAP2TimeGetBuffSize(maxTimeouts);
-
     /* Assume use malloc */
     /*
      ** TODO: this should be overridden by actual number/size of packets/buffers
      **       that should be supported
      */
-    result += iAP2BuffPoolGetBuffSize (kiAP2BuffPoolTypeBuff, 0, 0);
-    result += iAP2BuffPoolGetBuffSize (kiAP2BuffPoolTypeSendPacket, 0, 0);
-    result += iAP2BuffPoolGetBuffSize (kiAP2BuffPoolTypeRecvPacket, 0, 0);
-
+    result += iAP2BuffPoolGetBuffSize(kiAP2BuffPoolTypeBuff, 0, 0);
+    result += iAP2BuffPoolGetBuffSize(kiAP2BuffPoolTypeSendPacket, 0, 0);
+    result += iAP2BuffPoolGetBuffSize(kiAP2BuffPoolTypeRecvPacket, 0, 0);
     /* 3 lists, recv packet list, send packet list, and send buff list. */
-    result += iAP2ListArrayGetBuffSize(maxPacketSentRcvdAtOnce, (uint8_t)sizeof(uintptr_t));
-    result += iAP2ListArrayGetBuffSize(maxPacketSentRcvdAtOnce, (uint8_t)sizeof(uintptr_t));
-    result += iAP2ListArrayGetBuffSize(maxPacketSentRcvdAtOnce, (uint8_t)sizeof(uintptr_t));
+    result += iAP2ListArrayGetBuffSize(maxPacketSentRcvdAtOnce,
+                                       (uint8_t)sizeof(uintptr_t));
+    result += iAP2ListArrayGetBuffSize(maxPacketSentRcvdAtOnce,
+                                       (uint8_t)sizeof(uintptr_t));
+    result += iAP2ListArrayGetBuffSize(maxPacketSentRcvdAtOnce,
+                                       (uint8_t)sizeof(uintptr_t));
 
     /*
     ** list per session type
@@ -1487,13 +1471,12 @@ uint32_t iAP2LinkGetBuffSize (uint8_t maxPacketSentRcvdAtOnce)
     ** need to support all session types, only the supported ones need have
     ** the sessSendPckList created.
     */
-    for (i = 0; i < kIAP2PacketServiceTypeCount; ++i)
-    {
-        result += iAP2ListArrayGetBuffSize (kiAP2ListArrayMaxCount, (uint8_t)sizeof(uintptr_t));
+    for (i = 0; i < kIAP2PacketServiceTypeCount; ++i) {
+        result += iAP2ListArrayGetBuffSize(kiAP2ListArrayMaxCount,
+                                           (uint8_t)sizeof(uintptr_t));
     }
 
     /* TODO: iAP2List should use preallocated buffers as well. */
-
     return result;
 }
 
@@ -1533,115 +1516,115 @@ uint32_t iAP2LinkGetBuffSize (uint8_t maxPacketSentRcvdAtOnce)
 **
 ****************************************************************
 */
-iAP2Link_t* iAP2LinkCreateAccessory (iAP2PacketSYNData_t*       synParam,
-                                     void*                      context,
-                                     iAP2LinkSendPacketCB_t     sendPacketCB,
-                                     iAP2LinkDataReadyCB_t      recvDataCB,
-                                     iAP2LinkConnectedCB_t      connectedCB,
-                                     iAP2LinkSendDetectCB_t     sendDetectCB,
-                                     iAP2LinkSignalSendBuffCB_t signalSendBuffCB,
-                                     BOOL                       bValidateSYN,
-                                     uint8_t                    maxPacketSentAtOnce,
-                                     uint8_t*                   linkBuffer)
+iAP2Link_t *iAP2LinkCreateAccessory(iAP2PacketSYNData_t       *synParam,
+                                    void                      *context,
+                                    iAP2LinkSendPacketCB_t     sendPacketCB,
+                                    iAP2LinkDataReadyCB_t      recvDataCB,
+                                    iAP2LinkConnectedCB_t      connectedCB,
+                                    iAP2LinkSendDetectCB_t     sendDetectCB,
+                                    iAP2LinkSignalSendBuffCB_t signalSendBuffCB,
+                                    BOOL                       bValidateSYN,
+                                    uint8_t                    maxPacketSentAtOnce,
+                                    uint8_t                   *linkBuffer)
 {
-    return iAP2LinkCreate (kiAP2LinkTypeAccessory,
-                           context,
-                           synParam,
-                           sendPacketCB,
-                           NULL,
-                           recvDataCB,
-                           connectedCB,
-                           sendDetectCB,
-                           signalSendBuffCB,
-                           bValidateSYN,
-                           maxPacketSentAtOnce,
-                           linkBuffer);
+    return iAP2LinkCreate(kiAP2LinkTypeAccessory,
+                          context,
+                          synParam,
+                          sendPacketCB,
+                          NULL,
+                          recvDataCB,
+                          connectedCB,
+                          sendDetectCB,
+                          signalSendBuffCB,
+                          bValidateSYN,
+                          maxPacketSentAtOnce,
+                          linkBuffer);
 }
 
 
-iAP2Link_t* iAP2LinkCreateDevice (iAP2PacketSYNData_t*       synParam,
-                                  void*                      context,
-                                  iAP2LinkSendPacketCB_t     sendPacketCB,
-                                  iAP2LinkSendPacketWaitCB_t sendPacketWaitCB,
-                                  iAP2LinkDataReadyCB_t      recvDataCB,
-                                  iAP2LinkConnectedCB_t      connectedCB,
-                                  iAP2LinkSendDetectCB_t     sendDetectCB,
-                                  iAP2LinkSignalSendBuffCB_t signalSendBuffCB,
-                                  BOOL                       bValidateSYN,
-                                  uint8_t                    maxPacketSentAtOnce,
-                                  uint8_t*                   linkBuffer)
+iAP2Link_t *iAP2LinkCreateDevice(iAP2PacketSYNData_t       *synParam,
+                                 void                      *context,
+                                 iAP2LinkSendPacketCB_t     sendPacketCB,
+                                 iAP2LinkSendPacketWaitCB_t sendPacketWaitCB,
+                                 iAP2LinkDataReadyCB_t      recvDataCB,
+                                 iAP2LinkConnectedCB_t      connectedCB,
+                                 iAP2LinkSendDetectCB_t     sendDetectCB,
+                                 iAP2LinkSignalSendBuffCB_t signalSendBuffCB,
+                                 BOOL                       bValidateSYN,
+                                 uint8_t                    maxPacketSentAtOnce,
+                                 uint8_t                   *linkBuffer)
 {
-    return iAP2LinkCreate (kiAP2LinkTypeDevice,
-                           context,
-                           synParam,
-                           sendPacketCB,
-                           sendPacketWaitCB,
-                           recvDataCB,
-                           connectedCB,
-                           sendDetectCB,
-                           signalSendBuffCB,
-                           bValidateSYN,
-                           maxPacketSentAtOnce,
-                           linkBuffer);
+    return iAP2LinkCreate(kiAP2LinkTypeDevice,
+                          context,
+                          synParam,
+                          sendPacketCB,
+                          sendPacketWaitCB,
+                          recvDataCB,
+                          connectedCB,
+                          sendDetectCB,
+                          signalSendBuffCB,
+                          bValidateSYN,
+                          maxPacketSentAtOnce,
+                          linkBuffer);
 }
 
 
-iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
-                            void*                       context,
-                            iAP2PacketSYNData_t*        synParam,
-                            iAP2LinkSendPacketCB_t      sendPacketCB,
-                            iAP2LinkSendPacketWaitCB_t  sendPacketWaitCB,
-                            iAP2LinkDataReadyCB_t       recvDataCB,
-                            iAP2LinkConnectedCB_t       connectedCB,
-                            iAP2LinkSendDetectCB_t      sendDetectCB,
-                            iAP2LinkSignalSendBuffCB_t  signalSendBuffCB,
-                            BOOL                        bValidateSYN,
-                            uint8_t                     maxPacketSentAtOnce,
-                            uint8_t*                    linkBuffer)
+iAP2Link_t *iAP2LinkCreate(iAP2LinkType_t              type,
+                           void                       *context,
+                           iAP2PacketSYNData_t        *synParam,
+                           iAP2LinkSendPacketCB_t      sendPacketCB,
+                           iAP2LinkSendPacketWaitCB_t  sendPacketWaitCB,
+                           iAP2LinkDataReadyCB_t       recvDataCB,
+                           iAP2LinkConnectedCB_t       connectedCB,
+                           iAP2LinkSendDetectCB_t      sendDetectCB,
+                           iAP2LinkSignalSendBuffCB_t  signalSendBuffCB,
+                           BOOL                        bValidateSYN,
+                           uint8_t                     maxPacketSentAtOnce,
+                           uint8_t                    *linkBuffer)
 {
     uint8_t     maxTimeouts = 0;
     int         i;
-    iAP2Link_t* link;
-    uint8_t*    linkBufferNext;
+    iAP2Link_t *link;
+    uint8_t    *linkBufferNext;
 #if iAP2_LINK_ALLOW_MALLOC != 0
-    if (NULL == linkBuffer)
-    {
-        uint8_t* buff = malloc (iAP2LinkGetBuffSize(maxPacketSentAtOnce));
-        link             = (iAP2Link_t*) buff;
+
+    if (NULL == linkBuffer) {
+        uint8_t *buff = malloc(iAP2LinkGetBuffSize(maxPacketSentAtOnce));
+        link             = (iAP2Link_t *) buff;
         linkBufferNext   = buff;
         link->linkBuffer = buff;
-    }
-    else
-    {
+
+    } else {
         /*
         ** We add offset in this case so that link != link->linkBuffer, indicating
         ** that iAP2Link did not allocate the buffer for link layer.
         */
-        link             = (iAP2Link_t*) (linkBuffer + iAP2_LINK_BUFFER_OFFSET);
+        link             = (iAP2Link_t *)(linkBuffer + iAP2_LINK_BUFFER_OFFSET);
         linkBufferNext   = linkBuffer + iAP2_LINK_BUFFER_OFFSET;
         link->linkBuffer = linkBuffer;
     }
+
 #else
-    assert (linkBuffer);
-    link             = (iAP2Link_t*) (linkBuffer);
+    assert(linkBuffer);
+    link             = (iAP2Link_t *)(linkBuffer);
     linkBufferNext   = linkBuffer;
     link->linkBuffer = linkBuffer;
 #endif
     linkBufferNext += sizeof(iAP2Link_t);
     assert(link);
-    if (bValidateSYN && iAP2LinkIsValidSynParam(synParam) == FALSE)
-    {
+
+    if (bValidateSYN && iAP2LinkIsValidSynParam(synParam) == FALSE) {
 #if iAP2_LINK_ALLOW_MALLOC != 0
-        if (NULL == linkBuffer)
-        {
-            free (link);
+
+        if (NULL == linkBuffer) {
+            free(link);
         }
+
 #endif
         return NULL;
     }
 
-    switch (type)
-    {
+    switch (type) {
         case kiAP2LinkTypeDevice:
 #if iAP2_FOR_DEVICE
 #if iAP2LINK_DEBUG
@@ -1650,23 +1633,24 @@ iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
             /* Assume max configuration supported for Device */
             maxTimeouts = (maxPacketSentAtOnce +
                            2); /* +2, one for DETECT timeout and one for sendACK timeout */
-            link->fsm = iAP2FSMCreate (kiAP2LinkStateCount,
-                                       kiAP2LinkStateInit,
-                                       kiAP2LinkEventCount,
-                                       iAP2LinkDeviceStates,
-                                       link,
-                                       "DeviceFSM",
+            link->fsm = iAP2FSMCreate(kiAP2LinkStateCount,
+                                      kiAP2LinkStateInit,
+                                      kiAP2LinkEventCount,
+                                      iAP2LinkDeviceStates,
+                                      link,
+                                      "DeviceFSM",
 #if iAP2LINK_DEBUG
-                                       stateNames,
-                                       eventNames,
+                                      stateNames,
+                                      eventNames,
 #else
-                                       NULL,
-                                       NULL,
+                                      NULL,
+                                      NULL,
 #endif
-                                       linkBufferNext);
+                                      linkBufferNext);
             linkBufferNext += iAP2FSMGetBuffSize();
 #endif /*#if iAP2_FOR_DEVICE*/
             break;
+
         case kiAP2LinkTypeAccessory:
 #if iAP2_FOR_ACCESSORY
 #if iAP2LINK_DEBUG
@@ -1678,23 +1662,24 @@ iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
              */
             maxTimeouts = (maxPacketSentAtOnce +
                            2); /* +2, one for DETECT timeout and one for sendACK timeout */
-            link->fsm = iAP2FSMCreate (kiAP2LinkStateCount,
-                                       kiAP2LinkStateInit,
-                                       kiAP2LinkEventCount,
-                                       iAP2LinkAccessoryStates,
-                                       link,
-                                       "AccessoryFSM",
+            link->fsm = iAP2FSMCreate(kiAP2LinkStateCount,
+                                      kiAP2LinkStateInit,
+                                      kiAP2LinkEventCount,
+                                      iAP2LinkAccessoryStates,
+                                      link,
+                                      "AccessoryFSM",
 #if iAP2LINK_DEBUG
-                                       stateNames,
-                                       eventNames,
+                                      stateNames,
+                                      eventNames,
 #else
-                                       NULL,
-                                       NULL,
+                                      NULL,
+                                      NULL,
 #endif
-                                       linkBufferNext);
+                                      linkBufferNext);
             linkBufferNext += iAP2FSMGetBuffSize();
 #endif /*#if iAP2_FOR_ACCESSORY*/
             break;
+
         default:
 #if iAP2LINK_DEBUG
             iAP2LogDbg("%s:%d Invalid type(%d)!\n", __func__, __LINE__, type);
@@ -1721,35 +1706,37 @@ iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
     link->recvAck          = 0;
     link->bValidRecvAck    = FALSE;
     link->recvPck          = NULL;
-    link->mainTimer        = iAP2TimeCreate (link,
-                                             _iAP2LinkHandleTimerExpire,
-                                             _iAP2LinkHandleTimerCancel,
-                                             maxTimeouts,
-                                             linkBufferNext);
-    linkBufferNext += iAP2TimeGetBuffSize (maxTimeouts);
-
+    link->mainTimer        = iAP2TimeCreate(link,
+                                            _iAP2LinkHandleTimerExpire,
+                                            _iAP2LinkHandleTimerCancel,
+                                            maxTimeouts,
+                                            linkBufferNext);
+    linkBufferNext += iAP2TimeGetBuffSize(maxTimeouts);
     link->detectAckTimeoutID = INVALID_TIMEOUT_ID;
     link->sendAckTimeoutID = INVALID_TIMEOUT_ID;
     link->bUseiAP2LinkRunLoop = FALSE;
-
-    iAP2ListArrayInit (linkBufferNext, maxPacketSentAtOnce, (uint8_t)sizeof(uintptr_t));
+    iAP2ListArrayInit(linkBufferNext, maxPacketSentAtOnce,
+                      (uint8_t)sizeof(uintptr_t));
     link->recvPckList = linkBufferNext;
-    linkBufferNext += iAP2ListArrayGetBuffSize (maxPacketSentAtOnce, (uint8_t)sizeof(uintptr_t));
-
-    iAP2ListArrayInit (linkBufferNext, maxPacketSentAtOnce, (uint8_t)sizeof(uintptr_t));
+    linkBufferNext += iAP2ListArrayGetBuffSize(maxPacketSentAtOnce,
+                      (uint8_t)sizeof(uintptr_t));
+    iAP2ListArrayInit(linkBufferNext, maxPacketSentAtOnce,
+                      (uint8_t)sizeof(uintptr_t));
     link->sendPckList = linkBufferNext;
-    linkBufferNext += iAP2ListArrayGetBuffSize (maxPacketSentAtOnce, (uint8_t)sizeof(uintptr_t));
+    linkBufferNext += iAP2ListArrayGetBuffSize(maxPacketSentAtOnce,
+                      (uint8_t)sizeof(uintptr_t));
 
     /*
     ** This supports all session types but if the implementation does not
     ** need to support all session types, only the supported ones need have
     ** the sessSendPckList created.
     */
-    for (i = 0; i < kIAP2PacketServiceTypeCount; ++i)
-    {
-        iAP2ListArrayInit (linkBufferNext, kiAP2ListArrayMaxCount, (uint8_t)sizeof(uintptr_t));
+    for (i = 0; i < kIAP2PacketServiceTypeCount; ++i) {
+        iAP2ListArrayInit(linkBufferNext, kiAP2ListArrayMaxCount,
+                          (uint8_t)sizeof(uintptr_t));
         link->sessSendPckList[i] = linkBufferNext;
-        linkBufferNext += iAP2ListArrayGetBuffSize (kiAP2ListArrayMaxCount, (uint8_t)sizeof(uintptr_t));
+        linkBufferNext += iAP2ListArrayGetBuffSize(kiAP2ListArrayMaxCount,
+                          (uint8_t)sizeof(uintptr_t));
     }
 
     /* SYN params */
@@ -1763,32 +1750,27 @@ iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
     link->initParam.peerMaxOutstandingPackets  = synParam->maxOutstandingPackets;
     link->initParam.peerMaxPacketSize          = synParam->maxPacketSize;
     link->initParam.numSessionInfo         = synParam->numSessionInfo;
-    memcpy (link->initParam.sessionInfo,
-            synParam->sessionInfo,
-            sizeof(synParam->sessionInfo[0]) * kIAP2PacketMaxSessions);
-
-    memcpy (&(link->negotiatedParam),
-            &(link->initParam),
-            sizeof(link->initParam));
-
-    iAP2LinkSetDefaultSYNParam (&(link->param));
-
+    memcpy(link->initParam.sessionInfo,
+           synParam->sessionInfo,
+           sizeof(synParam->sessionInfo[0]) * kIAP2PacketMaxSessions);
+    memcpy(&(link->negotiatedParam),
+           &(link->initParam),
+           sizeof(link->initParam));
+    iAP2LinkSetDefaultSYNParam(&(link->param));
     /* Must be called after link is initilaized */
-    link->recvPckPool = iAP2BuffPoolInit (kiAP2BuffPoolTypeRecvPacket,
-                                          (uintptr_t) link,
-                                          0, 0, linkBufferNext);
-    linkBufferNext += iAP2BuffPoolGetBuffSize (kiAP2BuffPoolTypeRecvPacket, 0, 0);
-    link->sendPckPool = iAP2BuffPoolInit (kiAP2BuffPoolTypeSendPacket,
-                                          (uintptr_t) link,
-                                          0, 0, linkBufferNext);
-    linkBufferNext += iAP2BuffPoolGetBuffSize (kiAP2BuffPoolTypeSendPacket, 0, 0);
-    link->buffPool = iAP2BuffPoolInit (kiAP2BuffPoolTypeBuff,
-                                       (uintptr_t) link,
-                                       0, 0, linkBufferNext);
-    linkBufferNext += iAP2BuffPoolGetBuffSize (kiAP2BuffPoolTypeBuff, 0, 0);
-
+    link->recvPckPool = iAP2BuffPoolInit(kiAP2BuffPoolTypeRecvPacket,
+                                         (uintptr_t) link,
+                                         0, 0, linkBufferNext);
+    linkBufferNext += iAP2BuffPoolGetBuffSize(kiAP2BuffPoolTypeRecvPacket, 0, 0);
+    link->sendPckPool = iAP2BuffPoolInit(kiAP2BuffPoolTypeSendPacket,
+                                         (uintptr_t) link,
+                                         0, 0, linkBufferNext);
+    linkBufferNext += iAP2BuffPoolGetBuffSize(kiAP2BuffPoolTypeSendPacket, 0, 0);
+    link->buffPool = iAP2BuffPoolInit(kiAP2BuffPoolTypeBuff,
+                                      (uintptr_t) link,
+                                      0, 0, linkBufferNext);
+    linkBufferNext += iAP2BuffPoolGetBuffSize(kiAP2BuffPoolTypeBuff, 0, 0);
     link->linkBufferNext = linkBufferNext;
-
     /* Counters */
     link->numRecvSYN = 0;
     link->numRecvSYNACK = 0;
@@ -1829,11 +1811,9 @@ iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
     link->numResentACK = 0;
     link->numResentDATA = 0;
 #endif /*#if iAP2_LINK_ALLOW_STATS*/
-
     link->bIgnoreSynRetryLimit = FALSE;
 
-    if (NULL == sendPacketCB)
-    {
+    if (NULL == sendPacketCB) {
         iAP2LogError("%s:%d NULL sendPacketCB!\n", __func__, __LINE__);
     }
 
@@ -1859,27 +1839,25 @@ iAP2Link_t* iAP2LinkCreate (iAP2LinkType_t              type,
 **
 ****************************************************************
 */
-void iAP2LinkResetSend (iAP2Link_t* link)
+void iAP2LinkResetSend(iAP2Link_t *link)
 {
-    if (link != NULL)
-    {
+    if (link != NULL) {
         uint8_t i;
-        if (link->sendPckList != NULL)
-        {
-            iAP2ListArrayCleanup (link->sendPckList, _DeletePckCB);
+
+        if (link->sendPckList != NULL) {
+            iAP2ListArrayCleanup(link->sendPckList, _DeletePckCB);
         }
-        for (i = 0; i < kIAP2PacketServiceTypeCount; ++i)
-        {
-            if (link->sessSendPckList[i] != NULL)
-            {
-                iAP2ListArrayCleanup (link->sessSendPckList[i], _DeletePckCB);
+
+        for (i = 0; i < kIAP2PacketServiceTypeCount; ++i) {
+            if (link->sessSendPckList[i] != NULL) {
+                iAP2ListArrayCleanup(link->sessSendPckList[i], _DeletePckCB);
             }
         }
-        iAP2LinkSetDefaultSYNParam (&(link->param));
-        iAP2LinkResetSeqAck (link, TRUE);
-    }
-    else
-    {
+
+        iAP2LinkSetDefaultSYNParam(&(link->param));
+        iAP2LinkResetSeqAck(link, TRUE);
+
+    } else {
         iAP2LogError("%s:%d NULL link!\n", __func__, __LINE__);
     }
 }
@@ -1901,51 +1879,47 @@ void iAP2LinkResetSend (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkDelete (iAP2Link_t* link)
+void iAP2LinkDelete(iAP2Link_t *link)
 {
-    if (link != NULL)
-    {
-        if (link->fsm != NULL)
-        {
+    if (link != NULL) {
+        if (link->fsm != NULL) {
             iAP2FSMDelete(link->fsm);
             link->fsm = NULL;
         }
-        if (link->recvPck != NULL)
-        {
+
+        if (link->recvPck != NULL) {
             iAP2PacketDelete(link->recvPck);
             link->recvPck = NULL;
         }
-        if (link->recvPckList != NULL)
-        {
-            iAP2ListArrayCleanup (link->recvPckList, _DeletePckCB);
+
+        if (link->recvPckList != NULL) {
+            iAP2ListArrayCleanup(link->recvPckList, _DeletePckCB);
             link->recvPckList = NULL;
         }
 
         /* Reset send packet lists */
-        iAP2LinkResetSend (link);
+        iAP2LinkResetSend(link);
 
-        if (link->mainTimer != NULL)
-        {
-            iAP2TimeDelete (link->mainTimer);
+        if (link->mainTimer != NULL) {
+            iAP2TimeDelete(link->mainTimer);
             link->mainTimer = NULL;
         }
 
-        iAP2BuffPoolCleanup (link->recvPckPool);
+        iAP2BuffPoolCleanup(link->recvPckPool);
         link->recvPckPool = NULL;
-        iAP2BuffPoolCleanup (link->sendPckPool);
+        iAP2BuffPoolCleanup(link->sendPckPool);
         link->sendPckPool = NULL;
-        iAP2BuffPoolCleanup (link->buffPool);
+        iAP2BuffPoolCleanup(link->buffPool);
         link->buffPool = NULL;
-
 #if iAP2_LINK_ALLOW_MALLOC != 0
-        if ((uint8_t*)link == link->linkBuffer)
-        {
-            free ((uint8_t*)link);
+
+        if ((uint8_t *)link == link->linkBuffer) {
+            free((uint8_t *)link);
         }
+
 #endif
-    }
-    else
-    {
+
+    } else {
         iAP2LogError("%s:%d NULL link!\n", __func__, __LINE__);
     }
 }
@@ -1969,9 +1943,9 @@ void iAP2LinkDelete (iAP2Link_t* link)
 **
 ****************************************************************
 */
-uint32_t iAP2LinkGetMaxPayloadSize (iAP2Link_t* link)
+uint32_t iAP2LinkGetMaxPayloadSize(iAP2Link_t *link)
 {
-    return iAP2LinkGetMaxSendPayloadSize (link);
+    return iAP2LinkGetMaxSendPayloadSize(link);
 }
 
 
@@ -1991,14 +1965,14 @@ uint32_t iAP2LinkGetMaxPayloadSize (iAP2Link_t* link)
 **
 ****************************************************************
 */
-uint32_t iAP2LinkGetMaxSendPayloadSize (iAP2Link_t* link)
+uint32_t iAP2LinkGetMaxSendPayloadSize(iAP2Link_t *link)
 {
-    if (link)
-    {
-        return (iAP2LinkGetMaxSendPacketSize (link)
+    if (link) {
+        return (iAP2LinkGetMaxSendPacketSize(link)
                 - kIAP2PacketHeaderLen
                 - kIAP2PacketChksumLen);
     }
+
     return 0;
 }
 
@@ -2019,14 +1993,14 @@ uint32_t iAP2LinkGetMaxSendPayloadSize (iAP2Link_t* link)
 **
 ****************************************************************
 */
-uint32_t iAP2LinkGetMaxRecvPayloadSize (iAP2Link_t* link)
+uint32_t iAP2LinkGetMaxRecvPayloadSize(iAP2Link_t *link)
 {
-    if (link)
-    {
-        return (iAP2LinkGetMaxRecvPacketSize (link)
+    if (link) {
+        return (iAP2LinkGetMaxRecvPacketSize(link)
                 - kIAP2PacketHeaderLen
                 - kIAP2PacketChksumLen);
     }
+
     return 0;
 }
 
@@ -2047,12 +2021,12 @@ uint32_t iAP2LinkGetMaxRecvPayloadSize (iAP2Link_t* link)
  **
  ****************************************************************
  */
-uint32_t iAP2LinkGetMaxSendPacketSize (iAP2Link_t* link)
+uint32_t iAP2LinkGetMaxSendPacketSize(iAP2Link_t *link)
 {
-    if (link)
-    {
+    if (link) {
         return link->param.peerMaxPacketSize;
     }
+
     return 0;
 }
 
@@ -2073,21 +2047,22 @@ uint32_t iAP2LinkGetMaxSendPacketSize (iAP2Link_t* link)
  **
  ****************************************************************
  */
-uint32_t iAP2LinkGetMaxRecvPacketSize (iAP2Link_t* link)
+uint32_t iAP2LinkGetMaxRecvPacketSize(iAP2Link_t *link)
 {
-    if (link)
-    {
+    if (link) {
         uint32_t maxPacketSize = link->initParam.maxPacketSize;
-        if (maxPacketSize < kiAP2LinkSynDefaultMaxPacketSize)
-        {
+
+        if (maxPacketSize < kiAP2LinkSynDefaultMaxPacketSize) {
             /*
              * We need to allocate at least default max packet size so that
              * link negotiation can occur correctly.
              */
             maxPacketSize = kiAP2LinkSynDefaultMaxPacketSize;
         }
+
         return maxPacketSize;
     }
+
     return 0;
 }
 
@@ -2110,7 +2085,7 @@ uint32_t iAP2LinkGetMaxRecvPacketSize (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkStart (iAP2Link_t* link)
+void iAP2LinkStart(iAP2Link_t *link)
 {
     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventInitDone);
 }
@@ -2134,34 +2109,35 @@ void iAP2LinkStart (iAP2Link_t* link)
 **
 ****************************************************************
 */
-BOOL iAP2LinkProcessSendBuff (iAP2Link_t* link)
+BOOL iAP2LinkProcessSendBuff(iAP2Link_t *link)
 {
     BOOL result = FALSE;
-    if (link)
-    {
-        if (__AnySessionSendListHasPacket(link))
-        {
-            if (iAP2LinkSendWindowAvailable(link))
-            {
+
+    if (link) {
+        if (__AnySessionSendListHasPacket(link)) {
+            if (iAP2LinkSendWindowAvailable(link)) {
                 iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventDataToSend);
                 result = TRUE;
             }
+
             /* else reached window limit */
 #if iAP2LINK_DEBUG
-            else
-            {
+
+            else {
                 uint8_t pckSent = (link->bValidRecvAck && link->bValidSentSeq
-                                   ? iAP2PacketCalcSeqGap (link->recvAck,
-                                                           link->sentSeq)
+                                   ? iAP2PacketCalcSeqGap(link->recvAck,
+                                           link->sentSeq)
                                    : 0);
                 iAP2LogDbg("%s:%d ProcessSendBuff waiting for ACK to open window recvAck=%d sentSeq=%d (used %u/%u)\n",
                            __func__, __LINE__,
                            link->recvAck, link->sentSeq,
                            pckSent, link->param.peerMaxOutstandingPackets);
             }
+
 #endif
         }
     }
+
     return result;
 }
 
@@ -2184,14 +2160,11 @@ BOOL iAP2LinkProcessSendBuff (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkAttached (iAP2Link_t* link)
+void iAP2LinkAttached(iAP2Link_t *link)
 {
-    if (link != NULL)
-    {
+    if (link != NULL) {
         link->startSeq = (uint8_t) rand();
-
-        iAP2LinkSetDefaultSYNParam (&(link->param));
-
+        iAP2LinkSetDefaultSYNParam(&(link->param));
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventAttach);
     }
 }
@@ -2215,15 +2188,12 @@ void iAP2LinkAttached (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkDetached (iAP2Link_t* link)
+void iAP2LinkDetached(iAP2Link_t *link)
 {
-    if (link != NULL)
-    {
+    if (link != NULL) {
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventDetach);
-
         /* Set to default */
-        iAP2LinkSetDefaultSYNParam (&(link->param));
-
+        iAP2LinkSetDefaultSYNParam(&(link->param));
         link->startSeq = (uint8_t) rand();
     }
 }
@@ -2245,13 +2215,13 @@ void iAP2LinkDetached (iAP2Link_t* link)
 **
 ****************************************************************
 */
-BOOL iAP2LinkIsDetached (iAP2Link_t* link)
+BOOL iAP2LinkIsDetached(iAP2Link_t *link)
 {
     if (link && link->fsm &&
-        link->fsm->currentState > kiAP2LinkStateDetached)
-    {
+        link->fsm->currentState > kiAP2LinkStateDetached) {
         return FALSE;
     }
+
     return TRUE;
 }
 
@@ -2275,63 +2245,61 @@ BOOL iAP2LinkIsDetached (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkProcessOutQueue (iAP2Link_t* link)
+void iAP2LinkProcessOutQueue(iAP2Link_t *link)
 {
     BOOL bContinue;
     int  count;
     assert(link);
-
 #if iAP2LINK_DEBUG
     iAP2LogDbg("%s:%d ProcessOutQueue count:ctl=%u file=%u ea=%u\n",
                __func__, __LINE__,
-               iAP2ListArrayGetCount (link->sessSendPckList[kIAP2PacketServiceTypeControl]),
-               iAP2ListArrayGetCount (link->sessSendPckList[kIAP2PacketServiceTypeBuffer]),
-               iAP2ListArrayGetCount (link->sessSendPckList[kIAP2PacketServiceTypeEA]));
+               iAP2ListArrayGetCount(link->sessSendPckList[kIAP2PacketServiceTypeControl]),
+               iAP2ListArrayGetCount(link->sessSendPckList[kIAP2PacketServiceTypeBuffer]),
+               iAP2ListArrayGetCount(link->sessSendPckList[kIAP2PacketServiceTypeEA]));
 #endif
     bContinue = TRUE;
     count = 5; /* Just do few iterations per call to prevent outgoing data from overloading link layer processing. */
-    while (bContinue && count-- > 0 && iAP2LinkSendWindowAvailable(link))
-    {
-        int i;
 
+    while (bContinue && count-- > 0 && iAP2LinkSendWindowAvailable(link)) {
+        int i;
         bContinue = FALSE;
 
-        for (i = 0; i < kIAP2PacketServiceTypeCount && iAP2LinkSendWindowAvailable(link); ++i)
-        {
-            uint8_t* pckList = link->sessSendPckList[i];
-            if (iAP2ListArrayGetCount (pckList) > 0)
-            {
-                uint8_t item = iAP2ListArrayGetFirstItemIndex (pckList);
-                iAP2Packet_t* pck = iAP2LinkPacketForIndex (pckList, item);
-                if (pck)
-                {
+        for (i = 0; i < kIAP2PacketServiceTypeCount
+             && iAP2LinkSendWindowAvailable(link); ++i) {
+            uint8_t *pckList = link->sessSendPckList[i];
+
+            if (iAP2ListArrayGetCount(pckList) > 0) {
+                uint8_t item = iAP2ListArrayGetFirstItemIndex(pckList);
+                iAP2Packet_t *pck = iAP2LinkPacketForIndex(pckList, item);
+
+                if (pck) {
                     iAP2ListArrayDeleteItem(pckList, item, NULL);
 #if iAP2_LINK_ALLOW_STATS
-                    link->dataBytesSent += iAP2PacketGetPayloadLen (pck);
+                    link->dataBytesSent += iAP2PacketGetPayloadLen(pck);
                     ++(link->dataPacketsSent);
 #endif
                     pck->pckData->seq = link->sentSeq + 1;
                     pck->pckData->ack = link->recvSeq;
-                    iAP2LinkSendPacket (link, pck, FALSE,
-                                        (link->type == kiAP2LinkTypeAccessory
-                                         ? "Accessory:SendData"
-                                         : "Device:SendData"));
-                    if (pck->callbackOnSend != NULL)
-                    {
+                    iAP2LinkSendPacket(link, pck, FALSE,
+                                       (link->type == kiAP2LinkTypeAccessory
+                                        ? "Accessory:SendData"
+                                        : "Device:SendData"));
+
+                    if (pck->callbackOnSend != NULL) {
                         iAP2LinkDataSentCB_t callback = (iAP2LinkDataSentCB_t) pck->callbackOnSend;
-                        callback (link, pck->cbContext);
+                        callback(link, pck->cbContext);
                     }
                 }
-                if (iAP2ListArrayGetCount (pckList) > 0)
-                {
+
+                if (iAP2ListArrayGetCount(pckList) > 0) {
                     bContinue = TRUE;
                 }
             }
         }
     }
-    if (bContinue)
-    {
-        link->signalSendBuffCB (link);
+
+    if (bContinue) {
+        link->signalSendBuffCB(link);
     }
 }
 
@@ -2362,26 +2330,26 @@ void iAP2LinkProcessOutQueue (iAP2Link_t* link)
 **
 ****************************************************************
 */
-BOOL iAP2LinkQueueSendData (iAP2Link_t*            link,
-                            const uint8_t*         payload,
-                            uint32_t               payloadLen,
-                            uint8_t                session,
-                            void*                  context,
-                            iAP2LinkDataSentCB_t   callback)
+BOOL iAP2LinkQueueSendData(iAP2Link_t            *link,
+                           const uint8_t         *payload,
+                           uint32_t               payloadLen,
+                           uint8_t                session,
+                           void                  *context,
+                           iAP2LinkDataSentCB_t   callback)
 {
     BOOL result = FALSE;
 #if iAP2LINK_DEBUG
     iAP2LogStart();
-    iAP2LogPrintData (payload, payloadLen, "QueueSendData",
-                      "%s:%d payload=%p payloadLen=%u session=%u context=%p callback=%p\n",
-                      __func__, __LINE__, payload, payloadLen, session, context, callback);
+    iAP2LogPrintData(payload, payloadLen, "QueueSendData",
+                     "%s:%d payload=%p payloadLen=%u session=%u context=%p callback=%p\n",
+                     __func__, __LINE__, payload, payloadLen, session, context, callback);
     iAP2LogStop();
 #endif
-    if (link != NULL && payload != NULL && payloadLen > 0)
-    {
-        iAP2PacketSessionInfo_t* pSession = iAP2LinkGetSessionInfo (link, session);
-        if (pSession)
-        {
+
+    if (link != NULL && payload != NULL && payloadLen > 0) {
+        iAP2PacketSessionInfo_t *pSession = iAP2LinkGetSessionInfo(link, session);
+
+        if (pSession) {
             /*
              * Put payload data into packets and keep the packets in a list
              * per service type.
@@ -2390,81 +2358,79 @@ BOOL iAP2LinkQueueSendData (iAP2Link_t*            link,
              *       full, fill up the packet with some of the passed in data
              *       to fill the packet to max payload size.
              */
-            const uint8_t*  data = payload;
+            const uint8_t  *data = payload;
             uint32_t        doneLen = 0;
-            uint32_t        dataLen = iAP2LinkGetMaxSendPayloadSize (link);
-            uint8_t*        sessSendPckList = link->sessSendPckList[pSession->type];
+            uint32_t        dataLen = iAP2LinkGetMaxSendPayloadSize(link);
+            uint8_t        *sessSendPckList = link->sessSendPckList[pSession->type];
 
-            if (dataLen > payloadLen)
-            {
+            if (dataLen > payloadLen) {
                 dataLen = payloadLen;
             }
+
             result = TRUE; /* assume success */
 
-            if (sessSendPckList)
-            {
+            if (sessSendPckList) {
                 BOOL last = FALSE;
-                while (result && doneLen < payloadLen)
-                {
-                    iAP2Packet_t* packet;
-                    if (dataLen > (payloadLen - doneLen))
-                    {
+
+                while (result && doneLen < payloadLen) {
+                    iAP2Packet_t *packet;
+
+                    if (dataLen > (payloadLen - doneLen)) {
                         dataLen = (payloadLen - doneLen);
                     }
+
                     last = ((payloadLen - doneLen) == dataLen);
-                    packet = iAP2PacketCreateACKPacket (link,
-                                                        link->sentSeq,
-                                                        link->sentAck,
-                                                        data,
-                                                        dataLen,
-                                                        session);
-                    if (packet)
-                    {
-                        if (last)
-                        {
+                    packet = iAP2PacketCreateACKPacket(link,
+                                                       link->sentSeq,
+                                                       link->sentAck,
+                                                       data,
+                                                       dataLen,
+                                                       session);
+
+                    if (packet) {
+                        if (last) {
                             /* For last packet, save callback info to call when packet is sent out */
                             packet->cbContext      = context;
-                            packet->callbackOnSend = (void*) callback;
-                        }
-                        else
-                        {
+                            packet->callbackOnSend = (void *) callback;
+
+                        } else {
                             packet->cbContext      = NULL;
                             packet->callbackOnSend = NULL;
                         }
-                        iAP2LinkAddPacketAfter (sessSendPckList,
-                                                iAP2ListArrayGetLastItemIndex (sessSendPckList),
-                                                &packet);
+
+                        iAP2LinkAddPacketAfter(sessSendPckList,
+                                               iAP2ListArrayGetLastItemIndex(sessSendPckList),
+                                               &packet);
                         data += dataLen;
                         doneLen += dataLen;
 #if iAP2LINK_DEBUG
-                        iAP2LogDbg ("%s:%d QueueSendData listCount=%u payload=%p payloadLen=%u data=%p dataLen=%u session=%u\n",
-                                    __func__, __LINE__, iAP2ListArrayGetCount (sessSendPckList),
-                                    payload, payloadLen, data, dataLen, session);
+                        iAP2LogDbg("%s:%d QueueSendData listCount=%u payload=%p payloadLen=%u data=%p dataLen=%u session=%u\n",
+                                   __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList),
+                                   payload, payloadLen, data, dataLen, session);
 #endif
-                    }
-                    else
-                    {
+
+                    } else {
                         /* Ran out of send packets! */
                         iAP2LogError("%s:%d QueueSendData Ran out of Send Packets! listCount=%u payload=%p payloadLen=%u data=%p dataLen=%u session=%u\n",
-                                     __func__, __LINE__, iAP2ListArrayGetCount (sessSendPckList),
+                                     __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList),
                                      payload, payloadLen, data, dataLen, session);
                         result = FALSE;
                     }
                 }
             }
+
             /* Signal for the DataToSend event to be genereated (call iAP2LinkProcessSendBuff at a later point) */
-            link->signalSendBuffCB (link);
-        }
-        else
-        {
+            link->signalSendBuffCB(link);
+
+        } else {
             iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__, session);
         }
-    }
-    else
-    {
+
+    } else {
         iAP2LogError("%s:%d NULL link(%p) or payload(%p) or no payload (len=%u)!\n",
                      __func__, __LINE__, link, payload, payloadLen);
     }
+
     return result;
 }
 
@@ -2495,65 +2461,63 @@ BOOL iAP2LinkQueueSendData (iAP2Link_t*            link,
  **
  ****************************************************************
  */
-BOOL iAP2LinkQueueSendDataPacket (iAP2Link_t*           link,
-                                  iAP2Packet_t*         packet,
-                                  uint8_t               session,
-                                  void*                 context,
-                                  iAP2LinkDataSentCB_t  callback)
+BOOL iAP2LinkQueueSendDataPacket(iAP2Link_t           *link,
+                                 iAP2Packet_t         *packet,
+                                 uint8_t               session,
+                                 void                 *context,
+                                 iAP2LinkDataSentCB_t  callback)
 {
     BOOL result = FALSE;
 #if iAP2LINK_DEBUG
     iAP2LogStart();
-    iAP2LogDbg ("%s:%d packet=%p session=%u context=%p callback=%p\n",
-                __func__, __LINE__, packet, session, context, callback);
-    iAP2PacketDebugPrintPacketNL (packet, __func__, __LINE__, "QueueSendPacket", "");
+    iAP2LogDbg("%s:%d packet=%p session=%u context=%p callback=%p\n",
+               __func__, __LINE__, packet, session, context, callback);
+    iAP2PacketDebugPrintPacketNL(packet, __func__, __LINE__, "QueueSendPacket", "");
     iAP2LogStop();
 #endif
-    if (link != NULL && iAP2PacketIsDataPacket (packet))
-    {
-        iAP2PacketSessionInfo_t* pSession = iAP2LinkGetSessionInfo (link, session);
-        if (pSession)
-        {
+
+    if (link != NULL && iAP2PacketIsDataPacket(packet)) {
+        iAP2PacketSessionInfo_t *pSession = iAP2LinkGetSessionInfo(link, session);
+
+        if (pSession) {
             /*
              * Put packet in a list per service type.
              */
-            uint8_t* sessSendPckList = link->sessSendPckList[pSession->type];
-            
-            if (sessSendPckList)
-            {
+            uint8_t *sessSendPckList = link->sessSendPckList[pSession->type];
+
+            if (sessSendPckList) {
                 packet->pckData->sess    = session;
                 packet->cbContext       = context;
-                packet->callbackOnSend  = (void*) callback;
-                if (iAP2LinkAddPacketAfter (sessSendPckList,
-                                            iAP2ListArrayGetLastItemIndex (sessSendPckList),
-                                            &packet) != kiAP2ListArrayInvalidIndex)
-                {
+                packet->callbackOnSend  = (void *) callback;
+
+                if (iAP2LinkAddPacketAfter(sessSendPckList,
+                                           iAP2ListArrayGetLastItemIndex(sessSendPckList),
+                                           &packet) != kiAP2ListArrayInvalidIndex) {
                     result = TRUE;
 #if iAP2LINK_DEBUG
-                    iAP2LogDbg ("%s:%d QueueSendData listCount=%u packet=%p packetLen=%u session=%u\n",
-                                __func__, __LINE__, iAP2ListArrayGetCount (sessSendPckList),
-                                packet, packet->packetLen, session);
+                    iAP2LogDbg("%s:%d QueueSendData listCount=%u packet=%p packetLen=%u session=%u\n",
+                               __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList),
+                               packet, packet->packetLen, session);
 #endif
-                }
-                else
-                {
+
+                } else {
                     iAP2LogError("%s:%d Could not queue packet to session send list! listCount=%u packet=%p\n",
-                                 __func__, __LINE__, iAP2ListArrayGetCount (sessSendPckList), packet);
+                                 __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList), packet);
                 }
             }
+
             /* Signal for the DataToSend event to be genereated (call iAP2LinkProcessSendBuff at a later point) */
-            link->signalSendBuffCB (link);
-        }
-        else
-        {
+            link->signalSendBuffCB(link);
+
+        } else {
             iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__, session);
         }
-    }
-    else
-    {
+
+    } else {
         iAP2LogError("%s:%d NULL link(%p) or invalid packet (%p)!\n",
                      __func__, __LINE__, link, packet);
     }
+
     return result;
 }
 
@@ -2574,15 +2538,16 @@ BOOL iAP2LinkQueueSendDataPacket (iAP2Link_t*           link,
 **
 ****************************************************************
 */
-BOOL iAP2LinkSendWindowAvailable (iAP2Link_t* link)
+BOOL iAP2LinkSendWindowAvailable(iAP2Link_t *link)
 {
     BOOL result = FALSE;
+
     if (!link->bValidSentSeq || !link->bValidRecvAck ||
-        iAP2PacketCalcSeqGap (link->recvAck,
-                              link->sentSeq) < link->param.peerMaxOutstandingPackets)
-    {
+        iAP2PacketCalcSeqGap(link->recvAck,
+                             link->sentSeq) < link->param.peerMaxOutstandingPackets) {
         result = TRUE;
     }
+
     return result;
 }
 
@@ -2606,8 +2571,8 @@ BOOL iAP2LinkSendWindowAvailable (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkHandleReadyPacket (struct iAP2Link_st* link,
-                                iAP2Packet_t*       packet)
+void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
+                               iAP2Packet_t       *packet)
 {
     BOOL    bSameAsLastReceivedPacket;
     uint8_t seqDiff;
@@ -2616,41 +2581,38 @@ void iAP2LinkHandleReadyPacket (struct iAP2Link_st* link,
     BOOL bDeletePacket = TRUE;
     assert(packet);
 
-    if (packet->state == kiAP2PacketParseStateDETECT)
-    {
+    if (packet->state == kiAP2PacketParseStateDETECT) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: DETECT\n", __func__, __LINE__);
 #endif
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvDetect);
-        iAP2PacketDelete (packet);
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvDetect);
+        iAP2PacketDelete(packet);
         return;
-    }
-    else if (packet->state == kiAP2PacketParseStateDETECTBAD)
-    {
+
+    } else if (packet->state == kiAP2PacketParseStateDETECTBAD) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: DETECT BAD\n", __func__, __LINE__);
 #endif
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvDetectBad);
-        iAP2PacketDelete (packet);
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvDetectBad);
+        iAP2PacketDelete(packet);
         return;
     }
 
     if (packet->packetLen > link->param.maxPacketSize) {
         iAP2LogErrorNL("Packet 0x%x has length = %d bytes > maxPacketLength (%d bytes)",
                        packet->pckData->seq, packet->packetLen, link->param.maxPacketSize);
-        iAP2PacketDelete (packet);
+        iAP2PacketDelete(packet);
         return;
     }
 
 #if iAP2_LINK_ALLOW_STATS
     ++(link->packetsRcvd);
 #endif
-
     /* TODO: cleanup previous recvPck, if any */
     link->recvPck = packet;
     bSameAsLastReceivedPacket = (link->recvSeq == packet->pckData->seq);
-    seqDiff = iAP2PacketCalcSeqGap (link->recvSeq,
-                                    packet->pckData->seq);
+    seqDiff = iAP2PacketCalcSeqGap(link->recvSeq,
+                                   packet->pckData->seq);
 #if iAP2LINK_DEBUG
     iAP2LogDbg("%s:%d PacketReadyHandler: %s packet, seqDiff=%u recvSeq=%u seq=%u bSameAsLastReceivedPacket=%d ack=%u control=%xh len=%u\n",
                __func__, __LINE__, iAP2PacketName(packet), seqDiff, link->recvSeq,
@@ -2658,146 +2620,141 @@ void iAP2LinkHandleReadyPacket (struct iAP2Link_st* link,
                packet->pckData->ctl, packet->packetLen);
 #endif
 
-    if ((packet->pckData->ctl & kIAP2PacketControlMaskRST) != 0)
-    {
+    if ((packet->pckData->ctl & kIAP2PacketControlMaskRST) != 0) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: RST, seqDiff=%u bValidRecvSeq=%d recvSeq=%u control=%xh seq=%u\n",
-                   __func__, __LINE__, seqDiff, link->bValidRecvSeq, link->recvSeq, packet->pckData->ctl, packet->pckData->seq);
+                   __func__, __LINE__, seqDiff, link->bValidRecvSeq, link->recvSeq,
+                   packet->pckData->ctl, packet->pckData->seq);
 #endif
         bProcessPacket = TRUE;
-    }
-    else if ((packet->pckData->ctl & kIAP2PacketControlMaskSUS) != 0)
-    {
+
+    } else if ((packet->pckData->ctl & kIAP2PacketControlMaskSUS) != 0) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: SUS, seqDiff=%u bValidRecvSeq=%d recvSeq=%u control=%xh seq=%u\n",
-                   __func__, __LINE__, seqDiff, link->bValidRecvSeq, link->recvSeq, packet->pckData->ctl, packet->pckData->seq);
+                   __func__, __LINE__, seqDiff, link->bValidRecvSeq, link->recvSeq,
+                   packet->pckData->ctl, packet->pckData->seq);
 #endif
         bProcessPacket = TRUE;
-    }
-    else if ((packet->pckData->ctl & kIAP2PacketControlMaskSYN) != 0 ||
-             !link->bValidRecvSeq ||
-             seqDiff == 1)
-    {
+
+    } else if ((packet->pckData->ctl & kIAP2PacketControlMaskSYN) != 0 ||
+               !link->bValidRecvSeq ||
+               seqDiff == 1) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: next packet or SYN, seqDiff=%u bValidRecvSeq=%d recvSeq=%u control=%xh seq=%u\n",
-                   __func__, __LINE__, seqDiff, link->bValidRecvSeq, link->recvSeq, packet->pckData->ctl, packet->pckData->seq);
+                   __func__, __LINE__, seqDiff, link->bValidRecvSeq, link->recvSeq,
+                   packet->pckData->ctl, packet->pckData->seq);
 #endif
         /* Save data in list and handle in _CleanupRecvPackets */
-        iAP2LinkAddPacketAfter (link->recvPckList,
-                                iAP2ListArrayGetLastItemIndex (link->recvPckList),
-                                &packet);
+        iAP2LinkAddPacketAfter(link->recvPckList,
+                               iAP2ListArrayGetLastItemIndex(link->recvPckList),
+                               &packet);
         bDeletePacket = FALSE;
+
         if ((packet->pckData->ctl & kIAP2PacketControlMaskSYN) != 0 &&
-            (packet->pckData->ctl & kIAP2PacketControlMaskACK) == 0)
-        {
+            (packet->pckData->ctl & kIAP2PacketControlMaskACK) == 0) {
             /* Process SYN only packet right away... this is essentially a reset from accessory */
             bProcessPacket = TRUE;
         }
-    }
-    else if (seqDiff >= 0 && seqDiff <= link->param.maxOutstandingPackets &&
-             (iAP2PacketIsEAK (packet) || iAP2PacketIsACKOnly (packet)))
-    {
+
+    } else if (seqDiff >= 0 && seqDiff <= link->param.maxOutstandingPackets &&
+               (iAP2PacketIsEAK(packet) || iAP2PacketIsACKOnly(packet))) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: EAK or ACK packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
                    __func__, __LINE__, seqDiff, link->recvSeq, link->recvSeq,
-                   packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,  packet->pckData->ctl, packet->packetLen);
+                   packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,
+                   packet->pckData->ctl, packet->packetLen);
 #endif
         bProcessPacket = TRUE;
-    }
-    else if (seqDiff > 0 && seqDiff <= link->param.maxOutstandingPackets)
-    {
+
+    } else if (seqDiff > 0 && seqDiff <= link->param.maxOutstandingPackets) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: OUT OF ORDER packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
                    __func__, __LINE__, seqDiff, link->recvSeq, link->recvSeq,
-                   packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,  packet->pckData->ctl, packet->packetLen);
+                   packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,
+                   packet->pckData->ctl, packet->packetLen);
 #endif
-        if (iAP2PacketRequireACK(packet))
-        {
+
+        if (iAP2PacketRequireACK(packet)) {
             /* return EAK if we haven't received this one yet. */
-            if (!_IsReceivedPacket(link, packet))
-            {
+            if (!_IsReceivedPacket(link, packet)) {
 #if iAP2_LINK_ALLOW_STATS
                 ++(link->numOutOfOrder);
 #endif
-
                 /* Save data in list until recv'd in sequence */
-                iAP2LinkAddPacketAfter (link->recvPckList,
-                                        iAP2ListArrayGetLastItemIndex (link->recvPckList),
-                                        &packet);
+                iAP2LinkAddPacketAfter(link->recvPckList,
+                                       iAP2ListArrayGetLastItemIndex(link->recvPckList),
+                                       &packet);
                 bDeletePacket = FALSE;
-
                 /*
                 ** Start ACK timer
                 ** on ACK expiry. check if need to send EAK instead of ACK.
                 */
-                _iAP2LinkStartSendAckTimerIfNotRunning (link, packet->pckData->seq);
+                _iAP2LinkStartSendAckTimerIfNotRunning(link, packet->pckData->seq);
             }
-        }
-        else if (iAP2PacketIsACKOnly (packet))
-        {
+
+        } else if (iAP2PacketIsACKOnly(packet)) {
 #if iAP2LINK_DEBUG
             iAP2LogDbg("%s:%d PacketReadyHandler: ACK only packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
                        __func__, __LINE__, seqDiff, link->recvSeq, link->recvSeq,
-                       packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,  packet->pckData->ctl, packet->packetLen);
+                       packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,
+                       packet->pckData->ctl, packet->packetLen);
 #endif
             bProcessPacket = TRUE;
         }
-    }
-    else if (bSameAsLastReceivedPacket &&
-             !iAP2PacketIsACKOnly(packet))
-    {
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvLastData);
-    }
-    else
-    {
+
+    } else if (bSameAsLastReceivedPacket &&
+               !iAP2PacketIsACKOnly(packet)) {
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvLastData);
+
+    } else {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: INVALID packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
                    __func__, __LINE__, seqDiff, link->recvSeq, link->recvSeq,
-                   packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,  packet->pckData->ctl, packet->packetLen);
+                   packet->pckData->seq, packet->pckData->seq, packet->pckData->ctl,
+                   packet->pckData->ctl, packet->packetLen);
 #endif
         bInvalidPacket = TRUE;
     }
 
-    if (!bInvalidPacket)
-    {
-        if (packet->pckData->ctl & kIAP2PacketControlMaskACK)
-        {
-            seqDiff = iAP2PacketCalcSeqGap (link->recvAck,
-                                            packet->pckData->ack);
-            if (!link->bValidRecvAck || seqDiff <= kiAP2LinkSynValMaxOutstandingMax)
-            {
+    if (!bInvalidPacket) {
+        if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
+            seqDiff = iAP2PacketCalcSeqGap(link->recvAck,
+                                           packet->pckData->ack);
+
+            if (!link->bValidRecvAck || seqDiff <= kiAP2LinkSynValMaxOutstandingMax) {
                 link->recvAck = packet->pckData->ack;
                 link->bValidRecvAck = TRUE;
-                _CleanupAckedPackets (link);
+                _CleanupAckedPackets(link);
             }
+
 #if iAP2LINK_DEBUG
-            else
-            {
+
+            else {
                 iAP2LogDbg("%s:%d PacketReadyHandler: Old ACK, bValidRecvAck=%d seqDiff=%u recvAck=%u(%x) seq=%u(%x) ack=%u(%x) control=%u(%x) len=%u\n",
                            __func__, __LINE__, link->bValidRecvAck, seqDiff, link->recvAck, link->recvAck,
-                           packet->pckData->seq, packet->pckData->seq, packet->pckData->ack, packet->pckData->ack,
+                           packet->pckData->seq, packet->pckData->seq, packet->pckData->ack,
+                           packet->pckData->ack,
                            packet->pckData->ctl,  packet->pckData->ctl, packet->packetLen);
             }
+
 #endif
         }
 
-        if (bProcessPacket)
-        {
-            bInvalidPacket = (iAP2LinkProcessInOrderPacket (link, packet) == FALSE);
+        if (bProcessPacket) {
+            bInvalidPacket = (iAP2LinkProcessInOrderPacket(link, packet) == FALSE);
         }
-        _CleanupRecvPackets (link);
+
+        _CleanupRecvPackets(link);
     }
 
-    if (bInvalidPacket)
-    {
+    if (bInvalidPacket) {
 #if iAP2_LINK_ALLOW_STATS
         ++(link->invalidPackets);
 #endif
     }
 
-    if (packet && bDeletePacket)
-    {
-        iAP2PacketDelete (packet);
+    if (packet && bDeletePacket) {
+        iAP2PacketDelete(packet);
     }
 
     link->recvPck = NULL;
@@ -2820,89 +2777,77 @@ void iAP2LinkHandleReadyPacket (struct iAP2Link_st* link,
 **
 ****************************************************************
 */
-void iAP2LinkHandleSuspend (struct iAP2Link_st* link)
+void iAP2LinkHandleSuspend(struct iAP2Link_st *link)
 {
     iAP2LogDbg("%s:%d suspend link=%p(type=%d state=%d)",
                __FUNCTION__, __LINE__, link, link->type, link->fsm);
-    if (link && link->fsm && (link->type == kiAP2LinkTypeDevice))
-    {
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventSuspend);
+
+    if (link && link->fsm && (link->type == kiAP2LinkTypeDevice)) {
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventSuspend);
     }
 }
 
 
-static BOOL _iAP2LinkProcessInOrderPacketSYN (struct iAP2Link_st* link,
-                                              iAP2Packet_t*       packet)
+static BOOL _iAP2LinkProcessInOrderPacketSYN(struct iAP2Link_st *link,
+        iAP2Packet_t       *packet)
 {
     BOOL bInvalidPacket = FALSE;
-
     link->recvSeq = packet->pckData->seq;
     link->bValidRecvSeq = TRUE;
-    
+
     /* SYN or SYN+ACK */
-    if (packet->pckData->ctl & kIAP2PacketControlMaskACK)
-    {
+    if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
         /* SYN+ACK Packet */
         ++(link->numRecvSYNACK);
         ++(link->numRecvCumSYNACK);
-    }
-    else
-    {
+
+    } else {
         /* SYN Packet */
         ++(link->numRecvSYN);
         ++(link->numRecvCumSYN);
     }
+
     if (!link->bIgnoreSynRetryLimit &&
-        (link->numRecvSYNACK + link->numRecvSYN) > kiAP2LinkSynRetries)
-    {
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventMaxResend);
+        (link->numRecvSYNACK + link->numRecvSYN) > kiAP2LinkSynRetries) {
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventMaxResend);
         bInvalidPacket = TRUE;
-    }
-    else if (packet->packetLen >= (kIAP2PacketHeaderLen
-                                   + kIAP2PacketSynDataBaseLen
-                                   + kIAP2PacketChksumLen))
-    {
+
+    } else if (packet->packetLen >= (kIAP2PacketHeaderLen
+                                     + kIAP2PacketSynDataBaseLen
+                                     + kIAP2PacketChksumLen)) {
         BOOL validSYN;
         iAP2PacketSYNData_t synParam;
+        iAP2PacketParseSYNData(iAP2PacketGetPayload(packet),
+                               iAP2PacketGetPayloadLen(packet),
+                               &synParam);
+        validSYN = iAP2LinkIsValidSynParam(&synParam);
 
-        iAP2PacketParseSYNData (iAP2PacketGetPayload (packet),
-                                iAP2PacketGetPayloadLen (packet),
-                                &synParam);
-        validSYN = iAP2LinkIsValidSynParam (&synParam);
-
-        if (!validSYN || (packet->pckData->ctl & kIAP2PacketControlMaskACK) != 0)
-        {
+        if (!validSYN || (packet->pckData->ctl & kIAP2PacketControlMaskACK) != 0) {
             if (validSYN &&
                 synParam.retransmitTimeout  == link->negotiatedParam.retransmitTimeout  &&
                 synParam.cumAckTimeout      == link->negotiatedParam.cumAckTimeout      &&
                 synParam.maxRetransmissions == link->negotiatedParam.maxRetransmissions &&
                 synParam.maxCumAck          == link->negotiatedParam.maxCumAck          &&
-                synParam.numSessionInfo     == link->negotiatedParam.numSessionInfo)
-            {
+                synParam.numSessionInfo     == link->negotiatedParam.numSessionInfo) {
                 /* negotiable values are same */
-                if (packet->pckData->ack == link->sentSeq)
-                {
-                    iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvSYNACK);
+                if (packet->pckData->ack == link->sentSeq) {
+                    iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYNACK);
+
+                } else {
+                    iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYNACKOLD);
                 }
-                else
-                {
-                    iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvSYNACKOLD);
-                }
-            }
-            else
-            {
+
+            } else {
                 /* negotiable values are not same or invalid syn param */
-                iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvSYNACKNEW);
+                iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYNACKNEW);
             }
-        }
-        else
-        {
+
+        } else {
             /* SYN Packet */
-            iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvSYN);
+            iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYN);
         }
-    }
-    else
-    {
+
+    } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
         iAP2LogDbg("%s:%d %s: Invalid packetLen!, packetLen=%u (>= %u)\n",
@@ -2920,21 +2865,19 @@ static BOOL _iAP2LinkProcessInOrderPacketSYN (struct iAP2Link_st* link,
 }
 
 
-static BOOL _iAP2LinkProcessInOrderPacketEAK (struct iAP2Link_st* link,
-                                              iAP2Packet_t*       packet)
+static BOOL _iAP2LinkProcessInOrderPacketEAK(struct iAP2Link_st *link,
+        iAP2Packet_t       *packet)
 {
     BOOL bInvalidPacket = FALSE;
 
-    if (packet->packetLen > (kIAP2PacketHeaderLen + kIAP2PacketChksumLen))
-    {
+    if (packet->packetLen > (kIAP2PacketHeaderLen + kIAP2PacketChksumLen)) {
         /* EAK Packet with OutOfSeq data */
 #if iAP2_LINK_ALLOW_STATS
         ++(link->numRecvEAK);
 #endif
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventEAK);
-    }
-    else
-    {
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventEAK);
+
+    } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
         iAP2LogDbg("%s:%d %s: Invalid packetLen!, packetLen=%u (> %u)\n",
@@ -2950,21 +2893,19 @@ static BOOL _iAP2LinkProcessInOrderPacketEAK (struct iAP2Link_st* link,
 }
 
 
-static BOOL _iAP2LinkProcessInOrderPacketRST (struct iAP2Link_st* link,
-                                              iAP2Packet_t*       packet)
+static BOOL _iAP2LinkProcessInOrderPacketRST(struct iAP2Link_st *link,
+        iAP2Packet_t       *packet)
 {
     BOOL bInvalidPacket = FALSE;
 
-    if (packet->packetLen == kIAP2PacketHeaderLen)
-    {
+    if (packet->packetLen == kIAP2PacketHeaderLen) {
         /* RST Packet */
 #if iAP2_LINK_ALLOW_STATS
         ++(link->numRecvRST);
 #endif
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvRST);
-    }
-    else
-    {
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvRST);
+
+    } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
         iAP2LogDbg("%s:%d %s: Invalid packetLen!, packetLen=%u (= %u)\n",
@@ -2980,140 +2921,131 @@ static BOOL _iAP2LinkProcessInOrderPacketRST (struct iAP2Link_st* link,
 }
 
 
-static BOOL _iAP2LinkProcessInOrderPacketACK (struct iAP2Link_st* link,
-                                              iAP2Packet_t*       packet)
+static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
+        iAP2Packet_t       *packet)
 {
     BOOL bInvalidPacket = FALSE;
 
-    if (packet->packetLen > (kIAP2PacketHeaderLen + kIAP2PacketChksumLen))
-    {
+    if (packet->packetLen > (kIAP2PacketHeaderLen + kIAP2PacketChksumLen)) {
         uint8_t gap;
-
         /* Data Packet */
         link->recvSeq = packet->pckData->seq;
         link->bValidRecvSeq = TRUE;
-
 #if iAP2_LINK_ALLOW_STATS
         ++(link->numRecvDATA);
 #endif
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvData);
-
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvData);
         gap = iAP2PacketCalcSeqGap(link->sentAck, link->recvSeq);
-        if (gap > 0 && gap < kiAP2LinkSynValMaxOutstandingMax &&
-            link->fsm->currentState >= kiAP2LinkStateConnected)
-        {
-            if (gap >= link->param.maxCumAck)
-            {
-                iAP2Packet_t* pck;
 
-                pck = iAP2PacketCreateACKPacket (link,
-                                                 link->sentSeq,
-                                                 link->recvSeq,
-                                                 NULL,
-                                                 0,
-                                                 kIAP2PacketReservedSessionID);
+        if (gap > 0 && gap < kiAP2LinkSynValMaxOutstandingMax &&
+            link->fsm->currentState >= kiAP2LinkStateConnected) {
+            if (gap >= link->param.maxCumAck) {
+                iAP2Packet_t *pck;
+                pck = iAP2PacketCreateACKPacket(link,
+                                                link->sentSeq,
+                                                link->recvSeq,
+                                                NULL,
+                                                0,
+                                                kIAP2PacketReservedSessionID);
 #if iAP2LINK_DEBUG
-                iAP2LogDbg ("%s:%d %s:%s recvSeq=%u sentAck=%u\n",
-                            __func__, __LINE__,
-                            (link->type == kiAP2LinkTypeAccessory
-                             ? "Accessory"
-                             : "Device"),
-                            __FUNCTION__,
-                            link->recvSeq,
-                            link->sentAck);
+                iAP2LogDbg("%s:%d %s:%s recvSeq=%u sentAck=%u\n",
+                           __func__, __LINE__,
+                           (link->type == kiAP2LinkTypeAccessory
+                            ? "Accessory"
+                            : "Device"),
+                           __FUNCTION__,
+                           link->recvSeq,
+                           link->sentAck);
 #endif
 #if iAP2_LINK_ALLOW_STATS
                 ++(link->numSentACK);
 #endif
-                iAP2LinkSendPacket (link, pck, FALSE,
-                                    (link->type == kiAP2LinkTypeAccessory
-                                     ? "Accessory:ProcessInOrderPacketACK"
-                                     : "Device:ProcessInOrderPacketACK"));
+                iAP2LinkSendPacket(link, pck, FALSE,
+                                   (link->type == kiAP2LinkTypeAccessory
+                                    ? "Accessory:ProcessInOrderPacketACK"
+                                    : "Device:ProcessInOrderPacketACK"));
             }
-#if iAP2LINK_DEBUG
-            else
-            {
-                iAP2LogDbg ("%s:%d %s:%s Don't send ACK recvSeq=%u sentAck=%u gap=%u maxCumAck=%u\n",
-                            __func__, __LINE__,
-                            (link->type == kiAP2LinkTypeAccessory
-                             ? "Accessory"
-                             : "Device"),
-                            __FUNCTION__,
-                            link->recvSeq,
-                            link->sentAck,
-                            gap,
-                            link->param.maxCumAck);
-            }
-#endif
-        }
-#if iAP2LINK_DEBUG
-        else
-        {
-            iAP2LogDbg ("%s:%d %s:%s INVALID gap or state! Don't send ACK recvSeq=%u sentAck=%u gap=%u maxCumAck=%u state=%d\n",
-                        __func__, __LINE__,
-                        (link->type == kiAP2LinkTypeAccessory
-                         ? "Accessory"
-                         : "Device"),
-                        __FUNCTION__,
-                        link->recvSeq,
-                        link->sentAck,
-                        gap,
-                        link->param.maxCumAck,
-                        link->fsm->currentState);
-        }
-#endif
-    }
-    else if (packet->packetLen == kIAP2PacketHeaderLen)
-    {
-        iAP2PacketSYNData_t synData;
 
+#if iAP2LINK_DEBUG
+
+            else {
+                iAP2LogDbg("%s:%d %s:%s Don't send ACK recvSeq=%u sentAck=%u gap=%u maxCumAck=%u\n",
+                           __func__, __LINE__,
+                           (link->type == kiAP2LinkTypeAccessory
+                            ? "Accessory"
+                            : "Device"),
+                           __FUNCTION__,
+                           link->recvSeq,
+                           link->sentAck,
+                           gap,
+                           link->param.maxCumAck);
+            }
+
+#endif
+        }
+
+#if iAP2LINK_DEBUG
+
+        else {
+            iAP2LogDbg("%s:%d %s:%s INVALID gap or state! Don't send ACK recvSeq=%u sentAck=%u gap=%u maxCumAck=%u state=%d\n",
+                       __func__, __LINE__,
+                       (link->type == kiAP2LinkTypeAccessory
+                        ? "Accessory"
+                        : "Device"),
+                       __FUNCTION__,
+                       link->recvSeq,
+                       link->sentAck,
+                       gap,
+                       link->param.maxCumAck,
+                       link->fsm->currentState);
+        }
+
+#endif
+
+    } else if (packet->packetLen == kIAP2PacketHeaderLen) {
+        iAP2PacketSYNData_t synData;
         /* ACK only Packet */
 #if iAP2_LINK_ALLOW_STATS
         ++(link->numRecvACK);
 #endif
-        memcpy (&synData,&link->negotiatedParam, sizeof(synData));
+        memcpy(&synData, &link->negotiatedParam, sizeof(synData));
         synData.maxOutstandingPackets = synData.peerMaxOutstandingPackets;
         synData.maxPacketSize = synData.peerMaxPacketSize;
+
         if (link->fsm->currentState < kiAP2LinkStateConnected &&
-            !iAP2LinkIsValidSynParam (&synData))
-        {
-            iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvACKBadLink);
+            !iAP2LinkIsValidSynParam(&synData)) {
+            iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvACKBadLink);
+
+        } else {
+            iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvACK);
         }
-        else
-        {
-            iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventRecvACK);
-        }
-    }
-    else
-    {
+
+    } else {
         bInvalidPacket = TRUE;
     }
 
-    if (!bInvalidPacket)
-    {
+    if (!bInvalidPacket) {
         /*
         ** received ACK so signalSendBuff in case there are any packets that
         ** need to be sent out.
         */
-        link->signalSendBuffCB (link);
+        link->signalSendBuffCB(link);
     }
 
     return (bInvalidPacket == FALSE);
 }
 
 
-static BOOL _iAP2LinkProcessInOrderPacketSUS (struct iAP2Link_st* link,
-                                              iAP2Packet_t*       packet)
+static BOOL _iAP2LinkProcessInOrderPacketSUS(struct iAP2Link_st *link,
+        iAP2Packet_t       *packet)
 {
     BOOL bInvalidPacket = FALSE;
-    
-    if (packet->packetLen == kIAP2PacketHeaderLen)
-    {
+
+    if (packet->packetLen == kIAP2PacketHeaderLen) {
         /* SUS Packet */
-        iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventSuspend);
-    }
-    else
-    {
+        iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventSuspend);
+
+    } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
         iAP2LogDbg("%s:%d %s: Invalid packetLen!, packetLen=%u (= %u)\n",
@@ -3124,7 +3056,7 @@ static BOOL _iAP2LinkProcessInOrderPacketSUS (struct iAP2Link_st* link,
 #endif
         bInvalidPacket = TRUE;
     }
-    
+
     return (bInvalidPacket == FALSE);
 }
 
@@ -3149,8 +3081,8 @@ static BOOL _iAP2LinkProcessInOrderPacketSUS (struct iAP2Link_st* link,
 **
 ****************************************************************
 */
-BOOL iAP2LinkProcessInOrderPacket (struct iAP2Link_st* link,
-                                   iAP2Packet_t*       packet)
+BOOL iAP2LinkProcessInOrderPacket(struct iAP2Link_st *link,
+                                  iAP2Packet_t       *packet)
 {
     BOOL bInvalidPacket = FALSE;
 #if iAP2LINK_DEBUG
@@ -3159,42 +3091,38 @@ BOOL iAP2LinkProcessInOrderPacket (struct iAP2Link_st* link,
                __func__, __LINE__, iAP2PacketName(packet),
                packet->pckData->seq, packet->pckData->ack, packet->packetLen);
 #if iAP2LINK_DEBUG_PACKET
-    iAP2PacketDebugPrintPacketNL(packet, __func__, __LINE__, "ProcessInOrderPacket", "");
+    iAP2PacketDebugPrintPacketNL(packet, __func__, __LINE__, "ProcessInOrderPacket",
+                                 "");
 #endif
     iAP2LogStop();
 #endif
     link->recvPck = packet;
 
-    if (packet->pckData->ctl & kIAP2PacketControlMaskSYN)
-    {
-        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketSYN (link, packet);
-    }
-    else if (packet->pckData->ctl & kIAP2PacketControlMaskEAK)
-    {
-        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketEAK (link, packet);
-    }
-    else if (packet->pckData->ctl & kIAP2PacketControlMaskRST)
-    {
-        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketRST (link, packet);
-    }
-    else if (packet->pckData->ctl & kIAP2PacketControlMaskACK)
-    {
-        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketACK (link, packet);
-    }
-    else if (packet->pckData->ctl & kIAP2PacketControlMaskSUS)
-    {
-        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketSUS (link, packet);
+    if (packet->pckData->ctl & kIAP2PacketControlMaskSYN) {
+        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketSYN(link, packet);
+
+    } else if (packet->pckData->ctl & kIAP2PacketControlMaskEAK) {
+        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketEAK(link, packet);
+
+    } else if (packet->pckData->ctl & kIAP2PacketControlMaskRST) {
+        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketRST(link, packet);
+
+    } else if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
+        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketACK(link, packet);
+
+    } else if (packet->pckData->ctl & kIAP2PacketControlMaskSUS) {
+        bInvalidPacket = ! _iAP2LinkProcessInOrderPacketSUS(link, packet);
     }
 
-    if (bInvalidPacket) /* Invalid Packet! */
-    {
+    if (bInvalidPacket) { /* Invalid Packet! */
         iAP2LogStart();
         iAP2LogError("%s:%d Received Invalid Packet (control=0x%x seq=%u sentSeq=%u recvAck=%u recvSeq=%u sentAck=%u)\n",
                      __func__, __LINE__,
                      packet->pckData->ctl, packet->pckData->seq,
                      link->sentSeq, link->recvAck,
                      link->recvSeq, link->sentAck);
-        iAP2PacketDebugPrintPacketNL(packet, __func__, __LINE__, "ProcessInOrderPacket", "");
+        iAP2PacketDebugPrintPacketNL(packet, __func__, __LINE__, "ProcessInOrderPacket",
+                                     "");
         iAP2LogStop();
     }
 
@@ -3223,29 +3151,23 @@ BOOL iAP2LinkProcessInOrderPacket (struct iAP2Link_st* link,
 **
 ****************************************************************
 */
-static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
-                                       iAP2Packet_t*  packet,
-                                       BOOL           bResend,
-                                       const char*    tag,
-                                       BOOL           bWaitSend)
+static void _iAP2LinkSendPacketCommon(iAP2Link_t    *link,
+                                      iAP2Packet_t  *packet,
+                                      BOOL           bResend,
+                                      const char    *tag,
+                                      BOOL           bWaitSend)
 {
-    if (link != NULL && packet != NULL)
-    {
+    if (link != NULL && packet != NULL) {
         uint32_t curTimeMs;
-
 #if iAP2_LINK_ALLOW_STATS
         ++(link->packetsSent);
         link->bytesSent += packet->packetLen;
 #endif
 
-        if ((packet->pckData->ctl & kIAP2PacketControlMaskACK) != 0)
-        {
+        if ((packet->pckData->ctl & kIAP2PacketControlMaskACK) != 0) {
             /* This packet contains an ACK, stop sendAckTimer */
-
-            if (packet->pckData->ack != link->recvSeq)
-            {
+            if (packet->pckData->ack != link->recvSeq) {
                 packet->pckData->ack = link->recvSeq;
-
                 /*
                 ** TODO: If buffer has already been generated (for resend), then
                 **       re-calc header checksum based on the one byte (ack) change
@@ -3258,37 +3180,35 @@ static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
 
         curTimeMs = iAP2TimeGetCurTimeMs();
 #if DEBUG
-        if (bResend)
-        {
+
+        if (bResend) {
 #if iAP2_LINK_ALLOW_STATS
             link->totACKDelays += (curTimeMs - packet->timeStamp);
             ++(link->numACKDelays);
 #endif
         }
+
 #endif
         packet->timeStamp = curTimeMs;
 
-        if (packet->pckData->ctl & kIAP2PacketControlMaskACK)
-        {
+        if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
             /* Sending ACK so reset sendACK timer */
             iAP2TimeCancelTimer(link->mainTimer, link->sendAckTimeoutID);
             link->sendAckTimeoutID = INVALID_TIMEOUT_ID;
         }
 
 #if iAP2LINK_DEBUG_PACKET
-        iAP2PacketDebugPrintPacket (packet, __func__, __LINE__, tag, "");
+        iAP2PacketDebugPrintPacket(packet, __func__, __LINE__, tag, "");
 #endif
-        if (!bWaitSend)
-        {
-            (*link->sendPacketCB) (link, packet);
-        }
-        else
-        {
-            (*link->sendPacketWaitCB) (link, packet);
+
+        if (!bWaitSend) {
+            (*link->sendPacketCB)(link, packet);
+
+        } else {
+            (*link->sendPacketWaitCB)(link, packet);
         }
 
-        if (!bResend)
-        {
+        if (!bResend) {
             /* New sequence # being sent out. */
 #if iAP2LINK_DEBUG
             iAP2LogDbg("%s:%d %s sentSeq(%u)->(%u) control=%xh(%s) ack=%u len=%u reTxCount=%d/%d bWaitSend=%d\n",
@@ -3298,7 +3218,7 @@ static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
                         : "Device:SendPacket"),
                        link->sentSeq,
                        packet->pckData->seq,
-                       packet->pckData->ctl, iAP2PacketName (packet),
+                       packet->pckData->ctl, iAP2PacketName(packet),
                        packet->pckData->ack,
                        packet->packetLen,
                        packet->retransmitCount,
@@ -3308,8 +3228,7 @@ static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
             link->sentSeq = packet->pckData->seq;
             link->bValidSentSeq = TRUE;
 
-            if (iAP2PacketIsACKOnly(packet))
-            {
+            if (iAP2PacketIsACKOnly(packet)) {
                 /*
                 ** increment seq number for ACKs so that it doesn't get
                 ** deleted too soon.
@@ -3321,21 +3240,19 @@ static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
             ** Save data in list until ACK'd
             ** Sent pure ACKs are stored here until cleanup occurs.
             */
-            iAP2LinkAddPacketAfter (link->sendPckList,
-                                    iAP2ListArrayGetLastItemIndex(link->sendPckList),
-                                    &packet);
+            iAP2LinkAddPacketAfter(link->sendPckList,
+                                   iAP2ListArrayGetLastItemIndex(link->sendPckList),
+                                   &packet);
 
-            if (iAP2PacketRequireACK(packet))
-            {
+            if (iAP2PacketRequireACK(packet)) {
                 /* start ACK_Timer */
                 uint8_t timerID = iAP2TimeCallbackAfter(link->mainTimer,
                                                         kiAP2LinkEventWaitACKTimeout,
                                                         link->param.retransmitTimeout);
-                iAP2PacketAssignTimer (packet, timerID);
+                iAP2PacketAssignTimer(packet, timerID);
             }
-        }
-        else
-        {
+
+        } else {
 #if iAP2LINK_DEBUG
             iAP2LogDbg("%s:%d %s Resend sentSeq=%u seq=%u control=%xh ack=%u len=%u reTxCount=%d/%d bWaitSend=%d\n",
                        __func__, __LINE__,
@@ -3356,12 +3273,11 @@ static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
                 uint8_t timerID = iAP2TimeCallbackAfter(link->mainTimer,
                                                         kiAP2LinkEventWaitACKTimeout,
                                                         link->param.retransmitTimeout);
-                iAP2PacketAssignTimer (packet, timerID);
+                iAP2PacketAssignTimer(packet, timerID);
             }
         }
-    }
-    else
-    {
+
+    } else {
         iAP2LogError("%s:%d Invalid link(%p) or packet(%p)\n",
                      __func__, __LINE__, link, packet);
     }
@@ -3388,12 +3304,12 @@ static void _iAP2LinkSendPacketCommon (iAP2Link_t*    link,
 **
 ****************************************************************
 */
-void iAP2LinkSendPacket (iAP2Link_t*    link,
-                         iAP2Packet_t*  packet,
-                         BOOL           bResend,
-                         const char*    tag)
+void iAP2LinkSendPacket(iAP2Link_t    *link,
+                        iAP2Packet_t  *packet,
+                        BOOL           bResend,
+                        const char    *tag)
 {
-    _iAP2LinkSendPacketCommon (link, packet, bResend, tag, FALSE);
+    _iAP2LinkSendPacketCommon(link, packet, bResend, tag, FALSE);
 }
 
 
@@ -3417,12 +3333,12 @@ void iAP2LinkSendPacket (iAP2Link_t*    link,
 **
 ****************************************************************
 */
-void iAP2LinkSendPacketWaitSend (iAP2Link_t*      link,
-                                 iAP2Packet_t*    packet,
-                                 BOOL             bResend,
-                                 const char*      tag)
+void iAP2LinkSendPacketWaitSend(iAP2Link_t      *link,
+                                iAP2Packet_t    *packet,
+                                BOOL             bResend,
+                                const char      *tag)
 {
-    _iAP2LinkSendPacketCommon (link, packet, bResend, tag, TRUE);
+    _iAP2LinkSendPacketCommon(link, packet, bResend, tag, TRUE);
 }
 
 
@@ -3443,9 +3359,9 @@ void iAP2LinkSendPacketWaitSend (iAP2Link_t*      link,
 **
 ****************************************************************
 */
-void iAP2LinkResetSeqAck (iAP2Link_t* link, BOOL bOnlySend)
+void iAP2LinkResetSeqAck(iAP2Link_t *link, BOOL bOnlySend)
 {
-    _ResetAckedPackets (link);
+    _ResetAckedPackets(link);
     link->startSeq        = (uint8_t) rand();
     link->sentSeq         = 0;
     link->bValidSentSeq   = FALSE;
@@ -3455,9 +3371,9 @@ void iAP2LinkResetSeqAck (iAP2Link_t* link, BOOL bOnlySend)
     link->numSentSYNACK   = 0;
     link->numResentSYN    = 0;
     link->numResentSYNACK = 0;
-    if (!bOnlySend)
-    {
-        _ResetRecvPackets (link);
+
+    if (!bOnlySend) {
+        _ResetRecvPackets(link);
         link->recvSeq       = 0;
         link->bValidRecvSeq = FALSE;
         link->recvAck       = 0;
@@ -3485,13 +3401,15 @@ void iAP2LinkResetSeqAck (iAP2Link_t* link, BOOL bOnlySend)
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2LinkPacketForIndex (uint8_t* listArrayBuffer, uint8_t index)
+iAP2Packet_t *iAP2LinkPacketForIndex(uint8_t *listArrayBuffer, uint8_t index)
 {
-    iAP2Packet_t** pPck = (iAP2Packet_t**) iAP2ListArrayItemForIndex(listArrayBuffer, index);
-    if (pPck)
-    {
+    iAP2Packet_t **pPck = (iAP2Packet_t **) iAP2ListArrayItemForIndex(
+                              listArrayBuffer, index);
+
+    if (pPck) {
         return *pPck;
     }
+
     return NULL;
 }
 
@@ -3514,11 +3432,11 @@ iAP2Packet_t* iAP2LinkPacketForIndex (uint8_t* listArrayBuffer, uint8_t index)
 **
 ****************************************************************
 */
-uint8_t iAP2LinkFindPacket (uint8_t*                    listArrayBuffer,
-                            iAP2Packet_t**              packet,
-                            piAP2ListArrayCompareFunc   func)
+uint8_t iAP2LinkFindPacket(uint8_t                    *listArrayBuffer,
+                           iAP2Packet_t              **packet,
+                           piAP2ListArrayCompareFunc   func)
 {
-    return iAP2ListArrayFindItem (listArrayBuffer, packet, func);
+    return iAP2ListArrayFindItem(listArrayBuffer, packet, func);
 }
 
 
@@ -3546,11 +3464,11 @@ uint8_t iAP2LinkFindPacket (uint8_t*                    listArrayBuffer,
 **
 ****************************************************************
 */
-uint8_t iAP2LinkAddPacketAfter (uint8_t*        listArrayBuffer,
-                                uint8_t         prevItemIndex,
-                                iAP2Packet_t**  packet)
+uint8_t iAP2LinkAddPacketAfter(uint8_t        *listArrayBuffer,
+                               uint8_t         prevItemIndex,
+                               iAP2Packet_t  **packet)
 {
-    return iAP2ListArrayAddItemAfter (listArrayBuffer, prevItemIndex, packet);
+    return iAP2ListArrayAddItemAfter(listArrayBuffer, prevItemIndex, packet);
 }
 
 
@@ -3573,11 +3491,10 @@ uint8_t iAP2LinkAddPacketAfter (uint8_t*        listArrayBuffer,
 **
 ****************************************************************
 */
-void iAP2LinkHandleWaitACKTimeoutLink (iAP2Link_t* link, uint32_t curTime)
+void iAP2LinkHandleWaitACKTimeoutLink(iAP2Link_t *link, uint32_t curTime)
 {
-    assert (link);
-
-    iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventWaitACKTimeout);
+    assert(link);
+    iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventWaitACKTimeout);
 }
 
 
@@ -3600,11 +3517,10 @@ void iAP2LinkHandleWaitACKTimeoutLink (iAP2Link_t* link, uint32_t curTime)
 **
 ****************************************************************
 */
-void iAP2LinkHandleSendACKTimeoutLink (iAP2Link_t* link, uint32_t curTime)
+void iAP2LinkHandleSendACKTimeoutLink(iAP2Link_t *link, uint32_t curTime)
 {
-    assert (link);
-
-    iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventSendACKTimeout);
+    assert(link);
+    iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventSendACKTimeout);
 }
 
 
@@ -3627,11 +3543,10 @@ void iAP2LinkHandleSendACKTimeoutLink (iAP2Link_t* link, uint32_t curTime)
 **
 ****************************************************************
 */
-void iAP2LinkHandleWaitDetectTimeoutLink (iAP2Link_t* link, uint32_t curTime)
+void iAP2LinkHandleWaitDetectTimeoutLink(iAP2Link_t *link, uint32_t curTime)
 {
-    assert (link);
-
-    iAP2FSMHandleEvent (link->fsm, kiAP2LinkEventWaitDetectTimeout);
+    assert(link);
+    iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventWaitDetectTimeout);
 }
 
 
@@ -3653,27 +3568,24 @@ void iAP2LinkHandleWaitDetectTimeoutLink (iAP2Link_t* link, uint32_t curTime)
 **
 ****************************************************************
 */
-void iAP2LinkSendRST (iAP2Link_t* link)
+void iAP2LinkSendRST(iAP2Link_t *link)
 {
-    iAP2Packet_t* pck;
+    iAP2Packet_t *pck;
 
-    if (link->connectedCB)
-    {
+    if (link->connectedCB) {
         /* Notify about the connection establishment */
-        (*link->connectedCB) (link, FALSE);
+        (*link->connectedCB)(link, FALSE);
     }
 
-    iAP2LinkResetSeqAck (link, FALSE);
-    iAP2LinkSetDefaultSYNParam (&(link->param));
-
-    memcpy (&(link->negotiatedParam),
-            &(link->initParam),
-            sizeof(link->initParam));
-
+    iAP2LinkResetSeqAck(link, FALSE);
+    iAP2LinkSetDefaultSYNParam(&(link->param));
+    memcpy(&(link->negotiatedParam),
+           &(link->initParam),
+           sizeof(link->initParam));
     /* Send RST */
-    pck = iAP2PacketCreateRSTPacket (link,
-                                     link->sentSeq);
-    iAP2LinkSendPacket (link, pck, FALSE, "SendRST");
+    pck = iAP2PacketCreateRSTPacket(link,
+                                    link->sentSeq);
+    iAP2LinkSendPacket(link, pck, FALSE, "SendRST");
 }
 
 
@@ -3694,21 +3606,21 @@ void iAP2LinkSendRST (iAP2Link_t* link)
 **
 ****************************************************************
 */
-iAP2PacketSessionInfo_t* iAP2LinkGetSessionInfo (iAP2Link_t* link,
-                                                 uint8_t     session)
+iAP2PacketSessionInfo_t *iAP2LinkGetSessionInfo(iAP2Link_t *link,
+        uint8_t     session)
 {
-    iAP2PacketSessionInfo_t* pSession = NULL;
-    if (link && link->param.numSessionInfo)
-    {
+    iAP2PacketSessionInfo_t *pSession = NULL;
+
+    if (link && link->param.numSessionInfo) {
         uint8_t i;
-        for (i = 0; i < link->param.numSessionInfo; ++i)
-        {
-            if (link->param.sessionInfo[i].id == session)
-            {
+
+        for (i = 0; i < link->param.numSessionInfo; ++i) {
+            if (link->param.sessionInfo[i].id == session) {
                 pSession = &(link->param.sessionInfo[i]);
             }
         }
     }
+
     return pSession;
 }
 
@@ -3730,21 +3642,21 @@ iAP2PacketSessionInfo_t* iAP2LinkGetSessionInfo (iAP2Link_t* link,
 **
 ****************************************************************
 */
-uint32_t iAP2LinkGetSessionForService (iAP2Link_t*              link,
-                                       iAP2PacketServiceType_t  service)
+uint32_t iAP2LinkGetSessionForService(iAP2Link_t              *link,
+                                      iAP2PacketServiceType_t  service)
 {
     uint32_t session = 0xFFFFFFFFUL;
-    if (link)
-    {
+
+    if (link) {
         int i;
-        for (i = 0; i < link->param.numSessionInfo; ++i)
-        {
-            if (link->param.sessionInfo[i].type == service)
-            {
+
+        for (i = 0; i < link->param.numSessionInfo; ++i) {
+            if (link->param.sessionInfo[i].type == service) {
                 session = link->param.sessionInfo[i].id;
             }
         }
     }
+
     return session;
 }
 
@@ -3765,7 +3677,7 @@ uint32_t iAP2LinkGetSessionForService (iAP2Link_t*              link,
 **
 ****************************************************************
 */
-iAP2Timer_t* iAP2LinkGetMainTimer (iAP2Link_t* link)
+iAP2Timer_t *iAP2LinkGetMainTimer(iAP2Link_t *link)
 {
     return link->mainTimer;
 }
@@ -3788,7 +3700,7 @@ iAP2Timer_t* iAP2LinkGetMainTimer (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkSetUseiAP2LinkRunLoop (iAP2Link_t* link)
+void iAP2LinkSetUseiAP2LinkRunLoop(iAP2Link_t *link)
 {
     link->bUseiAP2LinkRunLoop = TRUE;
 }
@@ -3818,15 +3730,15 @@ void iAP2LinkSetUseiAP2LinkRunLoop (iAP2Link_t* link)
 **
 ****************************************************************
 */
-void iAP2LinkDebugPrintPacketList (iAP2Link_t*  link,
-                                   uint8_t*     packetList,
-                                   uint8_t      index,
-                                   const char*  name,
-                                   const char*  tag,
-                                   BOOL         bDebug)
+void iAP2LinkDebugPrintPacketList(iAP2Link_t  *link,
+                                  uint8_t     *packetList,
+                                  uint8_t      index,
+                                  const char  *name,
+                                  const char  *tag,
+                                  BOOL         bDebug)
 {
 #if DEBUG
-    __printPacketList (tag, name, link, packetList, FALSE, bDebug);
+    __printPacketList(tag, name, link, packetList, FALSE, bDebug);
 #endif /* DEBUG */
 }
 
@@ -3853,26 +3765,25 @@ void iAP2LinkDebugPrintPacketList (iAP2Link_t*  link,
 **
 ****************************************************************
 */
-void iAP2LinkDebugPrintLink (iAP2Link_t* link,
-                             const char* file,
-                             int         line,
-                             const char* tag,
-                             BOOL        bDebug)
+void iAP2LinkDebugPrintLink(iAP2Link_t *link,
+                            const char *file,
+                            int         line,
+                            const char *tag,
+                            BOOL        bDebug)
 {
 #if DEBUG
-    static char* stateName [kiAP2LinkStateCount] =
-        { "Init", "Detached", "Detect", "Idle", "Pending", "Connected", "Suspend", "Failed" };
-
+    static char *stateName [kiAP2LinkStateCount] =
+    { "Init", "Detached", "Detect", "Idle", "Pending", "Connected", "Suspend", "Failed" };
     iAP2LogType_t   type = (bDebug ? kiAP2LogTypeData : kiAP2LogTypeLog);
     int             i;
 
-    if (link == NULL || file == NULL)
-    {
+    if (link == NULL || file == NULL) {
         return;
     }
 
     iAP2LogTypeNL(type, "%s:%d link DEBUG----\n", file, line);
-    iAP2LogTypeNL(type, "%s%slink(%p): context=%p\n", (tag ? tag : ""), (tag ? ": " : ""), link, link->context);
+    iAP2LogTypeNL(type, "%s%slink(%p): context=%p\n", (tag ? tag : ""),
+                  (tag ? ": " : ""), link, link->context);
     iAP2LogTypeNL(type, "%s%s    type=%s fsm=%ph currentState=%s context=%p\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
                   (link->type == kiAP2LinkTypeDevice ? "Device"  : "Accessory"),
@@ -3889,7 +3800,8 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
                    ? link->totACKDelays / link->numACKDelays
                    : 0));
 #endif
-    iAP2LogTypeNL(type, "%s%s    startSeq=%u(%xh) recvSeq(%d)=%u(%xh) sentACK(%d)=%u(%xh) sentSeq(%d)=%u(%xh) recvAck(%d)=%u(%xh)\n",
+    iAP2LogTypeNL(type,
+                  "%s%s    startSeq=%u(%xh) recvSeq(%d)=%u(%xh) sentACK(%d)=%u(%xh) sentSeq(%d)=%u(%xh) recvAck(%d)=%u(%xh)\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
                   link->startSeq, link->startSeq,
                   link->bValidRecvSeq,
@@ -3901,10 +3813,13 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
                   link->bValidRecvAck,
                   link->recvAck, link->recvAck);
 #if iAP2_LINK_ALLOW_STATS
-    iAP2LogTypeNL(type, "%s%s    noAckReTxCount=%d missingReTxCount=%d invalidPackets=%d numOutOfOrder=%d\n",
-                  (tag ? tag : ""), (tag ? ": " : ""), link->noAckReTxCount, link->missingReTxCount,
+    iAP2LogTypeNL(type,
+                  "%s%s    noAckReTxCount=%d missingReTxCount=%d invalidPackets=%d numOutOfOrder=%d\n",
+                  (tag ? tag : ""), (tag ? ": " : ""), link->noAckReTxCount,
+                  link->missingReTxCount,
                   link->invalidPackets, link->numOutOfOrder);
-    iAP2LogTypeNL(type, "%s%s    sent: tot=%u #SYN=%d #SYNACK=%d #EAK=%d #RST=%d #ACK=%d #DATA=%d\n",
+    iAP2LogTypeNL(type,
+                  "%s%s    sent: tot=%u #SYN=%d #SYNACK=%d #EAK=%d #RST=%d #ACK=%d #DATA=%d\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
                   (link->numSentSYN + link->numSentSYNACK + link->numSentEAK +
                    link->numSentRST + link->numSentACK + link->numSentDATA),
@@ -3915,7 +3830,8 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
                   (tag ? tag : ""), (tag ? ": " : ""),
                   link->numSentCumSYN, link->numSentCumSYNACK);
 #if iAP2_LINK_ALLOW_STATS
-    iAP2LogTypeNL(type, "%s%s    resent: tot=%u #SYN=%d #SYNACK=%d #ACK=%d #DATA=%d\n",
+    iAP2LogTypeNL(type,
+                  "%s%s    resent: tot=%u #SYN=%d #SYNACK=%d #ACK=%d #DATA=%d\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
                   (link->numResentSYN + link->numResentSYNACK +
                    link->numResentACK + link->numResentDATA),
@@ -3926,7 +3842,8 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
                   (tag ? tag : ""), (tag ? ": " : ""),
                   link->numResentCumSYN, link->numResentCumSYNACK);
 #if iAP2_LINK_ALLOW_STATS
-    iAP2LogTypeNL(type, "%s%s    rcvd: tot=%u #SYN=%d #SYNACK=%d #EAK=%d #RST=%d #ACK=%d #DATA=%d\n",
+    iAP2LogTypeNL(type,
+                  "%s%s    rcvd: tot=%u #SYN=%d #SYNACK=%d #EAK=%d #RST=%d #ACK=%d #DATA=%d\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
                   (link->numRecvSYN + link->numRecvSYNACK + link->numRecvEAK +
                    link->numRecvRST + link->numRecvACK + link->numRecvDATA),
@@ -3935,7 +3852,8 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
     iAP2LogTypeNL(type, "%s%s          #SYNcum=%d #SYNACKcum=%d\n",
                   (tag ? tag : ""), (tag ? ": " : ""),
                   link->numRecvCumSYN, link->numRecvCumSYNACK);
-    iAP2LogTypeNL(type, "%s%s    rcvd(b:%u/p:%u/db:%u/dp:%u) sent(b:%u/p:%u/db:%u/dp:%u)\n",
+    iAP2LogTypeNL(type,
+                  "%s%s    rcvd(b:%u/p:%u/db:%u/dp:%u) sent(b:%u/p:%u/db:%u/dp:%u)\n",
                   (tag ? tag : ""), (tag ? ": " : ""), link->bytesRcvd, link->packetsRcvd,
                   link->dataBytesRcvd, link->dataPacketsRcvd,
                   link->bytesSent, link->packetsSent,
@@ -3943,22 +3861,28 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
 #endif
     iAP2LogTypeNL(type, "%s%s    param: ver=%02xh\n",
                   (tag ? tag : ""), (tag ? ": " : ""), link->param.version);
-    iAP2LogTypeNL(type, "%s%s           maxOutstandingPackets=%u maxRetransmissions=%u\n",
-                  (tag ? tag : ""), (tag ? ": " : ""), link->param.maxOutstandingPackets, link->param.maxRetransmissions);
+    iAP2LogTypeNL(type,
+                  "%s%s           maxOutstandingPackets=%u maxRetransmissions=%u\n",
+                  (tag ? tag : ""), (tag ? ": " : ""), link->param.maxOutstandingPackets,
+                  link->param.maxRetransmissions);
     iAP2LogTypeNL(type, "%s%s           maxCumAck=%u maxPacketSize=%u\n",
-                  (tag ? tag : ""), (tag ? ": " : ""), link->param.maxCumAck, link->param.maxPacketSize);
+                  (tag ? tag : ""), (tag ? ": " : ""), link->param.maxCumAck,
+                  link->param.maxPacketSize);
     iAP2LogTypeNL(type, "%s%s           retransmitTimeout=%u cumAckTimeout=%u\n",
-                  (tag ? tag : ""), (tag ? ": " : ""), link->param.retransmitTimeout, link->param.cumAckTimeout);
-    iAP2LogTypeNL(type, "%s%s           peerMaxOutstandingPackets=%u peerMaxPacketSize=%u\n",
-                  (tag ? tag : ""), (tag ? ": " : ""), link->param.peerMaxOutstandingPackets, link->param.peerMaxPacketSize);
+                  (tag ? tag : ""), (tag ? ": " : ""), link->param.retransmitTimeout,
+                  link->param.cumAckTimeout);
+    iAP2LogTypeNL(type,
+                  "%s%s           peerMaxOutstandingPackets=%u peerMaxPacketSize=%u\n",
+                  (tag ? tag : ""), (tag ? ": " : ""), link->param.peerMaxOutstandingPackets,
+                  link->param.peerMaxPacketSize);
     iAP2LogTypeNL(type, "%s%s           sessions=%u\n",
                   (tag ? tag : ""), (tag ? ": " : ""), link->param.numSessionInfo);
     {
         uint8_t index;
+
         for (index = 0;
              index < kIAP2PacketMaxSessions && index < link->param.numSessionInfo;
-             ++index)
-        {
+             ++index) {
             iAP2LogTypeNL(type, "%s%s               index %u [id=%u type=%u version=%u]\n",
                           (tag ? tag : ""), (tag ? ": " : ""), index,
                           link->param.sessionInfo[index].id,
@@ -3966,21 +3890,28 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
                           link->param.sessionInfo[index].version);
         }
     }
-    if (bDebug)
-    {
-        iAP2LogTypeNL(type, "%s%s    recvPacket=%ph\n", (tag ? tag : ""), (tag ? ": " : ""), link->recvPck);
-        if (link->recvPck)
-        {
+
+    if (bDebug) {
+        iAP2LogTypeNL(type, "%s%s    recvPacket=%ph\n", (tag ? tag : ""),
+                      (tag ? ": " : ""), link->recvPck);
+
+        if (link->recvPck) {
             iAP2PacketDebugPrintPacketNL(link->recvPck, tag, 0, tag, "        ");
         }
-        iAP2TimePrintInfo (link->mainTimer, FALSE);
+
+        iAP2TimePrintInfo(link->mainTimer, FALSE);
     }
-    iAP2LinkDebugPrintPacketList (link, link->sendPckList, 0, "sendPckList", tag, bDebug);
-    iAP2LinkDebugPrintPacketList (link, link->recvPckList, 0, "recvPckList", tag, bDebug);
-    for (i = 0; i < kIAP2PacketServiceTypeCount; ++i)
-    {
-        iAP2LinkDebugPrintPacketList (link, link->sessSendPckList[i], i, "sessSendPckList", tag, bDebug);
+
+    iAP2LinkDebugPrintPacketList(link, link->sendPckList, 0, "sendPckList", tag,
+                                 bDebug);
+    iAP2LinkDebugPrintPacketList(link, link->recvPckList, 0, "recvPckList", tag,
+                                 bDebug);
+
+    for (i = 0; i < kIAP2PacketServiceTypeCount; ++i) {
+        iAP2LinkDebugPrintPacketList(link, link->sessSendPckList[i], i,
+                                     "sessSendPckList", tag, bDebug);
     }
+
 #endif /* DEBUG */
 }
 
@@ -4002,11 +3933,10 @@ void iAP2LinkDebugPrintLink (iAP2Link_t* link,
 **
 ****************************************************************
 */
-void iAP2LinkDebugIgnoreSynRetryLimit (iAP2Link_t* link,
-                                       BOOL        bFlag)
+void iAP2LinkDebugIgnoreSynRetryLimit(iAP2Link_t *link,
+                                      BOOL        bFlag)
 {
-    if (link)
-    {
+    if (link) {
         link->bIgnoreSynRetryLimit = bFlag;
     }
 }

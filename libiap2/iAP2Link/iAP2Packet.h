@@ -1,54 +1,54 @@
 /*
- *	File: iAP2Packet.h
- *	Package: iAP2Link
- *	Abstract: n/a 
+ *  File: iAP2Packet.h
+ *  Package: iAP2Link
+ *  Abstract: n/a
  *
- *	Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
- * 	Inc. ("Apple"), in your capacity as a current, and in good standing,
- *	Licensee in the MFi Licensing Program. Use of this Apple software is
- *	governed by and subject to the terms and conditions of your MFi License,
- *	including, but not limited to, the restrictions specified in the provision
- *	entitled “Public Software”, and is further subject to your agreement to
- *	the following additional terms, and your agreement that the use,
- *	installation, modification or redistribution of this Apple software
- * 	constitutes acceptance of these additional terms. If you do not agree with
- * 	these additional terms, please do not use, install, modify or redistribute
- *	this Apple software.
+ *  Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
+ *  Inc. ("Apple"), in your capacity as a current, and in good standing,
+ *  Licensee in the MFi Licensing Program. Use of this Apple software is
+ *  governed by and subject to the terms and conditions of your MFi License,
+ *  including, but not limited to, the restrictions specified in the provision
+ *  entitled “Public Software”, and is further subject to your agreement to
+ *  the following additional terms, and your agreement that the use,
+ *  installation, modification or redistribution of this Apple software
+ *  constitutes acceptance of these additional terms. If you do not agree with
+ *  these additional terms, please do not use, install, modify or redistribute
+ *  this Apple software.
  *
- *	In consideration of your agreement to abide by the following terms, and
- *	subject to these terms, Apple grants you a personal, non-exclusive
- *	license, under Apple's copyrights in this original Apple software (the
- *	"Apple Software"), to use, reproduce, and modify the Apple Software in
- *	source form, and to use, reproduce, modify, and redistribute the Apple
- *	Software, with or without modifications, in binary form. While you may not
- *	redistribute the Apple Software in source form, should you redistribute
- *	the Apple Software in binary form, in its entirety and without
- *	modifications, you must retain this notice and the following text and
- *	disclaimers in all such redistributions of the Apple Software. Neither the
- *	name, trademarks, service marks, or logos of Apple Inc. may be used to
- *	endorse or promote products derived from the Apple Software without
- *	specific prior written permission from Apple. Except as expressly stated
- *	in this notice, no other rights or licenses, express or implied, are
- *	granted by Apple herein, including but not limited to any patent rights
- *	that may be infringed by your derivative works or by other works in which
- *	the Apple Software may be incorporated.
- *	
- *	The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
- *	NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
- *	IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
- *	PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
- *	ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
+ *  In consideration of your agreement to abide by the following terms, and
+ *  subject to these terms, Apple grants you a personal, non-exclusive
+ *  license, under Apple's copyrights in this original Apple software (the
+ *  "Apple Software"), to use, reproduce, and modify the Apple Software in
+ *  source form, and to use, reproduce, modify, and redistribute the Apple
+ *  Software, with or without modifications, in binary form. While you may not
+ *  redistribute the Apple Software in source form, should you redistribute
+ *  the Apple Software in binary form, in its entirety and without
+ *  modifications, you must retain this notice and the following text and
+ *  disclaimers in all such redistributions of the Apple Software. Neither the
+ *  name, trademarks, service marks, or logos of Apple Inc. may be used to
+ *  endorse or promote products derived from the Apple Software without
+ *  specific prior written permission from Apple. Except as expressly stated
+ *  in this notice, no other rights or licenses, express or implied, are
+ *  granted by Apple herein, including but not limited to any patent rights
+ *  that may be infringed by your derivative works or by other works in which
+ *  the Apple Software may be incorporated.
  *
- *	IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
- *	MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
- *	WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
- *	LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
- *	OF SUCH DAMAGE.
+ *  The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
+ *  NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
+ *  IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+ *  PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
+ *  ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
  *
- *	Copyright (C) 2012 Apple Inc. All Rights Reserved.
+ *  IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
+ *  MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
+ *  WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
+ *  LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ *
+ *  Copyright (C) 2012 Apple Inc. All Rights Reserved.
  *
  */
 
@@ -129,9 +129,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
-enum IAP2PacketEnums
-{
+
+enum IAP2PacketEnums {
     /* Start of packet bytes */
     kIAP2PacketSYNC        = 0xFF,
     kIAP2PacketSOP         = 0x5A,
@@ -207,8 +206,7 @@ enum IAP2PacketEnums
     kIAP2PacketSynOptionMaskHP             = 0x40
 };
 
-typedef enum
-{
+typedef enum {
     kiAP2PacketParseStateSOP1 = 0,
     kiAP2PacketParseStateSOP2,
     kiAP2PacketParseStateLEN1,
@@ -229,8 +227,7 @@ typedef enum
 } kiAP2PacketParseState_t;
 
 /* Session Service Type */
-typedef enum
-{
+typedef enum {
     kIAP2PacketServiceTypeControl  = 0, /* Control & Authentication */
     kIAP2PacketServiceTypeBuffer   = 1, /* Buffer (ie. Artwork, Workout) */
     kIAP2PacketServiceTypeEA       = 2, /* EA stream */
@@ -242,8 +239,8 @@ typedef enum
 
 #define IAP2_HI_BYTE(X) (((X) >> 8) & 0xFF)
 #define IAP2_LO_BYTE(X) ((X) & 0xFF)
-    
-    
+
+
 #pragma pack(push,1)
 
 typedef struct {
@@ -290,16 +287,14 @@ typedef struct {
 
 } iAP2PacketMax_t;
 
-typedef struct
-{
+typedef struct {
     uint8_t    id;
     uint8_t    type;        /* iAP2PacketServiceType_t */
     uint8_t    version;
-    
+
 } iAP2PacketSessionInfo_t;
 
-typedef struct
-{
+typedef struct {
     uint8_t    version;
     uint8_t    maxOutstandingPackets;
     uint8_t    maxRetransmissions;
@@ -317,17 +312,17 @@ typedef struct
 
 
 /* To create and delete packets, must use functions provided here. */
-typedef struct iAP2Packet_st
-{
-    void*       link;       /* link associated with this packet */
+typedef struct iAP2Packet_st {
+    void       *link;       /* link associated with this packet */
 
-    void*       cbContext;
-    void*       callbackOnSend; /* iAP2LinkDataSentCB_t */
+    void       *cbContext;
+    void       *callbackOnSend; /* iAP2LinkDataSentCB_t */
 
     uint32_t    dataCurLen;
     uint32_t    bufferLen;
 
-    uint32_t    timeStamp;  /* timestamp (ms) when packet was sent or received(and parse). */
+    uint32_t
+    timeStamp;  /* timestamp (ms) when packet was sent or received(and parse). */
 
     uint16_t    packetLen;
 
@@ -337,15 +332,15 @@ typedef struct iAP2Packet_st
     uint8_t     retransmitCount;
     uint8_t     timer;
 
-    kiAP2PacketParseState_t state:8;
+    kiAP2PacketParseState_t state: 8;
 
-    BOOL        recvEAK:1;
-    BOOL        sendPacket:1;
+    BOOL        recvEAK: 1;
+    BOOL        sendPacket: 1;
 
     /* reserve 4 bits for debug use */
-    uint8_t     debugData:4;
+    uint8_t     debugData: 4;
 
-    iAP2PacketData_t* pckData;
+    iAP2PacketData_t *pckData;
 
 } iAP2Packet_t;
 
@@ -374,13 +369,13 @@ typedef struct iAP2Packet_st
 **
 ****************************************************************
 */
-uint32_t iAP2PacketParseBuffer (const uint8_t*  buffer,
-                                uint32_t        bufferLen,
-                                iAP2Packet_t*   packet,
-                                uint32_t        maxPacketSize,
-                                BOOL*           bDetect,
-                                uint32_t*       failedChecksums,
-                                uint32_t*       sopDetect);
+uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
+                               uint32_t        bufferLen,
+                               iAP2Packet_t   *packet,
+                               uint32_t        maxPacketSize,
+                               BOOL           *bDetect,
+                               uint32_t       *failedChecksums,
+                               uint32_t       *sopDetect);
 
 
 /*
@@ -399,7 +394,7 @@ uint32_t iAP2PacketParseBuffer (const uint8_t*  buffer,
 **
 ****************************************************************
 */
-BOOL iAP2PacketIsComplete (const iAP2Packet_t* pck);
+BOOL iAP2PacketIsComplete(const iAP2Packet_t *pck);
 
 
 /*
@@ -418,7 +413,7 @@ BOOL iAP2PacketIsComplete (const iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-BOOL iAP2PacketIsACKOnly (const iAP2Packet_t* pck);
+BOOL iAP2PacketIsACKOnly(const iAP2Packet_t *pck);
 
 
 /*
@@ -437,7 +432,7 @@ BOOL iAP2PacketIsACKOnly (const iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-BOOL iAP2PacketIsDataPacket (const iAP2Packet_t* pck);
+BOOL iAP2PacketIsDataPacket(const iAP2Packet_t *pck);
 
 
 /*
@@ -456,7 +451,7 @@ BOOL iAP2PacketIsDataPacket (const iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-BOOL iAP2PacketIsEAK (const iAP2Packet_t* pck);
+BOOL iAP2PacketIsEAK(const iAP2Packet_t *pck);
 
 
 /*
@@ -476,7 +471,7 @@ BOOL iAP2PacketIsEAK (const iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-BOOL iAP2PacketEqual (const iAP2Packet_t* packet1, const iAP2Packet_t* packet2);
+BOOL iAP2PacketEqual(const iAP2Packet_t *packet1, const iAP2Packet_t *packet2);
 
 
 /*
@@ -495,7 +490,7 @@ BOOL iAP2PacketEqual (const iAP2Packet_t* packet1, const iAP2Packet_t* packet2);
 **
 ****************************************************************
 */
-uint32_t iAP2PacketGetBuffSize (uint16_t payloadSize);
+uint32_t iAP2PacketGetBuffSize(uint16_t payloadSize);
 
 
 /*
@@ -516,7 +511,7 @@ uint32_t iAP2PacketGetBuffSize (uint16_t payloadSize);
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateEmptyPacket (void* link);
+iAP2Packet_t *iAP2PacketCreateEmptyPacket(void *link);
 
 
 /*
@@ -535,7 +530,7 @@ iAP2Packet_t* iAP2PacketCreateEmptyPacket (void* link);
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateEmptySendPacket (void* link);
+iAP2Packet_t *iAP2PacketCreateEmptySendPacket(void *link);
 
 
 /*
@@ -554,7 +549,7 @@ iAP2Packet_t* iAP2PacketCreateEmptySendPacket (void* link);
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateEmptyRecvPacket (void* link);
+iAP2Packet_t *iAP2PacketCreateEmptyRecvPacket(void *link);
 
 
 /*
@@ -580,14 +575,14 @@ iAP2Packet_t* iAP2PacketCreateEmptyRecvPacket (void* link);
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreate (void*           link,
-                                uint8_t         control,
-                                uint8_t         seq,
-                                uint8_t         ack,
-                                const uint8_t*  payload,
-                                uint32_t        payloadLen,
-                                uint8_t         session,
-                                BOOL            sendPacket);
+iAP2Packet_t *iAP2PacketCreate(void           *link,
+                               uint8_t         control,
+                               uint8_t         seq,
+                               uint8_t         ack,
+                               const uint8_t  *payload,
+                               uint32_t        payloadLen,
+                               uint8_t         session,
+                               BOOL            sendPacket);
 
 
 /*
@@ -606,7 +601,7 @@ iAP2Packet_t* iAP2PacketCreate (void*           link,
 **
 ****************************************************************
 */
-void iAP2PacketDelete (iAP2Packet_t* pck);
+void iAP2PacketDelete(iAP2Packet_t *pck);
 
 
 /*
@@ -628,7 +623,7 @@ void iAP2PacketDelete (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-void iAP2PacketResetPacket (iAP2Packet_t* pck);
+void iAP2PacketResetPacket(iAP2Packet_t *pck);
 
 
 /*
@@ -648,8 +643,8 @@ void iAP2PacketResetPacket (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-uint16_t iAP2PacketGetSpaceLeft (iAP2Packet_t*  packet,
-                                 uint16_t       maxPacketLen);
+uint16_t iAP2PacketGetSpaceLeft(iAP2Packet_t  *packet,
+                                uint16_t       maxPacketLen);
 
 
 /*
@@ -673,12 +668,12 @@ uint16_t iAP2PacketGetSpaceLeft (iAP2Packet_t*  packet,
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateACKPacket (void*          link,
-                                         uint8_t        seq,
-                                         uint8_t        ack,
-                                         const uint8_t* payload,
-                                         uint32_t       payloadLen,
-                                         uint8_t        session);
+iAP2Packet_t *iAP2PacketCreateACKPacket(void          *link,
+                                        uint8_t        seq,
+                                        uint8_t        ack,
+                                        const uint8_t *payload,
+                                        uint32_t       payloadLen,
+                                        uint8_t        session);
 
 
 /*
@@ -709,18 +704,18 @@ iAP2Packet_t* iAP2PacketCreateACKPacket (void*          link,
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateSYNPacket (void*          link,
-                                         uint8_t        initSeq,
-                                         const uint8_t* ack,
-                                         uint8_t        version,
-                                         uint8_t        maxOutstanding,
-                                         uint16_t       maxPacketSize,
-                                         uint16_t       reTxTimeout,
-                                         uint16_t       cumAckTimeout,
-                                         uint8_t        maxRetransmit,
-                                         uint8_t        maxCumAck,
-                                         uint8_t        numSessionInfo,
-                                         iAP2PacketSessionInfo_t* sessionInfo);
+iAP2Packet_t *iAP2PacketCreateSYNPacket(void          *link,
+                                        uint8_t        initSeq,
+                                        const uint8_t *ack,
+                                        uint8_t        version,
+                                        uint8_t        maxOutstanding,
+                                        uint16_t       maxPacketSize,
+                                        uint16_t       reTxTimeout,
+                                        uint16_t       cumAckTimeout,
+                                        uint8_t        maxRetransmit,
+                                        uint8_t        maxCumAck,
+                                        uint8_t        numSessionInfo,
+                                        iAP2PacketSessionInfo_t *sessionInfo);
 
 
 /*
@@ -743,11 +738,11 @@ iAP2Packet_t* iAP2PacketCreateSYNPacket (void*          link,
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateEAKPacket (void*          link,
-                                         uint8_t        seq,
-                                         uint8_t        ack,
-                                         const uint8_t* outOfSeq,
-                                         uint32_t       outOfSeqCount);
+iAP2Packet_t *iAP2PacketCreateEAKPacket(void          *link,
+                                        uint8_t        seq,
+                                        uint8_t        ack,
+                                        const uint8_t *outOfSeq,
+                                        uint32_t       outOfSeqCount);
 
 
 /*
@@ -767,8 +762,8 @@ iAP2Packet_t* iAP2PacketCreateEAKPacket (void*          link,
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateRSTPacket (void*   link,
-                                         uint8_t seq);
+iAP2Packet_t *iAP2PacketCreateRSTPacket(void   *link,
+                                        uint8_t seq);
 
 
 /*
@@ -788,8 +783,8 @@ iAP2Packet_t* iAP2PacketCreateRSTPacket (void*   link,
 **
 ****************************************************************
 */
-iAP2Packet_t* iAP2PacketCreateSUSPacket (void*   link,
-                                         uint8_t seq);
+iAP2Packet_t *iAP2PacketCreateSUSPacket(void   *link,
+                                        uint8_t seq);
 
 
 /*
@@ -811,7 +806,7 @@ iAP2Packet_t* iAP2PacketCreateSUSPacket (void*   link,
 **
 ****************************************************************
 */
-uint8_t* iAP2PacketGenerateBuffer (iAP2Packet_t* packet);
+uint8_t *iAP2PacketGenerateBuffer(iAP2Packet_t *packet);
 
 
 /*
@@ -831,7 +826,7 @@ uint8_t* iAP2PacketGenerateBuffer (iAP2Packet_t* packet);
  **
  ****************************************************************
  */
-uint8_t* iAP2PacketGetBuffer (iAP2Packet_t* packet);
+uint8_t *iAP2PacketGetBuffer(iAP2Packet_t *packet);
 
 
 /*
@@ -851,7 +846,7 @@ uint8_t* iAP2PacketGetBuffer (iAP2Packet_t* packet);
  **
  ****************************************************************
  */
-uint8_t* iAP2PacketGetPayload (iAP2Packet_t* packet);
+uint8_t *iAP2PacketGetPayload(iAP2Packet_t *packet);
 
 
 /*
@@ -870,7 +865,7 @@ uint8_t* iAP2PacketGetPayload (iAP2Packet_t* packet);
  **
  ****************************************************************
  */
-uint16_t iAP2PacketGetPayloadLen (const iAP2Packet_t* packet);
+uint16_t iAP2PacketGetPayloadLen(const iAP2Packet_t *packet);
 
 
 /*
@@ -890,9 +885,9 @@ uint16_t iAP2PacketGetPayloadLen (const iAP2Packet_t* packet);
 **
 ****************************************************************
 */
-void iAP2PacketParseSYNData (const uint8_t*         data,
-                             uint32_t               dataLen,
-                             iAP2PacketSYNData_t*   synData);
+void iAP2PacketParseSYNData(const uint8_t         *data,
+                            uint32_t               dataLen,
+                            iAP2PacketSYNData_t   *synData);
 
 
 /*
@@ -913,9 +908,9 @@ void iAP2PacketParseSYNData (const uint8_t*         data,
 **
 ****************************************************************
 */
-uint8_t* iAP2PacketGetMissingSeqFromEAK (iAP2Packet_t* eakPacket,
-                                         uint8_t       window,
-                                         uint32_t*     missingLen);
+uint8_t *iAP2PacketGetMissingSeqFromEAK(iAP2Packet_t *eakPacket,
+                                        uint8_t       window,
+                                        uint32_t     *missingLen);
 
 
 /*
@@ -935,8 +930,8 @@ uint8_t* iAP2PacketGetMissingSeqFromEAK (iAP2Packet_t* eakPacket,
 **
 ****************************************************************
 */
-uint8_t iAP2PacketCalcChecksum (const uint8_t*  buffer,
-                                uint32_t        bufferLen);
+uint8_t iAP2PacketCalcChecksum(const uint8_t  *buffer,
+                               uint32_t        bufferLen);
 
 
 /*
@@ -959,9 +954,9 @@ uint8_t iAP2PacketCalcChecksum (const uint8_t*  buffer,
 **
 ****************************************************************
 */
-uint8_t iAP2PacketCopyAndCalcChecksum (uint8_t *        dst,
-                                       const uint8_t *  src,
-                                       uint32_t         len);
+uint8_t iAP2PacketCopyAndCalcChecksum(uint8_t         *dst,
+                                      const uint8_t   *src,
+                                      uint32_t         len);
 
 
 /*
@@ -980,7 +975,7 @@ uint8_t iAP2PacketCopyAndCalcChecksum (uint8_t *        dst,
 **
 ****************************************************************
 */
-uint8_t iAP2PacketCalcHeaderChecksum (iAP2Packet_t* pck);
+uint8_t iAP2PacketCalcHeaderChecksum(iAP2Packet_t *pck);
 
 
 /*
@@ -999,7 +994,7 @@ uint8_t iAP2PacketCalcHeaderChecksum (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-uint8_t iAP2PacketCalcPayloadChecksum (iAP2Packet_t* pck);
+uint8_t iAP2PacketCalcPayloadChecksum(iAP2Packet_t *pck);
 
 
 /*
@@ -1018,7 +1013,7 @@ uint8_t iAP2PacketCalcPayloadChecksum (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-uint8_t iAP2PacketNextSeq (uint8_t curSeq);
+uint8_t iAP2PacketNextSeq(uint8_t curSeq);
 
 
 /*
@@ -1038,7 +1033,7 @@ uint8_t iAP2PacketNextSeq (uint8_t curSeq);
 **
 ****************************************************************
 */
-uint8_t iAP2PacketCalcSeqGap (uint8_t curSeq, uint8_t nextSeq);
+uint8_t iAP2PacketCalcSeqGap(uint8_t curSeq, uint8_t nextSeq);
 
 
 /*
@@ -1063,7 +1058,7 @@ uint8_t iAP2PacketCalcSeqGap (uint8_t curSeq, uint8_t nextSeq);
 **
 ****************************************************************
 */
-BOOL iAP2PacketIsSeqACKd (uint8_t seq, uint8_t ack, uint8_t window);
+BOOL iAP2PacketIsSeqACKd(uint8_t seq, uint8_t ack, uint8_t window);
 
 
 /*
@@ -1082,7 +1077,7 @@ BOOL iAP2PacketIsSeqACKd (uint8_t seq, uint8_t ack, uint8_t window);
 **
 ****************************************************************
 */
-BOOL iAP2PacketRequireACK (iAP2Packet_t* packet);
+BOOL iAP2PacketRequireACK(iAP2Packet_t *packet);
 
 
 /*
@@ -1102,7 +1097,7 @@ BOOL iAP2PacketRequireACK (iAP2Packet_t* packet);
 **
 ****************************************************************
 */
-BOOL iAP2PacketCheckDetect (iAP2Packet_t* pck);
+BOOL iAP2PacketCheckDetect(iAP2Packet_t *pck);
 
 
 /*
@@ -1122,7 +1117,7 @@ BOOL iAP2PacketCheckDetect (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-BOOL iAP2PacketCheckDetectNACK (iAP2Packet_t* pck);
+BOOL iAP2PacketCheckDetectNACK(iAP2Packet_t *pck);
 
 
 /*
@@ -1145,11 +1140,11 @@ BOOL iAP2PacketCheckDetectNACK (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-void iAP2PacketDebugPrintPacket (iAP2Packet_t*  packet,
-                                 const char*    file,
-                                 int            line,
-                                 const char*    tag,
-                                 const char*    indent);
+void iAP2PacketDebugPrintPacket(iAP2Packet_t  *packet,
+                                const char    *file,
+                                int            line,
+                                const char    *tag,
+                                const char    *indent);
 
 
 /*
@@ -1172,11 +1167,11 @@ void iAP2PacketDebugPrintPacket (iAP2Packet_t*  packet,
 **
 ****************************************************************
 */
-void iAP2PacketDebugPrintPacketNL (iAP2Packet_t*  packet,
-                                   const char*    file,
-                                   int            line,
-                                   const char*    tag,
-                                   const char*    indent);
+void iAP2PacketDebugPrintPacketNL(iAP2Packet_t  *packet,
+                                  const char    *file,
+                                  int            line,
+                                  const char    *tag,
+                                  const char    *indent);
 
 
 /*
@@ -1197,9 +1192,9 @@ void iAP2PacketDebugPrintPacketNL (iAP2Packet_t*  packet,
 **
 ****************************************************************
 */
-char* iAP2PacketDebugStringPacketShortNL (iAP2Packet_t* packet,
-                                          char*         buff,
-                                          uint32_t      buffLen);
+char *iAP2PacketDebugStringPacketShortNL(iAP2Packet_t *packet,
+        char         *buff,
+        uint32_t      buffLen);
 
 
 /*
@@ -1218,7 +1213,7 @@ char* iAP2PacketDebugStringPacketShortNL (iAP2Packet_t* packet,
 **
 ****************************************************************
 */
-void iAP2PacketDebugPrintPacketShortNL (iAP2Packet_t*  packet);
+void iAP2PacketDebugPrintPacketShortNL(iAP2Packet_t  *packet);
 
 
 /*
@@ -1238,7 +1233,7 @@ void iAP2PacketDebugPrintPacketShortNL (iAP2Packet_t*  packet);
 **
 ****************************************************************
 */
-void iAP2PacketAssignTimer (iAP2Packet_t* pck, uint16_t timer);
+void iAP2PacketAssignTimer(iAP2Packet_t *pck, uint16_t timer);
 
 
 /*
@@ -1257,7 +1252,7 @@ void iAP2PacketAssignTimer (iAP2Packet_t* pck, uint16_t timer);
 **
 ****************************************************************
 */
-void iAP2PacketRemoveTimer (iAP2Packet_t* pck);
+void iAP2PacketRemoveTimer(iAP2Packet_t *pck);
 
 
 /*
@@ -1277,7 +1272,7 @@ void iAP2PacketRemoveTimer (iAP2Packet_t* pck);
 **
 ****************************************************************
 */
-const char* iAP2PacketName (iAP2Packet_t* packet);
+const char *iAP2PacketName(iAP2Packet_t *packet);
 
 
 /*
@@ -1296,7 +1291,7 @@ const char* iAP2PacketName (iAP2Packet_t* packet);
 **
 ****************************************************************
 */
-uint16_t iAP2PacketGetTimeoutID (iAP2Packet_t* packet);
+uint16_t iAP2PacketGetTimeoutID(iAP2Packet_t *packet);
 
 
 #ifdef __cplusplus

@@ -34,33 +34,35 @@ typedef enum {
  * rejectReason: 拒绝原因（仅当accepted为FALSE时有效）
  * context: 用户上下文
  */
-typedef void (*iAP2IdResultCB_t)(BOOL accepted, uint8_t rejectReason, void* context);
+typedef void (*iAP2IdResultCB_t)(BOOL accepted, uint8_t rejectReason,
+                                 void *context);
 
 /*
  * 发送控制消息回调
  */
-typedef BOOL (*iAP2IdSendMsgCB_t)(const uint8_t* data, uint32_t len, void* context);
+typedef BOOL (*iAP2IdSendMsgCB_t)(const uint8_t *data, uint32_t len,
+                                  void *context);
 
 /*
  * 识别模块配置
- * 
+ *
  * 注意：配件信息、EA协议、消息能力等已内置在模块中
  * 只需提供回调函数即可
  */
 typedef struct {
     iAP2IdResultCB_t        resultCallback;     /* 识别结果回调 */
     iAP2IdSendMsgCB_t       sendMsgCallback;    /* 发送消息回调 */
-    void*                   context;            /* 用户上下文 */
-    
+    void                   *context;            /* 用户上下文 */
+
     /* 以下字段由模块内部管理，外部无需设置 */
-    iAP2AccessoryInfo_t*    accessoryInfo;      /* 内部使用 */
-    iAP2EAProtocol_t*       eaProtocols;        /* 内部使用 */
+    iAP2AccessoryInfo_t    *accessoryInfo;      /* 内部使用 */
+    iAP2EAProtocol_t       *eaProtocols;        /* 内部使用 */
     uint8_t                 eaProtocolCount;    /* 内部使用 */
-    iAP2BTTransportInfo_t*  btTransport;        /* 内部使用 */
-    iAP2USBHostTransportInfo_t* usbTransport; /* 内部使用 */
-    uint16_t*               messagesSentByAccessory;    /* 内部使用 */
+    iAP2BTTransportInfo_t  *btTransport;        /* 内部使用 */
+    iAP2USBHostTransportInfo_t *usbTransport; /* 内部使用 */
+    uint16_t               *messagesSentByAccessory;    /* 内部使用 */
     uint16_t                messagesSentCount;          /* 内部使用 */
-    uint16_t*               messagesReceivedByAccessory;/* 内部使用 */
+    uint16_t               *messagesReceivedByAccessory;/* 内部使用 */
     uint16_t                messagesReceivedCount;      /* 内部使用 */
 } iAP2IdConfig_t;
 
@@ -81,7 +83,7 @@ typedef struct {
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2IdInit(const iAP2IdConfig_t* config, uint8_t type);
+int iAP2IdInit(const iAP2IdConfig_t *config, uint8_t type);
 
 /*
  * iAP2IdDeinit
@@ -127,7 +129,7 @@ void iAP2IdOnAuthComplete(BOOL success);
  * Return:
  *   消息被处理返回TRUE，否则返回FALSE
  */
-BOOL iAP2IdHandleMessage(uint16_t msgId, const uint8_t* data, uint32_t len);
+BOOL iAP2IdHandleMessage(uint16_t msgId, const uint8_t *data, uint32_t len);
 
 /*
  * iAP2IdSendUpdate
@@ -140,7 +142,7 @@ BOOL iAP2IdHandleMessage(uint16_t msgId, const uint8_t* data, uint32_t len);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2IdSendUpdate(const iAP2AccessoryInfo_t* updatedInfo);
+int iAP2IdSendUpdate(const iAP2AccessoryInfo_t *updatedInfo);
 
 /*
  * iAP2IdIsComplete
@@ -163,7 +165,7 @@ BOOL iAP2IdIsSuccess(void);
 /*
  * iAP2IdSetAccessoryInfo
  * 设置配件信息（可选，用于覆盖默认配置）
- * 
+ *
  * 必须在 iAP2IdInit() 之后、识别开始之前调用
  *
  * Input:
@@ -177,14 +179,14 @@ BOOL iAP2IdIsSuccess(void);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2IdSetAccessoryInfo(const char* name, const char* modelId,
-                            const char* manufacturer, const char* serialNumber,
-                            const char* fwVersion, const char* hwVersion);
+int iAP2IdSetAccessoryInfo(const char *name, const char *modelId,
+                           const char *manufacturer, const char *serialNumber,
+                           const char *fwVersion, const char *hwVersion);
 
 /*
  * iAP2IdSetBluetoothMAC
  * 设置蓝牙 MAC 地址（可选）
- * 
+ *
  * 必须在 iAP2IdInit() 之后、识别开始之前调用
  *
  * Input:
@@ -194,7 +196,7 @@ int iAP2IdSetAccessoryInfo(const char* name, const char* modelId,
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2IdSetBluetoothMACName(const uint8_t* macAddress, const char* name);
+int iAP2IdSetBluetoothMACName(const uint8_t *macAddress, const char *name);
 
 #ifdef __cplusplus
 }

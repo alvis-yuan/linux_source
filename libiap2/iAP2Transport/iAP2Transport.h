@@ -7,7 +7,7 @@
  * - 封装物理传输（蓝牙、USB等）
  * - 管理Link层（数据包、可靠传输）
  * - 向上层提供数据收发接口
- * 
+ *
  * 注意：传输层不处理会话逻辑，会话管理由iAP2Session层负责
  */
 
@@ -54,35 +54,41 @@ typedef struct iAP2Transport_st iAP2Transport_t;
  */
 
 /* 物理层数据发送回调 - 用户实现，将数据通过物理层发送 */
-typedef int (*iAP2TransportSendDataCB_t)(const uint8_t* data, 
-                                          uint32_t dataLen, 
-                                          void* context);
+typedef int (*iAP2TransportSendDataCB_t)(const uint8_t *data,
+        uint32_t dataLen,
+        void *context);
 
 /* 物理层连接状态变化回调 - 用户实现 */
-typedef void (*iAP2TransportConnectionChangeCB_t)(BOOL connected, void* context);
+typedef void (*iAP2TransportConnectionChangeCB_t)(BOOL connected,
+        void *context);
 
 /* Link层数据接收回调 - Session层实现 */
-typedef BOOL (*iAP2TransportDataReadyCB_t)(uint8_t* data,
-                                            uint32_t dataLen,
-                                            uint8_t sessionID,
-                                            void* context);
+typedef BOOL (*iAP2TransportDataReadyCB_t)(uint8_t *data,
+        uint32_t dataLen,
+        uint8_t sessionID,
+        void *context);
 
 /* Link层连接状态回调 - Session层实现 */
-typedef void (*iAP2TransportLinkConnectedCB_t)(BOOL connected, void* context);
+typedef void (*iAP2TransportLinkConnectedCB_t)(BOOL connected, void *context);
 
 /*
  * 传输层配置
  */
 typedef struct {
     iAP2TransportType_t                 type;               /* 传输类型 */
-    iAP2TransportSendDataCB_t           sendDataCB;         /* 物理层发送回调 */
-    iAP2TransportConnectionChangeCB_t   connectionChangeCB; /* 物理层连接回调 */
-    iAP2TransportDataReadyCB_t          dataReadyCB;        /* Link层数据回调 */
-    iAP2TransportLinkConnectedCB_t      linkConnectedCB;    /* Link层连接回调 */
-    void*                               callbackContext;    /* 回调上下文 */
-    void*                               userContext;        /* 用户上下文 */
+    iAP2TransportSendDataCB_t
+    sendDataCB;         /* 物理层发送回调 */
+    iAP2TransportConnectionChangeCB_t
+    connectionChangeCB; /* 物理层连接回调 */
+    iAP2TransportDataReadyCB_t
+    dataReadyCB;        /* Link层数据回调 */
+    iAP2TransportLinkConnectedCB_t
+    linkConnectedCB;    /* Link层连接回调 */
+    void                               *callbackContext;    /* 回调上下文 */
+    void                               *userContext;        /* 用户上下文 */
     uint16_t                            maxPacketSize;      /* 最大包大小 */
-    uint8_t                             maxOutstanding;     /* 最大未确认包数 */
+    uint8_t
+    maxOutstanding;     /* 最大未确认包数 */
     uint16_t                            retransmitTimeout;  /* 重传超时(ms) */
 } iAP2TransportConfig_t;
 
@@ -102,7 +108,7 @@ typedef struct {
  * Return:
  *   成功返回句柄，失败返回NULL
  */
-iAP2Transport_t* iAP2TransportCreate(const iAP2TransportConfig_t* config);
+iAP2Transport_t *iAP2TransportCreate(const iAP2TransportConfig_t *config);
 
 /*
  * iAP2TransportDestroy
@@ -111,7 +117,7 @@ iAP2Transport_t* iAP2TransportCreate(const iAP2TransportConfig_t* config);
  * Input:
  *   transport: 传输层句柄
  */
-void iAP2TransportDestroy(iAP2Transport_t* transport);
+void iAP2TransportDestroy(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportConnect
@@ -123,7 +129,7 @@ void iAP2TransportDestroy(iAP2Transport_t* transport);
  * Return:
  *   成功返回TRUE
  */
-BOOL iAP2TransportConnect(iAP2Transport_t* transport);
+BOOL iAP2TransportConnect(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportDisconnect
@@ -132,7 +138,7 @@ BOOL iAP2TransportConnect(iAP2Transport_t* transport);
  * Input:
  *   transport: 传输层句柄
  */
-void iAP2TransportDisconnect(iAP2Transport_t* transport);
+void iAP2TransportDisconnect(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportReceiveData
@@ -147,9 +153,9 @@ void iAP2TransportDisconnect(iAP2Transport_t* transport);
  * Return:
  *   处理的字节数
  */
-uint32_t iAP2TransportReceiveData(iAP2Transport_t* transport,
-                                   const uint8_t* data,
-                                   uint32_t dataLen);
+uint32_t iAP2TransportReceiveData(iAP2Transport_t *transport,
+                                  const uint8_t *data,
+                                  uint32_t dataLen);
 
 /*
  * iAP2TransportSendData
@@ -165,10 +171,10 @@ uint32_t iAP2TransportReceiveData(iAP2Transport_t* transport,
  * Return:
  *   成功返回TRUE
  */
-BOOL iAP2TransportSendData(iAP2Transport_t* transport,
-                            uint8_t sessionID,
-                            const uint8_t* data,
-                            uint32_t dataLen);
+BOOL iAP2TransportSendData(iAP2Transport_t *transport,
+                           uint8_t sessionID,
+                           const uint8_t *data,
+                           uint32_t dataLen);
 
 /*
  * iAP2TransportProcess
@@ -181,7 +187,7 @@ BOOL iAP2TransportSendData(iAP2Transport_t* transport,
  * Return:
  *   如果还有待处理任务返回TRUE
  */
-BOOL iAP2TransportProcess(iAP2Transport_t* transport);
+BOOL iAP2TransportProcess(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportGetState
@@ -193,7 +199,7 @@ BOOL iAP2TransportProcess(iAP2Transport_t* transport);
  * Return:
  *   当前状态
  */
-iAP2TransportState_t iAP2TransportGetState(iAP2Transport_t* transport);
+iAP2TransportState_t iAP2TransportGetState(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportIsConnected
@@ -205,7 +211,7 @@ iAP2TransportState_t iAP2TransportGetState(iAP2Transport_t* transport);
  * Return:
  *   已连接返回TRUE
  */
-BOOL iAP2TransportIsConnected(iAP2Transport_t* transport);
+BOOL iAP2TransportIsConnected(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportGetType
@@ -217,7 +223,7 @@ BOOL iAP2TransportIsConnected(iAP2Transport_t* transport);
  * Return:
  *   传输层类型
  */
-iAP2TransportType_t iAP2TransportGetType(iAP2Transport_t* transport);
+iAP2TransportType_t iAP2TransportGetType(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportGetLink
@@ -229,7 +235,7 @@ iAP2TransportType_t iAP2TransportGetType(iAP2Transport_t* transport);
  * Return:
  *   Link对象指针
  */
-iAP2Link_t* iAP2TransportGetLink(iAP2Transport_t* transport);
+iAP2Link_t *iAP2TransportGetLink(iAP2Transport_t *transport);
 
 /*
  * iAP2TransportSetCallbacks
@@ -242,10 +248,10 @@ iAP2Link_t* iAP2TransportGetLink(iAP2Transport_t* transport);
  *   linkConnectedCB: Link连接状态回调
  *   context: 回调上下文
  */
-void iAP2TransportSetCallbacks(iAP2Transport_t* transport,
-                                 iAP2TransportDataReadyCB_t dataReadyCB,
-                                 iAP2TransportLinkConnectedCB_t linkConnectedCB,
-                                 void* context);
+void iAP2TransportSetCallbacks(iAP2Transport_t *transport,
+                               iAP2TransportDataReadyCB_t dataReadyCB,
+                               iAP2TransportLinkConnectedCB_t linkConnectedCB,
+                               void *context);
 
 #ifdef __cplusplus
 }

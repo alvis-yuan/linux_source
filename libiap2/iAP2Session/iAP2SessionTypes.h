@@ -27,14 +27,14 @@ extern "C" {
  * 配件基本信息
  */
 typedef struct {
-    const char* name;               /* 配件名称 */
-    const char* modelIdentifier;    /* 型号标识 */
-    const char* manufacturer;       /* 制造商 */
-    const char* serialNumber;       /* 序列号 */
-    const char* firmwareVersion;    /* 固件版本 */
-    const char* hardwareVersion;    /* 硬件版本 */
-    const char* currentLanguage;    /* 当前语言 (可选) */
-    const char* supportedLanguages; /* 支持的语言 (可选) */
+    const char *name;               /* 配件名称 */
+    const char *modelIdentifier;    /* 型号标识 */
+    const char *manufacturer;       /* 制造商 */
+    const char *serialNumber;       /* 序列号 */
+    const char *firmwareVersion;    /* 固件版本 */
+    const char *hardwareVersion;    /* 硬件版本 */
+    const char *currentLanguage;    /* 当前语言 (可选) */
+    const char *supportedLanguages; /* 支持的语言 (可选) */
     uint16_t    MaximumCurrentDrawnFromDevice; /* 最大电流 */
     uint8_t     PowerProvidingCapability; /* 供电能力 */
 } iAP2AccessoryInfo_t;
@@ -44,8 +44,9 @@ typedef struct {
  */
 typedef struct {
     uint8_t     protocolIdentifier; /* 协议ID */
-    const char* protocolName;       /* 协议名称 */
-    uint8_t     matchAction;        /* 匹配动作: 0=NoAction, 1=Optional, 2=NoAlert, 3=NoComm */
+    const char *protocolName;       /* 协议名称 */
+    uint8_t
+    matchAction;        /* 匹配动作: 0=NoAction, 1=Optional, 2=NoAlert, 3=NoComm */
 } iAP2EAProtocol_t;
 
 /*

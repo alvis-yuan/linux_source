@@ -122,20 +122,31 @@ typedef struct {
 /* === Rational Types === */
 
 /** @brief Signed 16-bit rational (numerator/denominator) */
-typedef struct { int16_t num, den; } rat16_t;
+typedef struct {
+    int16_t num, den;
+} rat16_t;
 /** @brief Signed 32-bit rational */
-typedef struct { int32_t num, den; } rat32_t;
+typedef struct {
+    int32_t num, den;
+} rat32_t;
 /** @brief Unsigned 16-bit rational */
-typedef struct { uint16_t num, den; } urat16_t;
+typedef struct {
+    uint16_t num, den;
+} urat16_t;
 /** @brief Unsigned 32-bit rational */
-typedef struct { uint32_t num, den; } urat32_t;
+typedef struct {
+    uint32_t num, den;
+} urat32_t;
 
 /* === Function Declarations === */
 
 /* --- Decoding --- */
-int ctrlSess_DecodeMessageHeader(const uint8_t *buffer, size_t bufLen, ctrlSessMessage *msg);
-int ctrlSess_GetNextParameter(const uint8_t *buffer, size_t remainingLen, ctrlSessParameter *param);
-void ctrlSess_InitGroupIterator(ctrlSessGroupIterator *it, const ctrlSessParameter *group);
+int ctrlSess_DecodeMessageHeader(const uint8_t *buffer, size_t bufLen,
+                                 ctrlSessMessage *msg);
+int ctrlSess_GetNextParameter(const uint8_t *buffer, size_t remainingLen,
+                              ctrlSessParameter *param);
+void ctrlSess_InitGroupIterator(ctrlSessGroupIterator *it,
+                                const ctrlSessParameter *group);
 int ctrlSess_GroupNext(ctrlSessGroupIterator *it, ctrlSessParameter *sub);
 
 /* --- Type-safe accessors --- */
@@ -155,8 +166,10 @@ const uint8_t *ctrlSess_ParamGetBlob(const ctrlSessParameter *p, size_t *len);
 bool ctrlSess_ParamIsNone(const ctrlSessParameter *p);
 
 /* --- Encoding --- */
-void ctrlSess_BuilderInit(ctrlSessBuilder *b, uint8_t *buf, uint16_t maxLen, uint16_t msgId);
-int ctrlSess_AddParameter(ctrlSessBuilder *b, uint16_t paramId, const uint8_t *data, uint16_t dataLen);
+void ctrlSess_BuilderInit(ctrlSessBuilder *b, uint8_t *buf, uint16_t maxLen,
+                          uint16_t msgId);
+int ctrlSess_AddParameter(ctrlSessBuilder *b, uint16_t paramId,
+                          const uint8_t *data, uint16_t dataLen);
 uint16_t ctrlSess_BuilderFinish(ctrlSessBuilder *b);
 
 /* --- Typed encoding helpers --- */
@@ -166,14 +179,19 @@ int ctrlSess_AddUint8(ctrlSessBuilder *b, uint16_t paramId, int8_t value);
 int ctrlSess_AddUint16(ctrlSessBuilder *b, uint16_t paramId, uint16_t value);
 int ctrlSess_AddUint32(ctrlSessBuilder *b, uint16_t paramId, uint32_t value);
 int ctrlSess_AddString(ctrlSessBuilder *b, uint16_t paramId, const char *str);
-int ctrlSess_AddBlob(ctrlSessBuilder *b, uint16_t paramId, const void *data, size_t len);
+int ctrlSess_AddBlob(ctrlSessBuilder *b, uint16_t paramId, const void *data,
+                     size_t len);
 int ctrlSess_AddNone(ctrlSessBuilder *b, uint16_t paramId);
-int ctrlSess_AddRat32(ctrlSessBuilder *b, uint16_t paramId, int32_t num, int32_t den);
-int ctrlSess_AddUint16Array(ctrlSessBuilder *b, uint16_t paramId, const uint16_t *arr, size_t count);
-int ctrlSess_AddUint32Array(ctrlSessBuilder *b, uint16_t paramId, const uint32_t *arr, size_t count);
+int ctrlSess_AddRat32(ctrlSessBuilder *b, uint16_t paramId, int32_t num,
+                      int32_t den);
+int ctrlSess_AddUint16Array(ctrlSessBuilder *b, uint16_t paramId,
+                            const uint16_t *arr, size_t count);
+int ctrlSess_AddUint32Array(ctrlSessBuilder *b, uint16_t paramId,
+                            const uint32_t *arr, size_t count);
 
 /* --- Group encoding --- */
-int ctrlSess_BeginGroup(ctrlSessGroupBuilder *gb, ctrlSessBuilder *b, uint16_t paramId);
+int ctrlSess_BeginGroup(ctrlSessGroupBuilder *gb, ctrlSessBuilder *b,
+                        uint16_t paramId);
 int ctrlSess_EndGroup(ctrlSessGroupBuilder *gb);
 
 #endif /* __IAP2_CONTROL_H__ */

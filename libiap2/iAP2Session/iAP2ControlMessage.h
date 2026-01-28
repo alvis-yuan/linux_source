@@ -4,8 +4,7 @@
 /* =============================================================================
  * 101.1 Accessory Authentication Message IDs
  * ============================================================================= */
-typedef enum
-{
+typedef enum {
     kiAP2AuthMsgReqAuthCert = 0xAA00,      /* Device -> Accessory */
     kiAP2AuthMsgAuthCert = 0xAA01,         /* Accessory -> Device */
     kiAP2AuthMsgReqAuthChallenge = 0xAA02, /* Device -> Accessory */
@@ -16,20 +15,19 @@ typedef enum
 } iAP2AuthMessageId_t;
 
 /* Parameter IDs for Authentication messages */
-typedef enum
-{
+typedef enum {
     /* RequestAuthenticationCertificate (0xAA00) */
     kiAP2AuthParamReqCertSerialNumber = 0, /* none (exist to request) */
-    
+
     /* AuthenticationCertificate (0xAA01) */
     kiAP2AuthParamCertificateData = 0,     /* blob (X.509 Certificate) */
-    
+
     /* RequestAuthenticationChallengeResponse (0xAA02) */
     kiAP2AuthParamChallengeData = 0,       /* blob (Random Number) */
-    
+
     /* AuthenticationResponse (0xAA03) */
     kiAP2AuthParamChallengeResponse = 0,   /* blob (Computed Response) */
-    
+
     /* AccessoryAuthenticationSerialNumber (0xAA06) */
     kiAP2AuthParamCertSerialNumber = 0     /* blob (Certificate Serial) */
 } iAP2AuthParameterId_t;
@@ -37,8 +35,7 @@ typedef enum
 /* =============================================================================
  * 101.2 Accessory Identification Message IDs
  * ============================================================================= */
-typedef enum
-{
+typedef enum {
     kiAP2IdMsgStartId = 0x1D00,           /* Device -> Accessory */
     kiAP2IdMsgInfo = 0x1D01,               /* Accessory -> Device */
     kiAP2IdMsgAccepted = 0x1D02,           /* Device -> Accessory */
@@ -48,8 +45,7 @@ typedef enum
 } iAP2IdentificationMessageId_t;
 
 /* IdentificationInformation (0x1D01) & Update (0x1D06) Parameter IDs */
-typedef enum
-{
+typedef enum {
     kiAP2IdParamName = 0,                   /* utf8 */
     kiAP2IdParamModelId = 1,                /* utf8 */
     kiAP2IdParamManufacturer = 2,           /* utf8 */
@@ -76,8 +72,7 @@ typedef enum
 } iAP2IdentificationParameterId_t;
 
 /* IdentificationRejected (0x1D03) Parameter IDs */
-typedef enum
-{
+typedef enum {
     kiAP2IdRejectParamName = 0,                   /* utf8 - rejected parameter name */
     kiAP2IdRejectParamModelId = 1,                /* utf8 */
     kiAP2IdRejectParamManufacturer = 2,           /* utf8 */
@@ -104,50 +99,49 @@ typedef enum
 } iAP2IdentificationRejectedParameterId_t;
 
 /* Group member definitions (nested within group type parameter values) */
-typedef enum
-{
+typedef enum {
     /* 101-11 ExternalAccessoryProtocol group members */
     kiAP2GrpEapProtocolId = 0,             /* uint8 */
     kiAP2GrpEapProtocolName = 1,           /* utf8 */
     kiAP2GrpEapMatchAction = 2,            /* enum (0:NoAction, 1:Optional, 2:NoAlert, 3:NoComm) */
     kiAP2GrpEapNativeTransId = 3,          /* uint16 */
-    
+
     /* 101-13 USBDeviceTransportComponent group members */
     kiAP2GrpTransDevId = 0,                /* uint16 */
     kiAP2GrpTransDevName = 1,              /* utf8 */
     kiAP2GrpTransDevIap2Conn = 2,          /* none */
     kiAP2GrpTransDevSampleRates = 3,       /* enum (8k, 11k, 12k, 16k, 22k, 24k, 32k, 44k, 48k) */
-    
+
     /* 101-15 USBHostTransportComponent / 101-16 UARTTransportComponent group members */
     kiAP2GrpTransHostId = 0,               /* uint16 */
     kiAP2GrpTransHostName = 1,             /* utf8 */
     kiAP2GrpTransHostIap2Conn = 2,         /* none */
-    
+
     /* 101-17 BluetoothTransportComponent group members */
     kiAP2GrpBtTransId = 0,                 /* uint16 */
     kiAP2GrpBtTransName = 1,               /* utf8 */
     kiAP2GrpBtTransIap2Conn = 2,           /* none */
     kiAP2GrpBtTransMacAddr = 3,            /* uint8[6] (MAC address) */
-    
+
     /* 101-18 iAP2HIDComponent group members */
     kiAP2GrpHidIap2Id = 0,                 /* uint16 */
     kiAP2GrpHidIap2Name = 1,               /* utf8 */
     kiAP2GrpHidIap2Function = 2,           /* enum (see HID Function below) */
-    
+
     /* 101-19 LocationInformationComponent group members */
     kiAP2GrpLocId = 0,                     /* uint16 */
     kiAP2GrpLocName = 1,                   /* utf8 */
     kiAP2GrpLocGpggaData = 17,             /* none */
     kiAP2GrpLocGprmcData = 18,             /* none */
     kiAP2GrpLocPascdData = 20,             /* none */
-    
+
     /* 101-20 USBHostHIDComponent group members */
     kiAP2GrpHidUsbHostId = 0,              /* uint16 */
     kiAP2GrpHidUsbHostName = 1,            /* utf8 */
     kiAP2GrpHidUsbHostFunction = 2,        /* enum */
     kiAP2GrpHidUsbHostTransId = 3,         /* uint16 */
     kiAP2GrpHidUsbHostIntfNum = 4,         /* uint16 */
-    
+
     /* 101-22 BluetoothHIDComponent group members */
     kiAP2GrpHidBtId = 0,                   /* uint16 */
     kiAP2GrpHidBtName = 1,                 /* utf8 */
@@ -156,8 +150,7 @@ typedef enum
 } iAP2GroupMemberId_t;
 
 /* 101-21 HIDComponentFunction Enum */
-typedef enum
-{
+typedef enum {
     kiAP2HidFuncKeyboard = 0,
     kiAP2HidFuncMediaRemote = 1,
     kiAP2HidFuncAssistiveTouch = 2,
@@ -169,8 +162,7 @@ typedef enum
 } iAP2HidFunction_t;
 
 /* 101-10 PowerProvidingCapability Enum */
-typedef enum
-{
+typedef enum {
     kiAP2PowerCapNone = 0,
     kiAP2PowerCapC37Passthrough = 1,
     kiAP2PowerCapAdvanced = 2
@@ -189,10 +181,12 @@ extern "C" {
 #include <iAP2Defines.h>
 
 /* 发送控制消息回调类型 */
-typedef BOOL (*iAP2CtrlMsgSendCB_t)(const uint8_t* data, uint32_t len, void* context);
+typedef BOOL (*iAP2CtrlMsgSendCB_t)(const uint8_t *data, uint32_t len,
+                                    void *context);
 
 /* App Discovery Update 回调类型 */
-typedef void (*iAP2AppDiscoveryUpdateCB_t)(uint8_t listAvailable, uint16_t listCount, void* context);
+typedef void (*iAP2AppDiscoveryUpdateCB_t)(uint8_t listAvailable,
+        uint16_t listCount, void *context);
 
 /*
  * iAP2CtrlMsgInit
@@ -205,7 +199,7 @@ typedef void (*iAP2AppDiscoveryUpdateCB_t)(uint8_t listAvailable, uint16_t listC
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2CtrlMsgInit(iAP2CtrlMsgSendCB_t sendCallback, void* context);
+int iAP2CtrlMsgInit(iAP2CtrlMsgSendCB_t sendCallback, void *context);
 
 /*
  * iAP2CtrlMsgDeinit
@@ -226,7 +220,7 @@ void iAP2CtrlMsgDeinit(void);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2SendRequestAppLaunch(const char* bundleId, uint8_t launchMethod);
+int iAP2SendRequestAppLaunch(const char *bundleId, uint8_t launchMethod);
 
 /* === App Discovery Functions === */
 
@@ -242,8 +236,9 @@ int iAP2SendRequestAppLaunch(const char* bundleId, uint8_t launchMethod);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2SendStartAppDiscoveryUpdates(const uint8_t* categories, uint8_t categoryCount, 
-                                      uint16_t listMax);
+int iAP2SendStartAppDiscoveryUpdates(const uint8_t *categories,
+                                     uint8_t categoryCount,
+                                     uint16_t listMax);
 
 /*
  * iAP2SendStopAppDiscoveryUpdates
@@ -267,8 +262,8 @@ int iAP2SendStopAppDiscoveryUpdates(void);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2HandleAppDiscoveryUpdate(const uint8_t* data, uint32_t len,
-                                   iAP2AppDiscoveryUpdateCB_t callback, void* context);
+int iAP2HandleAppDiscoveryUpdate(const uint8_t *data, uint32_t len,
+                                 iAP2AppDiscoveryUpdateCB_t callback, void *context);
 
 /* === External Accessory Protocol (EAP) Functions === */
 
@@ -297,7 +292,8 @@ int iAP2SendEAPSessionStatus(uint16_t sessionId, uint8_t status);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2HandleEAPStartSession(uint16_t msgId, const uint8_t* data, uint32_t len);
+int iAP2HandleEAPStartSession(uint16_t msgId, const uint8_t *data,
+                              uint32_t len);
 
 /*
  * iAP2HandleEAPStopSession
@@ -311,7 +307,7 @@ int iAP2HandleEAPStartSession(uint16_t msgId, const uint8_t* data, uint32_t len)
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2HandleEAPStopSession(uint16_t msgId, const uint8_t* data, uint32_t len);
+int iAP2HandleEAPStopSession(uint16_t msgId, const uint8_t *data, uint32_t len);
 
 #ifdef __cplusplus
 }
@@ -320,24 +316,23 @@ int iAP2HandleEAPStopSession(uint16_t msgId, const uint8_t* data, uint32_t len);
 /* ==========================================================================
  * 101.3 & 101.4 App Launch & Discovery (Application related)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     /* App Launch Message IDs */
     kiAP2AppMsgLaunchReq = 0xEA02,         /* Accessory -> Device */
-    
+
     /* Parameter IDs for RequestAppLaunch */
     kiAP2AppParamBundleId = 0,             /* utf8 */
     kiAP2AppParamLaunchMethod = 1,         /* enum */
-    
+
     /* App Discovery Message IDs */
     kiAP2AppDisMsgStartUpdate = 0xAD00,    /* Accessory -> Device */
     kiAP2AppDisMsgUpdate = 0xAD01,         /* Device -> Accessory */
     kiAP2AppDisMsgStopUpdate = 0xAD02,     /* Accessory -> Device */
-    
+
     /* Parameter IDs for StartAppDiscoveryUpdates */
     kiAP2AppDisParamCategories = 3,        /* group */
     kiAP2AppDisParamListMax = 4,           /* uint16 */
-    
+
     /* Parameter IDs for AppDiscoveryUpdate */
     kiAP2AppDisParamListAvail = 3,         /* enum */
     kiAP2AppDisParamList = 4,              /* group */
@@ -347,26 +342,24 @@ typedef enum
 /* ==========================================================================
  * 101.5 AssistiveTouch (Assistive Touch)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     kiAP2AssistiveMsgStart = 0x5400,
     kiAP2AssistiveMsgStop = 0x5401,
     kiAP2AssistiveMsgStartInfo = 0x5402,
     kiAP2AssistiveMsgInfo = 0x5403,
     kiAP2AssistiveMsgStopInfo = 0x5404,
-    
+
     kiAP2AssistiveParamIsEnabled = 0       /* bool */
 } iAP2AssistiveMessageId_t;
 
 /* ==========================================================================
  * 101.6 Bluetooth Connection Status (Bluetooth Connection Status)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     kiAP2BtConnMsgStartUpdate = 0x4E03,
     kiAP2BtConnMsgUpdate = 0x4E04,
     kiAP2BtConnMsgStopUpdate = 0x4E05,
-    
+
     kiAP2BtConnParamCompIdentifier = 0,    /* uint16 */
     kiAP2BtConnParamProfiles = 1           /* group */
 } iAP2BluetoothMessageId_t;
@@ -374,8 +367,7 @@ typedef enum
 /* ==========================================================================
  * 101.7 Communications (Communication/Call Control)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     kiAP2CommMsgStartCallState = 0x4154,
     kiAP2CommMsgCallStateUpdate = 0x4155,
     kiAP2CommMsgStopCallState = 0x4156,
@@ -390,7 +382,7 @@ typedef enum
     kiAP2CommMsgHoldStatusUpdate = 0x415F,
     kiAP2CommMsgMuteStatusUpdate = 0x4160,
     kiAP2CommMsgSendDtmf = 0x4161,
-    
+
     /* Parameter IDs for CallStateUpdate (0x4155) */
     kiAP2CommParamCallRemoteId = 0,        /* utf8 */
     kiAP2CommParamCallDisplayName = 1,     /* utf8 */
@@ -409,13 +401,12 @@ typedef enum
 /* ==========================================================================
  * 101.8 Device Notifications (Device Notifications)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     kiAP2DevMsgInfoUpdate = 0x4E09,
     kiAP2DevMsgLangUpdate = 0x4E0A,
     kiAP2DevMsgTimeUpdate = 0x4E0B,
     kiAP2DevMsgUuidUpdate = 0x4E0C,
-    
+
     kiAP2DevParamName = 0,                 /* DeviceName */
     kiAP2DevParamLang = 0,                  /* DeviceLanguage */
     kiAP2DevParamTimeSeconds = 0,          /* secs64 */
@@ -427,12 +418,11 @@ typedef enum
 /* ==========================================================================
  * 101.9 External Accessory Protocol (External Accessory Protocol Session)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     kiAP2EapMsgStartSession = 0xEA00,         /* Device -> Accessory */
     kiAP2EapMsgStopSession = 0xEA01,          /* Device -> Accessory */
     kiAP2EapMsgSessionStatus = 0xEA03,       /* Accessory -> Device */
-    
+
     kiAP2EapParamProtocolId = 0,           /* uint8 */
     kiAP2EapParamSessionId = 1,            /* uint16 */
     kiAP2EapParamStatus = 1                /* enum (in 0xEA03) */
@@ -441,10 +431,9 @@ typedef enum
 /* ==========================================================================
  * 101.10 Human Interface Device (HID)
  * ========================================================================== */
-typedef enum
-{
+typedef enum {
     kiAP2HidMsgStartHid = 0x6800,
-    
+
     kiAP2HidParamCompIdentifier = 0,      /* uint16 */
     kiAP2HidParamVendorId = 1,            /* uint16 */
     kiAP2HidParamProductId = 2             /* uint16 */

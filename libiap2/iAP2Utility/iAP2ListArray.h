@@ -1,54 +1,54 @@
 /*
- *	File: iAP2ListArray.h
- *	Package: iAP2Utility
- *	Abstract: n/a 
+ *  File: iAP2ListArray.h
+ *  Package: iAP2Utility
+ *  Abstract: n/a
  *
- *	Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
- * 	Inc. ("Apple"), in your capacity as a current, and in good standing,
- *	Licensee in the MFi Licensing Program. Use of this Apple software is
- *	governed by and subject to the terms and conditions of your MFi License,
- *	including, but not limited to, the restrictions specified in the provision
- *	entitled “Public Software”, and is further subject to your agreement to
- *	the following additional terms, and your agreement that the use,
- *	installation, modification or redistribution of this Apple software
- * 	constitutes acceptance of these additional terms. If you do not agree with
- * 	these additional terms, please do not use, install, modify or redistribute
- *	this Apple software.
+ *  Disclaimer: IMPORTANT: This Apple software is supplied to you, by Apple
+ *  Inc. ("Apple"), in your capacity as a current, and in good standing,
+ *  Licensee in the MFi Licensing Program. Use of this Apple software is
+ *  governed by and subject to the terms and conditions of your MFi License,
+ *  including, but not limited to, the restrictions specified in the provision
+ *  entitled “Public Software”, and is further subject to your agreement to
+ *  the following additional terms, and your agreement that the use,
+ *  installation, modification or redistribution of this Apple software
+ *  constitutes acceptance of these additional terms. If you do not agree with
+ *  these additional terms, please do not use, install, modify or redistribute
+ *  this Apple software.
  *
- *	In consideration of your agreement to abide by the following terms, and
- *	subject to these terms, Apple grants you a personal, non-exclusive
- *	license, under Apple's copyrights in this original Apple software (the
- *	"Apple Software"), to use, reproduce, and modify the Apple Software in
- *	source form, and to use, reproduce, modify, and redistribute the Apple
- *	Software, with or without modifications, in binary form. While you may not
- *	redistribute the Apple Software in source form, should you redistribute
- *	the Apple Software in binary form, in its entirety and without
- *	modifications, you must retain this notice and the following text and
- *	disclaimers in all such redistributions of the Apple Software. Neither the
- *	name, trademarks, service marks, or logos of Apple Inc. may be used to
- *	endorse or promote products derived from the Apple Software without
- *	specific prior written permission from Apple. Except as expressly stated
- *	in this notice, no other rights or licenses, express or implied, are
- *	granted by Apple herein, including but not limited to any patent rights
- *	that may be infringed by your derivative works or by other works in which
- *	the Apple Software may be incorporated.
- *	
- *	The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
- *	NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
- *	IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
- *	PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
- *	ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
+ *  In consideration of your agreement to abide by the following terms, and
+ *  subject to these terms, Apple grants you a personal, non-exclusive
+ *  license, under Apple's copyrights in this original Apple software (the
+ *  "Apple Software"), to use, reproduce, and modify the Apple Software in
+ *  source form, and to use, reproduce, modify, and redistribute the Apple
+ *  Software, with or without modifications, in binary form. While you may not
+ *  redistribute the Apple Software in source form, should you redistribute
+ *  the Apple Software in binary form, in its entirety and without
+ *  modifications, you must retain this notice and the following text and
+ *  disclaimers in all such redistributions of the Apple Software. Neither the
+ *  name, trademarks, service marks, or logos of Apple Inc. may be used to
+ *  endorse or promote products derived from the Apple Software without
+ *  specific prior written permission from Apple. Except as expressly stated
+ *  in this notice, no other rights or licenses, express or implied, are
+ *  granted by Apple herein, including but not limited to any patent rights
+ *  that may be infringed by your derivative works or by other works in which
+ *  the Apple Software may be incorporated.
  *
- *	IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
- *	CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- *	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- *	INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
- *	MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
- *	WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
- *	LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
- *	OF SUCH DAMAGE.
+ *  The Apple Software is provided by Apple on an "AS IS" basis. APPLE MAKES
+ *  NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE
+ *  IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS FOR A
+ *  PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND OPERATION
+ *  ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
  *
- *	Copyright (C) 2012 Apple Inc. All Rights Reserved.
+ *  IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
+ *  MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED AND
+ *  WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT
+ *  LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE POSSIBILITY
+ *  OF SUCH DAMAGE.
+ *
+ *  Copyright (C) 2012 Apple Inc. All Rights Reserved.
  *
  */
 
@@ -138,8 +138,7 @@ typedef struct {
 } iAP2ListArrayHeader_t;
 #pragma pack(pop)
 
-enum
-{
+enum {
     kiAP2ListArrayInvalidOffset         = -1,
     kiAP2ListArrayMaxCount              = 255,
     kiAP2ListArrayInvalidIndex          = kiAP2ListArrayMaxCount,
@@ -148,13 +147,15 @@ enum
 
 
 /* Returns <0 if a < b, 0 if a = b, >0 if a > b */
-typedef intptr_t (*piAP2ListArrayCompareFunc)(void* a, void* b, uint8_t dataSize);
+typedef intptr_t (*piAP2ListArrayCompareFunc)(void *a, void *b,
+        uint8_t dataSize);
 
-typedef void (*piAP2ListArrayFunc)(void* item);
-typedef void (*piAP2ListArrayIndexParamFunc)(void* item, uint8_t index, void* param);
+typedef void (*piAP2ListArrayFunc)(void *item);
+typedef void (*piAP2ListArrayIndexParamFunc)(void *item, uint8_t index,
+        void *param);
 
 /* Just does straight compare on pointer values. */
-intptr_t iAP2ListArrayStraightCompare(void* a, void* b);
+intptr_t iAP2ListArrayStraightCompare(void *a, void *b);
 
 
 /*
@@ -174,7 +175,7 @@ intptr_t iAP2ListArrayStraightCompare(void* a, void* b);
 **
 ****************************************************************
 */
-uint32_t iAP2ListArrayGetBuffSize (uint8_t maxCount, uint8_t dataSize);
+uint32_t iAP2ListArrayGetBuffSize(uint8_t maxCount, uint8_t dataSize);
 
 
 /*
@@ -196,7 +197,7 @@ uint32_t iAP2ListArrayGetBuffSize (uint8_t maxCount, uint8_t dataSize);
 **
 ****************************************************************
 */
-int iAP2ListArrayInit (uint8_t* buff, uint8_t maxCount, uint8_t dataSize);
+int iAP2ListArrayInit(uint8_t *buff, uint8_t maxCount, uint8_t dataSize);
 
 
 /*
@@ -219,7 +220,8 @@ int iAP2ListArrayInit (uint8_t* buff, uint8_t maxCount, uint8_t dataSize);
 **
 ****************************************************************
 */
-void iAP2ListArrayCleanup (uint8_t* listArrayBuffer, piAP2ListArrayFunc itemCleanupFunc);
+void iAP2ListArrayCleanup(uint8_t *listArrayBuffer,
+                          piAP2ListArrayFunc itemCleanupFunc);
 
 
 /*
@@ -239,8 +241,8 @@ void iAP2ListArrayCleanup (uint8_t* listArrayBuffer, piAP2ListArrayFunc itemClea
 **
 ****************************************************************
 */
-void iAP2ListArrayForEach (uint8_t*           listArrayBuffer,
-                           piAP2ListArrayFunc func);
+void iAP2ListArrayForEach(uint8_t           *listArrayBuffer,
+                          piAP2ListArrayFunc func);
 
 
 /*
@@ -261,9 +263,10 @@ void iAP2ListArrayForEach (uint8_t*           listArrayBuffer,
 **
 ****************************************************************
 */
-void iAP2ListArrayForEachWithIndexAndParam (uint8_t*                     listArrayBuffer,
-                                            piAP2ListArrayIndexParamFunc func,
-                                            void*                        param);
+void iAP2ListArrayForEachWithIndexAndParam(uint8_t
+        *listArrayBuffer,
+        piAP2ListArrayIndexParamFunc func,
+        void                        *param);
 
 
 /*
@@ -284,9 +287,9 @@ void iAP2ListArrayForEachWithIndexAndParam (uint8_t*                     listArr
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayFindItem (uint8_t*                  listArrayBuffer,
-                               void*                     item,
-                               piAP2ListArrayCompareFunc func);
+uint8_t iAP2ListArrayFindItem(uint8_t                  *listArrayBuffer,
+                              void                     *item,
+                              piAP2ListArrayCompareFunc func);
 
 
 /*
@@ -306,7 +309,7 @@ uint8_t iAP2ListArrayFindItem (uint8_t*                  listArrayBuffer,
 **
 ****************************************************************
 */
-void* iAP2ListArrayItemForIndex (uint8_t* listArrayBuffer, uint8_t index);
+void *iAP2ListArrayItemForIndex(uint8_t *listArrayBuffer, uint8_t index);
 
 
 /*
@@ -325,7 +328,7 @@ void* iAP2ListArrayItemForIndex (uint8_t* listArrayBuffer, uint8_t index);
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayGetCount (uint8_t* listArrayBuffer);
+uint8_t iAP2ListArrayGetCount(uint8_t *listArrayBuffer);
 
 
 /*
@@ -344,7 +347,7 @@ uint8_t iAP2ListArrayGetCount (uint8_t* listArrayBuffer);
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayGetFirstItemIndex (uint8_t* listArrayBuffer);
+uint8_t iAP2ListArrayGetFirstItemIndex(uint8_t *listArrayBuffer);
 
 
 /*
@@ -363,7 +366,7 @@ uint8_t iAP2ListArrayGetFirstItemIndex (uint8_t* listArrayBuffer);
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayGetLastItemIndex (uint8_t* listArrayBuffer);
+uint8_t iAP2ListArrayGetLastItemIndex(uint8_t *listArrayBuffer);
 
 
 /*
@@ -383,7 +386,8 @@ uint8_t iAP2ListArrayGetLastItemIndex (uint8_t* listArrayBuffer);
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayGetNextItemIndex (uint8_t* listArrayBuffer, uint8_t itemIndex);
+uint8_t iAP2ListArrayGetNextItemIndex(uint8_t *listArrayBuffer,
+                                      uint8_t itemIndex);
 
 
 /*
@@ -410,9 +414,9 @@ uint8_t iAP2ListArrayGetNextItemIndex (uint8_t* listArrayBuffer, uint8_t itemInd
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayAddItemAfter (uint8_t* listArrayBuffer,
-                                   uint8_t  prevItemIndex,
-                                   void*    item);
+uint8_t iAP2ListArrayAddItemAfter(uint8_t *listArrayBuffer,
+                                  uint8_t  prevItemIndex,
+                                  void    *item);
 
 
 /*
@@ -441,9 +445,9 @@ uint8_t iAP2ListArrayAddItemAfter (uint8_t* listArrayBuffer,
 **
 ****************************************************************
 */
-uint8_t iAP2ListArrayAddItemInOrder (uint8_t*                  listArrayBuffer,
-                                     void*                     item,
-                                     piAP2ListArrayCompareFunc func);
+uint8_t iAP2ListArrayAddItemInOrder(uint8_t                  *listArrayBuffer,
+                                    void                     *item,
+                                    piAP2ListArrayCompareFunc func);
 
 
 /*
@@ -467,9 +471,9 @@ uint8_t iAP2ListArrayAddItemInOrder (uint8_t*                  listArrayBuffer,
 **
 ****************************************************************
 */
-void iAP2ListArrayDeleteItem (uint8_t*              listArrayBuffer,
-                              uint8_t               index,
-                              piAP2ListArrayFunc    itemCleanupFunc);
+void iAP2ListArrayDeleteItem(uint8_t              *listArrayBuffer,
+                             uint8_t               index,
+                             piAP2ListArrayFunc    itemCleanupFunc);
 
 
 #ifdef __cplusplus

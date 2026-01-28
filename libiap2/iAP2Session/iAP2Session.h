@@ -7,7 +7,7 @@
  * - 管理control session和EA session
  * - 处理认证和识别流程
  * - 路由会话数据到应用层
- * 
+ *
  * 架构说明：
  * - Session层完全事件驱动，不需要Process循环
  * - 所有处理都在Transport的RunLoop线程回调中完成
@@ -53,31 +53,31 @@ typedef struct iAP2Session_st iAP2Session_t;
 /*
  * 会话数据回调类型
  */
-typedef BOOL (*iAP2SessionDataCB_t)(const uint8_t* data,
+typedef BOOL (*iAP2SessionDataCB_t)(const uint8_t *data,
                                     uint32_t dataLen,
-                                    void* context);
+                                    void *context);
 /*
  * 认证完成回调
  */
-typedef void (*iAP2SessionAuthCompleteCB_t)(BOOL success, void* context);
+typedef void (*iAP2SessionAuthCompleteCB_t)(BOOL success, void *context);
 
 /*
  * 识别完成回调
  */
-typedef void (*iAP2SessionIdentifyCompleteCB_t)(BOOL success, void* context);
+typedef void (*iAP2SessionIdentifyCompleteCB_t)(BOOL success, void *context);
 
 /*
  * 会话配置
  */
 typedef struct {
     /* 传输层 */
-    iAP2Transport_t*                    transport;          /* 传输层实例 */
-    
+    iAP2Transport_t                    *transport;          /* 传输层实例 */
+
     /* 回调函数 */
     iAP2SessionDataCB_t                 sessionDataCB;      /* 会话数据回调 */
     iAP2SessionAuthCompleteCB_t         authCompleteCB;     /* 认证完成回调 */
     iAP2SessionIdentifyCompleteCB_t    identifyCompleteCB; /* 识别完成回调 */
-    void*                               context;            /* 用户上下文 */
+    void                               *context;            /* 用户上下文 */
 } iAP2SessionConfig_t;
 
 /*
@@ -97,7 +97,8 @@ typedef struct {
  * Return:
  *   成功返回句柄，失败返回NULL
  */
-iAP2Session_t* iAP2SessionCreate(const iAP2SessionConfig_t* config, uint8_t type);
+iAP2Session_t *iAP2SessionCreate(const iAP2SessionConfig_t *config,
+                                 uint8_t type);
 
 /*
  * iAP2SessionDestroy
@@ -106,7 +107,7 @@ iAP2Session_t* iAP2SessionCreate(const iAP2SessionConfig_t* config, uint8_t type
  * Input:
  *   session: 会话管理器句柄
  */
-void iAP2SessionDestroy(iAP2Session_t* session);
+void iAP2SessionDestroy(iAP2Session_t *session);
 
 /*
  * iAP2SessionStart
@@ -119,7 +120,7 @@ void iAP2SessionDestroy(iAP2Session_t* session);
  * Return:
  *   成功返回TRUE
  */
-BOOL iAP2SessionStart(iAP2Session_t* session);
+BOOL iAP2SessionStart(iAP2Session_t *session);
 
 /*
  * iAP2SessionStop
@@ -128,7 +129,7 @@ BOOL iAP2SessionStart(iAP2Session_t* session);
  * Input:
  *   session: 会话管理器句柄
  */
-void iAP2SessionStop(iAP2Session_t* session);
+void iAP2SessionStop(iAP2Session_t *session);
 
 
 /*
@@ -144,10 +145,10 @@ void iAP2SessionStop(iAP2Session_t* session);
  * Return:
  *   成功返回TRUE
  */
-BOOL iAP2SessionSendData(iAP2Session_t* session,
-                          uint8_t sessionID,
-                          const uint8_t* data,
-                          uint32_t dataLen);
+BOOL iAP2SessionSendData(iAP2Session_t *session,
+                         uint8_t sessionID,
+                         const uint8_t *data,
+                         uint32_t dataLen);
 
 /*
  * iAP2SessionIsAuthenticated
@@ -159,7 +160,7 @@ BOOL iAP2SessionSendData(iAP2Session_t* session,
  * Return:
  *   已认证返回TRUE
  */
-BOOL iAP2SessionIsAuthenticated(iAP2Session_t* session);
+BOOL iAP2SessionIsAuthenticated(iAP2Session_t *session);
 
 /*
  * iAP2SessionIsIdentified
@@ -171,7 +172,7 @@ BOOL iAP2SessionIsAuthenticated(iAP2Session_t* session);
  * Return:
  *   已识别返回TRUE
  */
-BOOL iAP2SessionIsIdentified(iAP2Session_t* session);
+BOOL iAP2SessionIsIdentified(iAP2Session_t *session);
 
 /*
  * iAP2SessionIsReady
@@ -183,7 +184,7 @@ BOOL iAP2SessionIsIdentified(iAP2Session_t* session);
  * Return:
  *   就绪返回TRUE
  */
-BOOL iAP2SessionIsReady(iAP2Session_t* session);
+BOOL iAP2SessionIsReady(iAP2Session_t *session);
 
 /*
  * iAP2SessionGetStateString
@@ -195,7 +196,7 @@ BOOL iAP2SessionIsReady(iAP2Session_t* session);
  * Return:
  *   状态字符串
  */
-const char* iAP2SessionGetStateString(iAP2Session_t* session);
+const char *iAP2SessionGetStateString(iAP2Session_t *session);
 
 /*
  ****************************************************************
@@ -216,7 +217,8 @@ const char* iAP2SessionGetStateString(iAP2Session_t* session);
  * Return:
  *   成功返回0
  */
-int iAP2SessionReg(iAP2PacketSYNData_t *p_syn_data, uint8_t id, uint8_t type, uint8_t version);
+int iAP2SessionReg(iAP2PacketSYNData_t *p_syn_data, uint8_t id, uint8_t type,
+                   uint8_t version);
 
 /*
  * iAP2SessionRegCtrl
@@ -230,7 +232,8 @@ int iAP2SessionReg(iAP2PacketSYNData_t *p_syn_data, uint8_t id, uint8_t type, ui
  */
 static inline int iAP2SessionRegCtrl(iAP2PacketSYNData_t *p_syn_data)
 {
-    return iAP2SessionReg(p_syn_data, kIAP2CtrlSessionId, kIAP2SessionTypeControl, kIAP2CtrlSessionVersion);
+    return iAP2SessionReg(p_syn_data, kIAP2CtrlSessionId, kIAP2SessionTypeControl,
+                          kIAP2CtrlSessionVersion);
 }
 
 /*
@@ -244,7 +247,7 @@ static inline int iAP2SessionRegCtrl(iAP2PacketSYNData_t *p_syn_data)
  * Return:
  *   成功返回0
  */
-int iAP2SessionRegEA(uint8_t eaSessionID, void* context);
+int iAP2SessionRegEA(uint8_t eaSessionID, void *context);
 
 
 

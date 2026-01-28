@@ -35,12 +35,13 @@ typedef enum {
 /*
  * 认证结果回调
  */
-typedef void (*iAP2AuthResultCB_t)(BOOL success, void* context);
+typedef void (*iAP2AuthResultCB_t)(BOOL success, void *context);
 
 /*
  * 发送控制消息回调
  */
-typedef BOOL (*iAP2AuthSendMsgCB_t)(const uint8_t* data, uint32_t len, void* context);
+typedef BOOL (*iAP2AuthSendMsgCB_t)(const uint8_t *data, uint32_t len,
+                                    void *context);
 
 /*
  * 认证模块配置
@@ -48,7 +49,7 @@ typedef BOOL (*iAP2AuthSendMsgCB_t)(const uint8_t* data, uint32_t len, void* con
 typedef struct {
     iAP2AuthResultCB_t          resultCallback;     /* 认证结果回调 */
     iAP2AuthSendMsgCB_t         sendMsgCallback;    /* 发送消息回调 */
-    void*                       context;            /* 用户上下文 */
+    void                       *context;            /* 用户上下文 */
     BOOL                        useAsyncCP;         /* 是否使用异步CP操作 */
     uint8_t                     controlSessionVersion; /* 控制会话版本 */
 } iAP2AuthConfig_t;
@@ -63,7 +64,7 @@ typedef struct {
  * iAP2AuthInit
  * 初始化认证模块
  */
-int iAP2AuthInit(const iAP2AuthConfig_t* config);
+int iAP2AuthInit(const iAP2AuthConfig_t *config);
 
 /*
  * iAP2AuthDeinit
@@ -99,7 +100,7 @@ void iAP2AuthSetControlSessionVersion(uint8_t version);
  * iAP2AuthHandleMessage
  * 处理认证相关的控制消息
  */
-BOOL iAP2AuthHandleMessage(uint16_t msgId, const uint8_t* data, uint32_t len);
+BOOL iAP2AuthHandleMessage(uint16_t msgId, const uint8_t *data, uint32_t len);
 
 /*
  * iAP2AuthIsComplete
