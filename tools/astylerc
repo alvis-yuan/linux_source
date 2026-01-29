@@ -1,0 +1,33 @@
+--style=1tbs			# 使用linux风格的括号，但是对应一行的条件语句，添加大括号
+
+--indent=spaces=4		# 4个空格缩进
+--indent-switches		# switch 的case缩进
+--indent-preproc-block	# 预处理有条件宏的时候，缩进
+--indent-preproc-define	# 多行宏缩进
+--indent-col1-comments	# // 注释缩进
+--max-continuation-indent=40	# 换行后，最大间隔行开始40字符
+--min-conditional-indent=0		# 条件换行后的缩进，相对于(
+
+
+# padding option
+--unpad-paren			# 移除小括号前后的空格，需要放在--pad-header前面
+--unpad-brackets		# 移除中括号前后的空格
+--break-blocks			# if/for/while 等复合语句前后添加一个空行
+--pad-oper				# 操作符前后添加空格
+--pad-comma				# 逗号后面添加空格
+--pad-include			# #include后面添加一个空格
+#--pad-negation			# !取反操作后面添加空格
+--pad-header			# if/for/while 后面添加空格
+--delete-empty-lines	# 删除额外的空行
+--squeeze-lines=1		# 最多只有一个连续的空行
+--squeeze-ws			# 最多只有一个连续的空格
+--align-pointer=name	# 指针*挨着变量名
+
+#--break-one-line-headers	# 单行的条件语句换行，style里面已经包括
+--attach-return-type		# 函数返回类型跟函数名同行
+--attach-return-type-decl	# 声明的函数返回类型跟函数名同行
+
+--max-code-length=80		# 每行最多80字符
+--break-after-logical		# 超过80字符逻辑分割
+--convert-tabs
+
