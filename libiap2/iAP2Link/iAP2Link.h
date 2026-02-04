@@ -129,7 +129,6 @@ typedef enum {
 
 } iAP2LinkType_t;
 
-
 typedef enum {
     kiAP2LinkStateInit = 0,     /* Initial starting state */
     kiAP2LinkStateDetached,     /* Device/Accessory is detached */
@@ -143,7 +142,6 @@ typedef enum {
     kiAP2LinkStateCount
 
 } kiAP2LinkState_t;
-
 
 typedef enum {
     kiAP2LinkEventInitDone = 0,         /* Initialization finished */
@@ -204,7 +202,6 @@ enum {
 };
 
 struct iAP2Link_st;
-
 
 /*
 ****************************************************************
@@ -271,7 +268,6 @@ typedef void (*iAP2LinkSignalSendBuffCB_t)(struct iAP2Link_st *link);
 typedef void (*iAP2LinkDataSentCB_t)(struct iAP2Link_st *link,
                                      void               *context);
 
-
 /* OBSOLETE */
 typedef struct iAP2LinkData_st {
     uint8_t     session;
@@ -316,7 +312,6 @@ typedef struct iAP2Link_st {
     iAP2Timer_t    *mainTimer;
 
     uint32_t        timeSinceSentLastACK;
-
 
     BOOL            bValidRecvSeq: 1;
     BOOL            bValidRecvAck: 1;
@@ -389,12 +384,10 @@ typedef struct iAP2Link_st {
 
 } iAP2Link_t;
 
-
 extern const uint8_t    kIap2PacketDetectData[];
 extern uint32_t         kIap2PacketDetectDataLen;
 extern const uint8_t    kIap2PacketDetectBadData[];
 extern uint32_t         kIap2PacketDetectBadDataLen;
-
 
 /*
 ****************************************************************
@@ -417,7 +410,6 @@ extern uint32_t         kIap2PacketDetectBadDataLen;
 ****************************************************************
 */
 uint32_t iAP2LinkGetBuffSize(uint8_t maxPacketSentRcvdAtOnce);
-
 
 /*
 ****************************************************************
@@ -490,7 +482,6 @@ iAP2Link_t *iAP2LinkCreateDevice(iAP2PacketSYNData_t          *synParam,
                                  uint8_t                       maxPacketSentAtOnce,
                                  uint8_t                      *linkBuffer);
 
-
 /*
 ****************************************************************
 **
@@ -511,7 +502,6 @@ iAP2Link_t *iAP2LinkCreateDevice(iAP2PacketSYNData_t          *synParam,
 */
 void iAP2LinkResetSend(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -529,7 +519,6 @@ void iAP2LinkResetSend(iAP2Link_t *link);
 ****************************************************************
 */
 void iAP2LinkDelete(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -551,7 +540,6 @@ void iAP2LinkDelete(iAP2Link_t *link);
 */
 void iAP2LinkStart(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -571,7 +559,6 @@ void iAP2LinkStart(iAP2Link_t *link);
 ****************************************************************
 */
 BOOL iAP2LinkProcessSendBuff(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -593,7 +580,6 @@ BOOL iAP2LinkProcessSendBuff(iAP2Link_t *link);
 */
 void iAP2LinkAttached(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -614,7 +600,6 @@ void iAP2LinkAttached(iAP2Link_t *link);
 */
 void iAP2LinkDetached(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -632,7 +617,6 @@ void iAP2LinkDetached(iAP2Link_t *link);
 ****************************************************************
 */
 BOOL iAP2LinkIsDetached(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -667,7 +651,6 @@ BOOL iAP2LinkQueueSendData(iAP2Link_t          *link,
                            void                *context,
                            iAP2LinkDataSentCB_t callback);
 
-
 /*
 ****************************************************************
 **
@@ -700,7 +683,6 @@ BOOL iAP2LinkQueueSendDataPacket(iAP2Link_t           *link,
                                  void                 *context,
                                  iAP2LinkDataSentCB_t  callback);
 
-
 /*
 ****************************************************************
 **
@@ -725,7 +707,6 @@ BOOL iAP2LinkQueueSendDataPacket(iAP2Link_t           *link,
 void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
                                iAP2Packet_t       *packet);
 
-
 /*
 ****************************************************************
 **
@@ -743,7 +724,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
 ****************************************************************
 */
 void iAP2LinkHandleSuspend(struct iAP2Link_st *link);
-
 
 /*
 ****************************************************************
@@ -766,7 +746,6 @@ void iAP2LinkHandleSuspend(struct iAP2Link_st *link);
 */
 void iAP2LinkHandleWaitACKTimeoutLink(iAP2Link_t *link, uint32_t curTime);
 
-
 /*
 ****************************************************************
 **
@@ -787,7 +766,6 @@ void iAP2LinkHandleWaitACKTimeoutLink(iAP2Link_t *link, uint32_t curTime);
 ****************************************************************
 */
 void iAP2LinkHandleSendACKTimeoutLink(iAP2Link_t *link, uint32_t curTime);
-
 
 /*
 ****************************************************************
@@ -810,7 +788,6 @@ void iAP2LinkHandleSendACKTimeoutLink(iAP2Link_t *link, uint32_t curTime);
 */
 void iAP2LinkHandleWaitDetectTimeoutLink(iAP2Link_t *link, uint32_t curTime);
 
-
 /*
 ****************************************************************
 **
@@ -828,7 +805,6 @@ void iAP2LinkHandleWaitDetectTimeoutLink(iAP2Link_t *link, uint32_t curTime);
 ****************************************************************
 */
 BOOL iAP2LinkSendWindowAvailable(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -850,7 +826,6 @@ BOOL iAP2LinkSendWindowAvailable(iAP2Link_t *link);
 iAP2PacketSessionInfo_t *iAP2LinkGetSessionInfo(iAP2Link_t *link,
         uint8_t     session);
 
-
 /*
 ****************************************************************
 **
@@ -870,7 +845,6 @@ iAP2PacketSessionInfo_t *iAP2LinkGetSessionInfo(iAP2Link_t *link,
 */
 uint32_t iAP2LinkGetSessionForService(iAP2Link_t             *link,
                                       iAP2PacketServiceType_t service);
-
 
 /*
 ****************************************************************
@@ -892,7 +866,6 @@ uint32_t iAP2LinkGetSessionForService(iAP2Link_t             *link,
 */
 uint32_t iAP2LinkGetMaxPayloadSize(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -910,7 +883,6 @@ uint32_t iAP2LinkGetMaxPayloadSize(iAP2Link_t *link);
 ****************************************************************
 */
 uint32_t iAP2LinkGetMaxSendPayloadSize(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -930,7 +902,6 @@ uint32_t iAP2LinkGetMaxSendPayloadSize(iAP2Link_t *link);
 */
 uint32_t iAP2LinkGetMaxRecvPayloadSize(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -948,7 +919,6 @@ uint32_t iAP2LinkGetMaxRecvPayloadSize(iAP2Link_t *link);
 ****************************************************************
 */
 uint32_t iAP2LinkGetMaxSendPacketSize(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -968,7 +938,6 @@ uint32_t iAP2LinkGetMaxSendPacketSize(iAP2Link_t *link);
 */
 uint32_t iAP2LinkGetMaxRecvPacketSize(iAP2Link_t *link);
 
-
 /*
 ****************************************************************
 **
@@ -986,7 +955,6 @@ uint32_t iAP2LinkGetMaxRecvPacketSize(iAP2Link_t *link);
 ****************************************************************
 */
 iAP2Timer_t *iAP2LinkGetMainTimer(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -1018,7 +986,6 @@ void iAP2LinkDebugPrintPacketList(iAP2Link_t  *link,
                                   const char  *tag,
                                   BOOL         bDebug);
 
-
 /*
 ****************************************************************
 **
@@ -1045,7 +1012,6 @@ void iAP2LinkDebugPrintLink(iAP2Link_t *link,
                             const char *tag,
                             BOOL        bDebug);
 
-
 /*
 ****************************************************************
 **
@@ -1065,7 +1031,6 @@ void iAP2LinkDebugPrintLink(iAP2Link_t *link,
 */
 void iAP2LinkDebugIgnoreSynRetryLimit(iAP2Link_t *link,
                                       BOOL        bFlag);
-
 
 /*
 ****************************************************************
@@ -1087,7 +1052,6 @@ void iAP2LinkDebugIgnoreSynRetryLimit(iAP2Link_t *link,
 */
 void iAP2LinkSendRST(iAP2Link_t *link);
 
-
 #if iAP2_LINK_USE_LINKRUNLOOP
 /*
 ****************************************************************
@@ -1107,7 +1071,6 @@ void iAP2LinkSendRST(iAP2Link_t *link);
 */
 void iAP2LinkSetUseiAP2LinkRunLoop(iAP2Link_t *link);
 #endif
-
 
 #ifdef __cplusplus
 }

@@ -60,7 +60,6 @@
 #include "iAP2ListArray.h"
 #include "iAP2Log.h"
 
-
 /* Just does straight compare on pointer values. */
 intptr_t iAP2ListArrayStraightCompare(void *a, void *b)
 {
@@ -68,7 +67,6 @@ intptr_t iAP2ListArrayStraightCompare(void *a, void *b)
     intptr_t bi = (intptr_t)b;
     return ai - bi;
 }
-
 
 static iAP2ListArrayItemHeader_t *_iAP2ListArrayItemFromIndex(
     iAP2ListArrayHeader_t *listArray,
@@ -113,7 +111,6 @@ static uint8_t *_iAP2ListArrayDataFromItemIndex(iAP2ListArrayHeader_t
     return data;
 }
 
-
 /*
 ****************************************************************
 **
@@ -139,7 +136,6 @@ uint32_t iAP2ListArrayGetBuffSize(uint8_t maxCount, uint8_t dataSize)
     assert(sizeof(iAP2ListArrayHeader_t) == 8);
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -192,7 +188,6 @@ int iAP2ListArrayInit(uint8_t *buff, uint8_t maxCount, uint8_t dataSize)
     return -1;
 }
 
-
 /*
 ****************************************************************
 **
@@ -228,7 +223,6 @@ void iAP2ListArrayCleanup(uint8_t *listArrayBuffer,
         iAP2ListArrayInit(listArrayBuffer, maxCount, dataSize);
     }
 }
-
 
 /*
 ****************************************************************
@@ -269,7 +263,6 @@ void iAP2ListArrayForEachWithIndexAndParam(uint8_t
                 if (item && data) {
                     func(data, index, param);
                     index = item->next;
-
                 } else {
                     index = kiAP2ListArrayInvalidIndex;
                 }
@@ -277,7 +270,6 @@ void iAP2ListArrayForEachWithIndexAndParam(uint8_t
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -315,7 +307,6 @@ void iAP2ListArrayForEach(uint8_t           *listArrayBuffer,
                 if (item && data) {
                     func(data);
                     index = item->next;
-
                 } else {
                     index = kiAP2ListArrayInvalidIndex;
                 }
@@ -323,7 +314,6 @@ void iAP2ListArrayForEach(uint8_t           *listArrayBuffer,
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -365,7 +355,6 @@ uint8_t iAP2ListArrayFindItem(uint8_t                  *listArrayBuffer,
                     }
 
                     index = pItem->next;
-
                 } else {
                     index = kiAP2ListArrayInvalidIndex;
                 }
@@ -375,7 +364,6 @@ uint8_t iAP2ListArrayFindItem(uint8_t                  *listArrayBuffer,
 
     return kiAP2ListArrayInvalidIndex;
 }
-
 
 /*
 ****************************************************************
@@ -408,7 +396,6 @@ void *iAP2ListArrayItemForIndex(uint8_t *listArrayBuffer, uint8_t index)
     return NULL;
 }
 
-
 /*
 ****************************************************************
 **
@@ -434,7 +421,6 @@ uint8_t iAP2ListArrayGetCount(uint8_t *listArrayBuffer)
 
     return 0;
 }
-
 
 /*
 ****************************************************************
@@ -462,7 +448,6 @@ uint8_t iAP2ListArrayGetFirstItemIndex(uint8_t *listArrayBuffer)
     return kiAP2ListArrayInvalidIndex;
 }
 
-
 /*
 ****************************************************************
 **
@@ -488,7 +473,6 @@ uint8_t iAP2ListArrayGetLastItemIndex(uint8_t *listArrayBuffer)
 
     return kiAP2ListArrayInvalidIndex;
 }
-
 
 /*
 ****************************************************************
@@ -522,7 +506,6 @@ uint8_t iAP2ListArrayGetNextItemIndex(uint8_t *listArrayBuffer,
 
     return kiAP2ListArrayInvalidIndex;
 }
-
 
 /*
 ****************************************************************
@@ -587,14 +570,13 @@ uint8_t iAP2ListArrayAddItemAfter(uint8_t *listArrayBuffer,
 
             if (prevNext != kiAP2ListArrayInvalidIndex) {
                 iAP2ListArrayItemHeader_t *prevNextItem = _iAP2ListArrayItemFromIndex(header,
-                        prevNext);
+                    prevNext);
                 prevNextItem->prev = itemIndex;
             }
 
             pItem->next     = prevNext;
             prevItem->next  = itemIndex;
             pItem->prev     = prevItemIndex;
-
         } else {
             if (root != kiAP2ListArrayInvalidIndex) {
                 iAP2ListArrayItemHeader_t *rootItem = _iAP2ListArrayItemFromIndex(header, root);
@@ -614,7 +596,6 @@ uint8_t iAP2ListArrayAddItemAfter(uint8_t *listArrayBuffer,
 
     return itemIndex;
 }
-
 
 /*
 ****************************************************************
@@ -670,7 +651,6 @@ uint8_t iAP2ListArrayAddItemInOrder(uint8_t                  *listArrayBuffer,
 
     return itemIndex;
 }
-
 
 /*
 ****************************************************************
@@ -746,5 +726,3 @@ void iAP2ListArrayDeleteItem(uint8_t              *listArrayBuffer,
         }
     }
 }
-
-

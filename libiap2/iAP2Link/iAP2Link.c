@@ -72,7 +72,6 @@
 #include "iAP2LinkRunLoop.h"
 #endif
 
-
 #if DEBUG
 #define iAP2LINK_DEBUG 1
 #define iAP2LINK_DEBUG_PACKET 1
@@ -80,17 +79,16 @@
 
 #ifdef iAP2_FOR_ACCESSORY
 /* Accessory States */
-extern const iAP2FSMState_t iAP2LinkAccessoryStates [kiAP2LinkStateCount];
+extern const iAP2FSMState_t iAP2LinkAccessoryStates[kiAP2LinkStateCount];
 #endif
 
 #ifdef iAP2_FOR_DEVICE
 /* Device States */
-extern const iAP2FSMState_t iAP2LinkDeviceStates [kiAP2LinkStateCount];
+extern const iAP2FSMState_t iAP2LinkDeviceStates[kiAP2LinkStateCount];
 #endif
 
-
 #if iAP2LINK_DEBUG
-const char *stateNames [kiAP2LinkStateCount] = {
+const char *stateNames[kiAP2LinkStateCount] = {
     "Init",
     "Detached",
     "Detect",
@@ -101,7 +99,7 @@ const char *stateNames [kiAP2LinkStateCount] = {
     "Failed"
 };
 
-const char *eventNames [kiAP2LinkEventCount] = {
+const char *eventNames[kiAP2LinkEventCount] = {
     "InitDone",
     "Attach",
     "RecvSYN",
@@ -127,12 +125,10 @@ const char *eventNames [kiAP2LinkEventCount] = {
 };
 #endif /*#if iAP2LINK_DEBUG*/
 
-
 const uint8_t   kIap2PacketDetectData[]     = { 0xFF, 0x55, 0x02, 0x00, 0xEE, 0x10 };
 uint32_t        kIap2PacketDetectDataLen    = 6;
 const uint8_t   kIap2PacketDetectBadData[]  = { 0xFF, 0x55, 0x04, 0x00, 0x02, 0x04, 0xEE, 0x08 };
 uint32_t        kIap2PacketDetectBadDataLen = 8;
-
 
 /*
 ****************************************************************
@@ -178,7 +174,6 @@ static void _DeletePckCB(void *item)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -195,7 +190,6 @@ static intptr_t _ComparePckTimerIdCB(void *a, void *b, uint8_t dataSize)
     assert(aPck && bPck && dataSize == sizeof(uintptr_t));
     return aPck->timer - bPck->timer;
 }
-
 
 #if iAP2LINK_DEBUG
 /*
@@ -216,7 +210,6 @@ static void __printPacketItemWithIndexAndParam(void *item, uint8_t index,
                   pck->pckData->sess, pck->packetLen);
 }
 #endif /* #if iAP2LINK_DEBUG */
-
 
 /*
 ****************************************************************
@@ -259,7 +252,6 @@ static void __printPacketList(const char  *tag,
 #endif /* #if iAP2LINK_DEBUG */
 }
 
-
 /*
 ****************************************************************
 **
@@ -282,14 +274,12 @@ static intptr_t _iAP2LinkComparePacketSeq(void *a, void *b, uint8_t dataSize)
 
     if (0 == result) {
         return result;
-
     } else if (result > link->param.peerMaxOutstandingPackets) {
         return result - 256;
     }
 
     return result;
 }
-
 
 /*
 ** Reset the sendPckList
@@ -298,7 +288,6 @@ static void _ResetAckedPackets(iAP2Link_t *link)
 {
     iAP2ListArrayCleanup(link->sendPckList, _DeletePckCB);
 }
-
 
 /*
 ** Clean up the sendPckList based on received ACK#.
@@ -349,7 +338,6 @@ static void _CleanupAckedPackets(iAP2Link_t *link)
         }
 
 #if iAP2LINK_DEBUG
-
         else if (0) {
             iAP2LogDbg("%s:%d _CleanupAckedPackets unACK'd seq=%u seqPlus=%u recvAck=%u window=%u\n",
                        __func__, __LINE__,
@@ -368,7 +356,6 @@ static void _CleanupAckedPackets(iAP2Link_t *link)
     }
 }
 
-
 /*
 ** Reset the recvPckList
 */
@@ -376,7 +363,6 @@ static void _ResetRecvPackets(iAP2Link_t *link)
 {
     iAP2ListArrayCleanup(link->sendPckList, _DeletePckCB);
 }
-
 
 /*
 ** Clean up the recvPckList based on received SEQ#.
@@ -414,13 +400,11 @@ static void _CleanupRecvPackets(iAP2Link_t *link)
                 iAP2LinkProcessInOrderPacket(link, pck);
                 iAP2PacketDelete(pck);
                 nextItem = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
-
             } else if (seqDiff > link->param.maxOutstandingPackets) {
                 /* Outside window... delete. */
                 iAP2ListArrayDeleteItem(link->recvPckList, item, _DeletePckCB);
                 __printPacketList(NULL, "RECV after deleteItem", link, link->recvPckList, TRUE,
                                   TRUE);
-
             } else {
                 /* Not in sequence yet, skip. */
             }
@@ -429,7 +413,6 @@ static void _CleanupRecvPackets(iAP2Link_t *link)
         item = nextItem;
     }
 }
-
 
 /*
 ** Return TRUE if packet has been received already
@@ -456,7 +439,6 @@ static BOOL _IsReceivedPacket(iAP2Link_t   *link,
     return bReceived;
 }
 
-
 static void _iAP2LinkHandleTimerCancel(iAP2Timer_t *timer, uint8_t timerID)
 {
     if (timer) {
@@ -470,7 +452,6 @@ static void _iAP2LinkHandleTimerCancel(iAP2Timer_t *timer, uint8_t timerID)
         if (item != kiAP2ListArrayInvalidIndex) {
             iAP2Packet_t *pck = iAP2LinkPacketForIndex(link->sendPckList, item);
             iAP2PacketRemoveTimer(pck);
-
         } else {
             item = iAP2ListArrayGetFirstItemIndex(link->recvPckList);
 
@@ -481,7 +462,6 @@ static void _iAP2LinkHandleTimerCancel(iAP2Timer_t *timer, uint8_t timerID)
         }
     }
 }
-
 
 static void _iAP2LinkHandleTimerExpire(iAP2Timer_t *timer,
                                        uint8_t      timeoutID,
@@ -499,7 +479,6 @@ static void _iAP2LinkHandleTimerExpire(iAP2Timer_t *timer,
                                        timeoutID,
                                        timeoutType,
                                        curTime);
-
             } else
 #endif
             {
@@ -520,7 +499,6 @@ static void _iAP2LinkHandleTimerExpire(iAP2Timer_t *timer,
         }
     }
 }
-
 
 /*
 ** Prepare a packet with out of order packet seq#s payload
@@ -563,7 +541,6 @@ static iAP2Packet_t *_PrepareEAKDataPacket(iAP2Link_t  *link)
     return packet;
 }
 
-
 /*
 ****************************************************************
 **
@@ -581,7 +558,6 @@ static void _iAP2LinkStartSendAckTimerIfNotRunning(iAP2Link_t *link,
                                  link->param.cumAckTimeout);
     }
 }
-
 
 /*
 ****************************************************************
@@ -621,7 +597,6 @@ static BOOL _iAP2LinkNeedEAK(iAP2Link_t *link)
 
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -690,7 +665,6 @@ void iAP2LinkActionSendData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
     iAP2LinkProcessOutQueue(link);
 }
 
-
 /*
 ****************************************************************
 **
@@ -712,7 +686,6 @@ void iAP2LinkActionDetach(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
         (*link->connectedCB)(link, FALSE);
     }
 }
-
 
 /*
 ****************************************************************
@@ -756,7 +729,6 @@ void iAP2LinkActionSendACK(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
                            (link->type == kiAP2LinkTypeAccessory
                             ? "Accessory:SendACK"
                             : "Device:SendACK"));
-
     } else {
         /* Send EAK */
         if (iAP2ListArrayGetCount(link->recvPckList)) {
@@ -780,17 +752,14 @@ void iAP2LinkActionSendACK(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
                                    (link->type == kiAP2LinkTypeAccessory
                                     ? "Accessory:SendEAK"
                                     : "Device:SendEAK"));
-
             } else {
                 assert(FALSE);
             }
-
         } else {
             assert(FALSE);
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -863,7 +832,6 @@ void iAP2LinkActionResendMissing(struct iAP2FSM_st *fsm,
                                            (link->type == kiAP2LinkTypeAccessory
                                             ? "Accessory:ResendMissing"
                                             : "Device:ResendMissing"));
-
                     } else {
                         iAP2LogError("%s:%d %s Resend too many times!\n",
                                      __func__, __LINE__,
@@ -872,7 +840,6 @@ void iAP2LinkActionResendMissing(struct iAP2FSM_st *fsm,
                                       : "Device:ResendMissing"));
                         *nextEvent = kiAP2LinkEventMaxResend;
                     }
-
                 } else {
                     /* Cleanup old ACK packet */
                     iAP2ListArrayDeleteItem(link->sendPckList, item, _DeletePckCB);
@@ -890,7 +857,6 @@ void iAP2LinkActionResendMissing(struct iAP2FSM_st *fsm,
         iAP2BuffPoolReturn(link->buffPool, missing);
     }
 }
-
 
 /*
 ****************************************************************
@@ -957,7 +923,6 @@ void iAP2LinkActionResendData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
                                            (link->type == kiAP2LinkTypeAccessory
                                             ? "Accessory:ResendData"
                                             : "Device:ResendData"));
-
                     } else {
                         iAP2LogError("%s:%d %s Resend too many times!\n",
                                      __func__, __LINE__,
@@ -966,7 +931,6 @@ void iAP2LinkActionResendData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
                                       : "Device:ResendData"));
                         *nextEvent = kiAP2LinkEventMaxResend;
                     }
-
                 } else {
                     /* Cleanup old/ACK packet */
                     iAP2ListArrayDeleteItem(link->sendPckList, item, _DeletePckCB);
@@ -977,7 +941,6 @@ void iAP2LinkActionResendData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -1014,7 +977,6 @@ void iAP2LinkActionHandleData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
                             iAP2PacketGetPayload(pck),
                             iAP2PacketGetPayloadLen(pck),
                             pck->pckData->sess);
-
     } else {
         iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__,
                      pck->pckData->sess);
@@ -1022,7 +984,6 @@ void iAP2LinkActionHandleData(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 
     _iAP2LinkStartSendAckTimerIfNotRunning(link, pck->pckData->seq);
 }
-
 
 /*
 ****************************************************************
@@ -1053,7 +1014,6 @@ void iAP2LinkActionNotifyConnectionFail(struct iAP2FSM_st *fsm,
         (*link->connectedCB)(link, FALSE);
     }
 }
-
 
 /*
 ****************************************************************
@@ -1099,8 +1059,6 @@ void iAP2LinkActionSwitchToiAP1(struct iAP2FSM_st *fsm, unsigned int *nextEvent)
 ****************************************************************
 */
 
-
-
 /*
 ****************************************************************
 **
@@ -1133,7 +1091,6 @@ void iAP2LinkSetDefaultSYNParam(iAP2PacketSYNData_t *param)
     }
 }
 
-
 static BOOL _IsSessionDuplicate(iAP2PacketSYNData_t *synData,
                                 iAP2PacketSessionInfo_t *session)
 {
@@ -1148,7 +1105,6 @@ static BOOL _IsSessionDuplicate(iAP2PacketSYNData_t *synData,
 
     return FALSE;
 }
-
 
 /*
 ****************************************************************
@@ -1211,7 +1167,6 @@ BOOL iAP2LinkIsValidSynParam(iAP2PacketSYNData_t *synParam)
                     (synParam->sessionInfo[i].type >= kIAP2PacketServiceTypeCount)) {
                     result = FALSE;
                     break;
-
                 } else if (synParam->sessionInfo[i].type == kIAP2PacketServiceTypeControl) {
                     /* Required control session type has been found */
                     bControlSessionFound = TRUE;
@@ -1250,7 +1205,6 @@ BOOL iAP2LinkIsValidSynParam(iAP2PacketSYNData_t *synParam)
 
     return result;
 } /* iAP2LinkIsValidSynParam */
-
 
 /*
 ****************************************************************
@@ -1353,7 +1307,6 @@ BOOL iAP2LinkValidateSynParam(iAP2PacketSYNData_t *synParam)
                     tempParam.sessionInfo[tempParam.numSessionInfo].version
                         = synParam->sessionInfo[i].version;
                     ++tempParam.numSessionInfo;
-
                 } else {
                     iAP2LogError("Duplicate SYN Params detected: session %u [id=%u type=%u ver=%u]\n",
                                  i,
@@ -1361,7 +1314,6 @@ BOOL iAP2LinkValidateSynParam(iAP2PacketSYNData_t *synParam)
                                  synParam->sessionInfo[i].type,
                                  synParam->sessionInfo[i].version);
                 }
-
             } else {
                 iAP2LogError("Invalid SYN Params detected: session %u [id=%u type=%u ver=%u]\n",
                              i,
@@ -1412,7 +1364,6 @@ BOOL iAP2LinkValidateSynParam(iAP2PacketSYNData_t *synParam)
 
     return result;
 } /* iAP2LinkValidateSynParam */
-
 
 /*
 ****************************************************************
@@ -1480,7 +1431,6 @@ uint32_t iAP2LinkGetBuffSize(uint8_t maxPacketSentRcvdAtOnce)
     return result;
 }
 
-
 /*
 ****************************************************************
 **
@@ -1541,7 +1491,6 @@ iAP2Link_t *iAP2LinkCreateAccessory(iAP2PacketSYNData_t       *synParam,
                           linkBuffer);
 }
 
-
 iAP2Link_t *iAP2LinkCreateDevice(iAP2PacketSYNData_t       *synParam,
                                  void                      *context,
                                  iAP2LinkSendPacketCB_t     sendPacketCB,
@@ -1568,7 +1517,6 @@ iAP2Link_t *iAP2LinkCreateDevice(iAP2PacketSYNData_t       *synParam,
                           linkBuffer);
 }
 
-
 iAP2Link_t *iAP2LinkCreate(iAP2LinkType_t              type,
                            void                       *context,
                            iAP2PacketSYNData_t        *synParam,
@@ -1593,7 +1541,6 @@ iAP2Link_t *iAP2LinkCreate(iAP2LinkType_t              type,
         link             = (iAP2Link_t *) buff;
         linkBufferNext   = buff;
         link->linkBuffer = buff;
-
     } else {
         /*
         ** We add offset in this case so that link != link->linkBuffer, indicating
@@ -1820,7 +1767,6 @@ iAP2Link_t *iAP2LinkCreate(iAP2LinkType_t              type,
     return link;
 }
 
-
 /*
 ****************************************************************
 **
@@ -1856,12 +1802,10 @@ void iAP2LinkResetSend(iAP2Link_t *link)
 
         iAP2LinkSetDefaultSYNParam(&(link->param));
         iAP2LinkResetSeqAck(link, TRUE);
-
     } else {
         iAP2LogError("%s:%d NULL link!\n", __func__, __LINE__);
     }
 }
-
 
 /*
 ****************************************************************
@@ -1918,12 +1862,10 @@ void iAP2LinkDelete(iAP2Link_t *link)
         }
 
 #endif
-
     } else {
         iAP2LogError("%s:%d NULL link!\n", __func__, __LINE__);
     }
 }
-
 
 /*
 ****************************************************************
@@ -1947,7 +1889,6 @@ uint32_t iAP2LinkGetMaxPayloadSize(iAP2Link_t *link)
 {
     return iAP2LinkGetMaxSendPayloadSize(link);
 }
-
 
 /*
 ****************************************************************
@@ -1976,7 +1917,6 @@ uint32_t iAP2LinkGetMaxSendPayloadSize(iAP2Link_t *link)
     return 0;
 }
 
-
 /*
 ****************************************************************
 **
@@ -2004,7 +1944,6 @@ uint32_t iAP2LinkGetMaxRecvPayloadSize(iAP2Link_t *link)
     return 0;
 }
 
-
 /*
  ****************************************************************
  **
@@ -2029,7 +1968,6 @@ uint32_t iAP2LinkGetMaxSendPacketSize(iAP2Link_t *link)
 
     return 0;
 }
-
 
 /*
  ****************************************************************
@@ -2066,7 +2004,6 @@ uint32_t iAP2LinkGetMaxRecvPacketSize(iAP2Link_t *link)
     return 0;
 }
 
-
 /*
 ****************************************************************
 **
@@ -2089,7 +2026,6 @@ void iAP2LinkStart(iAP2Link_t *link)
 {
     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventInitDone);
 }
-
 
 /*
 ****************************************************************
@@ -2122,11 +2058,10 @@ BOOL iAP2LinkProcessSendBuff(iAP2Link_t *link)
 
             /* else reached window limit */
 #if iAP2LINK_DEBUG
-
             else {
                 uint8_t pckSent = (link->bValidRecvAck && link->bValidSentSeq
                                    ? iAP2PacketCalcSeqGap(link->recvAck,
-                                           link->sentSeq)
+                                       link->sentSeq)
                                    : 0);
                 iAP2LogDbg("%s:%d ProcessSendBuff waiting for ACK to open window recvAck=%d sentSeq=%d (used %u/%u)\n",
                            __func__, __LINE__,
@@ -2140,7 +2075,6 @@ BOOL iAP2LinkProcessSendBuff(iAP2Link_t *link)
 
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -2168,7 +2102,6 @@ void iAP2LinkAttached(iAP2Link_t *link)
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventAttach);
     }
 }
-
 
 /*
 ****************************************************************
@@ -2198,7 +2131,6 @@ void iAP2LinkDetached(iAP2Link_t *link)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -2224,7 +2156,6 @@ BOOL iAP2LinkIsDetached(iAP2Link_t *link)
 
     return TRUE;
 }
-
 
 /*
 ****************************************************************
@@ -2302,7 +2233,6 @@ void iAP2LinkProcessOutQueue(iAP2Link_t *link)
         link->signalSendBuffCB(link);
     }
 }
-
 
 /*
 ****************************************************************
@@ -2392,7 +2322,6 @@ BOOL iAP2LinkQueueSendData(iAP2Link_t            *link,
                             /* For last packet, save callback info to call when packet is sent out */
                             packet->cbContext      = context;
                             packet->callbackOnSend = (void *) callback;
-
                         } else {
                             packet->cbContext      = NULL;
                             packet->callbackOnSend = NULL;
@@ -2408,7 +2337,6 @@ BOOL iAP2LinkQueueSendData(iAP2Link_t            *link,
                                    __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList),
                                    payload, payloadLen, data, dataLen, session);
 #endif
-
                     } else {
                         /* Ran out of send packets! */
                         iAP2LogError("%s:%d QueueSendData Ran out of Send Packets! listCount=%u payload=%p payloadLen=%u data=%p dataLen=%u session=%u\n",
@@ -2421,11 +2349,9 @@ BOOL iAP2LinkQueueSendData(iAP2Link_t            *link,
 
             /* Signal for the DataToSend event to be genereated (call iAP2LinkProcessSendBuff at a later point) */
             link->signalSendBuffCB(link);
-
         } else {
             iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__, session);
         }
-
     } else {
         iAP2LogError("%s:%d NULL link(%p) or payload(%p) or no payload (len=%u)!\n",
                      __func__, __LINE__, link, payload, payloadLen);
@@ -2433,7 +2359,6 @@ BOOL iAP2LinkQueueSendData(iAP2Link_t            *link,
 
     return result;
 }
-
 
 /*
  ****************************************************************
@@ -2499,7 +2424,6 @@ BOOL iAP2LinkQueueSendDataPacket(iAP2Link_t           *link,
                                __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList),
                                packet, packet->packetLen, session);
 #endif
-
                 } else {
                     iAP2LogError("%s:%d Could not queue packet to session send list! listCount=%u packet=%p\n",
                                  __func__, __LINE__, iAP2ListArrayGetCount(sessSendPckList), packet);
@@ -2508,11 +2432,9 @@ BOOL iAP2LinkQueueSendDataPacket(iAP2Link_t           *link,
 
             /* Signal for the DataToSend event to be genereated (call iAP2LinkProcessSendBuff at a later point) */
             link->signalSendBuffCB(link);
-
         } else {
             iAP2LogError("%s:%d Invalid session(%u)!\n", __func__, __LINE__, session);
         }
-
     } else {
         iAP2LogError("%s:%d NULL link(%p) or invalid packet (%p)!\n",
                      __func__, __LINE__, link, packet);
@@ -2520,7 +2442,6 @@ BOOL iAP2LinkQueueSendDataPacket(iAP2Link_t           *link,
 
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -2550,7 +2471,6 @@ BOOL iAP2LinkSendWindowAvailable(iAP2Link_t *link)
 
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -2588,7 +2508,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvDetect);
         iAP2PacketDelete(packet);
         return;
-
     } else if (packet->state == kiAP2PacketParseStateDETECTBAD) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: DETECT BAD\n", __func__, __LINE__);
@@ -2627,7 +2546,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
                    packet->pckData->ctl, packet->pckData->seq);
 #endif
         bProcessPacket = TRUE;
-
     } else if ((packet->pckData->ctl & kIAP2PacketControlMaskSUS) != 0) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: SUS, seqDiff=%u bValidRecvSeq=%d recvSeq=%u control=%xh seq=%u\n",
@@ -2635,7 +2553,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
                    packet->pckData->ctl, packet->pckData->seq);
 #endif
         bProcessPacket = TRUE;
-
     } else if ((packet->pckData->ctl & kIAP2PacketControlMaskSYN) != 0 ||
                !link->bValidRecvSeq ||
                seqDiff == 1) {
@@ -2655,7 +2572,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
             /* Process SYN only packet right away... this is essentially a reset from accessory */
             bProcessPacket = TRUE;
         }
-
     } else if (seqDiff >= 0 && seqDiff <= link->param.maxOutstandingPackets &&
                (iAP2PacketIsEAK(packet) || iAP2PacketIsACKOnly(packet))) {
 #if iAP2LINK_DEBUG
@@ -2665,7 +2581,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
                    packet->pckData->ctl, packet->packetLen);
 #endif
         bProcessPacket = TRUE;
-
     } else if (seqDiff > 0 && seqDiff <= link->param.maxOutstandingPackets) {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: OUT OF ORDER packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
@@ -2691,7 +2606,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
                 */
                 _iAP2LinkStartSendAckTimerIfNotRunning(link, packet->pckData->seq);
             }
-
         } else if (iAP2PacketIsACKOnly(packet)) {
 #if iAP2LINK_DEBUG
             iAP2LogDbg("%s:%d PacketReadyHandler: ACK only packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
@@ -2701,11 +2615,9 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
 #endif
             bProcessPacket = TRUE;
         }
-
     } else if (bSameAsLastReceivedPacket &&
                !iAP2PacketIsACKOnly(packet)) {
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvLastData);
-
     } else {
 #if iAP2LINK_DEBUG
         iAP2LogDbg("%s:%d PacketReadyHandler: INVALID packet, seqDiff=%u recvSeq=%u(%x) seq=%u(%x) control=%u(%x) len=%u\n",
@@ -2728,7 +2640,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
             }
 
 #if iAP2LINK_DEBUG
-
             else {
                 iAP2LogDbg("%s:%d PacketReadyHandler: Old ACK, bValidRecvAck=%d seqDiff=%u recvAck=%u(%x) seq=%u(%x) ack=%u(%x) control=%u(%x) len=%u\n",
                            __func__, __LINE__, link->bValidRecvAck, seqDiff, link->recvAck, link->recvAck,
@@ -2760,7 +2671,6 @@ void iAP2LinkHandleReadyPacket(struct iAP2Link_st *link,
     link->recvPck = NULL;
 }
 
-
 /*
 ****************************************************************
 **
@@ -2787,7 +2697,6 @@ void iAP2LinkHandleSuspend(struct iAP2Link_st *link)
     }
 }
 
-
 static BOOL _iAP2LinkProcessInOrderPacketSYN(struct iAP2Link_st *link,
         iAP2Packet_t       *packet)
 {
@@ -2800,7 +2709,6 @@ static BOOL _iAP2LinkProcessInOrderPacketSYN(struct iAP2Link_st *link,
         /* SYN+ACK Packet */
         ++(link->numRecvSYNACK);
         ++(link->numRecvCumSYNACK);
-
     } else {
         /* SYN Packet */
         ++(link->numRecvSYN);
@@ -2811,7 +2719,6 @@ static BOOL _iAP2LinkProcessInOrderPacketSYN(struct iAP2Link_st *link,
         (link->numRecvSYNACK + link->numRecvSYN) > kiAP2LinkSynRetries) {
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventMaxResend);
         bInvalidPacket = TRUE;
-
     } else if (packet->packetLen >= (kIAP2PacketHeaderLen
                                      + kIAP2PacketSynDataBaseLen
                                      + kIAP2PacketChksumLen)) {
@@ -2832,21 +2739,17 @@ static BOOL _iAP2LinkProcessInOrderPacketSYN(struct iAP2Link_st *link,
                 /* negotiable values are same */
                 if (packet->pckData->ack == link->sentSeq) {
                     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYNACK);
-
                 } else {
                     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYNACKOLD);
                 }
-
             } else {
                 /* negotiable values are not same or invalid syn param */
                 iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYNACKNEW);
             }
-
         } else {
             /* SYN Packet */
             iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvSYN);
         }
-
     } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
@@ -2864,7 +2767,6 @@ static BOOL _iAP2LinkProcessInOrderPacketSYN(struct iAP2Link_st *link,
     return (bInvalidPacket == FALSE);
 }
 
-
 static BOOL _iAP2LinkProcessInOrderPacketEAK(struct iAP2Link_st *link,
         iAP2Packet_t       *packet)
 {
@@ -2876,7 +2778,6 @@ static BOOL _iAP2LinkProcessInOrderPacketEAK(struct iAP2Link_st *link,
         ++(link->numRecvEAK);
 #endif
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventEAK);
-
     } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
@@ -2892,7 +2793,6 @@ static BOOL _iAP2LinkProcessInOrderPacketEAK(struct iAP2Link_st *link,
     return (bInvalidPacket == FALSE);
 }
 
-
 static BOOL _iAP2LinkProcessInOrderPacketRST(struct iAP2Link_st *link,
         iAP2Packet_t       *packet)
 {
@@ -2904,7 +2804,6 @@ static BOOL _iAP2LinkProcessInOrderPacketRST(struct iAP2Link_st *link,
         ++(link->numRecvRST);
 #endif
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvRST);
-
     } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
@@ -2919,7 +2818,6 @@ static BOOL _iAP2LinkProcessInOrderPacketRST(struct iAP2Link_st *link,
 
     return (bInvalidPacket == FALSE);
 }
-
 
 static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
         iAP2Packet_t       *packet)
@@ -2967,7 +2865,6 @@ static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
             }
 
 #if iAP2LINK_DEBUG
-
             else {
                 iAP2LogDbg("%s:%d %s:%s Don't send ACK recvSeq=%u sentAck=%u gap=%u maxCumAck=%u\n",
                            __func__, __LINE__,
@@ -2985,7 +2882,6 @@ static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
         }
 
 #if iAP2LINK_DEBUG
-
         else {
             iAP2LogDbg("%s:%d %s:%s INVALID gap or state! Don't send ACK recvSeq=%u sentAck=%u gap=%u maxCumAck=%u state=%d\n",
                        __func__, __LINE__,
@@ -3001,7 +2897,6 @@ static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
         }
 
 #endif
-
     } else if (packet->packetLen == kIAP2PacketHeaderLen) {
         iAP2PacketSYNData_t synData;
         /* ACK only Packet */
@@ -3015,11 +2910,9 @@ static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
         if (link->fsm->currentState < kiAP2LinkStateConnected &&
             !iAP2LinkIsValidSynParam(&synData)) {
             iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvACKBadLink);
-
         } else {
             iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventRecvACK);
         }
-
     } else {
         bInvalidPacket = TRUE;
     }
@@ -3035,7 +2928,6 @@ static BOOL _iAP2LinkProcessInOrderPacketACK(struct iAP2Link_st *link,
     return (bInvalidPacket == FALSE);
 }
 
-
 static BOOL _iAP2LinkProcessInOrderPacketSUS(struct iAP2Link_st *link,
         iAP2Packet_t       *packet)
 {
@@ -3044,7 +2936,6 @@ static BOOL _iAP2LinkProcessInOrderPacketSUS(struct iAP2Link_st *link,
     if (packet->packetLen == kIAP2PacketHeaderLen) {
         /* SUS Packet */
         iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventSuspend);
-
     } else {
 #if iAP2LINK_DEBUG
         iAP2LogStart();
@@ -3059,7 +2950,6 @@ static BOOL _iAP2LinkProcessInOrderPacketSUS(struct iAP2Link_st *link,
 
     return (bInvalidPacket == FALSE);
 }
-
 
 /*
 ****************************************************************
@@ -3100,16 +2990,12 @@ BOOL iAP2LinkProcessInOrderPacket(struct iAP2Link_st *link,
 
     if (packet->pckData->ctl & kIAP2PacketControlMaskSYN) {
         bInvalidPacket = ! _iAP2LinkProcessInOrderPacketSYN(link, packet);
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskEAK) {
         bInvalidPacket = ! _iAP2LinkProcessInOrderPacketEAK(link, packet);
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskRST) {
         bInvalidPacket = ! _iAP2LinkProcessInOrderPacketRST(link, packet);
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
         bInvalidPacket = ! _iAP2LinkProcessInOrderPacketACK(link, packet);
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskSUS) {
         bInvalidPacket = ! _iAP2LinkProcessInOrderPacketSUS(link, packet);
     }
@@ -3128,7 +3014,6 @@ BOOL iAP2LinkProcessInOrderPacket(struct iAP2Link_st *link,
 
     return (bInvalidPacket == FALSE);
 }
-
 
 /*
 ****************************************************************
@@ -3203,7 +3088,6 @@ static void _iAP2LinkSendPacketCommon(iAP2Link_t    *link,
 
         if (!bWaitSend) {
             (*link->sendPacketCB)(link, packet);
-
         } else {
             (*link->sendPacketWaitCB)(link, packet);
         }
@@ -3251,7 +3135,6 @@ static void _iAP2LinkSendPacketCommon(iAP2Link_t    *link,
                                                         link->param.retransmitTimeout);
                 iAP2PacketAssignTimer(packet, timerID);
             }
-
         } else {
 #if iAP2LINK_DEBUG
             iAP2LogDbg("%s:%d %s Resend sentSeq=%u seq=%u control=%xh ack=%u len=%u reTxCount=%d/%d bWaitSend=%d\n",
@@ -3276,13 +3159,11 @@ static void _iAP2LinkSendPacketCommon(iAP2Link_t    *link,
                 iAP2PacketAssignTimer(packet, timerID);
             }
         }
-
     } else {
         iAP2LogError("%s:%d Invalid link(%p) or packet(%p)\n",
                      __func__, __LINE__, link, packet);
     }
 }
-
 
 /*
 ****************************************************************
@@ -3312,7 +3193,6 @@ void iAP2LinkSendPacket(iAP2Link_t    *link,
     _iAP2LinkSendPacketCommon(link, packet, bResend, tag, FALSE);
 }
 
-
 /*
 ****************************************************************
 **
@@ -3340,7 +3220,6 @@ void iAP2LinkSendPacketWaitSend(iAP2Link_t      *link,
 {
     _iAP2LinkSendPacketCommon(link, packet, bResend, tag, TRUE);
 }
-
 
 /*
 ****************************************************************
@@ -3383,7 +3262,6 @@ void iAP2LinkResetSeqAck(iAP2Link_t *link, BOOL bOnlySend)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -3413,7 +3291,6 @@ iAP2Packet_t *iAP2LinkPacketForIndex(uint8_t *listArrayBuffer, uint8_t index)
     return NULL;
 }
 
-
 /*
 ****************************************************************
 **
@@ -3438,7 +3315,6 @@ uint8_t iAP2LinkFindPacket(uint8_t                    *listArrayBuffer,
 {
     return iAP2ListArrayFindItem(listArrayBuffer, packet, func);
 }
-
 
 /*
 ****************************************************************
@@ -3471,7 +3347,6 @@ uint8_t iAP2LinkAddPacketAfter(uint8_t        *listArrayBuffer,
     return iAP2ListArrayAddItemAfter(listArrayBuffer, prevItemIndex, packet);
 }
 
-
 /*
 ****************************************************************
 **
@@ -3496,7 +3371,6 @@ void iAP2LinkHandleWaitACKTimeoutLink(iAP2Link_t *link, uint32_t curTime)
     assert(link);
     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventWaitACKTimeout);
 }
-
 
 /*
 ****************************************************************
@@ -3523,7 +3397,6 @@ void iAP2LinkHandleSendACKTimeoutLink(iAP2Link_t *link, uint32_t curTime)
     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventSendACKTimeout);
 }
 
-
 /*
 ****************************************************************
 **
@@ -3548,7 +3421,6 @@ void iAP2LinkHandleWaitDetectTimeoutLink(iAP2Link_t *link, uint32_t curTime)
     assert(link);
     iAP2FSMHandleEvent(link->fsm, kiAP2LinkEventWaitDetectTimeout);
 }
-
 
 /*
 ****************************************************************
@@ -3588,7 +3460,6 @@ void iAP2LinkSendRST(iAP2Link_t *link)
     iAP2LinkSendPacket(link, pck, FALSE, "SendRST");
 }
 
-
 /*
 ****************************************************************
 **
@@ -3623,7 +3494,6 @@ iAP2PacketSessionInfo_t *iAP2LinkGetSessionInfo(iAP2Link_t *link,
 
     return pSession;
 }
-
 
 /*
 ****************************************************************
@@ -3660,7 +3530,6 @@ uint32_t iAP2LinkGetSessionForService(iAP2Link_t              *link,
     return session;
 }
 
-
 /*
 ****************************************************************
 **
@@ -3681,7 +3550,6 @@ iAP2Timer_t *iAP2LinkGetMainTimer(iAP2Link_t *link)
 {
     return link->mainTimer;
 }
-
 
 #if iAP2_LINK_USE_LINKRUNLOOP
 /*
@@ -3705,7 +3573,6 @@ void iAP2LinkSetUseiAP2LinkRunLoop(iAP2Link_t *link)
     link->bUseiAP2LinkRunLoop = TRUE;
 }
 #endif
-
 
 /*
 ****************************************************************
@@ -3742,7 +3609,6 @@ void iAP2LinkDebugPrintPacketList(iAP2Link_t  *link,
 #endif /* DEBUG */
 }
 
-
 /*
 ****************************************************************
 **
@@ -3772,7 +3638,7 @@ void iAP2LinkDebugPrintLink(iAP2Link_t *link,
                             BOOL        bDebug)
 {
 #if DEBUG
-    static char *stateName [kiAP2LinkStateCount] =
+    static char *stateName[kiAP2LinkStateCount] =
     { "Init", "Detached", "Detect", "Idle", "Pending", "Connected", "Suspend", "Failed" };
     iAP2LogType_t   type = (bDebug ? kiAP2LogTypeData : kiAP2LogTypeLog);
     int             i;
@@ -3915,7 +3781,6 @@ void iAP2LinkDebugPrintLink(iAP2Link_t *link,
 #endif /* DEBUG */
 }
 
-
 /*
 ****************************************************************
 **
@@ -3940,5 +3805,3 @@ void iAP2LinkDebugIgnoreSynRetryLimit(iAP2Link_t *link,
         link->bIgnoreSynRetryLimit = bFlag;
     }
 }
-
-

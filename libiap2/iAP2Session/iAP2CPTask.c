@@ -84,7 +84,6 @@ static BOOL _ExecuteReadCert(uint8_t *certBuffer, uint16_t *certLen)
     if (ret >= 0 && *certLen > 0) {
         iAP2LogDbg("[CP Task] Certificate read OK: %u bytes\n", *certLen);
         return TRUE;
-
     } else {
         iAP2LogError("[CP Task] Certificate read FAILED\n");
         return FALSE;
@@ -102,7 +101,6 @@ static BOOL _ExecuteReadSerial(uint8_t *serialBuffer, uint16_t *serialLen)
         *serialLen = 32;  /* 序列号固定32字节 */
         iAP2LogDbg("[CP Task] Serial number read OK: %u bytes\n", *serialLen);
         return TRUE;
-
     } else {
         iAP2LogError("[CP Task] Serial number read FAILED\n");
         return FALSE;
@@ -133,7 +131,6 @@ static BOOL _ExecuteSignChallenge(uint8_t *challengeData,
     if (ret >= 0 && *responseLen > 0) {
         iAP2LogDbg("[CP Task] Challenge sign OK: %u bytes\n", *responseLen);
         return TRUE;
-
     } else {
         iAP2LogError("[CP Task] Challenge sign FAILED\n");
         return FALSE;
@@ -379,7 +376,6 @@ int iAP2CPTaskInit(const iAP2CPTaskConfig_t *config)
             mfiClose();
             return -1;
         }
-
     } else {
         iAP2LogDbg("[CP Task] Polling mode initialized\n");
     }

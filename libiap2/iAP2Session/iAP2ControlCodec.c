@@ -41,18 +41,21 @@ static void write_u32(uint8_t *p, uint32_t val)
 int ctrlSess_DecodeMessageHeader(const uint8_t *buffer, size_t bufLen,
                                  ctrlSessMessage *msg)
 {
-    if (bufLen < 6)
-        return -1; /* too short */
+    if (bufLen < 6) {
+        return -1;    /* too short */
+    }
 
-    if (READ_U16(buffer) != IAP2_MSG_START)
-        return -2; /* invalid start */
+    if (READ_U16(buffer) != IAP2_MSG_START) {
+        return -2;    /* invalid start */
+    }
 
     msg->totalLength = READ_U16(buffer + 2);
     msg->msgId = READ_U16(buffer + 4);
     msg->paramStart = buffer + 6;
 
-    if (msg->totalLength > bufLen || msg->totalLength < 6)
-        return -3; /* incomplete or malformed */
+    if (msg->totalLength > bufLen || msg->totalLength < 6) {
+        return -3;    /* incomplete or malformed */
+    }
 
     return 0;
 }
@@ -67,14 +70,16 @@ int ctrlSess_DecodeMessageHeader(const uint8_t *buffer, size_t bufLen,
 int ctrlSess_GetNextParameter(const uint8_t *buffer, size_t remainingLen,
                               ctrlSessParameter *param)
 {
-    if (remainingLen < 4)
-        return 0; /* no more parameters */
+    if (remainingLen < 4) {
+        return 0;    /* no more parameters */
+    }
 
     param->length = READ_U16(buffer);
     param->id = READ_U16(buffer + 2);
 
-    if (param->length < 4 || param->length > remainingLen)
-        return -1; /* invalid length */
+    if (param->length < 4 || param->length > remainingLen) {
+        return -1;    /* invalid length */
+    }
 
     param->data = (param->length > 4) ? (buffer + 4) : NULL;
     param->inferred_type = CTRL_SESS_PARAM_TYPE_NONE; /* caller may refine */
@@ -102,14 +107,16 @@ void ctrlSess_InitGroupIterator(ctrlSessGroupIterator *it,
  */
 int ctrlSess_GroupNext(ctrlSessGroupIterator *it, ctrlSessParameter *sub)
 {
-    if (it->offset >= it->len)
+    if (it->offset >= it->len) {
         return 0;
+    }
 
     int res = ctrlSess_GetNextParameter(it->start + it->offset,
                                         it->len - it->offset, sub);
 
-    if (res <= 0)
+    if (res <= 0) {
         return res;
+    }
 
     it->offset += (size_t)res;
     return res;
@@ -119,13 +126,15 @@ int ctrlSess_GroupNext(ctrlSessGroupIterator *it, ctrlSessParameter *sub)
 
 int ctrlSess_ParamGetBool(const ctrlSessParameter *p, bool *out)
 {
-    if (!p || p->length != 5 || !p->data)
+    if (!p || p->length != 5 || !p->data) {
         return -1;
+    }
 
     uint8_t v = p->data[0];
 
-    if (v > 1)
+    if (v > 1) {
         return -2;
+    }
 
     *out = (v == 1);
     return 0;
@@ -133,8 +142,9 @@ int ctrlSess_ParamGetBool(const ctrlSessParameter *p, bool *out)
 
 int ctrlSess_ParamGetEnum(const ctrlSessParameter *p, uint8_t *out)
 {
-    if (!p || p->length != 5 || !p->data)
+    if (!p || p->length != 5 || !p->data) {
         return -1;
+    }
 
     *out = p->data[0];
     return 0;
@@ -194,8 +204,9 @@ rat32_t ctrlSess_ParamGetRat32(const ctrlSessParameter *p)
 
 const char *ctrlSess_ParamGetString(const ctrlSessParameter *p)
 {
-    if (!p || p->length < 5)
+    if (!p || p->length < 5) {
         return NULL;
+    }
 
     return (const char *)p->data;
 }
@@ -203,14 +214,16 @@ const char *ctrlSess_ParamGetString(const ctrlSessParameter *p)
 const uint8_t *ctrlSess_ParamGetBlob(const ctrlSessParameter *p, size_t *len)
 {
     if (!p || p->length < 4) {
-        if (len)
+        if (len) {
             *len = 0;
+        }
 
         return NULL;
     }
 
-    if (len)
+    if (len) {
         *len = (size_t)(p->length - 4);
+    }
 
     return p->data;
 }
@@ -237,14 +250,16 @@ int ctrlSess_AddParameter(ctrlSessBuilder *b, uint16_t paramId,
 {
     uint16_t paramTotalLen = 4 + dataLen;
 
-    if (b->offset + paramTotalLen > b->maxLen)
+    if (b->offset + paramTotalLen > b->maxLen) {
         return -1;
+    }
 
     write_u16(b->buffer + b->offset, paramTotalLen);
     write_u16(b->buffer + b->offset + 2, paramId);
 
-    if (data && dataLen > 0)
+    if (data && dataLen > 0) {
         memcpy(b->buffer + b->offset + 4, data, dataLen);
+    }
 
     b->offset += paramTotalLen;
     return 0;
@@ -290,8 +305,9 @@ int ctrlSess_AddUint32(ctrlSessBuilder *b, uint16_t paramId, uint32_t value)
 
 int ctrlSess_AddString(ctrlSessBuilder *b, uint16_t paramId, const char *str)
 {
-    if (!str)
+    if (!str) {
         str = "";
+    }
 
     return ctrlSess_AddParameter(b, paramId, (uint8_t *)str,
                                  (uint16_t)(strlen(str) + 1));
@@ -300,8 +316,9 @@ int ctrlSess_AddString(ctrlSessBuilder *b, uint16_t paramId, const char *str)
 int ctrlSess_AddBlob(ctrlSessBuilder *b, uint16_t paramId, const void *data,
                      size_t len)
 {
-    if (len > 0xFFFF)
+    if (len > 0xFFFF) {
         return -1;
+    }
 
     return ctrlSess_AddParameter(b, paramId, (const uint8_t *)data, (uint16_t)len);
 }
@@ -323,17 +340,20 @@ int ctrlSess_AddRat32(ctrlSessBuilder *b, uint16_t paramId, int32_t num,
 int ctrlSess_AddUint16Array(ctrlSessBuilder *b, uint16_t paramId,
                             const uint16_t *arr, size_t count)
 {
-    if (count == 0)
+    if (count == 0) {
         return ctrlSess_AddParameter(b, paramId, NULL, 0);
+    }
 
-    if (count > (0xFFFF / 2))
+    if (count > (0xFFFF / 2)) {
         return -1;
+    }
 
     size_t len = count * sizeof(uint16_t);
     uint8_t *buf = malloc(len);
 
-    if (!buf)
+    if (!buf) {
         return -1;
+    }
 
     for (size_t i = 0; i < count; i++) {
         write_u16(buf + i * 2, arr[i]);
@@ -347,20 +367,24 @@ int ctrlSess_AddUint16Array(ctrlSessBuilder *b, uint16_t paramId,
 int ctrlSess_AddUint32Array(ctrlSessBuilder *b, uint16_t paramId,
                             const uint32_t *arr, size_t count)
 {
-    if (count == 0)
+    if (count == 0) {
         return ctrlSess_AddParameter(b, paramId, NULL, 0);
+    }
 
-    if (count > (0xFFFF / 4))
+    if (count > (0xFFFF / 4)) {
         return -1;
+    }
 
     size_t len = count * sizeof(uint32_t);
     uint8_t *buf = malloc(len);
 
-    if (!buf)
+    if (!buf) {
         return -1;
+    }
 
-    for (size_t i = 0; i < count; i++)
+    for (size_t i = 0; i < count; i++) {
         write_u32(buf + i * 4, arr[i]);
+    }
 
     int res = ctrlSess_AddParameter(b, paramId, buf, (uint16_t)len);
     free(buf);
@@ -372,8 +396,9 @@ int ctrlSess_AddUint32Array(ctrlSessBuilder *b, uint16_t paramId,
 int ctrlSess_BeginGroup(ctrlSessGroupBuilder *gb, ctrlSessBuilder *b,
                         uint16_t paramId)
 {
-    if (b->offset + 4 > b->maxLen)
+    if (b->offset + 4 > b->maxLen) {
         return -1;
+    }
 
     gb->builder = b;
     gb->paramId = paramId;
@@ -386,8 +411,9 @@ int ctrlSess_EndGroup(ctrlSessGroupBuilder *gb)
 {
     ctrlSessBuilder *b = gb->builder;
 
-    if (gb->headerPos < 0 || (size_t)(gb->headerPos + 4) > b->offset)
+    if (gb->headerPos < 0 || (size_t)(gb->headerPos + 4) > b->offset) {
         return -1;
+    }
 
     uint16_t dataLen = b->offset - (gb->headerPos + 4);
     write_u16(b->buffer + gb->headerPos, 4 + dataLen);

@@ -45,7 +45,9 @@ static void *_LinuxTimerThreadFunc(void *arg)
         int nfds = epoll_wait(ctx->epollFd, events, MAX_EPOLL_EVENTS, 500);
 
         if (nfds == -1) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR) {
+                continue;
+            }
 
             perror("epoll_wait failed");
             break;
@@ -85,7 +87,9 @@ static LinuxTimerContext_t *_GetOrInitContext(iAP2Timer_t *timer)
     if (ctx == NULL) {
         ctx = (LinuxTimerContext_t *)malloc(sizeof(LinuxTimerContext_t));
 
-        if (!ctx) return NULL;
+        if (!ctx) {
+            return NULL;
+        }
 
         memset(ctx, 0, sizeof(LinuxTimerContext_t));
         ctx->parent = timer;
@@ -93,19 +97,25 @@ static LinuxTimerContext_t *_GetOrInitContext(iAP2Timer_t *timer)
         /* 1. 创建 timerfd (单调时钟，非阻塞) */
         ctx->timerFd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK | TFD_CLOEXEC);
 
-        if (ctx->timerFd == -1) goto error;
+        if (ctx->timerFd == -1) {
+            goto error;
+        }
 
         /* 2. 创建 epoll */
         ctx->epollFd = epoll_create1(EPOLL_CLOEXEC);
 
-        if (ctx->epollFd == -1) goto error;
+        if (ctx->epollFd == -1) {
+            goto error;
+        }
 
         /* 3. 将 timerfd 加入 epoll */
         struct epoll_event ev;
         ev.events = EPOLLIN;
         ev.data.fd = ctx->timerFd;
 
-        if (epoll_ctl(ctx->epollFd, EPOLL_CTL_ADD, ctx->timerFd, &ev) == -1) goto error;
+        if (epoll_ctl(ctx->epollFd, EPOLL_CTL_ADD, ctx->timerFd, &ev) == -1) {
+            goto error;
+        }
 
         /* 4. 创建并启动后台线程 */
         if (pthread_create(&ctx->threadId, NULL, _LinuxTimerThreadFunc, ctx) != 0) {
@@ -120,9 +130,13 @@ static LinuxTimerContext_t *_GetOrInitContext(iAP2Timer_t *timer)
     return ctx;
 error:
 
-    if (ctx->timerFd != -1) close(ctx->timerFd);
+    if (ctx->timerFd != -1) {
+        close(ctx->timerFd);
+    }
 
-    if (ctx->epollFd != -1) close(ctx->epollFd);
+    if (ctx->epollFd != -1) {
+        close(ctx->epollFd);
+    }
 
     free(ctx);
     return NULL;
@@ -138,9 +152,12 @@ BOOL _iAP2TimeCallbackAfter(iAP2Timer_t *timer,
 {
     LinuxTimerContext_t *ctx = _GetOrInitContext(timer);
 
-    if (!ctx) return FALSE;
+    if (!ctx) {
+        return FALSE;
+    }
 
     struct itimerspec new_value;
+
     /* 保存回调，供后台线程使用 */
     ctx->pendingCB = callback;
     new_value.it_value.tv_sec = delayMs / 1000;

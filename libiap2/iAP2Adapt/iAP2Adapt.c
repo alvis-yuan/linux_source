@@ -76,43 +76,6 @@ static iAP2Session_t   *g_session = NULL;
 /* RunLoop线程 */
 static pthread_t g_runLoopThread = 0;
 
-
-/*
- ****************************************************************
- * 会话层回调 - 接收业务数据（iAP2 → 业务层）
- ****************************************************************
- */
-
-/*
- * 会话数据回调
- *
- * iAP2内部会自动处理：
- * - Control数据：认证消息、识别消息等（内部消化，不上报）
- * - EA数据：业务数据（通过此回调上报给业务层）
- * - Buffer数据：图片、健身数据等（如需要可上报）
- *
- * BSA层只需关心EA数据，转发给业务层即可
- */
-static BOOL _OnEASessionData(uint8_t sessionID,
-                             iAP2SessionType_t sessionType,
-                             const uint8_t *data,
-                             uint32_t dataLen,
-                             void *context)
-{
-    (void)context;
-    (void)sessionID;
-
-    /* 只处理EA会话数据，转发给业务层 */
-    if (sessionType == kIAP2SessionTypeEA) {
-        /* 转发给业务层（打印通道） */
-        //print_channel_send_data(PRINT_CHN_ID_IAP2, data, dataLen, 0);
-        return TRUE;
-    }
-
-    /* Control和Buffer数据由Session层内部处理，无需上报 */
-    return TRUE;
-}
-
 /*
  * 认证完成回调（可选）
  *
@@ -124,7 +87,6 @@ static void _OnAuthComplete(BOOL success, void *context)
 
     if (success) {
         iAP2LogDbg("[iAP2] ✓ Authentication completed");
-
     } else {
         iAP2LogError("[iAP2] ✗ Authentication failed");
     }
@@ -141,7 +103,6 @@ static void _OnIdentifyComplete(BOOL success, void *context)
 
     if (success) {
         iAP2LogDbg("[iAP2] ✓ Identification completed - Ready for data");
-
     } else {
         iAP2LogError("[iAP2] ✗ Identification failed");
     }
@@ -171,7 +132,6 @@ static void *_RunLoopThread(void *arg)
     iAP2LogDbg("[iAP2] RunLoop stopped");
     return NULL;
 }
-
 
 /*
  * 初始化iAP2

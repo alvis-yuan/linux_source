@@ -61,8 +61,6 @@
 extern "C" {
 #endif
 
-
-
 /*
 ****************************************************************
 **
@@ -73,8 +71,6 @@ extern "C" {
 **
 ****************************************************************
 */
-
-
 
 /*
 ****************************************************************
@@ -199,8 +195,6 @@ void *__iAP2BuffPoolGetBuff(iAP2BuffPool_t *buffPool, uint32_t payloadLen);
 */
 void __iAP2BuffPoolReturnBuff(iAP2BuffPool_t *buffPool, void *buff);
 
-
-
 /*
 ****************************************************************
 **
@@ -317,8 +311,6 @@ void *__iAP2BuffPoolGetSendPacket(iAP2BuffPool_t *buffPool,
 */
 void __iAP2BuffPoolReturnSendPacket(iAP2BuffPool_t *buffPool, void *packet);
 
-
-
 /*
 ****************************************************************
 **
@@ -434,7 +426,6 @@ void *__iAP2BuffPoolGetRecvPacket(iAP2BuffPool_t *buffPool,
 ****************************************************************
 */
 void __iAP2BuffPoolReturnRecvPacket(iAP2BuffPool_t *buffPool, void *packet);
-
 
 #ifdef __cplusplus
 }

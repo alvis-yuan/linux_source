@@ -56,7 +56,6 @@ int iAP2AdaptOnConnected(int type, iAP2SessionDataCB_t sessionDataCB,
  */
 void iAP2AdaptOnDisconnected(void);
 
-
 #ifdef __cplusplus
 }
 #endif

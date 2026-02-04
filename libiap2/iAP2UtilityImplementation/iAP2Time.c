@@ -64,7 +64,6 @@
 #include "iAP2ListArray.h"
 #include "iAP2Log.h"
 
-
 /*
 ****************************************************************
 **
@@ -78,7 +77,6 @@ static void _iAP2TimeCheckTimeouts(iAP2Timer_t *timer);
 static void _iAP2TimeHandleExpired(iAP2Timer_t *timer, uint32_t curTime);
 static intptr_t _iAP2TimeCompareTimeout(void *a, void *b, uint8_t dataSize);
 static intptr_t _iAP2TimeCompareID(void *a, void *b, uint8_t dataSize);
-
 
 /*
 ****************************************************************
@@ -107,7 +105,6 @@ uint8_t _iAP2TimeGetFreeTimeoutID(iAP2Timer_t *timer)
     return result;
 }
 
-
 /*
 ****************************************************************
 **
@@ -135,7 +132,6 @@ intptr_t _iAP2TimeCompareID(void *a, void *b, uint8_t dataSize)
     return aTime->id - bTime->id;
 }
 
-
 /*
 ****************************************************************
 **
@@ -162,7 +158,6 @@ intptr_t _iAP2TimeCompareTimeout(void *a, void *b, uint8_t dataSize)
     iAP2Timeout_t *bTime = (iAP2Timeout_t *) b;
     return aTime->timeout - bTime->timeout;
 }
-
 
 /*
 ****************************************************************
@@ -202,7 +197,6 @@ void _iAP2TimeHandleExpired(iAP2Timer_t *timer, uint32_t curTime)
     _iAP2TimeCheckTimeouts(timer);
 }
 
-
 /*
 ****************************************************************
 **
@@ -241,8 +235,6 @@ void _iAP2TimeCheckTimeouts(iAP2Timer_t *timer)
                                _iAP2TimeHandleExpired);
     }
 }
-
-
 
 /*
 ****************************************************************
@@ -324,7 +316,6 @@ uint32_t iAP2TimeSpecToMs(struct timespec *time)
     return (uint32_t)(time->tv_sec * 1000) + (uint32_t)(time->tv_nsec / 1000000);
 }
 
-
 /*
 ****************************************************************
 **
@@ -345,7 +336,6 @@ uint32_t iAP2TimeValToMs(struct timeval *time)
 {
     return (uint32_t)(time->tv_sec * 1000) + (uint32_t)(time->tv_usec / 1000);
 }
-
 
 /*
 ****************************************************************
@@ -393,7 +383,6 @@ void iAP2TimeInit(void)
     /* Do nothing */
 }
 
-
 /*
 ****************************************************************
 **
@@ -418,7 +407,6 @@ void iAP2TimeCleanup(void)
     /* Do nothing */
 }
 
-
 /*
 ****************************************************************
 **
@@ -441,7 +429,6 @@ uint32_t iAP2TimeGetBuffSize(uint8_t maxTimeouts)
                       sizeof(iAP2Timeout_t));
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -509,7 +496,6 @@ iAP2Timer_t *iAP2TimeCreate(void               *context,
     return timer;
 }
 
-
 /*
 ****************************************************************
 **
@@ -534,7 +520,6 @@ void iAP2TimeDelete(iAP2Timer_t *timer)
     _iAP2TimeCleanupCallback(timer);
 }
 
-
 /*
 ****************************************************************
 **
@@ -555,7 +540,6 @@ void *iAP2TimeGetContext(iAP2Timer_t *timer)
 {
     return timer->link;
 }
-
 
 /*
 ****************************************************************
@@ -594,7 +578,6 @@ uint8_t iAP2TimeCallbackAfter(iAP2Timer_t *timer,
     return timeoutID;
 }
 
-
 /*
 ****************************************************************
 **
@@ -628,7 +611,6 @@ void iAP2TimeCancelTimer(iAP2Timer_t *timer,
         _iAP2TimeCheckTimeouts(timer);
     }
 }
-
 
 /*
 ****************************************************************
@@ -668,7 +650,6 @@ uint8_t iAP2TimeGetType(iAP2Timer_t *timer,
     return type;
 }
 
-
 /*
 ****************************************************************
 **
@@ -683,7 +664,6 @@ static void __printTimeOutItem(void *item)
     iAP2Log("        entry(%p): id=%u type=%u tiemout=%u\n", timeout, timeout->id,
             timeout->type, timeout->timeout);
 }
-
 
 /*
 ****************************************************************
@@ -721,5 +701,3 @@ void iAP2TimePrintInfo(iAP2Timer_t *timer, BOOL needStartStop)
         iAP2LogStop();
     }
 }
-
-

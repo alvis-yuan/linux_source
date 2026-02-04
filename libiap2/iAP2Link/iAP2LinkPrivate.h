@@ -55,7 +55,6 @@
 #ifndef iAP2Link_iAP2LinkPrivate_h
 #define iAP2Link_iAP2LinkPrivate_h
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -82,7 +81,6 @@ void iAP2LinkActionNotifyConnectionFail(struct iAP2FSM_st *fsm,
 void iAP2LinkActionSwitchToiAP1(struct iAP2FSM_st *fsm,
                                 unsigned int *nextEvent);
 
-
 /*
 ****************************************************************
 **
@@ -100,7 +98,6 @@ void iAP2LinkActionSwitchToiAP1(struct iAP2FSM_st *fsm,
 ****************************************************************
 */
 void iAP2LinkSetDefaultSYNParam(iAP2PacketSYNData_t *param);
-
 
 /*
 ****************************************************************
@@ -120,7 +117,6 @@ void iAP2LinkSetDefaultSYNParam(iAP2PacketSYNData_t *param);
 */
 BOOL iAP2LinkIsValidSynParam(iAP2PacketSYNData_t *synParam);
 
-
 /*
 ****************************************************************
 **
@@ -139,7 +135,6 @@ BOOL iAP2LinkIsValidSynParam(iAP2PacketSYNData_t *synParam);
 ****************************************************************
 */
 BOOL iAP2LinkValidateSynParam(iAP2PacketSYNData_t *synParam);
-
 
 /*
 ****************************************************************
@@ -161,7 +156,6 @@ BOOL iAP2LinkValidateSynParam(iAP2PacketSYNData_t *synParam);
 ****************************************************************
 */
 void iAP2LinkProcessOutQueue(iAP2Link_t *link);
-
 
 /*
 ****************************************************************
@@ -185,7 +179,6 @@ void iAP2LinkProcessOutQueue(iAP2Link_t *link);
 */
 BOOL iAP2LinkProcessInOrderPacket(struct iAP2Link_st *link,
                                   iAP2Packet_t       *packet);
-
 
 /*
 ****************************************************************
@@ -212,7 +205,6 @@ void iAP2LinkSendPacket(iAP2Link_t    *link,
                         BOOL           bResend,
                         const char    *tag);
 
-
 /*
 ****************************************************************
 **
@@ -238,7 +230,6 @@ void iAP2LinkSendPacketWaitSend(iAP2Link_t      *link,
                                 BOOL             bResend,
                                 const char      *tag);
 
-
 /*
 ****************************************************************
 **
@@ -258,7 +249,6 @@ void iAP2LinkSendPacketWaitSend(iAP2Link_t      *link,
 */
 void iAP2LinkResetSeqAck(iAP2Link_t *link, BOOL bOnlySend);
 
-
 /*
 ****************************************************************
 **
@@ -277,7 +267,6 @@ void iAP2LinkResetSeqAck(iAP2Link_t *link, BOOL bOnlySend);
 ****************************************************************
 */
 iAP2Packet_t *iAP2LinkPacketForIndex(uint8_t *listArrayBuffer, uint8_t index);
-
 
 /*
 ****************************************************************
@@ -300,7 +289,6 @@ iAP2Packet_t *iAP2LinkPacketForIndex(uint8_t *listArrayBuffer, uint8_t index);
 uint8_t iAP2LinkFindPacket(uint8_t                    *listArrayBuffer,
                            iAP2Packet_t              **packet,
                            piAP2ListArrayCompareFunc   func);
-
 
 /*
 ****************************************************************
@@ -329,7 +317,6 @@ uint8_t iAP2LinkFindPacket(uint8_t                    *listArrayBuffer,
 uint8_t iAP2LinkAddPacketAfter(uint8_t        *listArrayBuffer,
                                uint8_t         prevItemIndex,
                                iAP2Packet_t  **packet);
-
 
 #ifdef __cplusplus
 }

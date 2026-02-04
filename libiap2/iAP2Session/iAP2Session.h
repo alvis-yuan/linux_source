@@ -44,6 +44,11 @@ typedef enum {
 #define kIAP2CtrlSessionVersion 0x01
 #define kIAP2InvalidSessionId      0xFF
 
+/*
+ * EA会话ID
+ */
+#define kIAP2EASessionId        0x0B
+#define kIAP2EASessionVersion 0x01
 
 /*
  * 会话管理器句柄（不透明类型）
@@ -130,7 +135,6 @@ BOOL iAP2SessionStart(iAP2Session_t *session);
  *   session: 会话管理器句柄
  */
 void iAP2SessionStop(iAP2Session_t *session);
-
 
 /*
  * iAP2SessionSendData
@@ -247,13 +251,10 @@ static inline int iAP2SessionRegCtrl(iAP2PacketSYNData_t *p_syn_data)
  * Return:
  *   成功返回0
  */
-int iAP2SessionRegEA(uint8_t eaSessionID, void *context);
-
-
+int iAP2SessionRegEA(uint16_t eaSessionID, void *context);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* __IAP2_SESSION_H__ */
-

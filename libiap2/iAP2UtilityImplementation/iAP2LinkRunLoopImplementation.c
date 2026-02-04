@@ -23,7 +23,9 @@ typedef struct {
 */
 void iAP2LinkRunLoopInitImplementation(iAP2LinkRunLoop_t *linkRunLoop)
 {
-    if (!linkRunLoop) return;
+    if (!linkRunLoop) {
+        return;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)malloc(sizeof(LinuxRLContext_t));
 
@@ -85,7 +87,9 @@ void iAP2LinkRunLoopCleanupImplementation(iAP2LinkRunLoop_t *linkRunLoop)
 */
 BOOL iAP2LinkRunLoopWait(iAP2LinkRunLoop_t *linkRunLoop)
 {
-    if (!linkRunLoop || !linkRunLoop->otherData) return FALSE;
+    if (!linkRunLoop || !linkRunLoop->otherData) {
+        return FALSE;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     pthread_mutex_lock(&ctx->mutex);
@@ -116,7 +120,9 @@ BOOL iAP2LinkRunLoopWait(iAP2LinkRunLoop_t *linkRunLoop)
 */
 void iAP2LinkRunLoopSignal(iAP2LinkRunLoop_t *linkRunLoop, void *arg)
 {
-    if (!linkRunLoop || !linkRunLoop->otherData) return;
+    if (!linkRunLoop || !linkRunLoop->otherData) {
+        return;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     pthread_mutex_lock(&ctx->mutex);
@@ -143,7 +149,9 @@ BOOL iAP2LinkRunLoopProtectedCall(iAP2LinkRunLoop_t *linkRunLoop,
                                   void *arg,
                                   BOOL (*func)(iAP2LinkRunLoop_t *linkRunLoop, void *arg))
 {
-    if (!linkRunLoop || !linkRunLoop->otherData || !func) return FALSE;
+    if (!linkRunLoop || !linkRunLoop->otherData || !func) {
+        return FALSE;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     BOOL result = FALSE;
@@ -163,7 +171,9 @@ BOOL iAP2LinkRunLoopProtectedCall(iAP2LinkRunLoop_t *linkRunLoop,
 void iAP2LinkRunLoopSetEventMaskBit(iAP2LinkRunLoop_t *linkRunLoop,
                                     iAP2LinkRunLoopEventMask_t bit)
 {
-    if (!linkRunLoop || !linkRunLoop->otherData) return;
+    if (!linkRunLoop || !linkRunLoop->otherData) {
+        return;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     pthread_mutex_lock(&ctx->mutex);
@@ -179,7 +189,9 @@ void iAP2LinkRunLoopSetEventMaskBit(iAP2LinkRunLoop_t *linkRunLoop,
 */
 uint32_t iAP2LinkRunLoopGetResetEventMask(iAP2LinkRunLoop_t *linkRunLoop)
 {
-    if (!linkRunLoop || !linkRunLoop->otherData) return 0;
+    if (!linkRunLoop || !linkRunLoop->otherData) {
+        return 0;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     uint32_t currentMask = 0;
@@ -199,7 +211,9 @@ uint32_t iAP2LinkRunLoopGetResetEventMask(iAP2LinkRunLoop_t *linkRunLoop)
 */
 void *iAP2LinkRunLoopGetPendingPacket(iAP2LinkRunLoop_t *linkRunLoop)
 {
-    if (!linkRunLoop || !linkRunLoop->otherData) return NULL;
+    if (!linkRunLoop || !linkRunLoop->otherData) {
+        return NULL;
+    }
 
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     void *packet = NULL;

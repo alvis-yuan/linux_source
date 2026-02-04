@@ -65,7 +65,6 @@
 #include "iAP2Link.h"
 #include "iAP2Packet.h"
 
-
 void __iAP2FileTransferDataSentCB(struct iAP2Link_st  *link,
                                   void                *context);
 
@@ -82,35 +81,34 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
     if (controlOnly) {
         uint32_t payloadLen = kiAP2FileTransferHdrBaseLen;
         uint8_t payload[kiAP2FileTransferHdrBaseLen];
-        payload [kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
-        payload [kiAP2FileTransferHdrIdxControl] = pckType;
+        payload[kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
+        payload[kiAP2FileTransferHdrIdxControl] = pckType;
         iAP2LinkQueueSendData(fileXfer->link,
                               payload,
                               payloadLen,
                               fileXfer->session,
                               NULL,
                               NULL);
-
     } else if (fileXfer->state == kiAP2FileTransferStateSetup) {
         uint32_t payloadLen = kiAP2FileTransferHdrSetupBaseLen;
         uint8_t payload[kiAP2FileTransferHdrSetupBaseLen];
-        payload [kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
-        payload [kiAP2FileTransferHdrIdxControl] = kiAP2FileTransferPacketTypeSetup;
-        payload [kiAP2FileTransferHdrIdxSetupSize + 0] = ((fileXfer->totalSize >> 56) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 1] = ((fileXfer->totalSize >> 48) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 2] = ((fileXfer->totalSize >> 40) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 3] = ((fileXfer->totalSize >> 32) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 4] = ((fileXfer->totalSize >> 24) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 5] = ((fileXfer->totalSize >> 16) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 6] = ((fileXfer->totalSize >> 8) &
-                0xFF);
-        payload [kiAP2FileTransferHdrIdxSetupSize + 7] = ((fileXfer->totalSize) & 0xFF);
+        payload[kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
+        payload[kiAP2FileTransferHdrIdxControl] = kiAP2FileTransferPacketTypeSetup;
+        payload[kiAP2FileTransferHdrIdxSetupSize + 0] = ((fileXfer->totalSize >> 56) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 1] = ((fileXfer->totalSize >> 48) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 2] = ((fileXfer->totalSize >> 40) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 3] = ((fileXfer->totalSize >> 32) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 4] = ((fileXfer->totalSize >> 24) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 5] = ((fileXfer->totalSize >> 16) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 6] = ((fileXfer->totalSize >> 8) &
+            0xFF);
+        payload[kiAP2FileTransferHdrIdxSetupSize + 7] = ((fileXfer->totalSize) & 0xFF);
         iAP2LogDbg("%s:%d Send Buffer Setup, QueueSendData data=%p dataLen=%u fileXfer=%p session=%u\n",
                    __FUNCTION__, __LINE__, payload, payloadLen, fileXfer, fileXfer->session);
         /*
@@ -124,7 +122,6 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
                               fileXfer->session,
                               fileXfer,
                               __iAP2FileTransferDataSentCB);
-
     } else if (fileXfer->state == kiAP2FileTransferStateWaitStatus) {
         fileXfer->state = kiAP2FileTransferStateFinishSend;
 
@@ -133,7 +130,6 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
         }
 
         iAP2FileTransferCleanup(fileXfer);
-
     } else {
         uint64_t dataLen = (fileXfer->buffSize - fileXfer->buffSentSize);
         uint64_t payloadLen = (dataLen + kiAP2FileTransferHdrBaseLen);
@@ -143,17 +139,17 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
         packet->pckData->sess = fileXfer->session;
         packet->packetLen = kIAP2PacketHeaderLen + payloadLen + kIAP2PacketChksumLen;
         packet->bufferLen = packet->packetLen;
-        payload [kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
-        payload [kiAP2FileTransferHdrIdxControl] = pckType;
+        payload[kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
+        payload[kiAP2FileTransferHdrIdxControl] = pckType;
 
         if (fileXfer->sentSize == 0) {
-            payload [kiAP2FileTransferHdrIdxControl] |= kiAP2FileTransferControlFirst;
+            payload[kiAP2FileTransferHdrIdxControl] |= kiAP2FileTransferControlFirst;
         }
 
         if (payloadLen > iAP2LinkGetMaxPayloadSize(fileXfer->link)) {
             payloadLen = iAP2LinkGetMaxPayloadSize(fileXfer->link);
             dataLen = (payloadLen - kiAP2FileTransferHdrBaseLen);
-            memcpy(&payload [kiAP2FileTransferHdrIdxData],
+            memcpy(&payload[kiAP2FileTransferHdrIdxData],
                    fileXfer->pCurPos,
                    dataLen);
             /* Re-calc packetLen based on new payloadLen */
@@ -170,7 +166,6 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
             fileXfer->pCurPos  += dataLen;
             fileXfer->sentSize += dataLen;
             fileXfer->buffSentSize += dataLen;
-
         } else if (dataLen + fileXfer->sentSize < fileXfer->totalSize ||
                    (0 == fileXfer->totalSize && fileXfer->bStream)) {
             /*
@@ -181,7 +176,7 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
             ** Final bit of data for buffer
             ** If total size is 0, it is unknown size and we continue until
             */
-            memcpy(&payload [kiAP2FileTransferHdrIdxData],
+            memcpy(&payload[kiAP2FileTransferHdrIdxData],
                    fileXfer->pCurPos,
                    dataLen);
             iAP2LogDbg("%s:%d Send Buffer Data (end current buffer), QueueSendData payload=%p payloadLen=%u fileXfer=%p session=%u buffID=%u sentSize=%u totalSize=%u (endCB=%p userInfo=%p)\n",
@@ -200,13 +195,12 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
             if (fileXfer->endCB) {
                 (fileXfer->endCB)(fileXfer, fileXfer->endCBUserInfo);
             }
-
         } else { /* if (dataLen + fileXfer->sentSize >= fileXfer->totalSize) */
             /* Final bit of data, set back to idle */
-            payload [kiAP2FileTransferHdrIdxControl] |= kiAP2FileTransferControlLast;
+            payload[kiAP2FileTransferHdrIdxControl] |= kiAP2FileTransferControlLast;
 
             if (dataLen > 0) {
-                memcpy(&payload [kiAP2FileTransferHdrIdxData],
+                memcpy(&payload[kiAP2FileTransferHdrIdxData],
                        fileXfer->pCurPos,
                        dataLen);
             }
@@ -231,7 +225,6 @@ static void __iAP2FileTransferSendBufferPacket(iAP2FileTransfer_t
         }
     }
 }
-
 
 /* Callback handler for data/packet sent notification */
 void __iAP2FileTransferDataSentCB(struct iAP2Link_st *link,
@@ -261,13 +254,11 @@ void __iAP2FileTransferDataSentCB(struct iAP2Link_st *link,
                              __FILE__, __LINE__, fileXfer->state);
                 break;
         }
-
     } else {
         iAP2LogError("%s:%d Data send callback with invalid link(%p)/context(%p) combo\n",
                      __FILE__, __LINE__, link, context);
     }
 }
-
 
 /*
 *****************************************************************
@@ -321,7 +312,6 @@ BOOL iAP2FileTransferValidateBufferID(iAP2Link_t  *link,
     return FALSE;
 }
 
-
 /*
 *****************************************************************
 **
@@ -351,8 +341,8 @@ void iAP2FileTransferCancelSetup(iAP2Link_t  *link,
     iAP2LogDbg("%s:%d Send Cancel, session=%u bufferID=%xh\n",
                __FUNCTION__, __LINE__, session, bufferID);
     payloadLen = 2;
-    payload [kiAP2FileTransferHdrIdxID]      = bufferID;
-    payload [kiAP2FileTransferHdrIdxControl] = kiAP2FileTransferPacketTypeCancel;
+    payload[kiAP2FileTransferHdrIdxID]      = bufferID;
+    payload[kiAP2FileTransferHdrIdxControl] = kiAP2FileTransferPacketTypeCancel;
     iAP2LinkQueueSendData(link,
                           payload,
                           payloadLen,
@@ -360,7 +350,6 @@ void iAP2FileTransferCancelSetup(iAP2Link_t  *link,
                           NULL,
                           NULL);
 }
-
 
 /*
 *****************************************************************
@@ -433,7 +422,6 @@ iAP2FileTransfer_t *iAP2FileTransferCreate(iAP2Link_t                 *link,
     return fileXferBuff;
 }
 
-
 /*
 *****************************************************************
 **
@@ -468,7 +456,6 @@ void iAP2FileTransferDelete(iAP2FileTransfer_t *fileXfer)
 #endif
     }
 }
-
 
 /*
 *****************************************************************
@@ -513,7 +500,6 @@ void iAP2FileTransferCleanup(iAP2FileTransfer_t *fileXfer)
     fileXfer->endCBUserInfo   = NULL;
     fileXfer->bIsReceive      = FALSE;
 }
-
 
 /*
 *****************************************************************
@@ -598,7 +584,6 @@ BOOL iAP2FileTransferStart(iAP2FileTransfer_t     *fileXfer,
     return result;
 }
 
-
 /*
 *****************************************************************
 **
@@ -664,7 +649,6 @@ void iAP2FileTransferSendNext(iAP2FileTransfer_t *fileXfer,
                    fileXfer->sentSize,
                    fileXfer->totalSize,
                    fileXfer->bDeleteBuffOnFinish);
-
     } else {
         iAP2LogError("%s:%d fileXfer=%p buffID=0x%X Wrong state to send buff=%p len=%p sent=%u/%u\n",
                      __FILE__, __LINE__,
@@ -676,7 +660,6 @@ void iAP2FileTransferSendNext(iAP2FileTransfer_t *fileXfer,
                      fileXfer->totalSize);
     }
 }
-
 
 /*
 *****************************************************************
@@ -714,11 +697,11 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
     BOOL needDelete = FALSE;
 
     if (fileXfer && data && dataLen >= kiAP2FileTransferHdrBaseLen) {
-        uint8_t control = data [kiAP2FileTransferHdrIdxControl];
+        uint8_t control = data[kiAP2FileTransferHdrIdxControl];
         BOOL    isFirst = ((control & kiAP2FileTransferControlFirst) != 0);
         BOOL    isLast  = ((control & kiAP2FileTransferControlLast) != 0);
         iAP2FileTransferPacketType_t packetType = (control &
-                kiAP2FileTransferControlType);
+            kiAP2FileTransferControlType);
 
         switch (packetType) {
             case kiAP2FileTransferPacketTypeData: {
@@ -743,7 +726,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
                         (fileXfer->totalSize == 0 ||
                          fileXfer->totalSize > actualBuffLen)) {
                         fileXfer->buffSize = actualBuffLen;
-
                     } else {
                         fileXfer->buffSize = fileXfer->totalSize;
                     }
@@ -751,7 +733,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
                     fileXfer->pBuffer = (uint8_t *) iAP2BuffPoolGet(fileXfer->link->buffPool,
                                         (uintptr_t) fileXfer->buffSize);
                     fileXfer->pCurPos = fileXfer->pBuffer;
-
                 } else if (fileXfer->bStream &&
                            (fileXfer->totalSize == 0 ||
                             fileXfer->totalSize > actualBuffLen)) {
@@ -783,7 +764,7 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
                 }
 
                 memcpy(fileXfer->pCurPos,
-                       &data [kiAP2FileTransferHdrIdxData],
+                       &data[kiAP2FileTransferHdrIdxData],
                        actualBuffLen);
                 fileXfer->pCurPos += actualBuffLen;
                 fileXfer->sentSize += actualBuffLen;
@@ -820,14 +801,12 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
                             fileXfer->buffSentSize = 0;
                             fileXfer->pCurPos = fileXfer->pBuffer;
                         }
-
                     } else {
                         /* No where to go... just assume success */
                         iAP2FileTransferSuccess(fileXfer);
                     }
 
                     needDelete = TRUE;
-
                 } else if (fileXfer->bStream && fileXfer->gotCB) {
                     /*
                     ** not last buffer but client wants to be notified for each
@@ -857,21 +836,21 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
                     iAP2LogStop();
                     /* Setup Packet */
                     size = 0;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 0];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 0];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 1];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 1];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 2];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 2];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 3];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 3];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 4];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 4];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 5];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 5];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 6];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 6];
                     size <<= 8;
-                    size += data [kiAP2FileTransferHdrIdxSetupSize + 7];
+                    size += data[kiAP2FileTransferHdrIdxSetupSize + 7];
                     iAP2FileTransferCleanup(fileXfer);
                     fileXfer->totalSize = size;
                     iAP2LogDbg("%s:%d fileXfer=%p buffID=0x%X Setup size=%u, send Resume\n",
@@ -894,7 +873,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
 
                 if (fileXfer->state == kiAP2FileTransferStatePauseRecv) {
                     fileXfer->state = kiAP2FileTransferStateRecv;
-
                 } else if (fileXfer->state == kiAP2FileTransferStatePauseSend ||
                            fileXfer->state == kiAP2FileTransferStateSetup) {
                     fileXfer->state = kiAP2FileTransferStateSend;
@@ -912,7 +890,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
 
                 if (fileXfer->state == kiAP2FileTransferStateRecv) {
                     fileXfer->state = kiAP2FileTransferStatePauseRecv;
-
                 } else if (fileXfer->state == kiAP2FileTransferStateSend) {
                     fileXfer->state = kiAP2FileTransferStatePauseSend;
                     /* Send Pause status to receiver */
@@ -995,7 +972,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t    *fileXfer,
     return needDelete;
 }
 
-
 /*
 *****************************************************************
 **
@@ -1037,7 +1013,6 @@ void iAP2FileTransferCancel(iAP2FileTransfer_t *fileXfer)
             if (fileXfer->state == kiAP2FileTransferStateSend ||
                 fileXfer->state == kiAP2FileTransferStatePauseSend) {
                 fileXfer->state = kiAP2FileTransferStateCancelSend;
-
             } else {
                 fileXfer->state = kiAP2FileTransferStateCancelRecv;
             }
@@ -1048,7 +1023,6 @@ void iAP2FileTransferCancel(iAP2FileTransfer_t *fileXfer)
         }
     }
 }
-
 
 /*
 *****************************************************************
@@ -1084,8 +1058,8 @@ void iAP2FileTransferPause(iAP2FileTransfer_t *fileXfer)
                        __FILE__, __LINE__,
                        fileXfer, fileXfer->bufferID);
             /* Send Pause status/command to receiver/sender */
-            payload [kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
-            payload [kiAP2FileTransferHdrIdxControl] = kiAP2FileTransferPacketTypePause;
+            payload[kiAP2FileTransferHdrIdxID]      = fileXfer->bufferID;
+            payload[kiAP2FileTransferHdrIdxControl] = kiAP2FileTransferPacketTypePause;
             iAP2LinkQueueSendData(fileXfer->link,
                                   payload,
                                   payloadLen,
@@ -1095,14 +1069,12 @@ void iAP2FileTransferPause(iAP2FileTransfer_t *fileXfer)
 
             if (fileXfer->state == kiAP2FileTransferStateSend) {
                 fileXfer->state = kiAP2FileTransferStatePauseSend;
-
             } else {
                 fileXfer->state = kiAP2FileTransferStatePauseRecv;
             }
         }
     }
 }
-
 
 /*
 *****************************************************************
@@ -1139,7 +1111,6 @@ void iAP2FileTransferResume(iAP2FileTransfer_t *fileXfer)
             __iAP2FileTransferSendBufferPacket(fileXfer,
                                                kiAP2FileTransferPacketTypeData,
                                                FALSE);
-
         } else if (fileXfer->state == kiAP2FileTransferStatePauseRecv) {
             iAP2LogDbg("%s:%d fileXfer=%p buffID=0x%X Resume, send Control Start\n",
                        __FILE__, __LINE__,
@@ -1152,7 +1123,6 @@ void iAP2FileTransferResume(iAP2FileTransfer_t *fileXfer)
         }
     }
 }
-
 
 /*
 *****************************************************************
@@ -1189,7 +1159,6 @@ void iAP2FileTransferSuccess(iAP2FileTransfer_t *fileXfer)
                                            TRUE);
     }
 }
-
 
 /*
 *****************************************************************
@@ -1229,4 +1198,3 @@ void iAP2FileTransferFailure(iAP2FileTransfer_t *fileXfer)
                                            TRUE);
     }
 }
-

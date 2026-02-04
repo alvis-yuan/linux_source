@@ -57,7 +57,6 @@
 
 #include <stdarg.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,7 +70,6 @@ typedef enum {
     kiAP2LogTypeCount
 
 } iAP2LogType_t;
-
 
 /*
 ******************************************************************
@@ -91,7 +89,6 @@ typedef enum {
 */
 char iAP2LogDataChar(char byte);
 
-
 /*
 ******************************************************************
 **
@@ -110,7 +107,6 @@ char iAP2LogDataChar(char byte);
 */
 void iAP2LogEnable(iAP2LogType_t type);
 
-
 /*
 ******************************************************************
 **
@@ -128,7 +124,6 @@ void iAP2LogEnable(iAP2LogType_t type);
 ****************************************************************
 */
 void iAP2LogDisable(iAP2LogType_t type);
-
 
 /*
 ******************************************************************
@@ -153,7 +148,6 @@ void iAP2LogDisable(iAP2LogType_t type);
 */
 void iAP2LogType(iAP2LogType_t type, const char *format, ...);
 
-
 /*
 ******************************************************************
 **
@@ -176,7 +170,6 @@ void iAP2LogType(iAP2LogType_t type, const char *format, ...);
 ****************************************************************
 */
 void iAP2LogTypeNL(iAP2LogType_t type, const char *format, ...);
-
 
 /*
 ******************************************************************
@@ -202,7 +195,6 @@ void iAP2LogTypeNL(iAP2LogType_t type, const char *format, ...);
 */
 void iAP2LogTypePureNL(iAP2LogType_t type, const char *format, ...);
 
-
 /*
 ******************************************************************
 **
@@ -225,7 +217,6 @@ void iAP2LogTypePureNL(iAP2LogType_t type, const char *format, ...);
 ****************************************************************
 */
 void iAP2LogTypeVNL(iAP2LogType_t type, const char *format, va_list args);
-
 
 /*
 ******************************************************************
@@ -251,7 +242,6 @@ void iAP2LogTypeVNL(iAP2LogType_t type, const char *format, va_list args);
 */
 void iAP2LogTypePureVNL(iAP2LogType_t type, const char *format, va_list args);
 
-
 /*
 ******************************************************************
 **
@@ -274,7 +264,6 @@ void iAP2LogTypePureVNL(iAP2LogType_t type, const char *format, va_list args);
 */
 void iAP2Log(const char *format, ...);
 
-
 /*
 ******************************************************************
 **
@@ -296,7 +285,6 @@ void iAP2Log(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogNL(const char *format, ...);
-
 
 /*
 ******************************************************************
@@ -321,7 +309,6 @@ void iAP2LogNL(const char *format, ...);
 */
 void iAP2LogPureNL(const char *format, ...);
 
-
 /*
 ****************************************************************
 **
@@ -343,7 +330,6 @@ void iAP2LogPureNL(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogVNL(const char *format, va_list args);
-
 
 /*
 ****************************************************************
@@ -367,7 +353,6 @@ void iAP2LogVNL(const char *format, va_list args);
 */
 void iAP2LogDbg(const char *format, ...);
 
-
 /*
 ****************************************************************
 **
@@ -389,7 +374,6 @@ void iAP2LogDbg(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogDbgNL(const char *format, ...);
-
 
 /*
 ****************************************************************
@@ -414,7 +398,6 @@ void iAP2LogDbgNL(const char *format, ...);
 */
 void iAP2LogDbgPureNL(const char *format, ...);
 
-
 /*
 ****************************************************************
 **
@@ -436,7 +419,6 @@ void iAP2LogDbgPureNL(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogDbgVNL(const char *format, va_list args);
-
 
 /*
 ****************************************************************
@@ -460,7 +442,6 @@ void iAP2LogDbgVNL(const char *format, va_list args);
 */
 void iAP2LogError(const char *format, ...);
 
-
 /*
 ****************************************************************
 **
@@ -482,7 +463,6 @@ void iAP2LogError(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogErrorNL(const char *format, ...);
-
 
 /*
 ****************************************************************
@@ -507,7 +487,6 @@ void iAP2LogErrorNL(const char *format, ...);
 */
 void iAP2LogErrorPureNL(const char *format, ...);
 
-
 /*
 ****************************************************************
 **
@@ -529,7 +508,6 @@ void iAP2LogErrorPureNL(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogErrorVNL(const char *format, va_list args);
-
 
 /*
 ****************************************************************
@@ -554,7 +532,6 @@ void iAP2LogErrorVNL(const char *format, va_list args);
 */
 void iAP2LogStart(void);
 
-
 /*
 ****************************************************************
 **
@@ -577,7 +554,6 @@ void iAP2LogStart(void);
 ****************************************************************
 */
 void iAP2LogStop(void);
-
 
 /*
 ****************************************************************
@@ -608,7 +584,6 @@ void iAP2LogPrintData(const unsigned char *data,
                       const char          *format,
                       ...);
 
-
 /*
 ****************************************************************
 **
@@ -637,7 +612,6 @@ void iAP2LogPrintDataNL(const unsigned char *data,
                         const char          *tag,
                         const char          *format,
                         ...);
-
 
 /*
 ****************************************************************
@@ -669,7 +643,6 @@ void iAP2LogPrintDataPureNL(const unsigned char *data,
                             const char          *format,
                             ...);
 
-
 /*
 ****************************************************************
 **
@@ -698,7 +671,6 @@ void iAP2LogPrintDataVNL(const unsigned char *data,
                          const char          *tag,
                          const char          *format,
                          va_list              args);
-
 
 /*
 ****************************************************************
@@ -729,7 +701,6 @@ void iAP2LogPrintDataPureVNL(const unsigned char *data,
                              const char          *tag,
                              const char          *format,
                              va_list              args);
-
 
 #ifdef __cplusplus
 }

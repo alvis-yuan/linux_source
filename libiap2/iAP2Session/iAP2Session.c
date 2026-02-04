@@ -69,6 +69,8 @@ struct iAP2Session_st {
     BOOL                    linkConnected;
     BOOL                    authenticated;      /* 认证完成标志 */
     BOOL                    identified;         /* 识别完成标志 */
+
+    uint16_t                 EASessionID;          /* device的会话ID */
 };
 
 /*
@@ -195,18 +197,24 @@ static BOOL _HandleTransportData(uint8_t *data, uint32_t dataLen,
         }
 
         return TRUE;
-
     } else if (sessionType == kIAP2SessionTypeEA) {
+        uint16_t eaSessionID = READ_U16(data);
+        /* EA会话数据 - 验证EA会话ID */
+        if (session->EASessionID != eaSessionID) {
+            iAP2LogError("[Session] Invalid EA session ID: expected 0x%02X, got 0x%02X",
+                         session->EASessionID, eaSessionID);
+            return FALSE;
+        }
+
         /* EA会话数据 - 解析并路由到应用层 */
         if (session->config.sessionDataCB) {
-            return session->config.sessionDataCB(data, dataLen,
+            /* 移除EA会话ID前缀(2字节) ref: 64.3.4.2 ExternalAccessorySession Datagram */
+            return session->config.sessionDataCB(data + 2, dataLen - 2,
                                                  session->config.context);
-
         } else {
             iAP2LogError("[Session] No sessionDataCB registered for EA data");
             return FALSE;
         }
-
     } else {
         iAP2LogError("[Session] Unknown session type %d for session ID %u",
                      sessionType, sessionID);
@@ -244,7 +252,6 @@ static void _HandleLinkConnected(BOOL connected, void *context)
                 iAP2LogDbg("[Session] Negotiated control session version: %d, sessNum=%d",
                            ctrlSessInfo->version, link->param.numSessionInfo);
                 iAP2AuthSetControlSessionVersion(ctrlSessInfo->version);
-
             } else {
                 iAP2LogDbg("[Session] Control session info not found, using default version 1");
             }
@@ -253,7 +260,6 @@ static void _HandleLinkConnected(BOOL connected, void *context)
         /* Link连接后，进入认证阶段 */
         session->state = kSessionStateAuthenticating;
         iAP2AuthOnLinkConnected();
-
     } else {
         iAP2LogDbg("[Session] Link disconnected, resetting session");
         /* 重置所有状态 */
@@ -287,7 +293,6 @@ static void _HandleAuthResult(BOOL success, void *context)
         session->state = kSessionStateIdentifying;
         /* 通知识别模块认证已完成 */
         iAP2IdOnAuthComplete(TRUE);
-
     } else {
         iAP2LogError("[Session] ✗ Authentication failed");
         session->state = kSessionStateFailed;
@@ -319,7 +324,6 @@ static void _HandleIdentifyResult(BOOL accepted, uint8_t rejectReason,
         iAP2LogDbg("[Session] ✓ Identification accepted, session ready");
         /* 识别成功，进入就绪状态 */
         session->state = kSessionStateReady;
-
     } else {
         iAP2LogError("[Session] ✗ Identification rejected, reason=%u", rejectReason);
         session->state = kSessionStateFailed;
@@ -420,6 +424,17 @@ iAP2Session_t *iAP2SessionCreate(const iAP2SessionConfig_t *config,
     }
 
     iAP2LogDbg("[Session] Registered control session to Link layer");
+
+    // 注册EA会话（ID=0x0B, Type=EA, Version=1）
+    if (iAP2SessionReg(&link->initParam, kIAP2EASessionId, kIAP2SessionTypeEA,
+                       kIAP2EASessionVersion) < 0) {
+        iAP2LogError("[Session] Failed to register EA session");
+        free(session);
+        return NULL;
+    }
+
+    iAP2LogDbg("[Session] Registered EA session to Link layer");
+
     /* 注册Transport层回调 */
     iAP2TransportSetCallbacks(session->transport,
                               _HandleTransportData,
@@ -600,19 +615,26 @@ const char *iAP2SessionGetStateString(iAP2Session_t *session)
     }
 
     switch (session->state) {
-        case kSessionStateIdle:             return "Idle";
+        case kSessionStateIdle:
+            return "Idle";
 
-        case kSessionStateWaitLinkConnected: return "WaitLink";
+        case kSessionStateWaitLinkConnected:
+            return "WaitLink";
 
-        case kSessionStateAuthenticating:   return "Authenticating";
+        case kSessionStateAuthenticating:
+            return "Authenticating";
 
-        case kSessionStateIdentifying:      return "Identifying";
+        case kSessionStateIdentifying:
+            return "Identifying";
 
-        case kSessionStateReady:            return "Ready";
+        case kSessionStateReady:
+            return "Ready";
 
-        case kSessionStateFailed:           return "Failed";
+        case kSessionStateFailed:
+            return "Failed";
 
-        default:                            return "Unknown";
+        default:
+            return "Unknown";
     }
 }
 
@@ -652,7 +674,7 @@ int iAP2SessionReg(iAP2PacketSYNData_t *p_syn_data, uint8_t id, uint8_t type,
 /*
  * 保存EA会话ID
  */
-int iAP2SessionRegEA(uint8_t eaSessionID, void *context)
+int iAP2SessionRegEA(uint16_t eaSessionID, void *context)
 {
     iAP2Session_t *session = (iAP2Session_t *)context;
 
@@ -660,7 +682,7 @@ int iAP2SessionRegEA(uint8_t eaSessionID, void *context)
         iAP2LogError("[Session] Invalid session or transport in iAP2SessionRegEA");
         return -1;
     }
-
+#if 0
     iAP2Link_t *link = iAP2TransportGetLink(session->transport);
 
     if (!link) {
@@ -672,6 +694,9 @@ int iAP2SessionRegEA(uint8_t eaSessionID, void *context)
         iAP2LogError("[Session] Failed to register EA session");
         return -1;
     }
+#endif
+
+    session->EASessionID = eaSessionID;
 
     return 0;
 }

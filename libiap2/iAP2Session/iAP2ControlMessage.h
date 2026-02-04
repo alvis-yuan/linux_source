@@ -439,6 +439,4 @@ typedef enum {
     kiAP2HidParamProductId = 2             /* uint16 */
 } iAP2HidMessageId_t;
 
-
-
 #endif /* IAP2_CONTROL_MESSAGE_H */

@@ -143,7 +143,6 @@ void mfiClose(void)
         iAP2LogDbg("[MFI] Closing device, fd=%d", gMFIFileDescriptor);
         close(gMFIFileDescriptor);
         gMFIFileDescriptor = -1;
-
     } else {
         iAP2LogDbg("[MFI] Device already closed");
     }
@@ -188,7 +187,6 @@ static int _mfiI2CRead(uint8_t reg, uint8_t *data, uint16_t dataLen)
 
         if (ret != 1) {
             usleep(MFI_RETRY_DELAY_US);
-
         } else {
             break;
         }
@@ -206,7 +204,6 @@ static int _mfiI2CRead(uint8_t reg, uint8_t *data, uint16_t dataLen)
 
         if (ret != dataLen) {
             usleep(MFI_RETRY_DELAY_US);
-
         } else {
             break;
         }
@@ -273,7 +270,6 @@ static int _mfiI2CWrite(uint8_t reg, uint8_t *data, uint16_t dataLen)
 
         if (ret != writeLen) {
             usleep(MFI_RETRY_DELAY_US);
-
         } else {
             break;
         }
@@ -582,7 +578,6 @@ uint16_t mfiReadChallengeResponseDataLength(void)
 
     if (_mfiI2CRead(kMFIRegChallengeResponseDataLength, lengthBuffer, 2) > 0) {
         responseLength = _readBigEndian16(lengthBuffer, 0);
-
     } else {
         iAP2LogError("[MFI] Failed to read challenge response data length");
     }

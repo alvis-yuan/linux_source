@@ -84,7 +84,6 @@ struct iAP2FSM_st;
 typedef void (*iAP2FSMEventAction_t)(struct iAP2FSM_st *fsm,
                                      unsigned int *nextEvent);
 
-
 typedef struct iAP2FSMEvent_st {
     iAP2FSMEventAction_t    action;
     unsigned int            nextState;
@@ -115,7 +114,6 @@ typedef struct iAP2FSM_st {
 
 } iAP2FSM_t;
 
-
 /*
 ****************************************************************
 **
@@ -135,7 +133,6 @@ typedef struct iAP2FSM_st {
 */
 iAP2FSMEventAction_t iAP2FSMGetActionForEvent(iAP2FSM_t     *fsm,
         unsigned int   event);
-
 
 /*
 ****************************************************************
@@ -157,7 +154,6 @@ iAP2FSMEventAction_t iAP2FSMGetActionForEvent(iAP2FSM_t     *fsm,
 unsigned int iAP2FSMGetNextStateForEvent(iAP2FSM_t    *fsm,
         unsigned int  event);
 
-
 /*
 ****************************************************************
 **
@@ -176,7 +172,6 @@ unsigned int iAP2FSMGetNextStateForEvent(iAP2FSM_t    *fsm,
 ****************************************************************
 */
 uint32_t iAP2FSMGetBuffSize(void);
-
 
 /*
 ****************************************************************
@@ -212,7 +207,6 @@ iAP2FSM_t *iAP2FSMCreate(unsigned int                  stateCount,
                          const char                  **eventNames,
                          uint8_t                      *fsmBuffer);
 
-
 /*
 ****************************************************************
 **
@@ -230,7 +224,6 @@ iAP2FSM_t *iAP2FSMCreate(unsigned int                  stateCount,
 ****************************************************************
 */
 void iAP2FSMDelete(iAP2FSM_t *fsm);
-
 
 /*
 ****************************************************************
@@ -250,7 +243,6 @@ void iAP2FSMDelete(iAP2FSM_t *fsm);
 ****************************************************************
 */
 void iAP2FSMHandleEvent(iAP2FSM_t *fsm, unsigned int event);
-
 
 #ifdef __cplusplus
 }

@@ -63,7 +63,6 @@
 #include <iAP2BuffPoolImplementation.h>
 #include <iAP2Log.h>
 
-
 /*
  ****************************************************************
  **
@@ -112,7 +111,6 @@ uint32_t iAP2BuffPoolGetBuffSize(uint8_t  buffType,
 
     return result;
 }
-
 
 /*
  ****************************************************************
@@ -178,7 +176,6 @@ iAP2BuffPool_t *iAP2BuffPoolInit(uint8_t   buffType,
     return buffPool;
 }
 
-
 /*
 ****************************************************************
 **
@@ -227,7 +224,6 @@ void iAP2BuffPoolCleanup(iAP2BuffPool_t *buffPool)
     buffPool->buffSize  = 0;
     buffPool->buffCount = 0;
 }
-
 
 /*
 ****************************************************************
@@ -279,7 +275,6 @@ void *iAP2BuffPoolGet(iAP2BuffPool_t  *buffPool,
     return buff;
 }
 
-
 /*
 ****************************************************************
 **
@@ -322,5 +317,3 @@ void iAP2BuffPoolReturn(iAP2BuffPool_t    *buffPool,
         break;
     }
 }
-
-

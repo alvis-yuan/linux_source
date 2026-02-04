@@ -225,8 +225,6 @@ typedef struct iAP2FileTransfer_st {
 
 } iAP2FileTransfer_t;
 
-
-
 /*
 *****************************************************************
 **
@@ -251,7 +249,6 @@ BOOL iAP2FileTransferValidateBufferID(iAP2Link_t  *link,
                                       uint8_t      session,
                                       uint8_t      bufferID);
 
-
 /*
 *****************************************************************
 **
@@ -274,7 +271,6 @@ BOOL iAP2FileTransferValidateBufferID(iAP2Link_t  *link,
 void iAP2FileTransferCancelSetup(iAP2Link_t  *link,
                                  uint8_t      session,
                                  uint8_t      bufferID);
-
 
 /*
 *****************************************************************
@@ -313,7 +309,6 @@ iAP2FileTransfer_t *iAP2FileTransferCreate(iAP2Link_t                 *link,
         BOOL                        bRecvAsStream,
         iAP2FileTransfer_t         *fileXferBuff);
 
-
 /*
 *****************************************************************
 **
@@ -332,7 +327,6 @@ iAP2FileTransfer_t *iAP2FileTransferCreate(iAP2Link_t                 *link,
 */
 void iAP2FileTransferDelete(iAP2FileTransfer_t *fileXfer);
 
-
 /*
 *****************************************************************
 **
@@ -350,7 +344,6 @@ void iAP2FileTransferDelete(iAP2FileTransfer_t *fileXfer);
 *****************************************************************
 */
 void iAP2FileTransferCleanup(iAP2FileTransfer_t *fileXfer);
-
 
 /*
 *****************************************************************
@@ -396,7 +389,6 @@ BOOL iAP2FileTransferStart(iAP2FileTransfer_t     *fileXfer,
                            BOOL                    bSendAsStream,
                            BOOL                    bDeleteBuffOnFinish);
 
-
 /*
 *****************************************************************
 **
@@ -431,7 +423,6 @@ void iAP2FileTransferSendNext(iAP2FileTransfer_t   *fileXfer,
                               BOOL                  bDeleteBuffOnFinish,
                               BOOL                  bFinal);
 
-
 /*
 *****************************************************************
 **
@@ -464,7 +455,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t *fileXfer,
                                 const uint8_t      *data,
                                 uint32_t            dataLen);
 
-
 /*
 *****************************************************************
 **
@@ -482,7 +472,6 @@ BOOL iAP2FileTransferHandleRecv(iAP2FileTransfer_t *fileXfer,
 *****************************************************************
 */
 void iAP2FileTransferCancel(iAP2FileTransfer_t *fileXfer);
-
 
 /*
 *****************************************************************
@@ -502,7 +491,6 @@ void iAP2FileTransferCancel(iAP2FileTransfer_t *fileXfer);
 */
 void iAP2FileTransferPause(iAP2FileTransfer_t *fileXfer);
 
-
 /*
 *****************************************************************
 **
@@ -520,7 +508,6 @@ void iAP2FileTransferPause(iAP2FileTransfer_t *fileXfer);
 *****************************************************************
 */
 void iAP2FileTransferResume(iAP2FileTransfer_t *fileXfer);
-
 
 /*
 *****************************************************************
@@ -540,7 +527,6 @@ void iAP2FileTransferResume(iAP2FileTransfer_t *fileXfer);
 */
 void iAP2FileTransferSuccess(iAP2FileTransfer_t *fileXfer);
 
-
 /*
 *****************************************************************
 **
@@ -559,10 +545,8 @@ void iAP2FileTransferSuccess(iAP2FileTransfer_t *fileXfer);
 */
 void iAP2FileTransferFailure(iAP2FileTransfer_t *fileXfer);
 
-
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-

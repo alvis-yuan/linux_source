@@ -59,11 +59,9 @@
 #include <sys/time.h>
 #include <iAP2Defines.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 enum {
     kiAP2BuffPoolTypeBuff           = 0,    /* Buffer for general; send/recv buffers: param is buff size */
@@ -73,7 +71,6 @@ enum {
     kiAP2BuffPoolTypeCount
 };
 
-
 typedef struct iAP2BuffPool_st {
     uint8_t     type;
     uint16_t    buffCount;
@@ -82,7 +79,6 @@ typedef struct iAP2BuffPool_st {
     uintptr_t   data;
 
 } iAP2BuffPool_t;
-
 
 /*
  ****************************************************************
@@ -105,7 +101,6 @@ typedef struct iAP2BuffPool_st {
 uint32_t iAP2BuffPoolGetBuffSize(uint8_t         buffType,
                                  uint32_t        maxBuffSize,
                                  uint16_t        maxBuffCount);
-
 
 /*
 ****************************************************************
@@ -136,7 +131,6 @@ iAP2BuffPool_t *iAP2BuffPoolInit(uint8_t   buffType,
                                  uint16_t  maxBuffCount,
                                  uint8_t  *buff);
 
-
 /*
 ****************************************************************
 **
@@ -157,7 +151,6 @@ iAP2BuffPool_t *iAP2BuffPoolInit(uint8_t   buffType,
 ****************************************************************
 */
 void iAP2BuffPoolCleanup(iAP2BuffPool_t *buffPool);
-
 
 /*
 ****************************************************************
@@ -182,7 +175,6 @@ void iAP2BuffPoolCleanup(iAP2BuffPool_t *buffPool);
 void *iAP2BuffPoolGet(iAP2BuffPool_t  *buffPool,
                       uintptr_t        param);
 
-
 /*
 ****************************************************************
 **
@@ -202,7 +194,6 @@ void *iAP2BuffPoolGet(iAP2BuffPool_t  *buffPool,
 */
 void iAP2BuffPoolReturn(iAP2BuffPool_t    *buffPool,
                         void              *buff);
-
 
 #ifdef __cplusplus
 }

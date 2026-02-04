@@ -72,14 +72,14 @@
 
 static pthread_mutex_t g_LogLock = PTHREAD_MUTEX_INITIALIZER;
 
-static BOOL g_Enable [kiAP2LogTypeCount] = {
+static BOOL g_Enable[kiAP2LogTypeCount] = {
     TRUE,   /* kiAP2LogTypeError */
     FALSE,  /* kiAP2LogTypeLog */
     FALSE,  /* kiAP2LogTypeLogDbg */
     FALSE   /* kiAP2LogTypeData */
 };
 
-static const char *g_LogTypeName [kiAP2LogTypeCount] = {
+static const char *g_LogTypeName[kiAP2LogTypeCount] = {
     "ERROR",
     "LOG",
     "DEBUG",
@@ -100,7 +100,6 @@ static void _PrintTime(char *outString, int outStringLen, iAP2LogType_t type,
     snprintf(outString, outStringLen, "%s%s: %s%s", prefix, buf,
              g_LogTypeName[type], suffix);
 }
-
 
 /*
 ****************************************************************
@@ -127,7 +126,6 @@ char iAP2LogDataChar(char byte)
     return '.';
 }
 
-
 /*
 ****************************************************************
 **
@@ -147,10 +145,9 @@ char iAP2LogDataChar(char byte)
 void iAP2LogEnable(iAP2LogType_t type)
 {
     if (type < kiAP2LogTypeCount) {
-        g_Enable [type] = TRUE;
+        g_Enable[type] = TRUE;
     }
 }
-
 
 /*
 ****************************************************************
@@ -171,10 +168,9 @@ void iAP2LogEnable(iAP2LogType_t type)
 void iAP2LogDisable(iAP2LogType_t type)
 {
     if (type < kiAP2LogTypeCount) {
-        g_Enable [type] = FALSE;
+        g_Enable[type] = FALSE;
     }
 }
-
 
 /*
 ****************************************************************
@@ -207,7 +203,6 @@ void iAP2LogType(iAP2LogType_t type, const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -238,7 +233,6 @@ void iAP2LogTypeNL(iAP2LogType_t type, const char *format, ...)
         va_end(args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -271,7 +265,6 @@ void iAP2LogTypePureNL(iAP2LogType_t type, const char *format, ...)
         va_end(args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -311,7 +304,6 @@ void iAP2LogTypeVNL(iAP2LogType_t type, const char *format, va_list args)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -348,7 +340,6 @@ void iAP2LogTypePureVNL(iAP2LogType_t type, const char *format, va_list args)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -379,7 +370,6 @@ void iAP2Log(const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -409,7 +399,6 @@ void iAP2LogNL(const char *format, ...)
         va_end(args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -442,7 +431,6 @@ void iAP2LogPureNL(const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -469,7 +457,6 @@ void iAP2LogVNL(const char *format, va_list args)
         iAP2LogTypeVNL(kiAP2LogTypeLog, format, args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -501,7 +488,6 @@ void iAP2LogDbg(const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -531,7 +517,6 @@ void iAP2LogDbgNL(const char *format, ...)
         va_end(args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -564,7 +549,6 @@ void iAP2LogDbgPureNL(const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -591,7 +575,6 @@ void iAP2LogDbgVNL(const char *format, va_list args)
         iAP2LogTypeVNL(kiAP2LogTypeLogDbg, format, args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -623,7 +606,6 @@ void iAP2LogError(const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -653,7 +635,6 @@ void iAP2LogErrorNL(const char *format, ...)
         va_end(args);
     }
 }
-
 
 /*
 ****************************************************************
@@ -686,7 +667,6 @@ void iAP2LogErrorPureNL(const char *format, ...)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -714,7 +694,6 @@ void iAP2LogErrorVNL(const char *format, va_list args)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -741,7 +720,6 @@ void iAP2LogStart(void)
     pthread_mutex_lock(&g_LogLock);
 }
 
-
 /*
 ****************************************************************
 **
@@ -767,7 +745,6 @@ void iAP2LogStop(void)
 {
     pthread_mutex_unlock(&g_LogLock);
 }
-
 
 /*
 ****************************************************************
@@ -810,7 +787,6 @@ void iAP2LogPrintData(const unsigned char *data,
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -852,7 +828,6 @@ void iAP2LogPrintDataNL(const unsigned char *data,
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -893,7 +868,6 @@ void iAP2LogPrintDataPureNL(const unsigned char *data,
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -959,7 +933,7 @@ void iAP2LogPrintDataVNL(const unsigned char *data,
                     memset(tmpStr, ' ', 8 * sizeof(char));
                 }
 
-                tmpStr [i & 0x07] = data[i];
+                tmpStr[i & 0x07] = data[i];
                 sprintf(&lineStr[lineStrLen],
                         "%02X ", data[i]);
                 lineStrLen = strlen(lineStr);
@@ -988,7 +962,6 @@ void iAP2LogPrintDataVNL(const unsigned char *data,
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -1056,7 +1029,7 @@ void iAP2LogPrintDataPureVNL(const unsigned char *data,
                     memset(tmpStr, ' ', 8 * sizeof(char));
                 }
 
-                tmpStr [i & 0x07] = data[i];
+                tmpStr[i & 0x07] = data[i];
                 sprintf(&lineStr[lineStrLen],
                         "%02X ", data[i]);
                 lineStrLen = strlen(lineStr);
@@ -1085,5 +1058,3 @@ void iAP2LogPrintDataPureVNL(const unsigned char *data,
         }
     }
 }
-
-

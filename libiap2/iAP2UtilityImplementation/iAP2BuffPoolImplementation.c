@@ -65,11 +65,9 @@
 #include <iAP2Packet.h>
 #include <iAP2BuffPoolImplementation.h>
 
-
 #if iAP2_ALLOW_LARGE_PACKET_MALLOC == 0
 #define MAX_ALLOC_SIZE 0x8000
 #endif
-
 
 /*
 ****************************************************************
@@ -88,7 +86,6 @@ typedef struct __iAP2BuffPoolBuffListImplData_st
 
 } __iAP2BuffPoolBuffListImplData_t;
 */
-
 
 /* Function to return amount of memory required for proper operation */
 uint32_t __iAP2BuffPoolGetBuffSizeBuffList(uint32_t maxBuffSize,
@@ -131,8 +128,6 @@ void __iAP2BuffPoolReturnBuff(iAP2BuffPool_t *buffPool, void *buff)
     free(buff);
 }
 
-
-
 //#pragma mark -
 //#pragma mark iAP2BuffPool SendPacketList user implementations
 
@@ -142,7 +137,6 @@ typedef struct __iAP2BuffPoolSendPacketListImplData_st
 
 } __iAP2BuffPoolSendPacketListImplData_t;
 */
-
 
 /* Function to return amount of memory required for proper operation */
 uint32_t __iAP2BuffPoolGetBuffSizeSendPacketList(uint32_t maxBuffSize,
@@ -188,7 +182,6 @@ void *__iAP2BuffPoolGetSendPacket(iAP2BuffPool_t *buffPool, uint32_t payloadLen)
         pck = (iAP2Packet_t *) malloc(sizeof(iAP2Packet_t) + pckLen);
         assert(pck);
         pck->pckData = (iAP2PacketData_t *)(pck + 1);
-
     } else {
         pck = (iAP2Packet_t *) malloc(sizeof(iAP2Packet_t));
         assert(pck);
@@ -210,7 +203,6 @@ void __iAP2BuffPoolReturnSendPacket(iAP2BuffPool_t *buffPool, void *packet)
 
     if (pck->packetLen <= MAX_ALLOC_SIZE) {
         free(pck);
-
     } else {
         free(pck->pckData);
         free(pck);
@@ -218,8 +210,6 @@ void __iAP2BuffPoolReturnSendPacket(iAP2BuffPool_t *buffPool, void *packet)
 
 #endif
 }
-
-
 
 //#pragma mark -
 //#pragma mark iAP2BuffPool RecvPacketList user implementations
@@ -230,7 +220,6 @@ typedef struct __iAP2BuffPoolRecvPacketListImplData_st
 
 } __iAP2BuffPoolRecvPacketListImplData_t;
 */
-
 
 /* Function to return amount of memory required for proper operation */
 uint32_t __iAP2BuffPoolGetBuffSizeRecvPacketList(uint32_t maxBuffSize,
@@ -276,7 +265,6 @@ void *__iAP2BuffPoolGetRecvPacket(iAP2BuffPool_t *buffPool, uint32_t payloadLen)
         pck = (iAP2Packet_t *) malloc(sizeof(iAP2Packet_t) + pckLen);
         assert(pck);
         pck->pckData = (iAP2PacketData_t *)(pck + 1);
-
     } else {
         pck = (iAP2Packet_t *) malloc(sizeof(iAP2Packet_t));
         assert(pck);
@@ -298,7 +286,6 @@ void __iAP2BuffPoolReturnRecvPacket(iAP2BuffPool_t *buffPool, void *packet)
 
     if (pck->packetLen <= MAX_ALLOC_SIZE) {
         free(pck);
-
     } else {
         free(pck->pckData);
         free(pck);
@@ -306,5 +293,3 @@ void __iAP2BuffPoolReturnRecvPacket(iAP2BuffPool_t *buffPool, void *packet)
 
 #endif
 }
-
-

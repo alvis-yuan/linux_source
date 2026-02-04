@@ -87,7 +87,6 @@ iAP2FSMEventAction_t iAP2FSMGetActionForEvent(iAP2FSM_t     *fsm,
     return (fsm->states[fsm->currentState].events)[event].action;
 }
 
-
 /*
 ****************************************************************
 **
@@ -112,7 +111,6 @@ unsigned int iAP2FSMGetNextStateForEvent(iAP2FSM_t    *fsm,
     return (fsm->states[fsm->currentState].events)[event].nextState;
 }
 
-
 /*
 ****************************************************************
 **
@@ -135,7 +133,6 @@ uint32_t iAP2FSMGetBuffSize(void)
     uint32_t result = sizeof(iAP2FSM_t);
     return result;
 }
-
 
 /*
 ****************************************************************
@@ -185,7 +182,6 @@ iAP2FSM_t *iAP2FSMCreate(unsigned int                  stateCount,
     return fsm;
 }
 
-
 /*
 ****************************************************************
 **
@@ -206,7 +202,6 @@ void iAP2FSMDelete(iAP2FSM_t *fsm)
 {
     /* Do Nothing */
 }
-
 
 /*
 ****************************************************************
@@ -255,7 +250,6 @@ void iAP2FSMHandleEvent(iAP2FSM_t *fsm, unsigned int event)
                            fsm->currentState, (fsm->stateNames ? fsm->stateNames[fsm->currentState] : ""));
 #endif
                 assert(fsm->currentState < fsm->stateCount);
-
             } else {
                 iAP2LogError("%s:%d '%s'(%p): No handler for event(%d:%s) for state(%d:%s)\n",
                              __func__, __LINE__, (fsm->name ? fsm->name : ""), fsm,
@@ -267,11 +261,9 @@ void iAP2FSMHandleEvent(iAP2FSM_t *fsm, unsigned int event)
 
         /* Finished processing events, set current event back to invalid */
         fsm->currentEvent = fsm->eventCount;
-
     } else {
         iAP2LogError("%s:%d '%s': NULL fsm(%p) pointer or invalid event(%d:%s)!\n",
                      __func__, __LINE__, (fsm && fsm->name ? fsm->name : ""), fsm,
                      tmpEvent, (fsm && fsm->eventNames ? fsm->eventNames[tmpEvent] : ""));
     }
 }
-

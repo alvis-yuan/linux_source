@@ -61,7 +61,6 @@
 #include <iAP2Time.h>
 #include <iAP2ListArray.h>
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -97,7 +96,6 @@ struct iAP2Timer_st {
 
 };
 
-
 /*
 ****************************************************************
 **
@@ -123,7 +121,6 @@ struct iAP2Timer_st {
 ****************************************************************
 */
 void _iAP2TimeCleanupCallback(iAP2Timer_t *timer);
-
 
 /*
 ****************************************************************
@@ -153,7 +150,6 @@ BOOL _iAP2TimeCallbackAfter(iAP2Timer_t *timer,
                             uint32_t     delayMs,
                             iAP2TimeCB_t callback);
 
-
 /*
 ****************************************************************
 **
@@ -180,7 +176,6 @@ BOOL _iAP2TimeCallbackAfter(iAP2Timer_t *timer,
 void _iAP2TimePerformCallback(iAP2Timer_t *timer,
                               iAP2TimeCB_t callback);
 
-
 /*
 ****************************************************************
 **
@@ -200,7 +195,6 @@ void _iAP2TimePerformCallback(iAP2Timer_t *timer,
 ****************************************************************
 */
 void _iAP2TimeCancelCallback(iAP2Timer_t *timer);
-
 
 #ifdef __cplusplus
 }

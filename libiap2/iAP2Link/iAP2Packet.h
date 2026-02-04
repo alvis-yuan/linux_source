@@ -59,7 +59,6 @@
 #include <iAP2Defines.h>
 #include <iAP2Time.h>
 
-
 /*
 ******************************************************
 **
@@ -236,10 +235,8 @@ typedef enum {
 
 } iAP2PacketServiceType_t;
 
-
 #define IAP2_HI_BYTE(X) (((X) >> 8) & 0xFF)
 #define IAP2_LO_BYTE(X) ((X) & 0xFF)
-
 
 #pragma pack(push,1)
 
@@ -310,7 +307,6 @@ typedef struct {
 } iAP2PacketSYNData_t;
 #pragma pack(pop)
 
-
 /* To create and delete packets, must use functions provided here. */
 typedef struct iAP2Packet_st {
     void       *link;       /* link associated with this packet */
@@ -344,7 +340,6 @@ typedef struct iAP2Packet_st {
 
 } iAP2Packet_t;
 
-
 /*
 ****************************************************************
 **
@@ -377,7 +372,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                                uint32_t       *failedChecksums,
                                uint32_t       *sopDetect);
 
-
 /*
 ****************************************************************
 **
@@ -395,7 +389,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
 ****************************************************************
 */
 BOOL iAP2PacketIsComplete(const iAP2Packet_t *pck);
-
 
 /*
 ****************************************************************
@@ -415,7 +408,6 @@ BOOL iAP2PacketIsComplete(const iAP2Packet_t *pck);
 */
 BOOL iAP2PacketIsACKOnly(const iAP2Packet_t *pck);
 
-
 /*
 ****************************************************************
 **
@@ -434,7 +426,6 @@ BOOL iAP2PacketIsACKOnly(const iAP2Packet_t *pck);
 */
 BOOL iAP2PacketIsDataPacket(const iAP2Packet_t *pck);
 
-
 /*
 ****************************************************************
 **
@@ -452,7 +443,6 @@ BOOL iAP2PacketIsDataPacket(const iAP2Packet_t *pck);
 ****************************************************************
 */
 BOOL iAP2PacketIsEAK(const iAP2Packet_t *pck);
-
 
 /*
 ****************************************************************
@@ -473,7 +463,6 @@ BOOL iAP2PacketIsEAK(const iAP2Packet_t *pck);
 */
 BOOL iAP2PacketEqual(const iAP2Packet_t *packet1, const iAP2Packet_t *packet2);
 
-
 /*
 ****************************************************************
 **
@@ -491,7 +480,6 @@ BOOL iAP2PacketEqual(const iAP2Packet_t *packet1, const iAP2Packet_t *packet2);
 ****************************************************************
 */
 uint32_t iAP2PacketGetBuffSize(uint16_t payloadSize);
-
 
 /*
 ****************************************************************
@@ -513,7 +501,6 @@ uint32_t iAP2PacketGetBuffSize(uint16_t payloadSize);
 */
 iAP2Packet_t *iAP2PacketCreateEmptyPacket(void *link);
 
-
 /*
 ****************************************************************
 **
@@ -532,7 +519,6 @@ iAP2Packet_t *iAP2PacketCreateEmptyPacket(void *link);
 */
 iAP2Packet_t *iAP2PacketCreateEmptySendPacket(void *link);
 
-
 /*
 ****************************************************************
 **
@@ -550,7 +536,6 @@ iAP2Packet_t *iAP2PacketCreateEmptySendPacket(void *link);
 ****************************************************************
 */
 iAP2Packet_t *iAP2PacketCreateEmptyRecvPacket(void *link);
-
 
 /*
 ****************************************************************
@@ -584,7 +569,6 @@ iAP2Packet_t *iAP2PacketCreate(void           *link,
                                uint8_t         session,
                                BOOL            sendPacket);
 
-
 /*
 ****************************************************************
 **
@@ -602,7 +586,6 @@ iAP2Packet_t *iAP2PacketCreate(void           *link,
 ****************************************************************
 */
 void iAP2PacketDelete(iAP2Packet_t *pck);
-
 
 /*
 ****************************************************************
@@ -625,7 +608,6 @@ void iAP2PacketDelete(iAP2Packet_t *pck);
 */
 void iAP2PacketResetPacket(iAP2Packet_t *pck);
 
-
 /*
 ****************************************************************
 **
@@ -645,7 +627,6 @@ void iAP2PacketResetPacket(iAP2Packet_t *pck);
 */
 uint16_t iAP2PacketGetSpaceLeft(iAP2Packet_t  *packet,
                                 uint16_t       maxPacketLen);
-
 
 /*
 ****************************************************************
@@ -674,7 +655,6 @@ iAP2Packet_t *iAP2PacketCreateACKPacket(void          *link,
                                         const uint8_t *payload,
                                         uint32_t       payloadLen,
                                         uint8_t        session);
-
 
 /*
 ****************************************************************
@@ -717,7 +697,6 @@ iAP2Packet_t *iAP2PacketCreateSYNPacket(void          *link,
                                         uint8_t        numSessionInfo,
                                         iAP2PacketSessionInfo_t *sessionInfo);
 
-
 /*
 ****************************************************************
 **
@@ -744,7 +723,6 @@ iAP2Packet_t *iAP2PacketCreateEAKPacket(void          *link,
                                         const uint8_t *outOfSeq,
                                         uint32_t       outOfSeqCount);
 
-
 /*
 ****************************************************************
 **
@@ -765,7 +743,6 @@ iAP2Packet_t *iAP2PacketCreateEAKPacket(void          *link,
 iAP2Packet_t *iAP2PacketCreateRSTPacket(void   *link,
                                         uint8_t seq);
 
-
 /*
 ****************************************************************
 **
@@ -785,7 +762,6 @@ iAP2Packet_t *iAP2PacketCreateRSTPacket(void   *link,
 */
 iAP2Packet_t *iAP2PacketCreateSUSPacket(void   *link,
                                         uint8_t seq);
-
 
 /*
 ****************************************************************
@@ -808,7 +784,6 @@ iAP2Packet_t *iAP2PacketCreateSUSPacket(void   *link,
 */
 uint8_t *iAP2PacketGenerateBuffer(iAP2Packet_t *packet);
 
-
 /*
  ****************************************************************
  **
@@ -827,7 +802,6 @@ uint8_t *iAP2PacketGenerateBuffer(iAP2Packet_t *packet);
  ****************************************************************
  */
 uint8_t *iAP2PacketGetBuffer(iAP2Packet_t *packet);
-
 
 /*
  ****************************************************************
@@ -848,7 +822,6 @@ uint8_t *iAP2PacketGetBuffer(iAP2Packet_t *packet);
  */
 uint8_t *iAP2PacketGetPayload(iAP2Packet_t *packet);
 
-
 /*
  ****************************************************************
  **
@@ -866,7 +839,6 @@ uint8_t *iAP2PacketGetPayload(iAP2Packet_t *packet);
  ****************************************************************
  */
 uint16_t iAP2PacketGetPayloadLen(const iAP2Packet_t *packet);
-
 
 /*
 ****************************************************************
@@ -888,7 +860,6 @@ uint16_t iAP2PacketGetPayloadLen(const iAP2Packet_t *packet);
 void iAP2PacketParseSYNData(const uint8_t         *data,
                             uint32_t               dataLen,
                             iAP2PacketSYNData_t   *synData);
-
 
 /*
 ****************************************************************
@@ -912,7 +883,6 @@ uint8_t *iAP2PacketGetMissingSeqFromEAK(iAP2Packet_t *eakPacket,
                                         uint8_t       window,
                                         uint32_t     *missingLen);
 
-
 /*
 ****************************************************************
 **
@@ -932,7 +902,6 @@ uint8_t *iAP2PacketGetMissingSeqFromEAK(iAP2Packet_t *eakPacket,
 */
 uint8_t iAP2PacketCalcChecksum(const uint8_t  *buffer,
                                uint32_t        bufferLen);
-
 
 /*
 ****************************************************************
@@ -958,7 +927,6 @@ uint8_t iAP2PacketCopyAndCalcChecksum(uint8_t         *dst,
                                       const uint8_t   *src,
                                       uint32_t         len);
 
-
 /*
 ****************************************************************
 **
@@ -976,7 +944,6 @@ uint8_t iAP2PacketCopyAndCalcChecksum(uint8_t         *dst,
 ****************************************************************
 */
 uint8_t iAP2PacketCalcHeaderChecksum(iAP2Packet_t *pck);
-
 
 /*
 ****************************************************************
@@ -996,7 +963,6 @@ uint8_t iAP2PacketCalcHeaderChecksum(iAP2Packet_t *pck);
 */
 uint8_t iAP2PacketCalcPayloadChecksum(iAP2Packet_t *pck);
 
-
 /*
 ****************************************************************
 **
@@ -1014,7 +980,6 @@ uint8_t iAP2PacketCalcPayloadChecksum(iAP2Packet_t *pck);
 ****************************************************************
 */
 uint8_t iAP2PacketNextSeq(uint8_t curSeq);
-
 
 /*
 ****************************************************************
@@ -1034,7 +999,6 @@ uint8_t iAP2PacketNextSeq(uint8_t curSeq);
 ****************************************************************
 */
 uint8_t iAP2PacketCalcSeqGap(uint8_t curSeq, uint8_t nextSeq);
-
 
 /*
 ****************************************************************
@@ -1060,7 +1024,6 @@ uint8_t iAP2PacketCalcSeqGap(uint8_t curSeq, uint8_t nextSeq);
 */
 BOOL iAP2PacketIsSeqACKd(uint8_t seq, uint8_t ack, uint8_t window);
 
-
 /*
 ****************************************************************
 **
@@ -1078,7 +1041,6 @@ BOOL iAP2PacketIsSeqACKd(uint8_t seq, uint8_t ack, uint8_t window);
 ****************************************************************
 */
 BOOL iAP2PacketRequireACK(iAP2Packet_t *packet);
-
 
 /*
 ****************************************************************
@@ -1099,7 +1061,6 @@ BOOL iAP2PacketRequireACK(iAP2Packet_t *packet);
 */
 BOOL iAP2PacketCheckDetect(iAP2Packet_t *pck);
 
-
 /*
 ****************************************************************
 **
@@ -1118,7 +1079,6 @@ BOOL iAP2PacketCheckDetect(iAP2Packet_t *pck);
 ****************************************************************
 */
 BOOL iAP2PacketCheckDetectNACK(iAP2Packet_t *pck);
-
 
 /*
 ****************************************************************
@@ -1146,7 +1106,6 @@ void iAP2PacketDebugPrintPacket(iAP2Packet_t  *packet,
                                 const char    *tag,
                                 const char    *indent);
 
-
 /*
 ****************************************************************
 **
@@ -1173,7 +1132,6 @@ void iAP2PacketDebugPrintPacketNL(iAP2Packet_t  *packet,
                                   const char    *tag,
                                   const char    *indent);
 
-
 /*
 ****************************************************************
 **
@@ -1196,7 +1154,6 @@ char *iAP2PacketDebugStringPacketShortNL(iAP2Packet_t *packet,
         char         *buff,
         uint32_t      buffLen);
 
-
 /*
 ****************************************************************
 **
@@ -1214,7 +1171,6 @@ char *iAP2PacketDebugStringPacketShortNL(iAP2Packet_t *packet,
 ****************************************************************
 */
 void iAP2PacketDebugPrintPacketShortNL(iAP2Packet_t  *packet);
-
 
 /*
 ****************************************************************
@@ -1235,7 +1191,6 @@ void iAP2PacketDebugPrintPacketShortNL(iAP2Packet_t  *packet);
 */
 void iAP2PacketAssignTimer(iAP2Packet_t *pck, uint16_t timer);
 
-
 /*
 ****************************************************************
 **
@@ -1253,7 +1208,6 @@ void iAP2PacketAssignTimer(iAP2Packet_t *pck, uint16_t timer);
 ****************************************************************
 */
 void iAP2PacketRemoveTimer(iAP2Packet_t *pck);
-
 
 /*
 ****************************************************************
@@ -1274,7 +1228,6 @@ void iAP2PacketRemoveTimer(iAP2Packet_t *pck);
 */
 const char *iAP2PacketName(iAP2Packet_t *packet);
 
-
 /*
 ****************************************************************
 **
@@ -1292,7 +1245,6 @@ const char *iAP2PacketName(iAP2Packet_t *packet);
 ****************************************************************
 */
 uint16_t iAP2PacketGetTimeoutID(iAP2Packet_t *packet);
-
 
 #ifdef __cplusplus
 }

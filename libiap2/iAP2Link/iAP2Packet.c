@@ -71,7 +71,7 @@
 #endif
 
 #if DEBUG
-static const char *stateName [kiAP2PacketParseStateLAST + 1] = {
+static const char *stateName[kiAP2PacketParseStateLAST + 1] = {
     "SOP1",
     "SOP2",
     "LEN1",
@@ -88,7 +88,6 @@ static const char *stateName [kiAP2PacketParseStateLAST + 1] = {
     "DETECTBAD"
 };
 #endif
-
 
 /*
  ****************************************************************
@@ -142,7 +141,7 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
         while (pt < ptEnd && packet->state < kiAP2PacketParseStateFINISH) {
 #if iAP2PACKET_DEBUG_PARSE
             iAP2LogDbg("%s:%d state(%u:%s) dataCurLen=%u packetLen=%u bufferLen=%u\n",
-                       __func__, __LINE__, packet->state, stateName [packet->state],
+                       __func__, __LINE__, packet->state, stateName[packet->state],
                        packet->dataCurLen, packet->packetLen, packet->bufferLen);
 #endif
 
@@ -174,7 +173,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                         packet->state = kiAP2PacketParseStateLEN1;
                         packet->pckData->sop2 = *pt;
                         packet->bufferLen += 1;
-
                     } else if (kIAP2PacketSOPOrig == *pt) {
                         if (sopDetect) {
                             ++(*sopDetect);
@@ -183,7 +181,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                         packet->state = kiAP2PacketParseStateLEN1;
                         packet->pckData->sop2 = *pt;
                         packet->bufferLen += 1;
-
                     } else if (kIAP2PacketSYNC != *pt) {
                         packet->state = kiAP2PacketParseStateSOP1;
                     }
@@ -219,7 +216,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                         totParsedLen += 1;
                         pt += 1;
                         ptLen -= 1;
-
                     } else {
                         /*
                         ** Parse is done on received packets only which are
@@ -251,7 +247,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                     if (iAP2PacketCheckDetect(packet)) {
                         packet->state = kiAP2PacketParseStateDETECT;
                         *bDetect = TRUE;
-
                     } else {
                         packet->state = kiAP2PacketParseStateACK;
                     }
@@ -295,11 +290,9 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                         if (packet->packetLen == kIAP2PacketHeaderLen) {
                             packet->state = kiAP2PacketParseStateFINISH;
                         }
-
                     } else if (iAP2PacketCheckDetectNACK(packet)) {
                         packet->state = kiAP2PacketParseStateDETECTBAD;
                         *bDetect = TRUE;
-
                     } else {
                         /*
                         ** checksum failed, restart
@@ -336,7 +329,7 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                             bytesToCopy = ptLen;
                         }
 
-                        memcpy(&(iAP2PacketGetPayload(packet) [packet->dataCurLen]),
+                        memcpy(&(iAP2PacketGetPayload(packet)[packet->dataCurLen]),
                                pt,
                                bytesToCopy);
                         packet->dataCurLen += bytesToCopy;
@@ -353,7 +346,7 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                 break;
 
                 case kiAP2PacketParseStatePAYLOADCHK: {
-                    iAP2PacketGetPayload(packet) [packet->dataCurLen] = *pt;
+                    iAP2PacketGetPayload(packet)[packet->dataCurLen] = *pt;
                     /* Don't include Checksum Byte in payload data len (dataCurLen). */
                     /*packet->dataCurLen += 1;*/
                     packet->bufferLen += 1;
@@ -368,9 +361,8 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                         uint16_t payloadLen = iAP2PacketGetPayloadLen(packet);
                         packet->dataChecksum = iAP2PacketCalcChecksum(payload, payloadLen);
 
-                        if (packet->dataChecksum == payload [payloadLen]) {
+                        if (packet->dataChecksum == payload[payloadLen]) {
                             packet->state = kiAP2PacketParseStateFINISH;
-
                         } else {
                             /* Checksum failed, ignore packet. */
                             if (failedChecksums) {
@@ -384,7 +376,7 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
                                              "ParseBuffer",
                                              "%s:%d Payload Checksum Failed! (%xh != %xh) buffLen=%u seq=%u ack=%u len=%u control=%xh(%s)",
                                              __func__, __LINE__,
-                                             packet->dataChecksum, payload [payloadLen],
+                                             packet->dataChecksum, payload[payloadLen],
                                              packet->bufferLen,
                                              packet->pckData->seq, packet->pckData->ack, packet->packetLen,
                                              packet->pckData->ctl, iAP2PacketName(packet));
@@ -411,7 +403,6 @@ uint32_t iAP2PacketParseBuffer(const uint8_t  *buffer,
 
     return totParsedLen;
 }
-
 
 /*
 ****************************************************************
@@ -440,7 +431,6 @@ BOOL iAP2PacketIsComplete(const iAP2Packet_t *pck)
     return result;
 }
 
-
 /*
 ****************************************************************
 **
@@ -465,7 +455,6 @@ BOOL iAP2PacketIsACKOnly(const iAP2Packet_t *pck)
                                   kIAP2PacketControlMaskACK)) == kIAP2PacketControlMaskACK &&
             pck->packetLen == kIAP2PacketHeaderLen);
 }
-
 
 /*
  ****************************************************************
@@ -492,7 +481,6 @@ BOOL iAP2PacketIsDataPacket(const iAP2Packet_t *pck)
             pck->packetLen > kIAP2PacketHeaderLen);
 }
 
-
 /*
 ****************************************************************
 **
@@ -514,7 +502,6 @@ BOOL iAP2PacketIsEAK(const iAP2Packet_t *pck)
     return ((pck->pckData->ctl & (kIAP2PacketControlMaskEAK)) ==
             kIAP2PacketControlMaskEAK);
 }
-
 
 /*
 ****************************************************************
@@ -550,7 +537,6 @@ BOOL iAP2PacketEqual(const iAP2Packet_t *packet1, const iAP2Packet_t *packet2)
                      iAP2PacketGetPayloadLen(packet1)) == 0)));
 }
 
-
 /*
 ****************************************************************
 **
@@ -576,7 +562,6 @@ uint32_t iAP2PacketGetBuffSize(uint16_t payloadSize)
     return result;
 }
 
-
 /*
 ****************************************************************
 **
@@ -599,7 +584,6 @@ iAP2Packet_t *iAP2PacketCreateEmptyPacket(void *link)
 {
     return iAP2PacketCreateEmptyRecvPacket(link);
 }
-
 
 /*
 ****************************************************************
@@ -632,7 +616,6 @@ iAP2Packet_t *iAP2PacketCreateEmptySendPacket(void *link)
     return pck;
 }
 
-
 /*
 ****************************************************************
 **
@@ -663,7 +646,6 @@ iAP2Packet_t *iAP2PacketCreateEmptyRecvPacket(void *link)
     iAP2PacketResetPacket(pck);
     return pck;
 }
-
 
 /*
 ****************************************************************
@@ -702,7 +684,6 @@ iAP2Packet_t *iAP2PacketCreate(void           *link,
 
     if (sendPacket) {
         pck = iAP2PacketCreateEmptySendPacket(link);
-
     } else {
         pck = iAP2PacketCreateEmptyRecvPacket(link);
     }
@@ -737,7 +718,6 @@ iAP2Packet_t *iAP2PacketCreate(void           *link,
     pck->callbackOnSend = NULL;
     return pck;
 }
-
 
 /*
 ****************************************************************
@@ -775,7 +755,6 @@ void iAP2PacketDelete(iAP2Packet_t *pck)
 
     if (pck->sendPacket) {
         iAP2BuffPoolReturn(((iAP2Link_t *)link)->sendPckPool, pck);
-
     } else {
         iAP2BuffPoolReturn(((iAP2Link_t *)link)->recvPckPool, pck);
     }
@@ -784,7 +763,6 @@ void iAP2PacketDelete(iAP2Packet_t *pck)
     iAP2LogStop();
 #endif
 }
-
 
 /*
 ****************************************************************
@@ -820,7 +798,6 @@ void iAP2PacketResetPacket(iAP2Packet_t *pck)
     pck->retransmitCount = 0;
 }
 
-
 /*
 ****************************************************************
 **
@@ -848,7 +825,6 @@ uint16_t iAP2PacketGetSpaceLeft(iAP2Packet_t  *packet,
             ? maxPacketLen - (packetLen + addChecksumLen)
             : 0);
 }
-
 
 /*
 ****************************************************************
@@ -888,7 +864,6 @@ iAP2Packet_t *iAP2PacketCreateACKPacket(void          *link,
                                          TRUE);
     return pck;
 }
-
 
 /*
 ****************************************************************
@@ -930,30 +905,30 @@ iAP2Packet_t *iAP2PacketCreateSYNPacket(void          *link,
                                         uint8_t        numSessionInfo,
                                         iAP2PacketSessionInfo_t *sessionInfo)
 {
-    uint8_t buff [kIAP2PacketSynDataBaseLen + kIAP2PacketMaxSessions * sizeof(
-                                                *sessionInfo)];
+    uint8_t buff[kIAP2PacketSynDataBaseLen + kIAP2PacketMaxSessions * sizeof(
+                     *sessionInfo)];
     uint8_t control = (kIAP2PacketControlMaskSYN +
                        (ack != NULL ? kIAP2PacketControlMaskACK : 0));
     iAP2Packet_t *pck = NULL;
     int i, j;
-    buff [kIAP2PacketSynDataIdxVersion]             = version;
-    buff [kIAP2PacketSynDataIdxMaxOutstanding]      = maxOutstanding;
-    buff [kIAP2PacketSynDataIdxMaxPacketSize]       = IAP2_HI_BYTE(maxPacketSize);
-    buff [kIAP2PacketSynDataIdxMaxPacketSize + 1]     = IAP2_LO_BYTE(maxPacketSize);
-    buff [kIAP2PacketSynDataIdxRetransmitTimeout]   = IAP2_HI_BYTE(reTxTimeout);
-    buff [kIAP2PacketSynDataIdxRetransmitTimeout + 1] = IAP2_LO_BYTE(reTxTimeout);;
-    buff [kIAP2PacketSynDataIdxCumAckTimeout]       = IAP2_HI_BYTE(cumAckTimeout);
-    buff [kIAP2PacketSynDataIdxCumAckTimeout + 1]     = IAP2_LO_BYTE(cumAckTimeout);
+    buff[kIAP2PacketSynDataIdxVersion]             = version;
+    buff[kIAP2PacketSynDataIdxMaxOutstanding]      = maxOutstanding;
+    buff[kIAP2PacketSynDataIdxMaxPacketSize]       = IAP2_HI_BYTE(maxPacketSize);
+    buff[kIAP2PacketSynDataIdxMaxPacketSize + 1]     = IAP2_LO_BYTE(maxPacketSize);
+    buff[kIAP2PacketSynDataIdxRetransmitTimeout]   = IAP2_HI_BYTE(reTxTimeout);
+    buff[kIAP2PacketSynDataIdxRetransmitTimeout + 1] = IAP2_LO_BYTE(reTxTimeout);;
+    buff[kIAP2PacketSynDataIdxCumAckTimeout]       = IAP2_HI_BYTE(cumAckTimeout);
+    buff[kIAP2PacketSynDataIdxCumAckTimeout + 1]     = IAP2_LO_BYTE(cumAckTimeout);
     ;
-    buff [kIAP2PacketSynDataIdxMaxRetransmit]       = maxRetransmit;
-    buff [kIAP2PacketSynDataIdxMaxCumACK]           = maxCumAck;
+    buff[kIAP2PacketSynDataIdxMaxRetransmit]       = maxRetransmit;
+    buff[kIAP2PacketSynDataIdxMaxCumACK]           = maxCumAck;
 
     for (i = 0, j = kIAP2PacketSynDataIdxSessionInfo;
          i < numSessionInfo && i < kIAP2PacketMaxSessions;
          ++i, j += kIAP2PacketSynSessionSize) {
-        buff [j + kIAP2PacketSynSessionIdxID]       = sessionInfo[i].id;
-        buff [j + kIAP2PacketSynSessionIdxType]     = sessionInfo[i].type;
-        buff [j + kIAP2PacketSynSessionIdxVersion]  = sessionInfo[i].version;
+        buff[j + kIAP2PacketSynSessionIdxID]       = sessionInfo[i].id;
+        buff[j + kIAP2PacketSynSessionIdxType]     = sessionInfo[i].type;
+        buff[j + kIAP2PacketSynSessionIdxVersion]  = sessionInfo[i].version;
     }
 
     pck = iAP2PacketCreate(link,
@@ -966,7 +941,6 @@ iAP2Packet_t *iAP2PacketCreateSYNPacket(void          *link,
                            TRUE);
     return pck;
 }
-
 
 /*
 ****************************************************************
@@ -1007,7 +981,6 @@ iAP2Packet_t *iAP2PacketCreateEAKPacket(void          *link,
     return pck;
 }
 
-
 /*
 ****************************************************************
 **
@@ -1038,7 +1011,6 @@ iAP2Packet_t *iAP2PacketCreateRSTPacket(void   *link,
                                          TRUE);
     return pck;
 }
-
 
 /*
 ****************************************************************
@@ -1071,7 +1043,6 @@ iAP2Packet_t *iAP2PacketCreateSUSPacket(void   *link,
                                          TRUE);
     return pck;
 }
-
 
 /*
 ****************************************************************
@@ -1115,17 +1086,15 @@ uint8_t *iAP2PacketGenerateBuffer(iAP2Packet_t *packet)
             /* Fill-in payload + payload checksum */
             if (data != NULL && dataLen > 0) {
                 packet->dataChecksum = iAP2PacketCalcChecksum(data, dataLen);
-                data [dataLen] = packet->dataChecksum;
+                data[dataLen] = packet->dataChecksum;
             }
         }
-
     } else {
         iAP2LogError("%s:%d NULL packet pointer!\n", __func__, __LINE__);
     }
 
     return iAP2PacketGetBuffer(packet);
 }
-
 
 /*
  ****************************************************************
@@ -1149,7 +1118,6 @@ uint8_t *iAP2PacketGetBuffer(iAP2Packet_t *packet)
     return (uint8_t *)(packet ? packet->pckData : NULL);
 }
 
-
 /*
  ****************************************************************
  **
@@ -1171,7 +1139,6 @@ uint8_t *iAP2PacketGetPayload(iAP2Packet_t *packet)
 {
     return packet->pckData->data;
 }
-
 
 /*
  ****************************************************************
@@ -1199,7 +1166,6 @@ uint16_t iAP2PacketGetPayloadLen(const iAP2Packet_t *packet)
 
     return payloadLen;
 }
-
 
 /*
 ****************************************************************
@@ -1234,7 +1200,7 @@ void iAP2PacketParseSYNData(const uint8_t         *data,
         synData->retransmitTimeout     = data[kIAP2PacketSynDataIdxRetransmitTimeout];
         synData->retransmitTimeout   <<= 8;
         synData->retransmitTimeout    += data[kIAP2PacketSynDataIdxRetransmitTimeout +
-                                                                                     1];
+                                              1];
         synData->cumAckTimeout         = data[kIAP2PacketSynDataIdxCumAckTimeout];
         synData->cumAckTimeout       <<= 8;
         synData->cumAckTimeout        += data[kIAP2PacketSynDataIdxCumAckTimeout + 1];
@@ -1256,7 +1222,6 @@ void iAP2PacketParseSYNData(const uint8_t         *data,
         synData->numSessionInfo = numSessionInfo;
     }
 }
-
 
 /*
 ****************************************************************
@@ -1324,11 +1289,11 @@ uint8_t *iAP2PacketGetMissingSeqFromEAK(iAP2Packet_t *eakPacket,
                     maxGap = gap;
                 }
 
-                if (tmpResult [gap - 1] != -1) {
+                if (tmpResult[gap - 1] != -1) {
                     --resultLen;
                 }
 
-                tmpResult [gap - 1] = -1;
+                tmpResult[gap - 1] = -1;
             }
 
             ++data;
@@ -1378,7 +1343,6 @@ uint8_t *iAP2PacketGetMissingSeqFromEAK(iAP2Packet_t *eakPacket,
     return result;
 }
 
-
 /*
 ****************************************************************
 **
@@ -1410,7 +1374,6 @@ uint8_t iAP2PacketCalcChecksum(const uint8_t  *buffer,
         }
 
         checksum = (uint8_t)(0x100 - checksum); /* 2's complement negative checksum */
-
     } else {
         iAP2LogError("%s:%d NULL buffer(%p) pointer or nothing to copy (len=%u)!\n",
                      __func__, __LINE__, buffer, bufferLen);
@@ -1418,7 +1381,6 @@ uint8_t iAP2PacketCalcChecksum(const uint8_t  *buffer,
 
     return checksum;
 }
-
 
 /*
 ****************************************************************
@@ -1455,7 +1417,6 @@ uint8_t iAP2PacketCopyAndCalcChecksum(uint8_t         *dst,
         }
 
         checksum = (uint8_t)(0x100 - checksum); /* 2's complement negative checksum */
-
     } else {
         iAP2LogError("%s:%d NULL dst(%p) or src(%p) pointer or nothing to copy (len=%u)!\n",
                      __func__, __LINE__, dst, src, len);
@@ -1463,7 +1424,6 @@ uint8_t iAP2PacketCopyAndCalcChecksum(uint8_t         *dst,
 
     return checksum;
 }
-
 
 /*
 ****************************************************************
@@ -1486,26 +1446,24 @@ uint8_t iAP2PacketCalcHeaderChecksum(iAP2Packet_t *pck)
     uint8_t checksum = 0;
 
     if (pck != NULL) {
-        uint8_t buff [kIAP2PacketHeaderLen];
-        buff [kIAP2PacketIndexSYNC] = kIAP2PacketSYNC;
-        buff [kIAP2PacketIndexSOP]  = kIAP2PacketSOP;
-        buff [kIAP2PacketIndexLEN1] = IAP2_HI_BYTE(pck->packetLen);
-        buff [kIAP2PacketIndexLEN2] = IAP2_LO_BYTE(pck->packetLen);
-        buff [kIAP2PacketIndexCTRL] = pck->pckData->ctl;
-        buff [kIAP2PacketIndexSEQ]  = pck->pckData->seq;
-        buff [kIAP2PacketIndexACK]  = pck->pckData->ack;
+        uint8_t buff[kIAP2PacketHeaderLen];
+        buff[kIAP2PacketIndexSYNC] = kIAP2PacketSYNC;
+        buff[kIAP2PacketIndexSOP]  = kIAP2PacketSOP;
+        buff[kIAP2PacketIndexLEN1] = IAP2_HI_BYTE(pck->packetLen);
+        buff[kIAP2PacketIndexLEN2] = IAP2_LO_BYTE(pck->packetLen);
+        buff[kIAP2PacketIndexCTRL] = pck->pckData->ctl;
+        buff[kIAP2PacketIndexSEQ]  = pck->pckData->seq;
+        buff[kIAP2PacketIndexACK]  = pck->pckData->ack;
         pck->pckData->chk = iAP2PacketCalcChecksum(buff,
                             (kIAP2PacketHeaderLen
                              - kIAP2PacketChksumLen));
         checksum = pck->pckData->chk;
-
     } else {
         iAP2LogError("%s:%d NULL packet pointer!\n", __func__, __LINE__);
     }
 
     return checksum;
 }
-
 
 /*
 ****************************************************************
@@ -1536,14 +1494,12 @@ uint8_t iAP2PacketCalcPayloadChecksum(iAP2Packet_t *pck)
         }
 
         checksum = pck->dataChecksum;
-
     } else {
         iAP2LogError("%s:%d NULL packet pointer!\n", __func__, __LINE__);
     }
 
     return checksum;
 }
-
 
 /*
 ****************************************************************
@@ -1566,7 +1522,6 @@ uint8_t iAP2PacketNextSeq(uint8_t curSeq)
     return (uint8_t)(curSeq + 1);
 }
 
-
 /*
 ****************************************************************
 **
@@ -1588,14 +1543,12 @@ uint8_t iAP2PacketCalcSeqGap(uint8_t curSeq, uint8_t nextSeq)
 {
     if (curSeq < nextSeq) {
         return nextSeq - curSeq;
-
     } else if (curSeq == nextSeq) {
         return 0;
     }
 
     return nextSeq + (0x100 - curSeq);
 }
-
 
 /*
 ****************************************************************
@@ -1630,7 +1583,6 @@ BOOL iAP2PacketIsSeqACKd(uint8_t seq, uint8_t ack, uint8_t window)
     return TRUE;
 }
 
-
 /*
 ****************************************************************
 **
@@ -1662,7 +1614,6 @@ BOOL iAP2PacketRequireACK(iAP2Packet_t *packet)
 
     return FALSE;
 }
-
 
 /*
 ****************************************************************
@@ -1696,7 +1647,6 @@ void iAP2PacketDebugPrintPacket(iAP2Packet_t  *packet,
     iAP2LogStop();
 #endif
 }
-
 
 /*
 ****************************************************************
@@ -1732,12 +1682,10 @@ void iAP2PacketDebugPrintPacketNL(iAP2Packet_t  *packet,
         iAP2LogTypeNL(kiAP2LogTypeData,
                       "%s%s%s%s PACKET 'DETECT' packet(%p)\n",
                       (tag ? tag : ""), (tag ? ": " : ""), indent, packet);
-
     } else if (packet->state == kiAP2PacketParseStateDETECTBAD) {
         iAP2LogTypeNL(kiAP2LogTypeData,
                       "%s%s%s%s PACKET 'DETECT BAD ACK' packet(%p)\n",
                       (tag ? tag : ""), (tag ? ": " : ""), indent, packet);
-
     } else {
         uint8_t *p;
         uint8_t *pEnd;
@@ -1817,7 +1765,7 @@ void iAP2PacketDebugPrintPacketNL(iAP2Packet_t  *packet,
                     memset(tmpStr, ' ', 8 * sizeof(char));
                 }
 
-                tmpStr [count & 0x07] = *p;
+                tmpStr[count & 0x07] = *p;
                 sprintf(&lineStr[lineStrLen],
                         "%02X ",  *(p++));
                 lineStrLen = strlen(lineStr);
@@ -1879,7 +1827,7 @@ void iAP2PacketDebugPrintPacketNL(iAP2Packet_t  *packet,
                     memset(tmpStr, ' ', 8 * sizeof(char));
                 }
 
-                tmpStr [count & 0x07] = *p;
+                tmpStr[count & 0x07] = *p;
                 sprintf(&lineStr[lineStrLen],
                         "%02X ",  *(p++));
                 lineStrLen = strlen(lineStr);
@@ -1910,7 +1858,6 @@ void iAP2PacketDebugPrintPacketNL(iAP2Packet_t  *packet,
 #endif
 }
 
-
 /*
 ****************************************************************
 **
@@ -1937,10 +1884,8 @@ char *iAP2PacketDebugStringPacketShortNL(iAP2Packet_t *packet,
 
     if (packet->state == kiAP2PacketParseStateDETECT) {
         snprintf(buff, buffLen, "pck(%p/'DETECT')", packet);
-
     } else if (packet->state == kiAP2PacketParseStateDETECTBAD) {
         snprintf(buff, buffLen, "pck(%p/'DETECT BAD ACK')", packet);
-
     } else {
         snprintf(buff, buffLen,
                  "pck(%p/ctl=%xh/seq=%u/ack=%u/sess=%u/size=%u(%s%s%s%s)",
@@ -1956,7 +1901,6 @@ char *iAP2PacketDebugStringPacketShortNL(iAP2Packet_t *packet,
 #endif
     return buff;
 }
-
 
 /*
 ****************************************************************
@@ -1980,10 +1924,8 @@ void iAP2PacketDebugPrintPacketShortNL(iAP2Packet_t  *packet)
 
     if (packet->state == kiAP2PacketParseStateDETECT) {
         iAP2LogTypeNL(kiAP2LogTypeData, "pck(%p/'DETECT')", packet);
-
     } else if (packet->state == kiAP2PacketParseStateDETECTBAD) {
         iAP2LogTypeNL(kiAP2LogTypeData, "pck(%p/'DETECT BAD ACK')", packet);
-
     } else {
         iAP2LogTypePureNL(kiAP2LogTypeData,
                           "pck(%p/ctl=%xh/seq=%u/ack=%u/sess=%u/size=%u(%s%s%s%s)",
@@ -1998,7 +1940,6 @@ void iAP2PacketDebugPrintPacketShortNL(iAP2Packet_t  *packet)
 
 #endif
 }
-
 
 /*
 ****************************************************************
@@ -2023,7 +1964,6 @@ BOOL iAP2PacketCheckDetect(iAP2Packet_t *pck)
             kIAP2PacketDetectCTRL == pck->pckData->ctl &&
             kIAP2PacketDetectSEQ  == pck->pckData->seq);
 }
-
 
 /*
 ****************************************************************
@@ -2050,7 +1990,6 @@ BOOL iAP2PacketCheckDetectNACK(iAP2Packet_t *pck)
             kIAP2PacketDetectNACKACK    == pck->pckData->ack &&
             kIAP2PacketDetectNACKSESSID == pck->pckData->sess);
 }
-
 
 /*
 ****************************************************************
@@ -2081,7 +2020,6 @@ void iAP2PacketAssignTimer(iAP2Packet_t *pck, uint16_t timer)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -2110,7 +2048,6 @@ void iAP2PacketRemoveTimer(iAP2Packet_t *pck)
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -2133,24 +2070,18 @@ const char *iAP2PacketName(iAP2Packet_t *packet)
     if (packet->pckData->ctl & kIAP2PacketControlMaskSYN) {
         if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
             return "SYN-ACK";
-
         } else {
             return "SYN";
         }
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskEAK) {
         return "EAK";
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskRST) {
         return "RST";
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskSUS) {
         return "SUS";
-
     } else if (packet->pckData->ctl & kIAP2PacketControlMaskACK) {
         if (packet->packetLen > kIAP2PacketHeaderLen) {
             return "DATA";
-
         } else {
             return "ACK";
         }
@@ -2158,7 +2089,6 @@ const char *iAP2PacketName(iAP2Packet_t *packet)
 
     return "UNKNOWN";
 }
-
 
 /*
 ****************************************************************
@@ -2186,6 +2116,3 @@ uint16_t iAP2PacketGetTimeoutID(iAP2Packet_t *packet)
 
     return timeoutID;
 }
-
-
-

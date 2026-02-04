@@ -109,7 +109,6 @@ static void _SendPacketCallback(iAP2Link_t *link, iAP2Packet_t *packet)
         if (ret < 0) {
             iAP2LogError("[Transport] Send packet failed, ret=%d\n", ret);
         }
-
     } else {
         iAP2LogError("[Transport] sendDataCB is NULL in _SendPacketCallback\n");
     }
@@ -159,7 +158,6 @@ static void _ConnectedCallback(iAP2Link_t *link, BOOL bConnected)
     if (transport->config.linkConnectedCB) {
         transport->config.linkConnectedCB(bConnected,
                                           transport->config.callbackContext);
-
     } else {
         iAP2LogDbg("[Transport] No linkConnectedCB registered");
     }
@@ -186,7 +184,6 @@ static void _SendDetectCallback(iAP2Link_t *link, BOOL bBad)
     if (bBad) {
         detectData = kIap2PacketDetectBadData;
         detectLen = kIap2PacketDetectBadDataLen;
-
     } else {
         detectData = kIap2PacketDetectData;
         detectLen = kIap2PacketDetectDataLen;

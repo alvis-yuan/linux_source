@@ -59,7 +59,6 @@
 #include <sys/time.h>
 #include "iAP2Defines.h"
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -78,7 +77,6 @@ typedef void (*iAP2TimeCB_t)(struct iAP2Timer_st *timer, uint32_t curTime);
 
 typedef struct iAP2Timer_st iAP2Timer_t;
 
-
 /*
 ****************************************************************
 **
@@ -96,7 +94,6 @@ typedef struct iAP2Timer_st iAP2Timer_t;
 ****************************************************************
 */
 uint32_t iAP2TimeGetCurTimeMs(void);
-
 
 /*
 ****************************************************************
@@ -170,7 +167,6 @@ uint64_t iAP2TimeGetCurTimeMsInt64(void);
 */
 uint32_t iAP2TimeSpecToMs(struct timespec *time);
 
-
 /*
 ****************************************************************
 **
@@ -189,6 +185,23 @@ uint32_t iAP2TimeSpecToMs(struct timespec *time);
 */
 uint32_t iAP2TimeValToMs(struct timeval *time);
 
+/*
+****************************************************************
+**
+**  iAP2TimeValToMsInt64
+**
+**  Input:
+**      time:   pointer to timeval to convert
+**
+**  Output:
+**      None
+**
+**  Return:
+**      uint64_t    current time in ms.
+**
+****************************************************************
+*/
+uint64_t iAP2TimeValToMsInt64(struct timeval *time);
 
 /*
 ****************************************************************
@@ -208,7 +221,6 @@ uint32_t iAP2TimeValToMs(struct timeval *time);
 */
 uint64_t iAP2TimeValToMsInt64(struct timeval *time);
 
-
 /*
 ****************************************************************
 **
@@ -226,26 +238,6 @@ uint64_t iAP2TimeValToMsInt64(struct timeval *time);
 ****************************************************************
 */
 uint64_t iAP2TimeValToMsInt64(struct timeval *time);
-
-
-/*
-****************************************************************
-**
-**  iAP2TimeValToMsInt64
-**
-**  Input:
-**      time:   pointer to timeval to convert
-**
-**  Output:
-**      None
-**
-**  Return:
-**      uint64_t    current time in ms.
-**
-****************************************************************
-*/
-uint64_t iAP2TimeValToMsInt64(struct timeval *time);
-
 
 /*
 ****************************************************************
@@ -268,7 +260,6 @@ uint64_t iAP2TimeValToMsInt64(struct timeval *time);
 */
 void iAP2TimeInit(void);
 
-
 /*
 ****************************************************************
 **
@@ -290,7 +281,6 @@ void iAP2TimeInit(void);
 */
 void iAP2TimeCleanup(void);
 
-
 /*
 ****************************************************************
 **
@@ -308,7 +298,6 @@ void iAP2TimeCleanup(void);
 ****************************************************************
 */
 uint32_t iAP2TimeGetBuffSize(uint8_t maxTimeouts);
-
 
 /*
 ****************************************************************
@@ -340,7 +329,6 @@ iAP2Timer_t *iAP2TimeCreate(void               *context,
                             uint8_t             maxTimeouts,
                             uint8_t            *timeBuff);
 
-
 /*
 ****************************************************************
 **
@@ -359,7 +347,6 @@ iAP2Timer_t *iAP2TimeCreate(void               *context,
 */
 void iAP2TimeDelete(iAP2Timer_t *timer);
 
-
 /*
 ****************************************************************
 **
@@ -377,7 +364,6 @@ void iAP2TimeDelete(iAP2Timer_t *timer);
 ****************************************************************
 */
 void *iAP2TimeGetContext(iAP2Timer_t *timer);
-
 
 /*
 ****************************************************************
@@ -405,7 +391,6 @@ uint8_t iAP2TimeCallbackAfter(iAP2Timer_t *timer,
                               uint8_t      type,
                               uint32_t     delayMs);
 
-
 /*
 ****************************************************************
 **
@@ -425,7 +410,6 @@ uint8_t iAP2TimeCallbackAfter(iAP2Timer_t *timer,
 */
 void iAP2TimeCancelTimer(iAP2Timer_t *timer,
                          uint8_t      timeoutID);
-
 
 /*
 ****************************************************************
@@ -447,7 +431,6 @@ void iAP2TimeCancelTimer(iAP2Timer_t *timer,
 uint8_t iAP2TimeGetType(iAP2Timer_t *timer,
                         uint8_t      timeoutID);
 
-
 /*
 ****************************************************************
 **
@@ -466,7 +449,6 @@ uint8_t iAP2TimeGetType(iAP2Timer_t *timer,
 ****************************************************************
 */
 void iAP2TimePrintInfo(iAP2Timer_t *timer, BOOL needStartStop);
-
 
 #ifdef __cplusplus
 }

@@ -64,19 +64,16 @@
 #include "iAP2Packet.h"
 #include "iAP2Link.h"
 
-
 #if DEBUG
 #define iAP2LINKRUNLOOP_DEBUG 1
 #define iAP2LINKRUNLOOP_DEBUG_PACKET 1
 #endif
-
 
 static void _iAP2LinkSignalSendBuffCallback(struct iAP2Link_st *link)
 {
     iAP2LinkRunLoop_t *linkRunLoop = (iAP2LinkRunLoop_t *) link->context;
     iAP2LinkRunLoopSignal(linkRunLoop, NULL);
 }
-
 
 /*
 *****************************************************************
@@ -105,7 +102,6 @@ uint32_t iAP2LinkRunLoopGetBuffSize(uint8_t maxPacketSentAtOnce)
     result += iAP2LinkGetBuffSize(maxPacketSentAtOnce);
     return result;
 }
-
 
 /*
 *****************************************************************
@@ -161,7 +157,6 @@ iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateAccessory(iAP2PacketSYNData_t
                                  linkRLBuffer);
 }
 
-
 iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateDevice(iAP2PacketSYNData_t
         *synParam,
         void                      *context,
@@ -187,7 +182,6 @@ iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateDevice(iAP2PacketSYNData_t
                                  linkRLBuffer);
 }
 
-
 iAP2LinkRunLoop_t *iAP2LinkRunLoopCreate(iAP2LinkType_t              type,
         void                       *context,
         iAP2PacketSYNData_t        *synParam,
@@ -209,7 +203,6 @@ iAP2LinkRunLoop_t *iAP2LinkRunLoopCreate(iAP2LinkType_t              type,
         linkRunLoop               = (iAP2LinkRunLoop_t *) buff;
         linkRLBufferNext          = buff;
         linkRunLoop->linkRLBuffer = buff;
-
     } else {
         linkRunLoop               = (iAP2LinkRunLoop_t *)(linkRLBuffer +
                                     iAP2_LINK_RUNLOOP_BUFFER_OFFSET);
@@ -257,7 +250,6 @@ iAP2LinkRunLoop_t *iAP2LinkRunLoopCreate(iAP2LinkType_t              type,
     return linkRunLoop;
 }
 
-
 /*
 *****************************************************************
 **
@@ -289,12 +281,10 @@ void iAP2LinkRunLoopDelete(iAP2LinkRunLoop_t *linkRunLoop)
         }
 
 #endif
-
     } else {
         iAP2LogError("%s:%d NULL linkRunLoop!\n", __func__, __LINE__);
     }
 }
-
 
 /*
 *****************************************************************
@@ -383,7 +373,6 @@ BOOL iAP2LinkRunLoopRunOnce(iAP2LinkRunLoop_t *linkRunLoop, void *arg)
     return bContinue;
 }
 
-
 /*
 *****************************************************************
 **
@@ -417,14 +406,12 @@ BOOL iAP2LinkRunLoopRun(iAP2LinkRunLoop_t *linkRunLoop)
                 }
             }
         }
-
     } else {
         status = FALSE;
     }
 
     return status;
 }
-
 
 /*
 *****************************************************************
@@ -475,7 +462,6 @@ void iAP2LinkRunLoopTimeout(iAP2LinkRunLoop_t *linkRunLoop,
     }
 }
 
-
 /*
 *****************************************************************
 **
@@ -501,7 +487,6 @@ void iAP2LinkRunLoopAttached(iAP2LinkRunLoop_t *linkRunLoop)
         iAP2LinkRunLoopSignal(linkRunLoop, NULL);
     }
 }
-
 
 /*
 *****************************************************************
@@ -529,7 +514,6 @@ void iAP2LinkRunLoopDetached(iAP2LinkRunLoop_t *linkRunLoop)
     }
 }
 
-
 /*
 *****************************************************************
 **
@@ -554,7 +538,6 @@ void iAP2LinkRunLoopHandleSuspend(struct iAP2LinkRunLoop_st *linkRunLoop)
         iAP2LinkRunLoopRunOnce(linkRunLoop, NULL);
     }
 }
-
 
 /*
 *****************************************************************
@@ -585,12 +568,10 @@ void iAP2LinkRunLoopHandleReadyPacket(iAP2LinkRunLoop_t *linkRunLoop,
 
     if (linkRunLoop) {
         iAP2LinkRunLoopSignal(linkRunLoop, packet);
-
     } else {
         iAP2PacketDelete(packet);
     }
 }
-
 
 /*
 *****************************************************************
@@ -631,12 +612,10 @@ void iAP2LinkRunLoopQueueSendData(iAP2LinkRunLoop_t     *linkRunLoop,
                               session,
                               context,
                               callback);
-
     } else {
         iAP2LogError("%s:%d NULL linkRunLoop!\n", __func__, __LINE__);
     }
 }
-
 
 /*
 *****************************************************************
@@ -674,4 +653,3 @@ void iAP2LinkRunLoopDebugPrint(iAP2LinkRunLoop_t *linkRunLoop,
                            bDebug);
 #endif /* DEBUG */
 }
-

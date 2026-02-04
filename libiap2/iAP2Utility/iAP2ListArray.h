@@ -145,7 +145,6 @@ enum {
     kiAP2ListArrayMaxDataSize           = 253
 };
 
-
 /* Returns <0 if a < b, 0 if a = b, >0 if a > b */
 typedef intptr_t (*piAP2ListArrayCompareFunc)(void *a, void *b,
         uint8_t dataSize);
@@ -156,7 +155,6 @@ typedef void (*piAP2ListArrayIndexParamFunc)(void *item, uint8_t index,
 
 /* Just does straight compare on pointer values. */
 intptr_t iAP2ListArrayStraightCompare(void *a, void *b);
-
 
 /*
 ****************************************************************
@@ -176,7 +174,6 @@ intptr_t iAP2ListArrayStraightCompare(void *a, void *b);
 ****************************************************************
 */
 uint32_t iAP2ListArrayGetBuffSize(uint8_t maxCount, uint8_t dataSize);
-
 
 /*
 ****************************************************************
@@ -198,7 +195,6 @@ uint32_t iAP2ListArrayGetBuffSize(uint8_t maxCount, uint8_t dataSize);
 ****************************************************************
 */
 int iAP2ListArrayInit(uint8_t *buff, uint8_t maxCount, uint8_t dataSize);
-
 
 /*
 ****************************************************************
@@ -223,7 +219,6 @@ int iAP2ListArrayInit(uint8_t *buff, uint8_t maxCount, uint8_t dataSize);
 void iAP2ListArrayCleanup(uint8_t *listArrayBuffer,
                           piAP2ListArrayFunc itemCleanupFunc);
 
-
 /*
 ****************************************************************
 **
@@ -243,7 +238,6 @@ void iAP2ListArrayCleanup(uint8_t *listArrayBuffer,
 */
 void iAP2ListArrayForEach(uint8_t           *listArrayBuffer,
                           piAP2ListArrayFunc func);
-
 
 /*
 ****************************************************************
@@ -268,7 +262,6 @@ void iAP2ListArrayForEachWithIndexAndParam(uint8_t
         piAP2ListArrayIndexParamFunc func,
         void                        *param);
 
-
 /*
 ****************************************************************
 **
@@ -291,7 +284,6 @@ uint8_t iAP2ListArrayFindItem(uint8_t                  *listArrayBuffer,
                               void                     *item,
                               piAP2ListArrayCompareFunc func);
 
-
 /*
 ****************************************************************
 **
@@ -311,7 +303,6 @@ uint8_t iAP2ListArrayFindItem(uint8_t                  *listArrayBuffer,
 */
 void *iAP2ListArrayItemForIndex(uint8_t *listArrayBuffer, uint8_t index);
 
-
 /*
 ****************************************************************
 **
@@ -329,7 +320,6 @@ void *iAP2ListArrayItemForIndex(uint8_t *listArrayBuffer, uint8_t index);
 ****************************************************************
 */
 uint8_t iAP2ListArrayGetCount(uint8_t *listArrayBuffer);
-
 
 /*
 ****************************************************************
@@ -349,7 +339,6 @@ uint8_t iAP2ListArrayGetCount(uint8_t *listArrayBuffer);
 */
 uint8_t iAP2ListArrayGetFirstItemIndex(uint8_t *listArrayBuffer);
 
-
 /*
 ****************************************************************
 **
@@ -367,7 +356,6 @@ uint8_t iAP2ListArrayGetFirstItemIndex(uint8_t *listArrayBuffer);
 ****************************************************************
 */
 uint8_t iAP2ListArrayGetLastItemIndex(uint8_t *listArrayBuffer);
-
 
 /*
 ****************************************************************
@@ -388,7 +376,6 @@ uint8_t iAP2ListArrayGetLastItemIndex(uint8_t *listArrayBuffer);
 */
 uint8_t iAP2ListArrayGetNextItemIndex(uint8_t *listArrayBuffer,
                                       uint8_t itemIndex);
-
 
 /*
 ****************************************************************
@@ -417,7 +404,6 @@ uint8_t iAP2ListArrayGetNextItemIndex(uint8_t *listArrayBuffer,
 uint8_t iAP2ListArrayAddItemAfter(uint8_t *listArrayBuffer,
                                   uint8_t  prevItemIndex,
                                   void    *item);
-
 
 /*
 ****************************************************************
@@ -449,7 +435,6 @@ uint8_t iAP2ListArrayAddItemInOrder(uint8_t                  *listArrayBuffer,
                                     void                     *item,
                                     piAP2ListArrayCompareFunc func);
 
-
 /*
 ****************************************************************
 **
@@ -474,7 +459,6 @@ uint8_t iAP2ListArrayAddItemInOrder(uint8_t                  *listArrayBuffer,
 void iAP2ListArrayDeleteItem(uint8_t              *listArrayBuffer,
                              uint8_t               index,
                              piAP2ListArrayFunc    itemCleanupFunc);
-
 
 #ifdef __cplusplus
 }

@@ -144,7 +144,6 @@
 extern "C" {
 #endif
 
-
 typedef enum {
     kiAP2LinkRunLoopEventMaskAttach             = 0x0001,
     kiAP2LinkRunLoopEventMaskDetach             = 0x0002,
@@ -159,7 +158,6 @@ typedef enum {
 
 } iAP2LinkRunLoopEventMask_t;
 
-
 typedef struct iAP2LinkRunLoop_st {
 #if iAP2_LINK_ALLOW_MALLOC != 0
 #define iAP2_LINK_RUNLOOP_BUFFER_OFFSET 4
@@ -173,7 +171,6 @@ typedef struct iAP2LinkRunLoop_st {
     BOOL                shuttingDown;
 
 } iAP2LinkRunLoop_t;
-
 
 /*
 *****************************************************************
@@ -194,7 +191,6 @@ typedef struct iAP2LinkRunLoop_st {
 *****************************************************************
 */
 uint32_t iAP2LinkRunLoopGetBuffSize(uint8_t maxPacketSentAtOnce);
-
 
 /*
 *****************************************************************
@@ -266,7 +262,6 @@ iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateDevice(iAP2PacketSYNData_t
         uint8_t                       maxPacketSentAtOnce,
         uint8_t                      *linkRLBuffer);
 
-
 /*
 *****************************************************************
 **
@@ -284,7 +279,6 @@ iAP2LinkRunLoop_t *iAP2LinkRunLoopCreateDevice(iAP2PacketSYNData_t
 *****************************************************************
 */
 void iAP2LinkRunLoopDelete(iAP2LinkRunLoop_t *linkRunLoop);
-
 
 /*
 *****************************************************************
@@ -309,7 +303,6 @@ void iAP2LinkRunLoopDelete(iAP2LinkRunLoop_t *linkRunLoop);
 */
 BOOL iAP2LinkRunLoopRunOnce(iAP2LinkRunLoop_t *linkRunLoop, void *arg);
 
-
 /*
 *****************************************************************
 **
@@ -330,7 +323,6 @@ BOOL iAP2LinkRunLoopRunOnce(iAP2LinkRunLoop_t *linkRunLoop, void *arg);
 *****************************************************************
 */
 BOOL iAP2LinkRunLoopRun(iAP2LinkRunLoop_t *linkRunLoop);
-
 
 /*
 *****************************************************************
@@ -358,7 +350,6 @@ void iAP2LinkRunLoopTimeout(iAP2LinkRunLoop_t *linkRunLoop,
                             uint8_t            timeoutType,
                             uint32_t           curTime);
 
-
 /*
 *****************************************************************
 **
@@ -378,7 +369,6 @@ void iAP2LinkRunLoopTimeout(iAP2LinkRunLoop_t *linkRunLoop,
 *****************************************************************
 */
 void iAP2LinkRunLoopAttached(iAP2LinkRunLoop_t *linkRunLoop);
-
 
 /*
 *****************************************************************
@@ -400,7 +390,6 @@ void iAP2LinkRunLoopAttached(iAP2LinkRunLoop_t *linkRunLoop);
 */
 void iAP2LinkRunLoopDetached(iAP2LinkRunLoop_t *linkRunLoop);
 
-
 /*
 *****************************************************************
 **
@@ -418,7 +407,6 @@ void iAP2LinkRunLoopDetached(iAP2LinkRunLoop_t *linkRunLoop);
 *****************************************************************
 */
 void iAP2LinkRunLoopHandleSuspend(struct iAP2LinkRunLoop_st *linkRunLoop);
-
 
 /*
 *****************************************************************
@@ -443,7 +431,6 @@ void iAP2LinkRunLoopHandleSuspend(struct iAP2LinkRunLoop_st *linkRunLoop);
 */
 void iAP2LinkRunLoopHandleReadyPacket(iAP2LinkRunLoop_t *linkRunLoop,
                                       void              *packetArg);
-
 
 /*
 *****************************************************************
@@ -477,7 +464,6 @@ void iAP2LinkRunLoopQueueSendData(iAP2LinkRunLoop_t   *linkRunLoop,
                                   void                *context,
                                   iAP2LinkDataSentCB_t callback);
 
-
 /*
 *****************************************************************
 **
@@ -503,7 +489,6 @@ void iAP2LinkRunLoopDebugPrint(iAP2LinkRunLoop_t *linkRunLoop,
                                int                line,
                                const char        *tag,
                                BOOL               bDebug);
-
 
 /*
 *****************************************************************
@@ -536,7 +521,6 @@ void iAP2LinkRunLoopDebugPrint(iAP2LinkRunLoop_t *linkRunLoop,
 */
 void iAP2LinkRunLoopInitImplementation(iAP2LinkRunLoop_t *linkRunLoop);
 
-
 /*
 *****************************************************************
 **
@@ -558,7 +542,6 @@ void iAP2LinkRunLoopInitImplementation(iAP2LinkRunLoop_t *linkRunLoop);
 *****************************************************************
 */
 void iAP2LinkRunLoopCleanupImplementation(iAP2LinkRunLoop_t *linkRunLoop);
-
 
 /*
 *****************************************************************
@@ -582,7 +565,6 @@ void iAP2LinkRunLoopCleanupImplementation(iAP2LinkRunLoop_t *linkRunLoop);
 */
 BOOL iAP2LinkRunLoopWait(iAP2LinkRunLoop_t *linkRunLoop);
 
-
 /*
 *****************************************************************
 **
@@ -604,7 +586,6 @@ BOOL iAP2LinkRunLoopWait(iAP2LinkRunLoop_t *linkRunLoop);
 *****************************************************************
 */
 void iAP2LinkRunLoopSignal(iAP2LinkRunLoop_t *linkRunLoop, void *arg);
-
 
 /*
 *****************************************************************
@@ -631,7 +612,6 @@ BOOL iAP2LinkRunLoopProtectedCall(iAP2LinkRunLoop_t *linkRunLoop,
                                   void *arg,
                                   BOOL (*func)(iAP2LinkRunLoop_t *linkRunLoop, void *arg));
 
-
 /*
 *****************************************************************
 **
@@ -655,7 +635,6 @@ BOOL iAP2LinkRunLoopProtectedCall(iAP2LinkRunLoop_t *linkRunLoop,
 */
 void iAP2LinkRunLoopSetEventMaskBit(iAP2LinkRunLoop_t         *linkRunLoop,
                                     iAP2LinkRunLoopEventMask_t bit);
-
 
 /*
 *****************************************************************

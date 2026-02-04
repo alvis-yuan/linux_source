@@ -52,7 +52,6 @@
  *
  */
 
-
 #ifndef iapd_iAP2Misc_h
 #define iapd_iAP2Misc_h
 
@@ -80,7 +79,7 @@
                 ( ( (uint64_t)( (uint8_t *)(PTR) )[ 4 ] ) << 24 )   | \
                 ( ( (uint64_t)( (uint8_t *)(PTR) )[ 5 ] ) << 16 )   | \
                 ( ( (uint64_t)( (uint8_t *)(PTR) )[ 6 ] ) <<  8 )   | \
-                  ( (uint64_t)( (uint8_t *)(PTR) )[ 7 ] ) )
+                ( (uint64_t)( (uint8_t *)(PTR) )[ 7 ] ) )
 
 /////////////////////////////////////////////////////////////////
 //
@@ -111,6 +110,5 @@
         ( (uint8_t *)(PTR) )[ 7 ] = (uint8_t)(   (X)         & 0xFF ); \
         \
     }   while( 0 )
-
 
 #endif

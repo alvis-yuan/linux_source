@@ -185,7 +185,6 @@ static void _CPResultCallback(iAP2CPMsgType_t type,
                             g_authContext.config.resultCallback(FALSE, g_authContext.config.context);
                         }
                     }
-
                 } else {
                     iAP2LogError("[Auth] Failed to send serial number\n");
                     g_authContext.state = kIAP2AuthStateFailed;
@@ -194,7 +193,6 @@ static void _CPResultCallback(iAP2CPMsgType_t type,
                         g_authContext.config.resultCallback(FALSE, g_authContext.config.context);
                     }
                 }
-
             } else {
                 iAP2LogError("[Auth] Serial number read failed\n");
                 g_authContext.state = kIAP2AuthStateFailed;
@@ -215,7 +213,6 @@ static void _CPResultCallback(iAP2CPMsgType_t type,
                 if (_SendAuthCertificate(data, dataLen)) {
                     g_authContext.state = kIAP2AuthStateWaitChallenge;
                     iAP2LogDbg("[Auth] State -> WaitChallenge\n");
-
                 } else {
                     g_authContext.state = kIAP2AuthStateFailed;
 
@@ -223,7 +220,6 @@ static void _CPResultCallback(iAP2CPMsgType_t type,
                         g_authContext.config.resultCallback(FALSE, g_authContext.config.context);
                     }
                 }
-
             } else {
                 iAP2LogError("[Auth] Certificate read failed\n");
                 g_authContext.state = kIAP2AuthStateFailed;
@@ -244,7 +240,6 @@ static void _CPResultCallback(iAP2CPMsgType_t type,
                 if (_SendAuthResponse(data, dataLen)) {
                     g_authContext.state = kIAP2AuthStateWaitResult;
                     iAP2LogDbg("[Auth] State -> WaitResult\n");
-
                 } else {
                     g_authContext.state = kIAP2AuthStateFailed;
 
@@ -252,7 +247,6 @@ static void _CPResultCallback(iAP2CPMsgType_t type,
                         g_authContext.config.resultCallback(FALSE, g_authContext.config.context);
                     }
                 }
-
             } else {
                 iAP2LogError("[Auth] Challenge signing failed\n");
                 g_authContext.state = kIAP2AuthStateFailed;
@@ -298,7 +292,9 @@ static BOOL _HandleReqAuthCert(const uint8_t *data, uint32_t len)
         ctrlSessParameter param;
         int consumed = ctrlSess_GetNextParameter(paramPtr, remaining, &param);
 
-        if (consumed <= 0) break;
+        if (consumed <= 0) {
+            break;
+        }
 
         if (param.id == kiAP2AuthParamReqCertSerialNumber) {
             deviceRequestsSerialNumber = TRUE;
@@ -331,7 +327,6 @@ static BOOL _HandleReqAuthCert(const uint8_t *data, uint32_t len)
         }
 
         iAP2LogDbg("[Auth] CP task started: ReadingSerial (async)\n");
-
     } else {
         /* 版本1或未请求：直接读取证书 */
         g_authContext.requestSerialNumber = FALSE;
@@ -380,7 +375,9 @@ static BOOL _HandleReqAuthChallenge(const uint8_t *data, uint32_t len)
         ctrlSessParameter param;
         int consumed = ctrlSess_GetNextParameter(paramPtr, remaining, &param);
 
-        if (consumed <= 0) break;
+        if (consumed <= 0) {
+            break;
+        }
 
         if (param.id == kiAP2AuthParamChallengeData) {
             challengeData = ctrlSess_ParamGetBlob(&param, &challengeLen);

@@ -116,8 +116,6 @@ static uint16_t g_messagesReceived[] = {
     0xEA01   /* EAPStopSession */
 };
 
-
-
 /*
  ****************************************************************
  * 内部函数
@@ -168,7 +166,6 @@ static int _AddBTTransportGroup(ctrlSessBuilder *builder,
     /* Transport Name (utf8) */
     if (btInfo->transportName[0] != '\0') {
         ctrlSess_AddString(builder, kiAP2GrpBtTransName, btInfo->transportName);
-
     } else {
         ctrlSess_AddString(builder, kiAP2GrpBtTransName, "iAP2-Bluetooth");
     }
@@ -202,7 +199,6 @@ static int _AddUSBHostTransportGroup(ctrlSessBuilder *builder,
     /* Transport Name (utf8) */
     if (usbInfo->transportName[0] != '\0') {
         ctrlSess_AddString(builder, kiAP2GrpTransDevName, usbInfo->transportName);
-
     } else {
         ctrlSess_AddString(builder, kiAP2GrpTransDevName, "iAP2-USB");
     }
@@ -216,7 +212,6 @@ static int _AddUSBHostTransportGroup(ctrlSessBuilder *builder,
 
     return 0;
 }
-
 
 /*
  * 发送IdentificationInformation消息 (0x1D01)
@@ -578,7 +573,6 @@ static BOOL _HandleIdentificationRejected(const uint8_t *data, uint32_t len)
         iAP2LogError("[Id]   - Device does not support iAP2");
         iAP2LogError("[Id]   - Authentication failed");
         iAP2LogError("[Id]   - Device firmware issue");
-
     } else {
         iAP2LogError("[Id] Total rejected parameters: %u", rejectCount);
     }
@@ -616,14 +610,12 @@ int iAP2IdInit(const iAP2IdConfig_t *config, uint8_t type)
 
     if (type == kIAP2TransportTypeUSB) {
         g_idConfig.usbTransport = &g_usbTransport;
-
     } else {
         g_idConfig.usbTransport = NULL;
     }
 
     if (type == kIAP2TransportTypeBluetooth) {
         g_idConfig.btTransport = &g_btTransport;
-
     } else {
         g_idConfig.btTransport = NULL;
     }
@@ -673,7 +665,6 @@ void iAP2IdOnAuthComplete(BOOL success)
     if (success) {
         g_idState = kIAP2IdStateWaitStart;
         iAP2LogDbg("Id state -> WaitStart (auth succeeded)");
-
     } else {
         g_idState = kIAP2IdStateIdle;
         iAP2LogDbg("Id state -> Idle (auth failed)");
@@ -789,17 +780,29 @@ int iAP2IdSetAccessoryInfo(const char *name, const char *modelId,
         return -1;
     }
 
-    if (name) g_accessoryInfo.name = name;
+    if (name) {
+        g_accessoryInfo.name = name;
+    }
 
-    if (modelId) g_accessoryInfo.modelIdentifier = modelId;
+    if (modelId) {
+        g_accessoryInfo.modelIdentifier = modelId;
+    }
 
-    if (manufacturer) g_accessoryInfo.manufacturer = manufacturer;
+    if (manufacturer) {
+        g_accessoryInfo.manufacturer = manufacturer;
+    }
 
-    if (serialNumber) g_accessoryInfo.serialNumber = serialNumber;
+    if (serialNumber) {
+        g_accessoryInfo.serialNumber = serialNumber;
+    }
 
-    if (fwVersion) g_accessoryInfo.firmwareVersion = fwVersion;
+    if (fwVersion) {
+        g_accessoryInfo.firmwareVersion = fwVersion;
+    }
 
-    if (hwVersion) g_accessoryInfo.hardwareVersion = hwVersion;
+    if (hwVersion) {
+        g_accessoryInfo.hardwareVersion = hwVersion;
+    }
 
     iAP2LogDbg("[Id] Accessory info updated: %s (%s)",
                g_accessoryInfo.name, g_accessoryInfo.modelIdentifier);

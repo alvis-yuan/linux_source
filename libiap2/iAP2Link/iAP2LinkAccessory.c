@@ -66,7 +66,6 @@
 #include "iAP2Link.h"
 #include "iAP2LinkPrivate.h"
 
-
 #if iAP2_FOR_ACCESSORY
 
 void iAP2LinkAccessoryActionSendDetect(struct iAP2FSM_st *fsm,
@@ -89,7 +88,7 @@ void iAP2LinkAccessoryActionHandleSuspend(struct iAP2FSM_st *fsm,
 ** Entry of {NULL, kiAP2LinkStateCount} indicates that the event is not expected in this state.
 */
 
-const iAP2FSMEvent_t iAP2LinkAccessoryInitStateEvents [kiAP2LinkEventCount] = {
+const iAP2FSMEvent_t iAP2LinkAccessoryInitStateEvents[kiAP2LinkEventCount] = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
     {iAP2LinkActionNone,                            kiAP2LinkStateDetached},   /* kiAP2LinkEventInitDone */
@@ -116,7 +115,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryInitStateEvents [kiAP2LinkEventCount] = {
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessoryDetachedStateEvents [kiAP2LinkEventCount]
+const iAP2FSMEvent_t iAP2LinkAccessoryDetachedStateEvents[kiAP2LinkEventCount]
 = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
@@ -144,8 +143,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryDetachedStateEvents [kiAP2LinkEventCount]
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessoryDetectStateEvents [kiAP2LinkEventCount] =
-{
+const iAP2FSMEvent_t iAP2LinkAccessoryDetectStateEvents[kiAP2LinkEventCount] = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
     {NULL,                                          kiAP2LinkStateCount},      /* kiAP2LinkEventInitDone */
@@ -172,7 +170,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryDetectStateEvents [kiAP2LinkEventCount] =
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessoryIdleStateEvents [kiAP2LinkEventCount] = {
+const iAP2FSMEvent_t iAP2LinkAccessoryIdleStateEvents[kiAP2LinkEventCount] = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
     {NULL,                                          kiAP2LinkStateCount},      /* kiAP2LinkEventInitDone */
@@ -199,7 +197,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryIdleStateEvents [kiAP2LinkEventCount] = {
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessoryPendingStateEvents [kiAP2LinkEventCount]
+const iAP2FSMEvent_t iAP2LinkAccessoryPendingStateEvents[kiAP2LinkEventCount]
 = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
@@ -227,7 +225,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryPendingStateEvents [kiAP2LinkEventCount]
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessoryConnectedStateEvents [kiAP2LinkEventCount]
+const iAP2FSMEvent_t iAP2LinkAccessoryConnectedStateEvents[kiAP2LinkEventCount]
 = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
@@ -255,7 +253,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryConnectedStateEvents [kiAP2LinkEventCount]
     {iAP2LinkAccessoryActionHandleSuspend,          kiAP2LinkStateSuspend}     /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessorySuspendStateEvents [kiAP2LinkEventCount]
+const iAP2FSMEvent_t iAP2LinkAccessorySuspendStateEvents[kiAP2LinkEventCount]
 = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
@@ -283,8 +281,7 @@ const iAP2FSMEvent_t iAP2LinkAccessorySuspendStateEvents [kiAP2LinkEventCount]
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-const iAP2FSMEvent_t iAP2LinkAccessoryFailedStateEvents [kiAP2LinkEventCount] =
-{
+const iAP2FSMEvent_t iAP2LinkAccessoryFailedStateEvents[kiAP2LinkEventCount] = {
     /* Action handler  ...........................  Next State  ................  Event
      * ---------------                              -----------                   ------ */
     {NULL,                                          kiAP2LinkStateCount},      /* kiAP2LinkEventInitDone */
@@ -311,9 +308,7 @@ const iAP2FSMEvent_t iAP2LinkAccessoryFailedStateEvents [kiAP2LinkEventCount] =
     {NULL,                                          kiAP2LinkStateCount}       /* kiAP2LinkEventSuspend */
 };
 
-
-
-const iAP2FSMState_t iAP2LinkAccessoryStates [kiAP2LinkStateCount] = {
+const iAP2FSMState_t iAP2LinkAccessoryStates[kiAP2LinkStateCount] = {
     {iAP2LinkAccessoryInitStateEvents},      /* kiAP2LinkStateInit */
     {iAP2LinkAccessoryDetachedStateEvents},  /* kiAP2LinkStateDetached */
     {iAP2LinkAccessoryDetectStateEvents},    /* kiAP2LinkStateDetect */
@@ -323,8 +318,6 @@ const iAP2FSMState_t iAP2LinkAccessoryStates [kiAP2LinkStateCount] = {
     {iAP2LinkAccessorySuspendStateEvents},   /* kiAP2LinkStateSuspend */
     {iAP2LinkAccessoryFailedStateEvents}     /* kiAP2LinkStateFailed */
 };
-
-
 
 /*
 ****************************************************************
@@ -367,7 +360,6 @@ void iAP2LinkAccessoryActionSendDetect(struct iAP2FSM_st *fsm,
         }
     }
 }
-
 
 /*
 ****************************************************************
@@ -427,7 +419,6 @@ void iAP2LinkAccessoryActionResendSYN(struct iAP2FSM_st *fsm,
 #endif
         pck->retransmitCount = link->numResentSYN;
         iAP2LinkSendPacket(link, pck, TRUE, "Accessory:ResendSYN");
-
     } else {
         iAP2LogError("%s:%d %s Resend too many times! max=%d\n",
                      __func__, __LINE__, "Accessory:ResendSYN", link->param.maxRetransmissions);
@@ -435,7 +426,6 @@ void iAP2LinkAccessoryActionResendSYN(struct iAP2FSM_st *fsm,
         iAP2PacketDelete(pck);
     }
 }
-
 
 /*
 ****************************************************************
@@ -495,7 +485,6 @@ void iAP2LinkAccessoryActionSendSYNNewSeq(struct iAP2FSM_st *fsm,
 
     iAP2LinkSendPacket(link, pck, FALSE, "Accessory:SendSYN");
 }
-
 
 /*
 ****************************************************************
@@ -566,7 +555,6 @@ void iAP2LinkAccessoryActionConnectedACK(struct iAP2FSM_st *fsm,
     }
 }
 
-
 /*
 ****************************************************************
 **
@@ -629,7 +617,6 @@ void iAP2LinkAccessoryActionSendSYNACK(struct iAP2FSM_st *fsm,
         memcpy(link->negotiatedParam.sessionInfo,
                synParam.sessionInfo,
                synParam.numSessionInfo * sizeof(synParam.sessionInfo[0]));
-
     } else {
         memcpy(&synParam, &link->negotiatedParam, sizeof(link->negotiatedParam));
     }
@@ -705,7 +692,6 @@ void iAP2LinkAccessoryActionSendSYNACK(struct iAP2FSM_st *fsm,
     iAP2LinkSendPacket(link, pck, FALSE, "Accessory:SendSYNACK");
 }
 
-
 /*
 ****************************************************************
 **
@@ -721,7 +707,4 @@ void iAP2LinkAccessoryActionHandleSuspend(struct iAP2FSM_st *fsm,
     *nextEvent = kiAP2LinkEventCount;
 }
 
-
 #endif /*#if iAP2_FOR_ACCESSORY*/
-
-
