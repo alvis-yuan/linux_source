@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<!--
+  单文件离线版：ATT Attribute PDU 索引，数据内联，可直接 file:// 打开。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATT (Attribute Protocol) 信令索引 (Bluetooth Core 6.0)</title>
+  <style>
+    :root {
+      --primary-color: #4F46E5;
+      --primary-hover: #4338ca;
+      --bg-color: #f8fafc;
+      --panel-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --border-color: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; border-bottom: 2px solid var(--primary-color); }
+    .brand-title h1 { font-size: 1.4rem; font-weight: 700; }
+    .brand-title p { font-size: 0.8rem; color: #a5b4fc; margin-top: 2px; }
+    .search-wrapper { position: relative; width: 400px; }
+    .search-input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border-radius: 9999px; border: 1px solid #4338ca; background: #1e1b4b; color: #fff; font-size: 0.9rem; }
+    .search-input:focus { outline: none; border-color: #818cf8; box-shadow: 0 0 10px rgba(79,70,229,0.4); }
+    .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; }
+    .main-container { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 320px; border-right: 1px solid var(--border-color); background: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 1rem; background: #f1f5f9; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+    .pdu-count-badge { background: #cbd5e1; color: #334155; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 9999px; }
+    .pdu-menu-list { flex: 1; overflow-y: auto; list-style: none; }
+    .pdu-menu-item { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .pdu-menu-item:hover { background: #f1f5f9; }
+    .pdu-menu-item.active { background: rgba(79,70,229,0.08); border-left: 4px solid var(--primary-color); }
+    .pdu-menu-name { font-size: 0.78rem; font-weight: 600; }
+    .pdu-menu-op { font-size: 0.7rem; color: var(--text-sub); margin-top: 2px; }
+    .sidebar-toolbar { display: flex; gap: 0.35rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); background: #fafbfc; }
+    .sidebar-toolbar button { flex: 1; font-size: 0.7rem; padding: 0.35rem; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; cursor: pointer; color: var(--text-sub); }
+    .sidebar-toolbar button:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    .nav-group { border-bottom: 1px solid #e2e8f0; }
+    .nav-group-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: #f8fafc; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .nav-group-chevron { width: 1rem; text-align: center; font-size: 0.65rem; transition: transform 0.2s; }
+    .nav-group.collapsed .nav-group-chevron { transform: rotate(-90deg); }
+    .nav-group.collapsed .nav-group-items, .nav-group.collapsed .nav-group-desc { display: none; }
+    .nav-group-items { list-style: none; margin: 0; padding: 0; }
+    .nav-group-count { margin-left: auto; font-size: 0.7rem; background: #e2e8f0; padding: 0.1rem 0.45rem; border-radius: 9999px; color: #64748b; }
+    .nav-group-desc { font-size: 0.7rem; color: #64748b; padding: 0.35rem 0.75rem 0.5rem 1.75rem; background: #fafbfc; border-bottom: 1px solid #f1f5f9; line-height: 1.45; }
+    .nav-group-section { font-size: 0.68rem; color: #94a3b8; }
+    .content-area { flex: 1; overflow-y: auto; padding: 2rem; scroll-behavior: smooth; }
+    .intro-section { background: #fff; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid var(--border-color); }
+    .intro-section h2 { font-size: 1.1rem; color: var(--primary-color); margin-bottom: 0.75rem; }
+    .intro-section p { font-size: 0.85rem; line-height: 1.6; color: var(--text-sub); }
+    .intro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .intro-card { background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--primary-color); }
+    .intro-card h4 { font-size: 0.85rem; margin-bottom: 0.25rem; }
+    .intro-card p { font-size: 0.8rem; color: var(--text-sub); }
+    .catalog-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
+    .pdu-card { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 2rem; overflow: hidden; }
+    .pdu-card-header { padding: 1rem 1.5rem; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    .pdu-title-block { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .pdu-card-name { font-size: 1.05rem; font-weight: 700; }
+    .badge { font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 600; }
+    .badge-req { background: rgba(37,99,235,0.12); color: #1d4ed8; border: 1px solid rgba(37,99,235,0.25); }
+    .badge-rsp { background: rgba(5,150,105,0.12); color: #047857; border: 1px solid rgba(5,150,105,0.25); }
+    .badge-cmd { background: rgba(217,119,6,0.12); color: #b45309; border: 1px solid rgba(217,119,6,0.25); }
+    .badge-ntf { background: rgba(8,145,178,0.12); color: #0e7490; border: 1px solid rgba(8,145,178,0.25); }
+    .badge-ind { background: rgba(124,58,237,0.12); color: #6d28d9; border: 1px solid rgba(124,58,237,0.25); }
+    .badge-cfm { background: rgba(100,116,139,0.12); color: #475569; border: 1px solid rgba(100,116,139,0.25); }
+    .badge-procedure { font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 600; }
+    .pdu-card-meta { font-size: 0.8rem; color: var(--text-sub); display: flex; gap: 1rem; flex-wrap: wrap; }
+    .pdu-card-body { padding: 1.5rem; }
+    .pdu-desc { font-size: 0.85rem; line-height: 1.5; color: var(--text-sub); margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 6px; }
+    .payload-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .payload-table th, .payload-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+    .payload-table th { background: #f1f5f9; font-weight: 600; color: var(--text-sub); }
+    .param-link { color: var(--primary-color); text-decoration: none; font-weight: 600; }
+    .parameters-directory { margin-top: 4rem; padding-top: 2rem; border-top: 3px dashed #cbd5e1; }
+    .parameter-card { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 1.5rem; padding: 1.25rem; }
+    .parameter-card-header { display: flex; justify-content: space-between; margin-bottom: 0.75rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; }
+    .parameter-title { font-size: 1rem; font-weight: 700; color: var(--primary-color); }
+    .parameter-type { font-size: 0.75rem; background: #e2e8f0; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; }
+    .parameter-desc { font-size: 0.85rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 1rem; }
+    .parameter-relations { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .relation-label { font-size: 0.75rem; font-weight: 600; color: #64748b; }
+    .relation-badge { font-size: 0.75rem; background: #f1f5f9; padding: 0.15rem 0.5rem; border-radius: 4px; text-decoration: none; color: #1e293b; border: 1px solid var(--border-color); }
+    .relation-badge:hover { background: var(--primary-color); color: #fff; }
+    .procedure-section-header { margin: 2rem 0 1rem; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: linear-gradient(90deg, rgba(79,70,229,0.08) 0%, transparent 100%); }
+    .procedure-section-header h4 { font-size: 1rem; margin-bottom: 0.25rem; }
+    .procedure-section-header p { font-size: 0.8rem; color: var(--text-sub); }
+    .highlight-target { animation: flash 2.5s ease-out; border-color: var(--primary-color) !important; box-shadow: 0 0 15px rgba(79,70,229,0.25) !important; }
+    @keyframes flash { 0% { background: rgba(79,70,229,0.35); } 100% { background: transparent; } }
+    .hidden { display: none !important; }
+    .back-to-top { position: fixed; bottom: 2rem; right: 2rem; width: 40px; height: 40px; border-radius: 50%; border: none; background: #1e1b4b; color: #fff; cursor: pointer; opacity: 0.85; }
+    .back-to-top:hover { background: var(--primary-color); }
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="header">
+    <div class="brand-title">
+      <h1>Bluetooth ATT Signaling Directory</h1>
+      <p>属性协议 (Attribute Protocol) 信令索引 — Core 6.0</p>
+    </div>
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="PDU / Opcode / §3.4 (例: READ / 0x0A / NTF)...">
+    </div>
+  </header>
+  <div class="main-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>ATT PDU 索引</span>
+        <span class="pdu-count-badge" id="pduCount">0 / 0</span>
+      </div>
+      <div class="sidebar-toolbar">
+        <button type="button" id="expandAllNav">全部展开</button>
+        <button type="button" id="collapseAllNav">全部折叠</button>
+      </div>
+      <div class="pdu-menu-list" id="pduMenuList"></div>
+    </aside>
+    <main class="content-area" id="contentArea">
+      <section class="intro-section">
+        <h2>Core 6.0 — Attribute Protocol (ATT)</h2>
+        <p>本索引覆盖 GATT 下层 <strong>Attribute Protocol</strong> 全部标准 PDU，与
+          <a href="https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-60/out/en/host/attribute-protocol--att-.html" target="_blank" rel="noopener">Attribute Protocol Specification</a>
+          中 <strong>Table 3.43</strong>（Opcode 汇总）、<strong>§3.3</strong>（PDU 格式）及 <strong>§3.4</strong>（分过程定义）对齐，共 <strong>31</strong> 条 ATT PDU。</p>
+<p class="bt-spec-related" style="margin-top:0.75rem;font-size:0.82rem;color:#64748b;"><!-- bt-spec-related-links -->相关文档：<a href="../overview/att_overview.html">ATT 属性协议</a> · <a href="../overview/gatt_overview.html">GATT 通用属性规范</a></p>
+
+        <p style="margin-top:0.5rem;font-size:0.8rem;color:#64748b"><strong>离线：</strong>单文件自包含；规范链接需联网。</p>
+        <div class="intro-grid">
+          <div class="intro-card">
+            <h4>PDU 格式 (Table 3.2)</h4>
+            <p>Attribute Opcode (1) + Parameters (0…ATT_MTU−X) [+ Auth Signature 12]。Opcode bit7=签名，bit6=命令。</p>
+          </div>
+          <div class="intro-card" style="border-left-color:#dc2626">
+            <h4>PDU 类型 (Table 3.1)</h4>
+            <p>REQ/RSP、CMD（无响应）、NTF、IND/CFM。服务器至少支持 FIND_INFORMATION_REQ 与 READ_REQ。</p>
+          </div>
+          <div class="intro-card" style="border-left-color:#059669">
+            <h4>请求-响应 (Table 3.44)</h4>
+            <p>各 REQ 的成功响应见卡片「配对响应」；失败统一 ATT_ERROR_RSP（§3.4.1）。</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h3 class="catalog-title">📘 ATT PDU 定义（Table 3.43 + §3.4）</h3>
+        <div id="pduCatalog"></div>
+      </section>
+      <section class="parameters-directory">
+        <h3 class="catalog-title" style="border-bottom-color:var(--primary-color)">📋 Attribute Parameters 字典</h3>
+        <div id="parametersContainer"></div>
+      </section>
+    </main>
+  </div>
+  <button class="back-to-top" onclick="scrollToTop()" title="返回顶部">▲</button>
+  <script>
+const pduData = [
+      {
+        name: "att_error_rsp",
+        display: "ATT_ERROR_RSP",
+        opcode: 1,
+        procedure: "error",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x01（Method 低 6 位）。 参数概要（Table 3.43）：Request Opcode in Error,Attribute Handle In Error,Error Code。",
+        payload: [
+          { name: "Request_Opcode_In_Error", pos: "Byte 1", type: "uint8", desc: "出错请求的 Opcode" },
+          { name: "Attribute_Handle_In_Error", pos: "Byte 2~3", type: "uint16", desc: "出错属性句柄，无则 0x0000" },
+          { name: "Error_Code", pos: "Byte 4", type: "uint8", desc: "错误码，见 Table 3.4" },
+        ]
+      },
+      {
+        name: "att_exchange_mtu_req",
+        display: "ATT_EXCHANGE_MTU_REQ",
+        opcode: 2,
+        procedure: "mtu",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_EXCHANGE_MTU_RSP",
+        description: "Attribute Opcode 0x02（Method 低 6 位）。 成功响应：ATT_EXCHANGE_MTU_RSP。 参数概要（Table 3.43）：Client Rx MTU。",
+        payload: [
+          { name: "Client_Rx_MTU", pos: "Byte 1~2", type: "uint16", desc: "客户端可接收的最大 ATT PDU 长度" },
+        ]
+      },
+      {
+        name: "att_exchange_mtu_rsp",
+        display: "ATT_EXCHANGE_MTU_RSP",
+        opcode: 3,
+        procedure: "mtu",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x03（Method 低 6 位）。 参数概要（Table 3.43）：Server Rx MTU。",
+        payload: [
+          { name: "Server_Rx_MTU", pos: "Byte 1~2", type: "uint16", desc: "服务器可接收的最大 ATT PDU 长度" },
+        ]
+      },
+      {
+        name: "att_find_information_req",
+        display: "ATT_FIND_INFORMATION_REQ",
+        opcode: 4,
+        procedure: "find_info",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_FIND_INFORMATION_RSP",
+        description: "Attribute Opcode 0x04（Method 低 6 位）。 成功响应：ATT_FIND_INFORMATION_RSP。 参数概要（Table 3.43）：Starting Handle,Ending Handle。",
+        payload: [
+          { name: "Starting_Handle", pos: "Byte 1~2", type: "uint16", desc: "起始句柄 (通常 0x0001)" },
+          { name: "Ending_Handle", pos: "Byte 3~4", type: "uint16", desc: "结束句柄 (通常 0xFFFF)" },
+        ]
+      },
+      {
+        name: "att_find_information_rsp",
+        display: "ATT_FIND_INFORMATION_RSP",
+        opcode: 5,
+        procedure: "find_info",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x05（Method 低 6 位）。 参数概要（Table 3.43）：Format,Information Data。",
+        payload: [
+          { name: "Format", pos: "Byte 1", type: "uint8", desc: "0x01=16-bit UUID, 0x02=128-bit UUID" },
+          { name: "Information_Data", pos: "Byte 2~", type: "variable", desc: "Handle+UUID 列表" },
+        ]
+      },
+      {
+        name: "att_find_by_type_value_req",
+        display: "ATT_FIND_BY_TYPE_VALUE_REQ",
+        opcode: 6,
+        procedure: "find_info",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_FIND_BY_TYPE_VALUE_RSP",
+        description: "Attribute Opcode 0x06（Method 低 6 位）。 成功响应：ATT_FIND_BY_TYPE_VALUE_RSP。 参数概要（Table 3.43）：Starting Handle,Ending Handle,Attribute Type,Attribute Value。",
+        payload: [
+          { name: "Starting_Handle", pos: "Byte 1~2", type: "uint16", desc: "起始句柄" },
+          { name: "Ending_Handle", pos: "Byte 3~4", type: "uint16", desc: "结束句柄" },
+          { name: "Attribute_Type", pos: "Byte 5~6", type: "uint16", desc: "要查找的属性类型 UUID" },
+          { name: "Attribute_Value", pos: "Byte 7~", type: "variable", desc: "属性值匹配" },
+        ]
+      },
+      {
+        name: "att_find_by_type_value_rsp",
+        display: "ATT_FIND_BY_TYPE_VALUE_RSP",
+        opcode: 7,
+        procedure: "find_info",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x07（Method 低 6 位）。 参数概要（Table 3.43）：Handles Information List。",
+        payload: [
+          { name: "Handles_Information_List", pos: "Byte 1~", type: "variable", desc: "句柄信息列表" },
+        ]
+      },
+      {
+        name: "att_read_by_type_req",
+        display: "ATT_READ_BY_TYPE_REQ",
+        opcode: 8,
+        procedure: "read",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_READ_BY_TYPE_RSP",
+        description: "Attribute Opcode 0x08（Method 低 6 位）。 成功响应：ATT_READ_BY_TYPE_RSP。 参数概要（Table 3.43）：Starting Handle,Ending Handle,UUID。",
+        payload: [
+          { name: "Starting_Handle", pos: "Byte 1~2", type: "uint16", desc: "起始句柄" },
+          { name: "Ending_Handle", pos: "Byte 3~4", type: "uint16", desc: "结束句柄" },
+          { name: "UUID", pos: "Byte 5~", type: "2或16", desc: "属性类型 UUID" },
+        ]
+      },
+      {
+        name: "att_read_by_type_rsp",
+        display: "ATT_READ_BY_TYPE_RSP",
+        opcode: 9,
+        procedure: "read",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x09（Method 低 6 位）。 参数概要（Table 3.43）：Length,Attribute Data List。",
+        payload: [
+          { name: "Length", pos: "Byte 1", type: "uint8", desc: "每条 Attribute Data 长度" },
+          { name: "Attribute_Data_List", pos: "Byte 2~", type: "variable", desc: "Handle+Value 列表" },
+        ]
+      },
+      {
+        name: "att_read_req",
+        display: "ATT_READ_REQ",
+        opcode: 10,
+        procedure: "read",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_READ_RSP",
+        description: "Attribute Opcode 0x0A（Method 低 6 位）。 成功响应：ATT_READ_RSP。 参数概要（Table 3.43）：Attribute Handle。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+        ]
+      },
+      {
+        name: "att_read_rsp",
+        display: "ATT_READ_RSP",
+        opcode: 11,
+        procedure: "read",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x0B（Method 低 6 位）。 参数概要（Table 3.43）：Attribute Value。",
+        payload: [
+          { name: "Attribute_Value", pos: "Byte 1~", type: "variable", desc: "属性值" },
+        ]
+      },
+      {
+        name: "att_read_blob_req",
+        display: "ATT_READ_BLOB_REQ",
+        opcode: 12,
+        procedure: "read",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_READ_BLOB_RSP",
+        description: "Attribute Opcode 0x0C（Method 低 6 位）。 成功响应：ATT_READ_BLOB_RSP。 参数概要（Table 3.43）：Attribute Handle,Value Offset。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Value_Offset", pos: "Byte 3~4", type: "uint16", desc: "值偏移" },
+        ]
+      },
+      {
+        name: "att_read_blob_rsp",
+        display: "ATT_READ_BLOB_RSP",
+        opcode: 13,
+        procedure: "read",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x0D（Method 低 6 位）。 参数概要（Table 3.43）：Part Attribute Value。",
+        payload: [
+          { name: "Part_Attribute_Value", pos: "Byte 1~", type: "variable", desc: "部分属性值" },
+        ]
+      },
+      {
+        name: "att_read_multiple_req",
+        display: "ATT_READ_MULTIPLE_REQ",
+        opcode: 14,
+        procedure: "read",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_READ_MULTIPLE_RSP",
+        description: "Attribute Opcode 0x0E（Method 低 6 位）。 成功响应：ATT_READ_MULTIPLE_RSP。 参数概要（Table 3.43）：Handle Set。",
+        payload: [
+          { name: "Handle_Set", pos: "Byte 1~", type: "uint16[]", desc: "句柄集合 (2×n 字节)" },
+        ]
+      },
+      {
+        name: "att_read_multiple_rsp",
+        display: "ATT_READ_MULTIPLE_RSP",
+        opcode: 15,
+        procedure: "read",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x0F（Method 低 6 位）。 参数概要（Table 3.43）：Value Set。",
+        payload: [
+          { name: "Value_Set", pos: "Byte 1~", type: "variable", desc: "按序拼接的属性值" },
+        ]
+      },
+      {
+        name: "att_read_by_group_type_req",
+        display: "ATT_READ_BY_GROUP_TYPE_REQ",
+        opcode: 16,
+        procedure: "read",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_READ_BY_GROUP_TYPE_RSP",
+        description: "Attribute Opcode 0x10（Method 低 6 位）。 成功响应：ATT_READ_BY_GROUP_TYPE_RSP。 参数概要（Table 3.43）：Start Handle,Ending Handle,UUID。",
+        payload: [
+          { name: "Start_Handle", pos: "Byte 1~2", type: "uint16", desc: "起始句柄" },
+          { name: "Ending_Handle", pos: "Byte 3~4", type: "uint16", desc: "结束句柄" },
+          { name: "UUID", pos: "Byte 5~", type: "2或16", desc: "分组类型 UUID" },
+        ]
+      },
+      {
+        name: "att_read_by_group_type_rsp",
+        display: "ATT_READ_BY_GROUP_TYPE_RSP",
+        opcode: 17,
+        procedure: "read",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x11（Method 低 6 位）。 参数概要（Table 3.43）：Length,Attribute Data List。",
+        payload: [
+          { name: "Length", pos: "Byte 1", type: "uint8", desc: "每条数据长度" },
+          { name: "Attribute_Data_List", pos: "Byte 2~", type: "variable", desc: "分组属性数据" },
+        ]
+      },
+      {
+        name: "att_write_req",
+        display: "ATT_WRITE_REQ",
+        opcode: 18,
+        procedure: "write",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_WRITE_RSP",
+        description: "Attribute Opcode 0x12（Method 低 6 位）。 成功响应：ATT_WRITE_RSP。 参数概要（Table 3.43）：Attribute Handle,Attribute Value。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Attribute_Value", pos: "Byte 3~", type: "variable", desc: "写入值" },
+        ]
+      },
+      {
+        name: "att_write_rsp",
+        display: "ATT_WRITE_RSP",
+        opcode: 19,
+        procedure: "write",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x13（Method 低 6 位）。 参数概要（Table 3.43）：_none_。",
+        payload: [
+        ]
+      },
+      {
+        name: "att_write_cmd",
+        display: "ATT_WRITE_CMD",
+        opcode: 82,
+        procedure: "write",
+        pduType: "CMD",
+        direction: "命令 (无响应)",
+        commandFlag: true,
+        responsePdu: "",
+        description: "Attribute Opcode 0x52（Method 低 6 位）。 Command Flag=1，无响应。 参数概要（Table 3.43）：Attribute Handle,Attribute Value。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Attribute_Value", pos: "Byte 3~", type: "variable", desc: "写入值 (Command Flag=1)" },
+        ]
+      },
+      {
+        name: "att_prepare_write_req",
+        display: "ATT_PREPARE_WRITE_REQ",
+        opcode: 22,
+        procedure: "queued_write",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_PREPARE_WRITE_RSP",
+        description: "Attribute Opcode 0x16（Method 低 6 位）。 成功响应：ATT_PREPARE_WRITE_RSP。 参数概要（Table 3.43）：Attribute Handle,Value Offset,Part Attribute Value。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Value_Offset", pos: "Byte 3~4", type: "uint16", desc: "值偏移" },
+          { name: "Part_Attribute_Value", pos: "Byte 5~", type: "variable", desc: "部分属性值" },
+        ]
+      },
+      {
+        name: "att_prepare_write_rsp",
+        display: "ATT_PREPARE_WRITE_RSP",
+        opcode: 23,
+        procedure: "queued_write",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x17（Method 低 6 位）。 参数概要（Table 3.43）：Attribute Handle,Value Offset,Part Attribute Value。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Value_Offset", pos: "Byte 3~4", type: "uint16", desc: "值偏移" },
+          { name: "Part_Attribute_Value", pos: "Byte 5~", type: "variable", desc: "部分属性值" },
+        ]
+      },
+      {
+        name: "att_execute_write_req",
+        display: "ATT_EXECUTE_WRITE_REQ",
+        opcode: 24,
+        procedure: "queued_write",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_EXECUTE_WRITE_RSP",
+        description: "Attribute Opcode 0x18（Method 低 6 位）。 成功响应：ATT_EXECUTE_WRITE_RSP。 参数概要（Table 3.43）：Flags。",
+        payload: [
+          { name: "Flags", pos: "Byte 1", type: "uint8", desc: "0x00=立即写入, 0x01=取消队列" },
+        ]
+      },
+      {
+        name: "att_execute_write_rsp",
+        display: "ATT_EXECUTE_WRITE_RSP",
+        opcode: 25,
+        procedure: "queued_write",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x19（Method 低 6 位）。 参数概要（Table 3.43）：_none_。",
+        payload: [
+        ]
+      },
+      {
+        name: "att_read_multiple_variable_req",
+        display: "ATT_READ_MULTIPLE_VARIABLE_REQ",
+        opcode: 32,
+        procedure: "read",
+        pduType: "REQ",
+        direction: "请求 → 服务器",
+        commandFlag: false,
+        responsePdu: "ATT_READ_MULTIPLE_VARIABLE_RSP",
+        description: "Attribute Opcode 0x20（Method 低 6 位）。 成功响应：ATT_READ_MULTIPLE_VARIABLE_RSP。 参数概要（Table 3.43）：Set Of Handles。",
+        payload: [
+          { name: "Set_Of_Handles", pos: "Byte 1~", type: "uint16[]", desc: "句柄集合" },
+        ]
+      },
+      {
+        name: "att_read_multiple_variable_rsp",
+        display: "ATT_READ_MULTIPLE_VARIABLE_RSP",
+        opcode: 33,
+        procedure: "read",
+        pduType: "RSP",
+        direction: "响应 → 客户端",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x21（Method 低 6 位）。 参数概要（Table 3.43）：Length Value Tuple List。",
+        payload: [
+          { name: "Length_Value_Tuple_List", pos: "Byte 1~", type: "variable", desc: "Length+Value 元组列表" },
+        ]
+      },
+      {
+        name: "att_multiple_handle_value_ntf",
+        display: "ATT_MULTIPLE_HANDLE_VALUE_NTF",
+        opcode: 35,
+        procedure: "server_init",
+        pduType: "NTF",
+        direction: "通知 (无确认)",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x23（Method 低 6 位）。 参数概要（Table 3.43）：Handle Length Value Tuple List。",
+        payload: [
+          { name: "Handle_Length_Value_Tuple_List", pos: "Byte 1~", type: "variable", desc: "Handle+Len+Value 元组列表" },
+        ]
+      },
+      {
+        name: "att_handle_value_ntf",
+        display: "ATT_HANDLE_VALUE_NTF",
+        opcode: 27,
+        procedure: "server_init",
+        pduType: "NTF",
+        direction: "通知 (无确认)",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x1B（Method 低 6 位）。 参数概要（Table 3.43）：Attribute Handle,Attribute Value。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Attribute_Value", pos: "Byte 3~", type: "variable", desc: "通知值" },
+        ]
+      },
+      {
+        name: "att_handle_value_ind",
+        display: "ATT_HANDLE_VALUE_IND",
+        opcode: 29,
+        procedure: "server_init",
+        pduType: "IND",
+        direction: "指示 → 需 CFM",
+        commandFlag: false,
+        responsePdu: "ATT_HANDLE_VALUE_CFM",
+        description: "Attribute Opcode 0x1D（Method 低 6 位）。 成功响应：ATT_HANDLE_VALUE_CFM。 参数概要（Table 3.43）：Attribute Handle,Attribute Value。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Attribute_Value", pos: "Byte 3~", type: "variable", desc: "指示值" },
+        ]
+      },
+      {
+        name: "att_handle_value_cfm",
+        display: "ATT_HANDLE_VALUE_CFM",
+        opcode: 30,
+        procedure: "server_init",
+        pduType: "CFM",
+        direction: "确认 → 服务器",
+        commandFlag: false,
+        responsePdu: "",
+        description: "Attribute Opcode 0x1E（Method 低 6 位）。 参数概要（Table 3.43）：_none_。",
+        payload: [
+        ]
+      },
+      {
+        name: "att_signed_write_cmd",
+        display: "ATT_SIGNED_WRITE_CMD",
+        opcode: 210,
+        procedure: "write",
+        pduType: "CMD",
+        direction: "命令 (无响应)",
+        commandFlag: true,
+        responsePdu: "",
+        description: "Attribute Opcode 0xD2（Method 低 6 位）。 Command Flag=1，无响应。 参数概要（Table 3.43）：Attribute Handle,Attribute Value,Authentication Signature。",
+        payload: [
+          { name: "Attribute_Handle", pos: "Byte 1~2", type: "uint16", desc: "属性句柄" },
+          { name: "Attribute_Value", pos: "Byte 3~", type: "variable", desc: "写入值" },
+          { name: "Authentication_Signature", pos: "末尾 12", type: "uint8[12]", desc: "认证签名 (Auth Sig Flag=1)" },
+        ]
+      },
+    ];
+
+    const parametersData = {
+      "Attribute_Data_List": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "Handle+Value 列表（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Attribute_Handle": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "属性句柄（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Attribute_Handle_In_Error": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "出错属性句柄，无则 0x0000（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Attribute_Type": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "要查找的属性类型 UUID（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Attribute_Value": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "属性值匹配（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Authentication_Signature": {
+        type: "uint8",
+        size: "uint8[12]",
+        range: "见 §3.4 / ATT MTU",
+        description: "认证签名 (Auth Sig Flag=1)（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Client_Rx_MTU": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "客户端可接收的最大 ATT PDU 长度（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Ending_Handle": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "结束句柄 (通常 0xFFFF)（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Error_Code": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §3.4 / ATT MTU",
+        description: "错误码，见 Table 3.4（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Flags": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §3.4 / ATT MTU",
+        description: "0x00=立即写入, 0x01=取消队列（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Format": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §3.4 / ATT MTU",
+        description: "0x01=16-bit UUID, 0x02=128-bit UUID（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Handle_Length_Value_Tuple_List": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "Handle+Len+Value 元组列表（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Handle_Set": {
+        type: "uint16",
+        size: "uint16[]",
+        range: "见 §3.4 / ATT MTU",
+        description: "句柄集合 (2×n 字节)（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Handles_Information_List": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "句柄信息列表（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Information_Data": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "Handle+UUID 列表（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Length": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §3.4 / ATT MTU",
+        description: "每条 Attribute Data 长度（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Length_Value_Tuple_List": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "Length+Value 元组列表（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Part_Attribute_Value": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "部分属性值（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Request_Opcode_In_Error": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §3.4 / ATT MTU",
+        description: "出错请求的 Opcode（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Server_Rx_MTU": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "服务器可接收的最大 ATT PDU 长度（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Set_Of_Handles": {
+        type: "uint16",
+        size: "uint16[]",
+        range: "见 §3.4 / ATT MTU",
+        description: "句柄集合（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Start_Handle": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "起始句柄（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Starting_Handle": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "起始句柄 (通常 0x0001)（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "UUID": {
+        type: "2或16",
+        size: "2或16",
+        range: "见 §3.4 / ATT MTU",
+        description: "属性类型 UUID（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Value_Offset": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §3.4 / ATT MTU",
+        description: "值偏移（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+      "Value_Set": {
+        type: "variable",
+        size: "variable",
+        range: "见 §3.4 / ATT MTU",
+        description: "按序拼接的属性值（ATT Attribute Parameters，Core 6.0 ATT §3.3–3.4。）"
+      },
+    };
+
+    const PROCEDURE_ORDER = [
+      'error', 'mtu', 'find_info', 'read', 'write', 'queued_write', 'server_init'
+    ];
+
+    const PROCEDURE_CATALOG = {
+      error: { section: '3.4.1', title: '错误处理', parent: '§3.4 Attribute PDUs', desc: 'ATT_ERROR_RSP；对请求失败时返回（Command 不触发）。', color: '#dc2626', defaultCollapsed: false },
+      mtu: { section: '3.4.2', title: 'MTU 交换', parent: '§3.4 Attribute PDUs', desc: 'EXCHANGE_MTU_REQ/RSP；连接上通常各发一次。', color: '#2563eb', defaultCollapsed: false },
+      find_info: { section: '3.4.3', title: '发现信息', parent: '§3.4 Attribute PDUs', desc: 'FIND_INFORMATION / FIND_BY_TYPE_VALUE 发现句柄与类型。', color: '#7c3aed', defaultCollapsed: true },
+      read: { section: '3.4.4', title: '读属性', parent: '§3.4 Attribute PDUs', desc: 'READ / READ_BLOB / READ_BY_TYPE / READ_MULTIPLE 等。', color: '#059669', defaultCollapsed: true },
+      write: { section: '3.4.5', title: '写属性', parent: '§3.4 Attribute PDUs', desc: 'WRITE_REQ/RSP、WRITE_CMD、SIGNED_WRITE_CMD。', color: '#d97706', defaultCollapsed: true },
+      queued_write: { section: '3.4.6', title: '排队写入', parent: '§3.4 Attribute PDUs', desc: 'PREPARE_WRITE + EXECUTE_WRITE 可靠长写。', color: '#d97706', defaultCollapsed: true },
+      server_init: { section: '3.4.7', title: '服务器发起', parent: '§3.4 Attribute PDUs', desc: 'NTF / IND / CFM / MULTIPLE_HANDLE_VALUE_NTF。', color: '#0891b2', defaultCollapsed: true }
+    };
+
+    const paramToPdusMap = {};
+    function generateBacklinks() {
+      for (const paramKey in parametersData) paramToPdusMap[paramKey] = [];
+      pduData.forEach(pdu => {
+        (pdu.payload || []).forEach(item => {
+          if (parametersData[item.name] && !paramToPdusMap[item.name].includes(pdu.name))
+            paramToPdusMap[item.name].push(pdu.name);
+        });
+      });
+    }
+    function navigateTo(targetId) {
+      const element = document.getElementById(targetId);
+      if (!element) return;
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.remove('highlight-target');
+      void element.offsetWidth;
+      element.classList.add('highlight-target');
+      if (targetId.startsWith('pdu-')) {
+        const pduName = targetId.replace('pdu-', '');
+        document.querySelectorAll('.pdu-menu-item').forEach(item => {
+          if (item.getAttribute('data-pdu') === pduName) {
+            item.classList.add('active');
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else item.classList.remove('active');
+        });
+      }
+    }
+
+    function getProcedureMeta(pdu) {
+      return PROCEDURE_CATALOG[pdu.procedure] || { section: '?', title: pdu.procedure, parent: '', desc: '', color: '#94a3b8', defaultCollapsed: false };
+    }
+
+    function sortPdusByProcedure(pdus) {
+      return [...pdus].sort((a, b) => {
+        const ai = PROCEDURE_ORDER.indexOf(a.procedure);
+        const bi = PROCEDURE_ORDER.indexOf(b.procedure);
+        const aIdx = ai < 0 ? 999 : ai;
+        const bIdx = bi < 0 ? 999 : bi;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        if (a.opcode !== b.opcode) return a.opcode - b.opcode;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    function createPduMenuItem(pdu) {
+      const li = document.createElement('li');
+      li.className = 'pdu-menu-item';
+      li.setAttribute('data-pdu', pdu.name);
+      li.onclick = () => navigateTo(`pdu-${pdu.name}`);
+      const opHex = `0x${pdu.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+      const cmdMark = pdu.commandFlag ? ' · CMD' : '';
+      li.innerHTML = `
+        <div class="pdu-menu-info">
+          <span class="pdu-menu-name">${pdu.display}</span>
+          <span class="pdu-menu-op">${opHex} · ${pdu.pduType}${cmdMark}</span>
+        </div>
+        <span class="badge badge-${pdu.pduType.toLowerCase()}">${pdu.pduType}</span>
+      `;
+      return li;
+    }
+
+    function toggleNavGroup(groupId) {
+      const group = document.querySelector(`.nav-group[data-group="${groupId}"]`);
+      if (group) group.classList.toggle('collapsed');
+    }
+
+    function setAllNavGroups(collapsed) {
+      document.querySelectorAll('.nav-group').forEach(g => {
+        if (collapsed) g.classList.add('collapsed');
+        else g.classList.remove('collapsed');
+      });
+    }
+
+    function renderSidebar(filteredPdus = pduData) {
+      const listContainer = document.getElementById('pduMenuList');
+      listContainer.innerHTML = '';
+      document.getElementById('pduCount').innerText = `${filteredPdus.length} / ${pduData.length}`;
+      const isSearch = filteredPdus.length !== pduData.length;
+      PROCEDURE_ORDER.forEach(procKey => {
+        const meta = PROCEDURE_CATALOG[procKey];
+        if (!meta) return;
+        const groupPdus = sortPdusByProcedure(filteredPdus.filter(p => p.procedure === procKey));
+        if (groupPdus.length === 0) return;
+        const section = document.createElement('div');
+        section.className = 'nav-group';
+        if (!isSearch && meta.defaultCollapsed) section.classList.add('collapsed');
+        section.setAttribute('data-group', procKey);
+        const header = document.createElement('div');
+        header.className = 'nav-group-header';
+        header.style.borderLeft = `3px solid ${meta.color}`;
+        header.innerHTML = `
+          <span class="nav-group-chevron">▼</span>
+          <span class="nav-group-section">${meta.section}</span>
+          <span>${meta.title}</span>
+          <span class="nav-group-count">${groupPdus.length}</span>
+        `;
+        header.onclick = (e) => { e.stopPropagation(); toggleNavGroup(procKey); };
+        const desc = document.createElement('div');
+        desc.className = 'nav-group-desc';
+        desc.textContent = `${meta.parent} — ${meta.desc}`;
+        const items = document.createElement('ul');
+        items.className = 'nav-group-items';
+        groupPdus.forEach(pdu => items.appendChild(createPduMenuItem(pdu)));
+        section.appendChild(header);
+        section.appendChild(desc);
+        section.appendChild(items);
+        listContainer.appendChild(section);
+      });
+    }
+
+    function setupSidebarCollapse() {
+      document.getElementById('expandAllNav').addEventListener('click', () => setAllNavGroups(false));
+      document.getElementById('collapseAllNav').addEventListener('click', () => setAllNavGroups(true));
+    }
+
+    function renderPduCatalog() {
+      const catalogContainer = document.getElementById('pduCatalog');
+      catalogContainer.innerHTML = '';
+      let lastProcedure = null;
+      sortPdusByProcedure(pduData).forEach(pdu => {
+        const procMeta = getProcedureMeta(pdu);
+        if (pdu.procedure !== lastProcedure) {
+          lastProcedure = pdu.procedure;
+          const sectionHdr = document.createElement('div');
+          sectionHdr.className = 'procedure-section-header';
+          sectionHdr.id = `procedure-${pdu.procedure}`;
+          sectionHdr.style.borderLeft = `4px solid ${procMeta.color}`;
+          sectionHdr.innerHTML = `
+            <h4 style="color:${procMeta.color}">§${procMeta.section} ${procMeta.title}</h4>
+            <p><strong>${procMeta.parent}</strong> — ${procMeta.desc}</p>
+          `;
+          catalogContainer.appendChild(sectionHdr);
+        }
+        const card = document.createElement('div');
+        card.className = 'pdu-card';
+        card.id = `pdu-${pdu.name}`;
+        const opHex = `0x${pdu.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+        const procBadge = `<span class="badge-procedure" style="background:${procMeta.color}18;color:${procMeta.color};border:1px solid ${procMeta.color}40">§${procMeta.section}</span>`;
+        const cmdBadge = pdu.commandFlag ? '<span class="badge badge-cmd">CMD</span>' : '';
+        let payloadHtml = '';
+        if (pdu.payload && pdu.payload.length > 0) {
+          payloadHtml = `
+            <table class="payload-table">
+              <thead><tr>
+                <th style="width:18%">参数位置</th>
+                <th style="width:28%">字段</th>
+                <th style="width:14%">类型</th>
+                <th style="width:40%">说明</th>
+              </tr></thead>
+              <tbody>
+                ${pdu.payload.map(item => `
+                  <tr>
+                    <td style="font-family:monospace">${item.pos}</td>
+                    <td>${parametersData[item.name]
+                      ? `<a href="#param-${item.name}" class="param-link" onclick="event.preventDefault(); navigateTo('param-${item.name}')">${item.name}</a>`
+                      : `<span style="font-weight:600">${item.name}</span>`}
+                    </td>
+                    <td style="font-family:monospace;color:#3b82f6">${item.type}</td>
+                    <td>${item.desc}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>`;
+        } else {
+          payloadHtml = '<div style="font-size:0.85rem;color:var(--text-sub);font-style:italic">无 Attribute Parameters（仅 Opcode 字节）。</div>';
+        }
+        const respLine = pdu.responsePdu
+          ? `<p style="font-size:0.8rem;color:#64748b;margin-bottom:0.5rem">配对响应：<code>${pdu.responsePdu}</code>（或 ATT_ERROR_RSP）</p>`
+          : (pdu.commandFlag || pdu.pduType === 'NTF' ? '<p style="font-size:0.8rem;color:#64748b;margin-bottom:0.5rem">无响应 PDU。</p>' : '');
+        card.innerHTML = `
+          <div class="pdu-card-header">
+            <div class="pdu-title-block">
+              <span class="pdu-card-name">${pdu.display}</span>
+              ${procBadge}
+              <span class="badge badge-${pdu.pduType.toLowerCase()}">${pdu.pduType}</span>
+              ${cmdBadge}
+            </div>
+            <div class="pdu-card-meta">
+              <span><strong>方向:</strong> ${pdu.direction}</span>
+              <span><strong>Opcode:</strong> ${opHex}</span>
+            </div>
+          </div>
+          <div class="pdu-card-body">
+            <div class="pdu-desc">${pdu.description}</div>
+            <p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem">PDU = Attribute Opcode(1) + Attribute Parameters(0…ATT_MTU−X) [+ Authentication Signature(12)]。Opcode 含 Command Flag(bit6)、Auth Signature Flag(bit7)。</p>
+            ${respLine}
+            ${payloadHtml}
+          </div>`;
+        catalogContainer.appendChild(card);
+      });
+    }
+
+    function renderParameterDirectory() {
+      const paramContainer = document.getElementById('parametersContainer');
+      paramContainer.innerHTML = '';
+      Object.keys(parametersData).sort().forEach(key => {
+        const param = parametersData[key];
+        const linkedPdus = paramToPdusMap[key] || [];
+        const card = document.createElement('div');
+        card.className = 'parameter-card';
+        card.id = `param-${key}`;
+        card.innerHTML = `
+          <div class="parameter-card-header">
+            <span class="parameter-title">${key}</span>
+            <span class="parameter-type">${param.type} (${param.size})</span>
+          </div>
+          <div class="parameter-desc">
+            <div style="margin-bottom:0.5rem"><strong>取值:</strong> <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.8rem">${param.range}</code></div>
+            <div>${param.description}</div>
+          </div>
+          <div class="parameter-relations">
+            <span class="relation-label">引用 PDU:</span>
+            ${linkedPdus.length ? linkedPdus.map(n => `<a href="#pdu-${n}" class="relation-badge" onclick="event.preventDefault(); navigateTo('pdu-${n}')">${n}</a>`).join('') : '—'}
+          </div>`;
+        paramContainer.appendChild(card);
+      });
+    }
+
+    function setupSearch() {
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        if (!query) {
+          renderSidebar(pduData);
+          document.querySelectorAll('.pdu-card, .procedure-section-header').forEach(el => el.classList.remove('hidden'));
+          return;
+        }
+        const filtered = pduData.filter(pdu => {
+          const meta = getProcedureMeta(pdu);
+          const nameMatch = pdu.name.includes(query) || pdu.display.toLowerCase().includes(query);
+          const opMatch = query.startsWith('0x') && parseInt(query, 16) === pdu.opcode
+            || (!query.startsWith('0x') && !isNaN(parseInt(query, 16)) && query.length <= 2 && pdu.opcode === parseInt(query, 16));
+          const procMatch = pdu.procedure.includes(query) || meta.title.toLowerCase().includes(query)
+            || meta.section.includes(query);
+          const typeMatch = pdu.pduType.toLowerCase() === query;
+          return nameMatch || opMatch || procMatch || typeMatch;
+        });
+        renderSidebar(filtered);
+        const visible = filtered.map(p => p.name);
+        document.querySelectorAll('.pdu-card').forEach(card => {
+          card.classList.toggle('hidden', !visible.includes(card.id.replace('pdu-', '')));
+        });
+        document.querySelectorAll('.procedure-section-header').forEach(hdr => {
+          const pk = hdr.id.replace('procedure-', '');
+          hdr.classList.toggle('hidden', !filtered.some(p => p.procedure === pk));
+        });
+        if (filtered.length === 1) navigateTo(`pdu-${filtered[0].name}`);
+      });
+    }
+
+    function scrollToTop() {
+      document.getElementById('contentArea').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.onload = function() {
+      generateBacklinks();
+      renderSidebar();
+      renderPduCatalog();
+      renderParameterDirectory();
+      setupSearch();
+      setupSidebarCollapse();
+    };
+
+  </script>
+</body>
+</html>

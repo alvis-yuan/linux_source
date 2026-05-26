@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典蓝牙 (BR/EDR) 报文解析与层层过滤全景图</title>
+    <style>
+        :root {
+            --bg-color: #111827;
+            --text-color: #e5e7eb;
+            --bb-col: #ea580c;    /* Baseband 橙色 */
+            --hci-col: #16a34a;   /* HCI 绿色 */
+            --l2cap-col: #2563eb; /* L2CAP 蓝色 */
+            --rfc-col: #9333ea;   /* RFCOMM 紫色 */
+            --app-col: #db2777;   /* APP 粉色 */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            border-bottom: 2px solid #374151;
+            margin-bottom: 30px;
+        }
+
+        h1 { margin: 0; color: #f9fafb; font-size: 2.2em; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .subtitle { color: #9ca3af; font-size: 1.1em; margin-top: 10px; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* 报文结构套娃图表 */
+        .packet-diagram {
+            background: #1f2937;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 50px;
+            text-align: center;
+        }
+
+        .packet-row {
+            display: flex;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .box {
+            padding: 12px 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 1px solid rgba(0,0,0,0.3);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .box:hover { filter: brightness(1.2); cursor: pointer; transform: scale(1.02); z-index: 10; border-radius: 4px;}
+        .box span { font-size: 0.75em; font-weight: normal; opacity: 0.85; margin-top: 4px; }
+
+        /* 垂直处理流 */
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .pipeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to top, var(--bb-col), var(--hci-col), var(--l2cap-col), var(--rfc-col), var(--app-col));
+            z-index: 0;
+        }
+
+        .layer-card {
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+
+        .layer-card:hover { transform: translateX(10px); border-color: #4b5563; }
+
+        .layer-title {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-right: 2px solid #374151;
+            padding-right: 20px;
+        }
+        .layer-title h3 { margin: 0 0 5px 0; font-size: 1.4em; }
+        .layer-title .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .layer-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .logic-box {
+            background: #111827;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+
+        .logic-box h4 { margin: 0 0 10px 0; display: flex; align-items: center; gap: 8px; font-size: 1.05em;}
+        .logic-box ul { margin: 0; padding-left: 20px; color: #d1d5db; font-size: 0.9em;}
+        .logic-box li { margin-bottom: 6px; }
+
+        .highlight { color: #fcd34d; font-weight: bold; }
+        .tag { background: #374151; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #60a5fa;}
+
+    </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+    /* ── 左侧目录导航（misc 专题，样式同 packet）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar),
+    .packet-page > .header {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card,
+    .packet-page .scenario-card,
+    .packet-page .layer-card,
+    .packet-page .role-card,
+    .packet-page .phase-title,
+    .packet-page h2[id],
+    .packet-page .tree,
+    .packet-page .deep-dive {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">经典蓝牙报文解析流水线</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">专题 · Misc</div>
+    <div class="doc-name">经典蓝牙报文解析流水线</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#1-基带层-baseband">1. 基带层 (Baseband)</a>
+  <a class="packet-nav-link" href="#2-hci-接口">2. HCI 接口</a>
+  <a class="packet-nav-link" href="#3-l2cap-层">3. L2CAP 层</a>
+  <a class="packet-nav-link" href="#4-rfcomm-层">4. RFCOMM 层</a>
+  <a class="packet-nav-link" href="#5-应用层-spp">5. 应用层 (SPP)</a>
+  <a class="packet-nav-link" href="#doc-top">经典蓝牙 (BR/EDR) 报文解析全景图</a>
+  <a class="packet-nav-link" href="#style-color-f9fafb-border-bottom-1px-solid-374151-paddin">🚀 第二部分：自下而上的解析与过滤流水线 (Bottom-Up)</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="ble_ll_controller_parse.html">BLE 控制器 Link Layer 报文解析</a>
+  <a class="packet-nav-link doc" href="rf_workflow.html">射频与基带交互架构</a>
+  <a class="packet-nav-link doc" href="lmp_ssp_deepdive.html">LMP 职责与 SSP 深度剖析</a>
+  <a class="packet-nav-link doc" href="sdp_database_structure.html">SDP 数据库结构</a>
+  <a class="packet-nav-link doc current-doc" href="bt_packet_parse_flow.html">经典蓝牙报文解析流水线</a>
+  <a class="packet-nav-link doc" href="bt_bb_flow.html">基带核心职责与处理流水线</a>
+  <a class="packet-nav-link doc" href="l2cap_classic_part.html">经典 L2CAP 报文与建连</a>
+  <a class="packet-nav-link doc" href="bt_timing.html">BR/EDR 时序与时间轴</a>
+  <a class="packet-nav-link doc" href="bt_baseband_packet_types.html">基带报文类型大全</a>
+  <a class="packet-nav-link doc" href="bt_acl_create_process.html">ACL 链路建立全过程</a>
+  <a class="packet-nav-link doc" href="bluetooth_rf_flow.html">蓝牙射频 TX/RX 流程</a>
+  <a class="packet-nav-link doc" href="ble_stack_parser.html">BLE 协议栈自底向上解析</a>
+  <a class="packet-nav-link doc" href="baseband_packet_parse_flow.html">经典蓝牙底层报文分流引擎</a>
+  <a class="packet-nav-link doc" href="att_protocol.html">ATT 协议指令分类</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<div class="packet-main">
+<header id="doc-top">
+    <h1>经典蓝牙 (BR/EDR) 报文解析全景图</h1>
+    <p class="subtitle">以 SPP (虚拟串口) 协议为例，剖析基带多时隙报文到应用层字节流的升华</p>
+</header>
+
+<div class="container">
+
+    <!-- 1. 报文套娃结构图 -->
+    <div class="packet-diagram">
+        <h2 id="style-margin-top-0-color-f9fafb-text-align-left-border-b" style="margin-top:0; color:#f9fafb; text-align:left; border-bottom: 1px solid #374151; padding-bottom:10px;">📦 第一部分：经典蓝牙的“套娃”结构 (OTA PDU)</h2>
+        
+        <!-- 基带包 (Baseband Packet) -->
+        <div class="packet-row">
+            <div class="box" style="background:var(--bb-col); width:15%;">Access Code<span>访问码 (72 Bits)<br>标识微网身份</span></div>
+            <div class="box" style="background:#c2410c; width:20%;">Packet Header (54 Bits)<span>LT_ADDR | TYPE | ARQN | SEQN</span></div>
+            <div class="box" style="background:#374151; width:65%;">Baseband Payload (ACL Data / SCO Voice)<span>基带载荷 (0 ~ 2745 Bits)</span></div>
+        </div>
+
+        <!-- ACL 载荷解包 (ACL Payload) -->
+        <div class="packet-row" style="width: 65%; margin-left: 35%;">
+            <div class="box" style="background:#b45309; width:20%;">ACL Header<span>L_CH | Flow | Length (1-2B)</span></div>
+            <div class="box" style="background:#4b5563; width:70%;">L2CAP PDU<span>逻辑链路数据域</span></div>
+            <div class="box" style="background:#b45309; width:10%;">CRC<span>(2B)</span></div>
+        </div>
+
+        <!-- L2CAP 层解包 -->
+        <div class="packet-row" style="width: 45.5%; margin-left: 48%;">
+            <div class="box" style="background:var(--l2cap-col); width:20%;">Length<span>长度 (2B)</span></div>
+            <div class="box" style="background:var(--l2cap-col); width:20%;">CID<span>信道ID (2B)</span></div>
+            <div class="box" style="background:#4b5563; width:60%;">L2CAP Payload (RFCOMM Frame)<span>上层协议载荷</span></div>
+        </div>
+
+        <!-- RFCOMM 虚拟串口层解包 -->
+        <div class="packet-row" style="width: 27.3%; margin-left: 66.2%;">
+            <div class="box" style="background:var(--rfc-col); width:15%;">Addr<span>DLCI</span></div>
+            <div class="box" style="background:var(--rfc-col); width:15%;">Ctrl<span>帧型</span></div>
+            <div class="box" style="background:var(--rfc-col); width:15%;">Len<span>长度</span></div>
+            <div class="box" style="background:var(--app-col); width:40%;">Data (UIH)<span>"Hello"</span></div>
+            <div class="box" style="background:var(--rfc-col); width:15%;">FCS<span>校验</span></div>
+        </div>
+        <p style="color:#9ca3af; font-size:0.9em; text-align:right;">↑ 经典蓝牙的报文在时间时隙（Slot）中穿梭，接收端依此层层拆解。</p>
+    </div>
+
+    <!-- 2. 自底向上的处理流 -->
+    <h2 id="style-color-f9fafb-border-bottom-1px-solid-374151-paddin" style="color:#f9fafb; border-bottom: 1px solid #374151; padding-bottom:10px;">🚀 第二部分：自下而上的解析与过滤流水线 (Bottom-Up)</h2>
+    <div class="pipeline">
+
+        <!-- 基带与物理层 (Baseband & PHY) -->
+        <div id="1-基带层-baseband" class="layer-card" style="border-color: var(--bb-col);">
+            <div class="layer-title">
+                <h3 style="color: var(--bb-col);">1. 基带层 (Baseband)</h3>
+                <span style="color: #cbd5e1; font-size: 0.9em;">物理跳频与链路控制</span>
+                <div class="badge" style="background: var(--bb-col);">微网门卫 & 纠错引擎</div>
+            </div>
+            <div class="layer-content">
+                <div class="logic-box" style="border-color: #ef4444;">
+                    <h4>🛡️ 过滤条件：我该收这个包吗？</h4>
+                    <ul>
+                        <li><span class="highlight">匹配 Access Code (访问码)：</span> 根据 Master 的 MAC 地址生成。如果访问码不对，说明是隔壁微网的包，直接丢弃（防串台）。</li>
+                        <li><span class="highlight">匹配 LT_ADDR (逻辑传输地址)：</span> 占 3 个比特（1-7）。一台 Master 最多连 7 个 Slave。Slave 检查这个地址，如果是发给自己的（或者广播地址 0），才唤醒后续处理电路。</li>
+                    </ul>
+                </div>
+                <div class="logic-box" style="border-color: #3b82f6;">
+                    <h4>⚙️ 本层处理：包类型解析大作战</h4>
+                    <ul>
+                        <li>检查 <span class="tag">TYPE (4 Bits)</span> 决定报文类型：<br>
+                            - <span class="highlight">NULL / POLL：</span> 没数据的空包，仅用于 ACK 或主设备轮询，直接硬件消化。<br>
+                            - <span class="highlight">SCO (HV1/HV3)：</span> 同步语音包！不需要重传，直接把 Payload 剥离，通过 PCM 硬件总线 <span style="color:#f87171;">送给声卡解码</span>（不走上面的蓝牙协议栈）！<br>
+                            - <span class="highlight">ACL (DH1/DH3/DH5)：</span> 异步数据包！DH3/DH5 代表这是一个占用多时隙的高速长包。
+                        </li>
+                        <li>提取 <span class="tag">ARQN</span> 与 <span class="tag">SEQN</span> 进行应答和重传控制；校验通过后，分离出 ACL 数据，送至上层 HCI。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- HCI 层 -->
+        <div id="2-hci-接口" class="layer-card" style="border-color: var(--hci-col);">
+            <div class="layer-title">
+                <h3 style="color: var(--hci-col);">2. HCI 接口</h3>
+                <span style="color: #cbd5e1; font-size: 0.9em;">主机控制接口</span>
+                <div class="badge" style="background: var(--hci-col);">总线拼图站</div>
+            </div>
+            <div class="layer-content">
+                <div class="logic-box" style="border-color: #ef4444;">
+                    <h4>🛡️ 过滤条件：连接映射</h4>
+                    <ul>
+                        <li>从底层串口或 USB 收到 `HCI ACL Data` 包。</li>
+                        <li>提取 <span class="highlight">Connection Handle (12 Bits)</span>，映射到 OS 内存中的物理设备上下文（“哦，这是那台打印机发来的”）。</li>
+                    </ul>
+                </div>
+                <div class="logic-box" style="border-color: #3b82f6;">
+                    <h4>⚙️ 本层处理：大包组装 (Reassembly)</h4>
+                    <ul>
+                        <li>检查 HCI 头部的 <span class="tag">PB Flag (Packet Boundary)</span>。</li>
+                        <li>因为经典蓝牙受限于时隙，一个大的 L2CAP 包可能被切成了几十个 DH5 包。HCI 层负责将这些分片缓存，直到收到完整的结束包，拼成一个完整的 L2CAP PDU，再往上投递。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- L2CAP 层 -->
+        <div id="3-l2cap-层" class="layer-card" style="border-color: var(--l2cap-col);">
+            <div class="layer-title">
+                <h3 style="color: var(--l2cap-col);">3. L2CAP 层</h3>
+                <span style="color: #cbd5e1; font-size: 0.9em;">逻辑链路控制与适配层</span>
+                <div class="badge" style="background: var(--l2cap-col);">多路复用大都会</div>
+            </div>
+            <div class="layer-content">
+                <div class="logic-box" style="border-color: #ef4444;">
+                    <h4>🛡️ 过滤条件：分发给哪个协议？</h4>
+                    <ul>
+                        <li>读取 2 字节的 <span class="highlight">CID (Channel ID)</span>。经典蓝牙不像 BLE 只有几个固定的 CID，它是动态分配的。</li>
+                        <li>- 若 CID = `0x0001`：底层信令（协商 MTU）。<br>
+                            - 若 CID = `0x0040` (举例)：SDP 服务发现请求。<br>
+                            - 若 CID = `0x0041` (举例)：<span class="highlight">RFCOMM 数据！</span><br>
+                            - 若 CID = `0x0042` (举例)：AVDTP 音乐数据！</li>
+                    </ul>
+                </div>
+                <div class="logic-box" style="border-color: #3b82f6;">
+                    <h4>⚙️ 本层处理：拆头转发</h4>
+                    <ul>
+                        <li>校验 L2CAP `Length` 字段。</li>
+                        <li>剥离 4 字节的 L2CAP 头部。</li>
+                        <li>根据 CID 的指示，将纯净的 Payload 注入到对应的上层协议处理机（例如本例中的 RFCOMM 引擎）。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- RFCOMM 层 -->
+        <div id="4-rfcomm-层" class="layer-card" style="border-color: var(--rfc-col);">
+            <div class="layer-title">
+                <h3 style="color: var(--rfc-col);">4. RFCOMM 层</h3>
+                <span style="color: #cbd5e1; font-size: 0.9em;">虚拟串口协议</span>
+                <div class="badge" style="background: var(--rfc-col);">RS-232 模拟器</div>
+            </div>
+            <div class="layer-content">
+                <div class="logic-box" style="border-color: #ef4444;">
+                    <h4>🛡️ 过滤条件：去哪个虚拟串口？</h4>
+                    <ul>
+                        <li>一台手机可能同时开着多个虚拟串口通信。读取 <span class="tag">Address 字段</span> 提取 <span class="highlight">DLCI (数据链路连接标识)</span>。</li>
+                        <li>DLCI = 0 是串口控制通道；DLCI > 0 对应着特定的 SPP 端口（例如 Server Channel 1）。</li>
+                    </ul>
+                </div>
+                <div class="logic-box" style="border-color: #3b82f6;">
+                    <h4>⚙️ 本层处理：解析串口控制帧</h4>
+                    <ul>
+                        <li>读取 <span class="tag">Control 字段</span>：<br>
+                        - 如果是 `SABM` 或 `UA`：代表打开或确认串口，更改底层状态机。<br>
+                        - 如果是 <span class="highlight">`UIH` (Unnumbered Info with Header Check)</span>：代表这是真实的串口 Payload 数据！</li>
+                        <li>校验包尾的 <span class="tag">FCS (帧校验序列)</span>，如果正确，提取 `UIH` 里的流式数据。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- APP (SPP) 层 -->
+        <div id="5-应用层-spp" class="layer-card" style="border-color: var(--app-col);">
+            <div class="layer-title">
+                <h3 style="color: var(--app-col);">5. 应用层 (SPP)</h3>
+                <span style="color: #cbd5e1; font-size: 0.9em;">手机 App (Serial Port Profile)</span>
+                <div class="badge" style="background: var(--app-col);">字节流终点站</div>
+            </div>
+            <div class="layer-content">
+                <div class="logic-box" style="border-color: #ef4444;">
+                    <h4>🛡️ 过滤条件：Socket 绑定</h4>
+                    <ul>
+                        <li>操作系统将 RFCOMM 提取出的数据流，直接推入到开发者创建的 <span class="highlight">BluetoothSocket</span> 的缓冲区中。</li>
+                        <li>对于 App 开发者来说，底层的跳频、重传、通道标识全部被屏蔽。App 只需要认准这个连接对应的 Socket 对象。</li>
+                    </ul>
+                </div>
+                <div class="logic-box" style="border-color: #3b82f6;">
+                    <h4>⚙️ 本层处理：流式读取 (Stream)</h4>
+                    <ul>
+                        <li>App 触发异步读取事件：<span class="highlight">`InputStream.read(buffer)`</span>。</li>
+                        <li>将获取到的字节流（例如 `"Hello World"` 或者串口通信的 JSON 指令）交给业务逻辑处理，打印日志或渲染在屏幕上。</li>
+                        <li><strong>至此，一段经历跳频斩棘的串口数据，安全抵达目的地。</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+</div>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

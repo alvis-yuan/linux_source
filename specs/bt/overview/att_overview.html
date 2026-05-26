@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙 ATT 协议详解 — Core Spec 6.0 Part F</title>
+<style>
+  :root {
+    --blue: #0057b8;
+    --blue-dark: #003d82;
+    --blue-light: #e8f0fb;
+    --accent: #00a8e0;
+    --accent2: #00c896;
+    --gray: #f5f7fa;
+    --border: #dde3ed;
+    --text: #1a2233;
+    --muted: #6b7a99;
+    --nav-w: 280px;
+    --hdr-h: 56px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4fa; color: var(--text); }
+
+  /* ── TOP HEADER ── */
+  #top-header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--hdr-h);
+    background: var(--blue-dark);
+    display: flex; align-items: center; gap: 14px; padding: 0 22px;
+    z-index: 200; box-shadow: 0 2px 10px #0003;
+  }
+  #top-header .logo { display: flex; align-items: center; gap: 10px; }
+  #top-header .logo svg { width: 30px; height: 30px; }
+  #top-header h1 { color: #fff; font-size: 1.05rem; font-weight: 700; letter-spacing: .3px; }
+  #top-header .badge { margin-left: auto; background: var(--accent); color: #fff; font-size: .7rem; font-weight: 700; border-radius: 20px; padding: 3px 10px; letter-spacing: .5px; }
+
+  /* ── LEFT NAV ── */
+  #sidebar {
+    position: fixed; top: var(--hdr-h); left: 0; bottom: 0; width: var(--nav-w);
+    background: #fff; border-right: 1px solid var(--border);
+    overflow-y: auto; overflow-x: hidden;
+    z-index: 100;
+    scrollbar-width: thin; scrollbar-color: #c5cde0 transparent;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: #c5cde0; border-radius: 4px; }
+  #sidebar .nav-section-title {
+    font-size: .65rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 1.2px;
+    padding: 16px 18px 6px;
+  }
+  #sidebar a.nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 18px 7px 18px;
+    font-size: .82rem; color: var(--text); text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: background .15s, border-color .15s, color .15s;
+    line-height: 1.4;
+  }
+  #sidebar a.nav-item .num {
+    min-width: 22px; font-size: .7rem; font-weight: 700; color: var(--muted);
+  }
+  #sidebar a.nav-item:hover { background: var(--blue-light); color: var(--blue); }
+  #sidebar a.nav-item.active { background: var(--blue-light); border-left-color: var(--blue); color: var(--blue); font-weight: 600; }
+  #sidebar a.nav-item.sub { padding-left: 36px; font-size: .78rem; }
+  #sidebar a.nav-item.subsub { padding-left: 54px; font-size: .75rem; color: var(--muted); }
+  #sidebar a.nav-item.subsub:hover, #sidebar a.nav-item.subsub.active { color: var(--blue); }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    margin-left: var(--nav-w);
+    margin-top: var(--hdr-h);
+    padding: 36px 40px 80px;
+    max-width: 960px;
+  }
+
+  /* ── SECTION STYLES ── */
+  .part-header {
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 60%, var(--accent) 100%);
+    border-radius: 14px;
+    color: #fff; padding: 36px 40px; margin-bottom: 36px;
+  }
+  .part-header h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; }
+  .part-header p { opacity: .88; font-size: 1rem; line-height: 1.6; }
+
+  section.spec-section { margin-bottom: 48px; scroll-margin-top: calc(var(--hdr-h) + 16px); }
+  h2.sec-title {
+    font-size: 1.35rem; font-weight: 800; color: var(--blue-dark);
+    border-left: 5px solid var(--accent); padding-left: 14px; margin-bottom: 20px;
+  }
+  h3.sub-title {
+    font-size: 1.05rem; font-weight: 700; color: var(--blue);
+    margin: 24px 0 12px; padding-left: 10px; border-left: 3px solid var(--accent2);
+  }
+  h4.subsub-title {
+    font-size: .92rem; font-weight: 700; color: var(--text);
+    margin: 18px 0 8px;
+  }
+  p { line-height: 1.75; color: #2d3a55; margin-bottom: 10px; font-size: .92rem; }
+  .note {
+    background: #fff8e1; border-left: 4px solid #f59e0b;
+    border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 12px 0;
+    font-size: .85rem; color: #7a5300;
+  }
+  .note strong { color: #b45309; }
+
+  /* ── DIAGRAM CARDS ── */
+  .diagram-card {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 24px; margin: 20px 0;
+    box-shadow: 0 2px 8px #0001;
+  }
+  .diagram-card .diagram-title {
+    font-size: .78rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .8px; margin-bottom: 14px;
+  }
+
+  /* SVG diagrams */
+  .diagram-card svg { width: 100%; overflow: visible; }
+
+  /* ── TABLE STYLES ── */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: 14px 0; }
+  .spec-table th {
+    background: var(--blue); color: #fff; text-align: left;
+    padding: 8px 12px; font-weight: 600;
+  }
+  .spec-table td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .spec-table tr:nth-child(even) td { background: var(--gray); }
+  .spec-table tr:hover td { background: var(--blue-light); }
+  .code { font-family: 'Consolas','Courier New',monospace; font-size: .82rem; background: #eef2fa; color: #1a56b0; border-radius: 4px; padding: 1px 5px; }
+
+  /* pill badges */
+  .pill { display: inline-block; border-radius: 20px; font-size: .72rem; font-weight: 700; padding: 2px 9px; }
+  .pill-blue { background: #dbeafe; color: #1d4ed8; }
+  .pill-green { background: #d1fae5; color: #065f46; }
+  .pill-orange { background: #ffedd5; color: #9a3412; }
+  .pill-purple { background: #ede9fe; color: #5b21b6; }
+  .pill-red { background: #fee2e2; color: #991b1b; }
+  .pill-gray { background: #f1f5f9; color: #475569; }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow-row { display: flex; align-items: flex-start; gap: 0; margin: 10px 0; }
+  .flow-box {
+    background: var(--blue-light); border: 1.5px solid var(--blue);
+    border-radius: 8px; padding: 8px 16px; font-size: .82rem; font-weight: 600; color: var(--blue);
+    min-width: 140px; text-align: center;
+  }
+  .flow-box.server { background: #e0fdf4; border-color: var(--accent2); color: #065f46; }
+  .flow-box.error { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+  .flow-arrow { display: flex; align-items: center; color: var(--muted); font-size: .75rem; flex: 1; }
+  .flow-arrow .line { flex: 1; height: 2px; background: #c5cde0; position: relative; }
+  .flow-arrow .label { padding: 0 6px; white-space: nowrap; }
+  .flow-arrow.right .head::after { content: '▶'; font-size: .65rem; color: var(--blue); }
+  .flow-arrow.left .head::before { content: '◀'; font-size: .65rem; color: var(--accent2); }
+
+  /* Permission grid */
+  .perm-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 14px 0; }
+  .perm-card {
+    background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+  }
+  .perm-card h5 { font-size: .8rem; font-weight: 700; margin-bottom: 6px; color: var(--blue); }
+  .perm-card ul { list-style: none; }
+  .perm-card ul li { font-size: .8rem; color: #2d3a55; padding: 2px 0; }
+  .perm-card ul li::before { content: '✓ '; color: var(--accent2); font-weight: 700; }
+
+  /* stack diagram */
+  .stack { display: flex; flex-direction: column; gap: 4px; margin: 14px auto; max-width: 380px; }
+  .stack-layer {
+    border-radius: 7px; padding: 10px 18px; text-align: center; font-size: .83rem; font-weight: 600;
+  }
+
+  /* PDU format box */
+  .pdu-format { display: flex; border-radius: 8px; overflow: hidden; border: 2px solid var(--border); margin: 12px 0; }
+  .pdu-field { flex: 1; padding: 10px 6px; text-align: center; font-size: .75rem; border-right: 1px solid var(--border); }
+  .pdu-field:last-child { border-right: none; }
+  .pdu-field .fname { font-weight: 700; font-size: .78rem; }
+  .pdu-field .fsize { color: var(--muted); font-size: .68rem; margin-top: 2px; }
+  .pdu-field.opcode { background: var(--blue); color: #fff; }
+  .pdu-field.handle { background: #dbeafe; }
+  .pdu-field.value { background: #d1fae5; }
+  .pdu-field.offset { background: #ede9fe; }
+  .pdu-field.mtu { background: #ffedd5; }
+  .pdu-field.sig { background: #fee2e2; }
+
+  @media (max-width: 768px) {
+    :root { --nav-w: 0px; }
+    #sidebar { transform: translateX(-280px); transition: transform .3s; width: 280px; }
+    #sidebar.open { transform: translateX(0); }
+    #main { margin-left: 0; padding: 20px 16px 60px; }
+    .perm-grid { grid-template-columns: 1fr; }
+    #menu-btn { display: flex !important; }
+  }
+  #menu-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,.15); border: none; color: #fff; font-size: 1.2rem;
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- TOP HEADER -->
+<header id="top-header">
+  <button type="button" id="menu-btn" aria-label="菜单" title="菜单">☰</button>
+  <div class="logo">
+    <!-- Bluetooth logo SVG -->
+    <svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="30" height="30" rx="6" fill="white"/>
+      <path d="M15 4L22 10L16 15.5L22 21L15 27V17.5L10 22L8.5 20.5L14 15.5L8.5 10.5L10 9L15 13.5V4Z" fill="#0057b8"/>
+    </svg>
+    <h1>蓝牙 ATT 协议 — Core 6.0 Part F 完整解析</h1>
+  </div>
+  <span class="badge">Bluetooth Core 6.0</span>
+</header>
+
+<!-- LEFT SIDEBAR -->
+<nav id="sidebar">
+  <div class="nav-section-title">概览</div>
+  <a class="nav-item" href="#sec-intro"><span class="num">1</span>简介</a>
+  <a class="nav-item sub" href="#sec-1-1">1.1 范围</a>
+  <a class="nav-item sub" href="#sec-1-3">1.3 约定</a>
+  <a class="nav-item" href="#sec-overview"><span class="num">2</span>协议概述</a>
+  <div class="nav-section-title">协议要求</div>
+  <a class="nav-item" href="#sec-3"><span class="num">3</span>协议要求</a>
+  <a class="nav-item sub" href="#sec-3-1">3.1 基本介绍</a>
+  <a class="nav-item sub" href="#sec-3-2">3.2 基本概念</a>
+  <a class="nav-item subsub" href="#sec-3-2-1">3.2.1 属性类型</a>
+  <a class="nav-item subsub" href="#sec-3-2-2">3.2.2 属性句柄</a>
+  <a class="nav-item subsub" href="#sec-3-2-3">3.2.3 句柄分组</a>
+  <a class="nav-item subsub" href="#sec-3-2-4">3.2.4 属性值</a>
+  <a class="nav-item subsub" href="#sec-3-2-5">3.2.5 属性权限</a>
+  <a class="nav-item subsub" href="#sec-3-2-6">3.2.6 控制点属性</a>
+  <a class="nav-item subsub" href="#sec-3-2-7">3.2.7 协议方法</a>
+  <a class="nav-item subsub" href="#sec-3-2-8">3.2.8 MTU 交换</a>
+  <a class="nav-item subsub" href="#sec-3-2-9">3.2.9 长属性值</a>
+  <a class="nav-item subsub" href="#sec-3-2-10">3.2.10 原子操作</a>
+  <a class="nav-item subsub" href="#sec-3-2-11">3.2.11 ATT Bearer</a>
+  <a class="nav-item sub" href="#sec-3-3">3.3 属性 PDU</a>
+  <a class="nav-item sub" href="#sec-3-4">3.4 属性协议 PDU</a>
+  <a class="nav-item subsub" href="#sec-3-4-1">3.4.1 错误处理</a>
+  <a class="nav-item subsub" href="#sec-3-4-2">3.4.2 MTU 交换</a>
+  <a class="nav-item subsub" href="#sec-3-4-3">3.4.3 查找信息</a>
+  <a class="nav-item subsub" href="#sec-3-4-4">3.4.4 读取属性</a>
+  <a class="nav-item subsub" href="#sec-3-4-5">3.4.5 写入属性</a>
+  <a class="nav-item subsub" href="#sec-3-4-6">3.4.6 队列写入</a>
+  <a class="nav-item subsub" href="#sec-3-4-7">3.4.7 服务端发起</a>
+  <a class="nav-item subsub" href="#sec-3-4-8">3.4.8 PDU 汇总</a>
+  <a class="nav-item subsub" href="#sec-3-4-9">3.4.9 响应汇总</a>
+  <div class="nav-section-title">安全 & 附录</div>
+  <a class="nav-item" href="#sec-4"><span class="num">4</span>安全考量</a>
+  <a class="nav-item" href="#sec-5"><span class="num">5</span>参考文献</a>
+  <a class="nav-item" href="#sec-appendix"><span class="num">A</span>PDU 名称变更</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+
+  <!-- PART HEADER BANNER -->
+  <div class="part-header">
+    <h2>Part F · 属性协议（ATT）</h2>
+    <p>本文档完整解析蓝牙核心规范 6.0 Part F —— 属性协议（Attribute Protocol, ATT）。ATT 定义了一种协议，使设备能够发现、读取和写入对端设备上的属性。本文严格遵循原始规范章节顺序，并配以图表辅助理解。</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 1: INTRODUCTION
+  ═══════════════════════════════════════ -->
+  <section class="spec-section" id="sec-intro">
+    <h2 class="sec-title">1. 简介（Introduction）</h2>
+
+    <section id="sec-1-1">
+      <h3 class="sub-title">1.1 范围（Scope）</h3>
+      <p>属性协议（ATT）允许一个被称为<strong>服务端（Server）</strong>的设备向被称为<strong>客户端（Client）</strong>的对端设备公开一组属性及其关联值。服务端公开的属性可由客户端进行<em>发现、读取和写入</em>，也可由服务端<em>指示（Indication）和通知（Notification）</em>。</p>
+
+      <div class="diagram-card">
+        <div class="diagram-title">🔷 图1-1 · ATT 客户端 / 服务端角色模型</div>
+        <svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="max-height:180px">
+          <!-- Client box -->
+          <rect x="30" y="40" width="160" height="100" rx="12" fill="#dbeafe" stroke="#1d4ed8" stroke-width="2"/>
+          <text x="110" y="78" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e3a8a">ATT Client</text>
+          <text x="110" y="98" text-anchor="middle" font-size="11" fill="#3b82f6">• 发现属性</text>
+          <text x="110" y="114" text-anchor="middle" font-size="11" fill="#3b82f6">• 读取 / 写入</text>
+          <text x="110" y="130" text-anchor="middle" font-size="11" fill="#3b82f6">• 接收通知/指示</text>
+          <!-- Server box -->
+          <rect x="410" y="40" width="160" height="100" rx="12" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+          <text x="490" y="78" text-anchor="middle" font-size="14" font-weight="bold" fill="#064e3b">ATT Server</text>
+          <text x="490" y="98" text-anchor="middle" font-size="11" fill="#10b981">• 公开属性</text>
+          <text x="490" y="114" text-anchor="middle" font-size="11" fill="#10b981">• 响应请求</text>
+          <text x="490" y="130" text-anchor="middle" font-size="11" fill="#10b981">• 发送通知/指示</text>
+          <!-- Arrows -->
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#6b7280"/>
+            </marker>
+            <marker id="arr2" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+              <path d="M8,0 L8,6 L0,3 z" fill="#6b7280"/>
+            </marker>
+          </defs>
+          <line x1="195" y1="80" x2="405" y2="80" stroke="#6b7280" stroke-width="2" marker-end="url(#arr)" stroke-dasharray="6,3"/>
+          <text x="300" y="74" text-anchor="middle" font-size="11" fill="#6b7280">REQ / CMD</text>
+          <line x1="405" y1="105" x2="195" y2="105" stroke="#059669" stroke-width="2" marker-end="url(#arr2)" stroke-dasharray="6,3"/>
+          <text x="300" y="122" text-anchor="middle" font-size="11" fill="#059669">RSP / NTF / IND</text>
+          <!-- ATT Bearer label -->
+          <rect x="220" y="135" width="160" height="26" rx="6" fill="#f0f4fa" stroke="#c5cde0"/>
+          <text x="300" y="153" text-anchor="middle" font-size="11" fill="#6b7a99" font-weight="600">ATT Bearer (L2CAP)</text>
+        </svg>
+      </div>
+    </section>
+
+    <section id="sec-1-3">
+      <h3 class="sub-title">1.3 约定（Conventions）</h3>
+      <p>在本规范中，PDU 名称以<em>斜体</em>显示。错误码在 Table 3.4 中定义，以斜体加数字形式表示（例如 <em>Attribute Not Found</em> (0x0A)）。其他名称（如参数）以正常字体显示。</p>
+    </section>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 2: PROTOCOL OVERVIEW
+  ═══════════════════════════════════════ -->
+  <section class="spec-section" id="sec-overview">
+    <h2 class="sec-title">2. 协议概述（Protocol Overview）</h2>
+    <p>属性协议定义了<strong>服务端</strong>和<strong>客户端</strong>两种角色。每个属性由以下三个核心属性唯一标识：</p>
+
+    <div class="diagram-card">
+      <div class="diagram-title">🔷 图2-1 · 属性的三要素</div>
+      <svg viewBox="0 0 580 160" xmlns="http://www.w3.org/2000/svg" style="max-height:160px">
+        <!-- center circle -->
+        <ellipse cx="290" cy="80" rx="55" ry="40" fill="#1d4ed8" opacity=".9"/>
+        <text x="290" y="76" text-anchor="middle" font-size="12" fill="white" font-weight="bold">Attribute</text>
+        <text x="290" y="92" text-anchor="middle" font-size="11" fill="white">属性</text>
+        <!-- UUID -->
+        <rect x="30" y="20" width="150" height="56" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="105" y="44" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">① 属性类型</text>
+        <text x="105" y="62" text-anchor="middle" font-size="10" fill="#3b82f6">UUID (16/32/128-bit)</text>
+        <line x1="180" y1="48" x2="235" y2="70" stroke="#93c5fd" stroke-width="1.5"/>
+        <!-- Handle -->
+        <rect x="220" y="120" width="140" height="34" rx="10" fill="#d1fae5" stroke="#059669" stroke-width="1.5"/>
+        <text x="290" y="138" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">② 属性句柄 (Handle)</text>
+        <line x1="290" y1="120" x2="290" y2="120" stroke="#6ee7b7" stroke-width="1.5"/>
+        <line x1="280" y1="119" x2="280" y2="120" stroke="#6ee7b7" stroke-width="1.5"/>
+        <!-- Permissions -->
+        <rect x="400" y="20" width="150" height="56" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="475" y="44" text-anchor="middle" font-size="12" font-weight="bold" fill="#4c1d95">③ 权限集合</text>
+        <text x="475" y="62" text-anchor="middle" font-size="10" fill="#7c3aed">读/写/加密/认证/授权</text>
+        <line x1="400" y1="48" x2="345" y2="70" stroke="#c4b5fd" stroke-width="1.5"/>
+        <!-- connector to handle -->
+        <line x1="290" y1="120" x2="290" y2="120" stroke="none"/>
+        <path d="M290 120 L290 120" stroke="#6ee7b7" stroke-width="1.5"/>
+        <!-- handles connector line -->
+        <line x1="263" y1="115" x2="270" y2="120" stroke="#6ee7b7" stroke-width="1.5"/>
+      </svg>
+    </div>
+
+    <p>服务端在同一设备上只能有一个实例，属性句柄在所有支持的 Bearer 上必须相同。客户端可以向服务端发送请求，服务端必须响应所有接收到的请求。</p>
+    <p>ATT 协议提供<strong>通知（Notification）</strong>和<strong>指示（Indication）</strong>能力，无需客户端主动读取即可高效推送属性值。</p>
+
+    <div class="diagram-card">
+      <div class="diagram-title">🔷 图2-2 · ATT 在蓝牙协议栈中的位置</div>
+      <div class="stack">
+        <div class="stack-layer" style="background:#fef3c7;border:2px solid #f59e0b;color:#92400e">GATT / Profile（上层规范）</div>
+        <div class="stack-layer" style="background:#dbeafe;border:2px solid #3b82f6;color:#1e3a8a;font-size:.95rem;font-weight:800">ATT — 属性协议（Part F）</div>
+        <div class="stack-layer" style="background:#d1fae5;border:2px solid #10b981;color:#064e3b">L2CAP（逻辑链路控制与适配协议）</div>
+        <div class="stack-layer" style="background:#ede9fe;border:2px solid #8b5cf6;color:#3b0764">HCI / LE Link Layer</div>
+        <div class="stack-layer" style="background:#f1f5f9;border:2px solid #94a3b8;color:#334155">PHY（物理层 LE / BR/EDR）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 3: PROTOCOL REQUIREMENTS
+  ═══════════════════════════════════════ -->
+  <section class="spec-section" id="sec-3">
+    <h2 class="sec-title">3. 协议要求（Protocol Requirements）</h2>
+
+    <section id="sec-3-1">
+      <h3 class="sub-title">3.1 基本介绍</h3>
+      <p>每个属性都有一个属性类型（UUID），用于标识其含义；一个属性句柄，用于在服务端上访问该属性；以及一个属性值。属性句柄由客户端使用 ATT PDU 发现。同一服务端上可以存在多个具有相同属性类型的属性。</p>
+    </section>
+
+    <!-- 3.2 Basic Concepts -->
+    <section id="sec-3-2">
+      <h3 class="sub-title">3.2 基本概念（Basic Concepts）</h3>
+
+      <section id="sec-3-2-1">
+        <h4 class="subsub-title">3.2.1 属性类型（Attribute Type）</h4>
+        <p>每种属性类型都通过 UUID（通用唯一标识符）标识。UUID 在全时空中被视为唯一的，可由任何人独立创建。蓝牙 SIG 定义的属性类型在 Assigned Numbers 中给出，非 SIG 类型也可自定义。</p>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-1 · UUID 位宽格式</div>
+          <svg viewBox="0 0 560 120" xmlns="http://www.w3.org/2000/svg" style="max-height:120px">
+            <!-- 16-bit -->
+            <rect x="20" y="20" width="100" height="40" rx="7" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="70" y="37" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">16-bit UUID</text>
+            <text x="70" y="54" text-anchor="middle" font-size="10" fill="#3b82f6">SIG 专用</text>
+            <!-- arrow -->
+            <path d="M122 40 L160 40" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="141" y="34" text-anchor="middle" font-size="9" fill="#94a3b8">转换</text>
+            <!-- 128-bit -->
+            <rect x="162" y="20" width="160" height="40" rx="7" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+            <text x="242" y="37" text-anchor="middle" font-size="12" font-weight="bold" fill="#4c1d95">128-bit UUID</text>
+            <text x="242" y="54" text-anchor="middle" font-size="10" fill="#7c3aed">ATT PDU 中使用</text>
+            <!-- 32-bit -->
+            <rect x="20" y="74" width="100" height="34" rx="7" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+            <text x="70" y="89" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">32-bit UUID</text>
+            <text x="70" y="103" text-anchor="middle" font-size="10" fill="#10b981">SIG 专用</text>
+            <path d="M122 91 L160 54" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+            <!-- note -->
+            <rect x="360" y="24" width="180" height="52" rx="8" fill="#fff8e1" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="370" y="43" font-size="10" fill="#92400e">• 所有 32-bit UUID 在 ATT PDU</text>
+            <text x="370" y="57" font-size="10" fill="#92400e">  中必须转换为 128-bit 格式</text>
+            <text x="370" y="71" font-size="10" fill="#92400e">• 无中央注册机构</text>
+          </svg>
+        </div>
+      </section>
+
+      <section id="sec-3-2-2">
+        <h4 class="subsub-title">3.2.2 属性句柄（Attribute Handle）</h4>
+        <p>属性句柄是一个 16 位值，由每个服务端分配给其属性，供客户端在读/写请求中引用。</p>
+        <table class="spec-table">
+          <tr><th>句柄值</th><th>含义</th></tr>
+          <tr><td><span class="code">0x0000</span></td><td>保留，不可使用</td></tr>
+          <tr><td><span class="code">0x0001–0xFFFE</span></td><td>有效属性句柄范围（唯一、非零）</td></tr>
+          <tr><td><span class="code">0xFFFF</span></td><td>最大属性句柄（Maximum Attribute Handle）</td></tr>
+        </table>
+        <div class="note"><strong>注意：</strong>属性可在 ATT Bearer 建立期间被添加或移除；但已移除的属性，在任何 ATT Bearer 存在期间，不能用相同句柄替换。</div>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-2 · 属性句柄地址空间示意</div>
+          <svg viewBox="0 0 560 80" xmlns="http://www.w3.org/2000/svg" style="max-height:80px">
+            <rect x="10" y="28" width="540" height="28" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+            <!-- reserved -->
+            <rect x="10" y="28" width="36" height="28" rx="6" fill="#fee2e2" stroke="#ef4444"/>
+            <text x="28" y="47" text-anchor="middle" font-size="9" fill="#991b1b">0x0000</text>
+            <!-- valid range -->
+            <rect x="47" y="28" width="450" height="28" fill="#d1fae5" stroke="none"/>
+            <text x="272" y="47" text-anchor="middle" font-size="11" fill="#065f46" font-weight="600">有效句柄范围 0x0001 – 0xFFFE</text>
+            <!-- max handle -->
+            <rect x="498" y="28" width="52" height="28" rx="0 6 6 0" fill="#dbeafe" stroke="#3b82f6"/>
+            <text x="524" y="47" text-anchor="middle" font-size="9" fill="#1e40af">0xFFFF</text>
+            <!-- labels -->
+            <text x="28" y="20" text-anchor="middle" font-size="9" fill="#ef4444">保留</text>
+            <text x="524" y="20" text-anchor="middle" font-size="9" fill="#1e40af">最大</text>
+          </svg>
+        </div>
+      </section>
+
+      <section id="sec-3-2-3">
+        <h4 class="subsub-title">3.2.3 属性句柄分组（Attribute Handle Grouping）</h4>
+        <p>分组由放在一组属性起始位置的特定属性定义（由上层规范决定）。客户端可以请求获取某个属性组的第一个和最后一个句柄，从而高效地批量发现服务。</p>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-3 · 属性句柄分组示例</div>
+          <svg viewBox="0 0 560 100" xmlns="http://www.w3.org/2000/svg" style="max-height:100px">
+            <!-- Service A -->
+            <rect x="10" y="20" width="230" height="60" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="125" y="40" text-anchor="middle" font-size="11" fill="#1e40af" font-weight="bold">Service A 组</text>
+            <rect x="20" y="48" width="50" height="26" rx="5" fill="#3b82f6"/>
+            <text x="45" y="66" text-anchor="middle" font-size="9" fill="white">0x0001 起始</text>
+            <rect x="75" y="48" width="50" height="26" rx="5" fill="#60a5fa"/>
+            <text x="100" y="66" text-anchor="middle" font-size="9" fill="white">0x0002</text>
+            <rect x="130" y="48" width="50" height="26" rx="5" fill="#60a5fa"/>
+            <text x="155" y="66" text-anchor="middle" font-size="9" fill="white">0x0003</text>
+            <rect x="185" y="48" width="46" height="26" rx="5" fill="#93c5fd"/>
+            <text x="208" y="66" text-anchor="middle" font-size="9" fill="#1e3a8a">0x0004 末尾</text>
+            <!-- Service B -->
+            <rect x="255" y="20" width="295" height="60" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="402" y="40" text-anchor="middle" font-size="11" fill="#065f46" font-weight="bold">Service B 组</text>
+            <rect x="265" y="48" width="55" height="26" rx="5" fill="#10b981"/>
+            <text x="292" y="66" text-anchor="middle" font-size="9" fill="white">0x0005 起始</text>
+            <rect x="325" y="48" width="55" height="26" rx="5" fill="#34d399"/>
+            <text x="352" y="66" text-anchor="middle" font-size="9" fill="#064e3b">0x0006</text>
+            <rect x="385" y="48" width="55" height="26" rx="5" fill="#34d399"/>
+            <text x="412" y="66" text-anchor="middle" font-size="9" fill="#064e3b">0x0007</text>
+            <rect x="445" y="48" width="95" height="26" rx="5" fill="#6ee7b7"/>
+            <text x="492" y="66" text-anchor="middle" font-size="9" fill="#064e3b">0x0008...末尾</text>
+          </svg>
+        </div>
+      </section>
+
+      <section id="sec-3-2-4">
+        <h4 class="subsub-title">3.2.4 属性值（Attribute Value）</h4>
+        <p>属性值是一个八位字节数组，可以是固定长度或可变长度。属性值对协议本身是不透明的——其编码由属性类型定义。</p>
+        <table class="spec-table">
+          <tr><th>规则</th><th>说明</th></tr>
+          <tr><td>最大长度</td><td>属性值最长为 <strong>512 字节</strong></td></tr>
+          <tr><td>长度隐含</td><td>大多数 PDU 中不传输属性值长度，由数据包长度隐含</td></tr>
+          <tr><td>单一可变长</td><td>每个 PDU 中只能有一个可变长度属性值字段</td></tr>
+          <tr><td>多值读取</td><td>多属性读取响应中包含多个值，各属性类型必须为固定大小</td></tr>
+        </table>
+      </section>
+
+      <section id="sec-3-2-5">
+        <h4 class="subsub-title">3.2.5 属性权限（Attribute Permissions）</h4>
+        <p>每个属性都有一组权限，决定是否可读/写，以及所需的安全级别。权限由上层规范定义，<em>不可</em>通过属性协议直接发现。</p>
+        <div class="perm-grid">
+          <div class="perm-card">
+            <h5>🔓 访问权限</h5>
+            <ul>
+              <li>可读（Readable）</li>
+              <li>可写（Writable）</li>
+              <li>可读可写（Read &amp; Write）</li>
+            </ul>
+          </div>
+          <div class="perm-card">
+            <h5>🔒 加密权限</h5>
+            <ul>
+              <li>需要加密（Encryption Required）</li>
+              <li>无需加密（No Encryption）</li>
+            </ul>
+          </div>
+          <div class="perm-card">
+            <h5>🔑 认证权限</h5>
+            <ul>
+              <li>需要认证（Authentication Required）</li>
+              <li>无需认证（No Authentication）</li>
+            </ul>
+          </div>
+          <div class="perm-card">
+            <h5>✅ 授权权限</h5>
+            <ul>
+              <li>需要授权（Authorization Required）</li>
+              <li>无需授权（No Authorization）</li>
+            </ul>
+          </div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-4 · 权限检查错误响应流程</div>
+          <svg viewBox="0 0 560 160" xmlns="http://www.w3.org/2000/svg" style="max-height:160px">
+            <rect x="10" y="20" width="100" height="36" rx="7" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="60" y="43" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">Client 请求</text>
+            <path d="M112 38 L160 38" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+            <rect x="162" y="20" width="110" height="36" rx="7" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+            <text x="217" y="38" text-anchor="middle" font-size="10" font-weight="bold" fill="#92400e">Server 权限检查</text>
+            <text x="217" y="52" text-anchor="middle" font-size="9" fill="#b45309">认证 → 授权 → 加密</text>
+            <!-- fail paths -->
+            <path d="M272 38 L320 38" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="296" y="32" text-anchor="middle" font-size="9" fill="#6b7280">失败</text>
+            <rect x="322" y="10" width="220" height="22" rx="6" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2"/>
+            <text x="432" y="25" text-anchor="middle" font-size="9" fill="#991b1b">ATT_ERROR_RSP: Insufficient Auth (0x05)</text>
+            <rect x="322" y="36" width="220" height="22" rx="6" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2"/>
+            <text x="432" y="51" text-anchor="middle" font-size="9" fill="#991b1b">ATT_ERROR_RSP: Insufficient Encryption (0x0F)</text>
+            <rect x="322" y="62" width="220" height="22" rx="6" fill="#fee2e2" stroke="#ef4444" stroke-width="1.2"/>
+            <text x="432" y="77" text-anchor="middle" font-size="9" fill="#991b1b">ATT_ERROR_RSP: Key Size Too Short (0x0C)</text>
+            <!-- success path -->
+            <path d="M217 56 L217 100" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="228" y="82" font-size="9" fill="#10b981">通过</text>
+            <rect x="120" y="102" width="200" height="36" rx="7" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+            <text x="220" y="122" text-anchor="middle" font-size="11" font-weight="bold" fill="#065f46">正常响应 RSP</text>
+            <text x="220" y="136" text-anchor="middle" font-size="9" fill="#059669">返回属性值</text>
+          </svg>
+        </div>
+      </section>
+
+      <section id="sec-3-2-6">
+        <h4 class="subsub-title">3.2.6 控制点属性（Control-Point Attributes）</h4>
+        <p>无法读取、只能被写入、通知或指示的属性称为<strong>控制点属性</strong>。上层协议利用它们启用特定设备过程，例如写入命令或在某一设备过程完成时发送指示。</p>
+      </section>
+
+      <section id="sec-3-2-7">
+        <h4 class="subsub-title">3.2.7 协议方法（Protocol Methods）</h4>
+        <p>ATT 使用 Section 3.4 定义的方法来发现、读取、写入、通知和指示属性。每种方法属于以下类别之一：</p>
+        <table class="spec-table">
+          <tr><th>类别</th><th>后缀</th><th>方向</th><th>说明</th></tr>
+          <tr><td><span class="pill pill-blue">Command</span></td><td>CMD</td><td>Client → Server</td><td>不触发响应的命令</td></tr>
+          <tr><td><span class="pill pill-green">Request</span></td><td>REQ</td><td>Client → Server</td><td>触发响应的请求</td></tr>
+          <tr><td><span class="pill pill-orange">Response</span></td><td>RSP</td><td>Server → Client</td><td>对请求的应答</td></tr>
+          <tr><td><span class="pill pill-purple">Notification</span></td><td>NTF</td><td>Server → Client</td><td>主动推送，无需确认</td></tr>
+          <tr><td><span class="pill pill-red">Indication</span></td><td>IND</td><td>Server → Client</td><td>主动推送，需要确认</td></tr>
+          <tr><td><span class="pill pill-gray">Confirmation</span></td><td>CFM</td><td>Client → Server</td><td>对指示的确认</td></tr>
+        </table>
+      </section>
+
+      <section id="sec-3-2-8">
+        <h4 class="subsub-title">3.2.8 交换 MTU 大小（Exchanging MTU Size）</h4>
+        <p><strong>ATT_MTU</strong> 是客户端与服务端之间任何数据包的最大尺寸。使用固定 CID 的 L2CAP 信道时，双方可选择性地通过 ATT_EXCHANGE_MTU_REQ / ATT_EXCHANGE_MTU_RSP 交换各自接收能力，并使用两者中的最小值。ATT_MTU 是每个 ATT Bearer 独立的值。</p>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-5 · MTU 交换过程</div>
+          <svg viewBox="0 0 520 130" xmlns="http://www.w3.org/2000/svg" style="max-height:130px">
+            <text x="100" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Client</text>
+            <text x="420" y="20" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">Server</text>
+            <line x1="100" y1="25" x2="100" y2="125" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="420" y1="25" x2="420" y2="125" stroke="#10b981" stroke-width="2"/>
+            <!-- Step 1 REQ -->
+            <line x1="100" y1="50" x2="415" y2="50" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+            <rect x="170" y="34" width="200" height="18" rx="4" fill="white"/>
+            <text x="270" y="47" text-anchor="middle" font-size="10" fill="#1e40af">ATT_EXCHANGE_MTU_REQ (Client Rx MTU=512)</text>
+            <!-- Step 2 RSP -->
+            <line x1="420" y1="80" x2="105" y2="80" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <rect x="170" y="64" width="200" height="18" rx="4" fill="white"/>
+            <text x="270" y="77" text-anchor="middle" font-size="10" fill="#065f46">ATT_EXCHANGE_MTU_RSP (Server Rx MTU=256)</text>
+            <!-- Result -->
+            <rect x="185" y="95" width="150" height="22" rx="6" fill="#fef3c7" stroke="#f59e0b"/>
+            <text x="260" y="111" text-anchor="middle" font-size="10" fill="#92400e" font-weight="bold">协商结果 ATT_MTU = min(512,256) = 256</text>
+          </svg>
+        </div>
+        <p>使用动态分配 CID 的 L2CAP 信道时，ATT_MTU 等于 L2CAP MTU 大小，无需额外交换。</p>
+      </section>
+
+      <section id="sec-3-2-9">
+        <h4 class="subsub-title">3.2.9 长属性值（Long Attribute Values）</h4>
+        <p>单个数据包最多可携带 <strong>(ATT_MTU - 1)</strong> 字节的属性值。超出此限制的属性称为<strong>长属性</strong>。</p>
+        <table class="spec-table">
+          <tr><th>操作</th><th>PDU</th><th>长度限制</th></tr>
+          <tr><td>读取（首段）</td><td>ATT_READ_REQ</td><td>最多 ATT_MTU-1 字节</td></tr>
+          <tr><td>读取（完整长属性）</td><td>ATT_READ_BLOB_REQ</td><td>多次调用，每次偏移不同</td></tr>
+          <tr><td>写入（首段）</td><td>ATT_WRITE_CMD</td><td>最多 ATT_MTU-3 字节</td></tr>
+          <tr><td>写入（完整长属性）</td><td>ATT_PREPARE_WRITE_REQ + ATT_EXECUTE_WRITE_REQ</td><td>分段写入，最大 512 字节</td></tr>
+        </table>
+        <div class="note"><strong>注意：</strong>属性值最大长度为 512 字节。使用多个 PDU 读取属性值时，防止值在读取过程中发生变化是上层规范的责任。</div>
+      </section>
+
+      <section id="sec-3-2-10">
+        <h4 class="subsub-title">3.2.10 原子操作（Atomic Operations）</h4>
+        <p>服务端须将每个请求或命令视为<strong>原子操作</strong>，不受同时来自另一个 ATT Bearer 的请求或命令影响。长属性的读写<em>不能</em>在单次原子操作中完成。若 ATT Bearer 因任何原因终止，已修改属性值的处理由上层规范负责。</p>
+      </section>
+
+      <section id="sec-3-2-11">
+        <h4 class="subsub-title">3.2.11 ATT Bearer</h4>
+        <p>ATT Bearer 是用于发送 ATT PDU 的信道，使用 L2CAP 信道实现。一台设备可以与对端设备建立多个 ATT Bearer。</p>
+        <table class="spec-table">
+          <tr><th>类型</th><th>LE 支持</th><th>BR/EDR 支持</th><th>说明</th></tr>
+          <tr><td>固定信道 Bearer</td><td>✅ 1个（ACL建立即可用）</td><td>❌</td><td>Unenhanced ATT Bearer</td></tr>
+          <tr><td>动态信道 Bearer</td><td>✅ 多个</td><td>✅ 一个或多个</td><td>通过 L2CAP 建立</td></tr>
+          <tr><td>Enhanced ATT Bearer</td><td>✅（ECBFC 模式）</td><td>✅（增强重传模式）</td><td>增强型，行为与标准 Bearer 相同（除非特别说明）</td></tr>
+        </table>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-6 · ATT Bearer 架构图</div>
+          <svg viewBox="0 0 560 160" xmlns="http://www.w3.org/2000/svg" style="max-height:160px">
+            <!-- Device A -->
+            <rect x="10" y="10" width="180" height="140" rx="10" fill="#f0f4fa" stroke="#94a3b8" stroke-width="1.5"/>
+            <text x="100" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">设备 A</text>
+            <rect x="20" y="38" width="160" height="28" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+            <text x="100" y="58" text-anchor="middle" font-size="10" fill="#1e40af">ATT Client</text>
+            <rect x="20" y="72" width="160" height="28" rx="6" fill="#d1fae5" stroke="#10b981"/>
+            <text x="100" y="92" text-anchor="middle" font-size="10" fill="#065f46">ATT Server</text>
+            <rect x="20" y="106" width="160" height="28" rx="6" fill="#ede9fe" stroke="#7c3aed"/>
+            <text x="100" y="126" text-anchor="middle" font-size="10" fill="#4c1d95">L2CAP</text>
+            <!-- Device B -->
+            <rect x="370" y="10" width="180" height="140" rx="10" fill="#f0f4fa" stroke="#94a3b8" stroke-width="1.5"/>
+            <text x="460" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e3a8a">设备 B</text>
+            <rect x="380" y="38" width="160" height="28" rx="6" fill="#dbeafe" stroke="#3b82f6"/>
+            <text x="460" y="58" text-anchor="middle" font-size="10" fill="#1e40af">ATT Client</text>
+            <rect x="380" y="72" width="160" height="28" rx="6" fill="#d1fae5" stroke="#10b981"/>
+            <text x="460" y="92" text-anchor="middle" font-size="10" fill="#065f46">ATT Server</text>
+            <rect x="380" y="106" width="160" height="28" rx="6" fill="#ede9fe" stroke="#7c3aed"/>
+            <text x="460" y="126" text-anchor="middle" font-size="10" fill="#4c1d95">L2CAP</text>
+            <!-- Bearers -->
+            <line x1="182" y1="120" x2="375" y2="120" stroke="#7c3aed" stroke-width="2.5"/>
+            <text x="280" y="115" text-anchor="middle" font-size="9" fill="#7c3aed">ATT Bearer (Fixed)</text>
+            <line x1="182" y1="86" x2="375" y2="86" stroke="#059669" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="280" y="80" text-anchor="middle" font-size="9" fill="#059669">Enhanced ATT Bearer (Dynamic)</text>
+            <line x1="182" y1="52" x2="375" y2="52" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="280" y="46" text-anchor="middle" font-size="9" fill="#3b82f6">Enhanced ATT Bearer (Dynamic)</text>
+          </svg>
+        </div>
+      </section>
+    </section>
+
+    <!-- 3.3 Attribute PDU -->
+    <section id="sec-3-3">
+      <h3 class="sub-title">3.3 属性 PDU（Attribute PDU）</h3>
+      <p>ATT PDU 分为六种类型，由 PDU 名称后缀表示。所有 ATT PDU 都至少包含一个字节的操作码（Opcode）。</p>
+      <table class="spec-table">
+        <tr><th>类型</th><th>后缀</th><th>方向</th><th>是否需要响应</th><th>说明</th></tr>
+        <tr><td><span class="pill pill-blue">Command</span></td><td>_CMD</td><td>C→S</td><td>❌</td><td>不触发响应</td></tr>
+        <tr><td><span class="pill pill-green">Request</span></td><td>_REQ</td><td>C→S</td><td>✅ RSP</td><td>触发响应或错误</td></tr>
+        <tr><td><span class="pill pill-orange">Response</span></td><td>_RSP</td><td>S→C</td><td>—</td><td>对请求的应答</td></tr>
+        <tr><td><span class="pill pill-purple">Notification</span></td><td>_NTF</td><td>S→C</td><td>❌</td><td>主动推送无需确认</td></tr>
+        <tr><td><span class="pill pill-red">Indication</span></td><td>_IND</td><td>S→C</td><td>✅ CFM</td><td>主动推送需要确认</td></tr>
+        <tr><td><span class="pill pill-gray">Confirmation</span></td><td>_CFM</td><td>C→S</td><td>—</td><td>对指示的确认</td></tr>
+      </table>
+
+      <p>ATT PDU 操作码（Opcode）结构如下：</p>
+      <div class="diagram-card">
+        <div class="diagram-title">🔷 图3-7 · ATT Opcode 字节结构</div>
+        <svg viewBox="0 0 540 90" xmlns="http://www.w3.org/2000/svg" style="max-height:90px">
+          <!-- byte segments -->
+          <rect x="10" y="20" width="60" height="40" rx="0" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+          <text x="40" y="36" text-anchor="middle" font-size="10" fill="#991b1b" font-weight="bold">Bit 7</text>
+          <text x="40" y="52" text-anchor="middle" font-size="9" fill="#991b1b">Auth Sign</text>
+          <rect x="72" y="20" width="60" height="40" rx="0" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="102" y="36" text-anchor="middle" font-size="10" fill="#4c1d95" font-weight="bold">Bit 6</text>
+          <text x="102" y="52" text-anchor="middle" font-size="9" fill="#4c1d95">Command</text>
+          <rect x="134" y="20" width="396" height="40" rx="0 8 8 0" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+          <text x="332" y="36" text-anchor="middle" font-size="10" fill="#065f46" font-weight="bold">Bits 5–0</text>
+          <text x="332" y="52" text-anchor="middle" font-size="9" fill="#065f46">Method（协议方法编号，如 0x01=错误响应, 0x02=交换MTU...）</text>
+          <!-- bracket -->
+          <text x="280" y="14" text-anchor="middle" font-size="9" fill="#6b7280">← 8 bits Opcode 字节 →</text>
+        </svg>
+      </div>
+
+      <p>ATT PDU 通用格式（带认证签名时）：</p>
+      <div class="pdu-format">
+        <div class="pdu-field opcode"><div class="fname">Opcode</div><div class="fsize">1 octet</div></div>
+        <div class="pdu-field handle"><div class="fname">Attribute Parameters</div><div class="fsize">可变长</div></div>
+        <div class="pdu-field sig"><div class="fname">Authentication Signature</div><div class="fsize">12 octets（可选）</div></div>
+      </div>
+
+      <div class="note"><strong>流量控制：</strong>客户端在收到上一个 Request 的 Response 之前，不得发送另一个 Request PDU。但 Command 不受此限制。</div>
+    </section>
+
+    <!-- 3.4 Attribute Protocol PDUs -->
+    <section id="sec-3-4">
+      <h3 class="sub-title">3.4 属性协议 PDU（Attribute Protocol PDUs）</h3>
+
+      <section id="sec-3-4-1">
+        <h4 class="subsub-title">3.4.1 错误处理（Error Handling）— ATT_ERROR_RSP</h4>
+        <p>当服务端无法处理请求时，发送 <strong>ATT_ERROR_RSP</strong>（操作码 0x01）。该 PDU 包含导致错误的请求操作码、出错的属性句柄以及错误码。</p>
+        <div class="pdu-format">
+          <div class="pdu-field opcode"><div class="fname">Opcode 0x01</div><div class="fsize">1 byte</div></div>
+          <div class="pdu-field handle"><div class="fname">Request Opcode in Error</div><div class="fsize">1 byte</div></div>
+          <div class="pdu-field handle"><div class="fname">Attribute Handle In Error</div><div class="fsize">2 bytes</div></div>
+          <div class="pdu-field sig"><div class="fname">Error Code</div><div class="fsize">1 byte</div></div>
+        </div>
+        <table class="spec-table">
+          <tr><th>错误码</th><th>名称</th><th>说明</th></tr>
+          <tr><td><span class="code">0x01</span></td><td>Invalid Handle</td><td>句柄无效</td></tr>
+          <tr><td><span class="code">0x02</span></td><td>Read Not Permitted</td><td>不允许读取</td></tr>
+          <tr><td><span class="code">0x03</span></td><td>Write Not Permitted</td><td>不允许写入</td></tr>
+          <tr><td><span class="code">0x05</span></td><td>Insufficient Authentication</td><td>认证不足</td></tr>
+          <tr><td><span class="code">0x06</span></td><td>Request Not Supported</td><td>不支持该请求</td></tr>
+          <tr><td><span class="code">0x07</span></td><td>Invalid Offset</td><td>偏移无效</td></tr>
+          <tr><td><span class="code">0x08</span></td><td>Insufficient Authorization</td><td>授权不足</td></tr>
+          <tr><td><span class="code">0x0A</span></td><td>Attribute Not Found</td><td>未找到属性</td></tr>
+          <tr><td><span class="code">0x0B</span></td><td>Attribute Not Long</td><td>属性非长属性</td></tr>
+          <tr><td><span class="code">0x0C</span></td><td>Encryption Key Size Too Short</td><td>加密密钥过短</td></tr>
+          <tr><td><span class="code">0x0D</span></td><td>Invalid Attribute Value Length</td><td>属性值长度无效</td></tr>
+          <tr><td><span class="code">0x0F</span></td><td>Insufficient Encryption</td><td>加密不足</td></tr>
+          <tr><td><span class="code">0x10</span></td><td>Unsupported Group Type</td><td>不支持的分组类型</td></tr>
+          <tr><td><span class="code">0x12</span></td><td>Database Out of Sync</td><td>数据库不同步</td></tr>
+          <tr><td><span class="code">0x80–0x9F</span></td><td>Application Error</td><td>应用层自定义错误</td></tr>
+          <tr><td><span class="code">0xE0–0xFF</span></td><td>Common Profile Error</td><td>Profile/Service 公共错误</td></tr>
+        </table>
+      </section>
+
+      <section id="sec-3-4-2">
+        <h4 class="subsub-title">3.4.2 MTU 交换（MTU Exchange）</h4>
+        <p>客户端使用 <strong>ATT_EXCHANGE_MTU_REQ</strong>（0x02）告知服务端其接收能力；服务端用 <strong>ATT_EXCHANGE_MTU_RSP</strong>（0x03）应答。只适用于固定 CID 信道。</p>
+        <div class="pdu-format">
+          <div class="pdu-field opcode"><div class="fname">0x02</div><div class="fsize">Opcode</div></div>
+          <div class="pdu-field mtu"><div class="fname">Client Rx MTU</div><div class="fsize">2 bytes</div></div>
+        </div>
+        <div class="pdu-format">
+          <div class="pdu-field opcode" style="background:#10b981"><div class="fname">0x03</div><div class="fsize">Opcode</div></div>
+          <div class="pdu-field value"><div class="fname">Server Rx MTU</div><div class="fsize">2 bytes</div></div>
+        </div>
+      </section>
+
+      <section id="sec-3-4-3">
+        <h4 class="subsub-title">3.4.3 查找信息（Find Information）</h4>
+        <p>此功能允许客户端发现服务端上的属性，获取属性句柄与其类型（UUID）的映射。</p>
+        <table class="spec-table">
+          <tr><th>PDU</th><th>操作码</th><th>参数</th></tr>
+          <tr><td>ATT_FIND_INFORMATION_REQ</td><td><span class="code">0x04</span></td><td>Starting Handle, Ending Handle</td></tr>
+          <tr><td>ATT_FIND_INFORMATION_RSP</td><td><span class="code">0x05</span></td><td>Format, Information Data（句柄-UUID 列表）</td></tr>
+          <tr><td>ATT_FIND_BY_TYPE_VALUE_REQ</td><td><span class="code">0x06</span></td><td>Starting/Ending Handle, Attribute Type, Attribute Value</td></tr>
+          <tr><td>ATT_FIND_BY_TYPE_VALUE_RSP</td><td><span class="code">0x07</span></td><td>Handles Information List</td></tr>
+        </table>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-8 · Find Information 流程</div>
+          <svg viewBox="0 0 520 120" xmlns="http://www.w3.org/2000/svg" style="max-height:120px">
+            <text x="100" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Client</text>
+            <text x="420" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">Server</text>
+            <line x1="100" y1="22" x2="100" y2="115" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="420" y1="22" x2="420" y2="115" stroke="#10b981" stroke-width="2"/>
+            <line x1="100" y1="45" x2="415" y2="45" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="260" y="40" text-anchor="middle" font-size="10" fill="#1e40af">ATT_FIND_INFORMATION_REQ (0x0001–0xFFFF)</text>
+            <line x1="420" y1="80" x2="105" y2="80" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="260" y="75" text-anchor="middle" font-size="10" fill="#065f46">ATT_FIND_INFORMATION_RSP [{0x0001,UUID_A},{0x0002,UUID_B}...]</text>
+            <text x="260" y="105" text-anchor="middle" font-size="9" fill="#6b7280">若未找到属性 → ATT_ERROR_RSP (Attribute Not Found 0x0A)</text>
+          </svg>
+        </div>
+      </section>
+
+      <section id="sec-3-4-4">
+        <h4 class="subsub-title">3.4.4 读取属性（Reading Attributes）</h4>
+        <p>ATT 提供多种读取方式，适应不同场景：</p>
+        <table class="spec-table">
+          <tr><th>PDU</th><th>操作码</th><th>说明</th></tr>
+          <tr><td>ATT_READ_BY_TYPE_REQ / RSP</td><td><span class="code">0x08/0x09</span></td><td>按 UUID 类型批量读取属性值</td></tr>
+          <tr><td>ATT_READ_REQ / RSP</td><td><span class="code">0x0A/0x0B</span></td><td>按句柄读取单个属性值</td></tr>
+          <tr><td>ATT_READ_BLOB_REQ / RSP</td><td><span class="code">0x0C/0x0D</span></td><td>读取长属性值的分段（需指定偏移）</td></tr>
+          <tr><td>ATT_READ_MULTIPLE_REQ / RSP</td><td><span class="code">0x0E/0x0F</span></td><td>一次读取多个固定长度属性</td></tr>
+          <tr><td>ATT_READ_BY_GROUP_TYPE_REQ / RSP</td><td><span class="code">0x10/0x11</span></td><td>按分组类型读取（发现服务组）</td></tr>
+          <tr><td>ATT_READ_MULTIPLE_VARIABLE_REQ / RSP</td><td><span class="code">0x20/0x21</span></td><td>一次读取多个可变长度属性</td></tr>
+        </table>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-9 · 长属性分段读取流程 (READ_BLOB)</div>
+          <svg viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg" style="max-height:150px">
+            <text x="100" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Client</text>
+            <text x="420" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">Server</text>
+            <line x1="100" y1="22" x2="100" y2="145" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="420" y1="22" x2="420" y2="145" stroke="#10b981" stroke-width="2"/>
+            <!-- Read REQ -->
+            <line x1="100" y1="42" x2="415" y2="42" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="260" y="37" text-anchor="middle" font-size="10" fill="#1e40af">ATT_READ_REQ (handle=0x0012) → 获取前 MTU-1 字节</text>
+            <line x1="420" y1="60" x2="105" y2="60" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="260" y="56" text-anchor="middle" font-size="10" fill="#065f46">ATT_READ_RSP [bytes 0 .. MTU-2]</text>
+            <!-- Blob REQ -->
+            <line x1="100" y1="82" x2="415" y2="82" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="260" y="77" text-anchor="middle" font-size="10" fill="#1e40af">ATT_READ_BLOB_REQ (handle, offset=MTU-1)</text>
+            <line x1="420" y1="100" x2="105" y2="100" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="260" y="96" text-anchor="middle" font-size="10" fill="#065f46">ATT_READ_BLOB_RSP [bytes MTU-1 .. 2*(MTU-1)-1]</text>
+            <!-- Continue -->
+            <text x="260" y="122" text-anchor="middle" font-size="10" fill="#94a3b8">... 继续 BLOB_REQ 直到收到空响应 ...</text>
+            <rect x="195" y="130" width="130" height="14" rx="4" fill="#fef3c7"/>
+            <text x="260" y="141" text-anchor="middle" font-size="9" fill="#92400e">最大属性值 512 字节</text>
+          </svg>
+        </div>
+      </section>
+
+      <section id="sec-3-4-5">
+        <h4 class="subsub-title">3.4.5 写入属性（Writing Attributes）</h4>
+        <table class="spec-table">
+          <tr><th>PDU</th><th>操作码</th><th>响应</th><th>说明</th></tr>
+          <tr><td>ATT_WRITE_REQ</td><td><span class="code">0x12</span></td><td>ATT_WRITE_RSP (0x13)</td><td>写入并等待确认</td></tr>
+          <tr><td>ATT_WRITE_CMD</td><td><span class="code">0x52</span></td><td>无</td><td>写入命令，不需响应</td></tr>
+          <tr><td>ATT_SIGNED_WRITE_CMD</td><td><span class="code">0xD2</span></td><td>无</td><td>带认证签名的写入命令</td></tr>
+        </table>
+        <div class="pdu-format">
+          <div class="pdu-field opcode"><div class="fname">0x12</div><div class="fsize">Opcode</div></div>
+          <div class="pdu-field handle"><div class="fname">Attribute Handle</div><div class="fsize">2 bytes</div></div>
+          <div class="pdu-field value"><div class="fname">Attribute Value</div><div class="fsize">可变长</div></div>
+        </div>
+        <div class="pdu-format" style="margin-top:8px">
+          <div class="pdu-field opcode" style="background:#d2691e"><div class="fname">0xD2</div><div class="fsize">Signed Opcode</div></div>
+          <div class="pdu-field handle"><div class="fname">Attribute Handle</div><div class="fsize">2 bytes</div></div>
+          <div class="pdu-field value"><div class="fname">Attribute Value</div><div class="fsize">可变长</div></div>
+          <div class="pdu-field sig"><div class="fname">Auth Signature</div><div class="fsize">12 bytes</div></div>
+        </div>
+      </section>
+
+      <section id="sec-3-4-6">
+        <h4 class="subsub-title">3.4.6 队列写入（Queued Writes）</h4>
+        <p>用于写入超过 ATT_MTU-3 字节的长属性值，分为"准备"和"执行"两个阶段：</p>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-10 · Queued Write（准备+执行）流程</div>
+          <svg viewBox="0 0 520 190" xmlns="http://www.w3.org/2000/svg" style="max-height:190px">
+            <text x="100" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Client</text>
+            <text x="420" y="18" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">Server (Queue)</text>
+            <line x1="100" y1="22" x2="100" y2="185" stroke="#3b82f6" stroke-width="2"/>
+            <line x1="420" y1="22" x2="420" y2="185" stroke="#10b981" stroke-width="2"/>
+            <!-- PREPARE 1 -->
+            <line x1="100" y1="42" x2="415" y2="42" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="260" y="37" text-anchor="middle" font-size="10" fill="#1e40af">ATT_PREPARE_WRITE_REQ (handle, offset=0, data[0..N])</text>
+            <line x1="420" y1="58" x2="105" y2="58" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="260" y="54" text-anchor="middle" font-size="10" fill="#065f46">ATT_PREPARE_WRITE_RSP (队列入队)</text>
+            <!-- PREPARE 2 -->
+            <line x1="100" y1="78" x2="415" y2="78" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="260" y="73" text-anchor="middle" font-size="10" fill="#1e40af">ATT_PREPARE_WRITE_REQ (handle, offset=N+1, data[N+1..M])</text>
+            <line x1="420" y1="94" x2="105" y2="94" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="260" y="90" text-anchor="middle" font-size="10" fill="#065f46">ATT_PREPARE_WRITE_RSP (继续入队)</text>
+            <!-- ellipsis -->
+            <text x="260" y="112" text-anchor="middle" font-size="10" fill="#94a3b8">... 继续准备 ...</text>
+            <!-- EXECUTE -->
+            <line x1="100" y1="130" x2="415" y2="130" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+            <text x="260" y="125" text-anchor="middle" font-size="10" fill="#92400e" font-weight="bold">ATT_EXECUTE_WRITE_REQ (Flags=0x01 执行 / 0x00 取消)</text>
+            <line x1="420" y1="148" x2="105" y2="148" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="260" y="144" text-anchor="middle" font-size="10" fill="#065f46">ATT_EXECUTE_WRITE_RSP (写入完成)</text>
+            <text x="260" y="170" text-anchor="middle" font-size="9" fill="#6b7280">服务端将队列中的数据一次性写入属性</text>
+          </svg>
+        </div>
+        <table class="spec-table">
+          <tr><th>PDU</th><th>操作码</th><th>关键参数</th></tr>
+          <tr><td>ATT_PREPARE_WRITE_REQ</td><td><span class="code">0x16</span></td><td>Attribute Handle, Value Offset, Part Attribute Value</td></tr>
+          <tr><td>ATT_PREPARE_WRITE_RSP</td><td><span class="code">0x17</span></td><td>Attribute Handle, Value Offset, Part Attribute Value（回显）</td></tr>
+          <tr><td>ATT_EXECUTE_WRITE_REQ</td><td><span class="code">0x18</span></td><td>Flags（0x01=执行, 0x00=取消）</td></tr>
+          <tr><td>ATT_EXECUTE_WRITE_RSP</td><td><span class="code">0x19</span></td><td>（无参数）</td></tr>
+        </table>
+      </section>
+
+      <section id="sec-3-4-7">
+        <h4 class="subsub-title">3.4.7 服务端发起（Server Initiated）— 通知与指示</h4>
+        <p>服务端可主动向客户端推送属性值，无需客户端主动请求。</p>
+        <div class="diagram-card">
+          <div class="diagram-title">🔷 图3-11 · Notification vs Indication 对比</div>
+          <svg viewBox="0 0 540 180" xmlns="http://www.w3.org/2000/svg" style="max-height:180px">
+            <!-- Notification side -->
+            <rect x="10" y="10" width="240" height="160" rx="10" fill="#f0fdf4" stroke="#10b981" stroke-width="1.5"/>
+            <text x="130" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">Notification（通知）</text>
+            <text x="100" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#065f46">Server</text>
+            <text x="200" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">Client</text>
+            <line x1="100" y1="66" x2="100" y2="155" stroke="#10b981" stroke-width="1.5"/>
+            <line x1="200" y1="66" x2="200" y2="155" stroke="#3b82f6" stroke-width="1.5"/>
+            <line x1="100" y1="95" x2="195" y2="95" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="150" y="89" text-anchor="middle" font-size="9" fill="#065f46">ATT_HANDLE_VALUE_NTF</text>
+            <text x="130" y="120" text-anchor="middle" font-size="9" fill="#6b7280">无需确认，效率高</text>
+            <text x="130" y="140" text-anchor="middle" font-size="9" fill="#6b7280">不保证可靠性</text>
+            <rect x="60" y="148" width="140" height="14" rx="4" fill="#d1fae5"/>
+            <text x="130" y="159" text-anchor="middle" font-size="9" fill="#065f46">Opcode: 0x1B (NTF)</text>
+            <!-- Indication side -->
+            <rect x="290" y="10" width="240" height="160" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="410" y="30" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Indication（指示）</text>
+            <text x="370" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#065f46">Server</text>
+            <text x="470" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">Client</text>
+            <line x1="370" y1="66" x2="370" y2="155" stroke="#10b981" stroke-width="1.5"/>
+            <line x1="470" y1="66" x2="470" y2="155" stroke="#3b82f6" stroke-width="1.5"/>
+            <line x1="370" y1="90" x2="465" y2="90" stroke="#10b981" stroke-width="1.5" marker-end="url(#arr)"/>
+            <text x="420" y="84" text-anchor="middle" font-size="9" fill="#065f46">ATT_HANDLE_VALUE_IND (0x1D)</text>
+            <line x1="470" y1="112" x2="375" y2="112" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr2)"/>
+            <text x="420" y="107" text-anchor="middle" font-size="9" fill="#1e40af">ATT_HANDLE_VALUE_CFM (0x1E)</text>
+            <text x="410" y="132" text-anchor="middle" font-size="9" fill="#6b7280">需要确认，可靠</text>
+            <text x="410" y="148" text-anchor="middle" font-size="9" fill="#6b7280">发下一个 IND 前须收到 CFM</text>
+          </svg>
+        </div>
+        <table class="spec-table">
+          <tr><th>PDU</th><th>操作码</th><th>参数</th><th>特点</th></tr>
+          <tr><td>ATT_HANDLE_VALUE_NTF</td><td><span class="code">0x1B</span></td><td>Attribute Handle, Attribute Value</td><td>无需确认</td></tr>
+          <tr><td>ATT_HANDLE_VALUE_IND</td><td><span class="code">0x1D</span></td><td>Attribute Handle, Attribute Value</td><td>需要 CFM</td></tr>
+          <tr><td>ATT_HANDLE_VALUE_CFM</td><td><span class="code">0x1E</span></td><td>（无参数）</td><td>确认 IND</td></tr>
+          <tr><td>ATT_MULTIPLE_HANDLE_VALUE_NTF</td><td><span class="code">0x23</span></td><td>Handle Length Value Tuple List</td><td>一次通知多属性</td></tr>
+        </table>
+      </section>
+
+      <section id="sec-3-4-8">
+        <h4 class="subsub-title">3.4.8 ATT PDU 汇总（Summary）</h4>
+        <p>以下是所有 ATT PDU 的完整列表（按操作码排序）：</p>
+        <table class="spec-table">
+          <tr><th>PDU 名称</th><th>操作码</th><th>主要参数</th><th>类型</th></tr>
+          <tr><td>ATT_ERROR_RSP</td><td><span class="code">0x01</span></td><td>Request Opcode, Handle, Error Code</td><td><span class="pill pill-red">RSP</span></td></tr>
+          <tr><td>ATT_EXCHANGE_MTU_REQ</td><td><span class="code">0x02</span></td><td>Client Rx MTU</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_EXCHANGE_MTU_RSP</td><td><span class="code">0x03</span></td><td>Server Rx MTU</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_FIND_INFORMATION_REQ</td><td><span class="code">0x04</span></td><td>Starting/Ending Handle</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_FIND_INFORMATION_RSP</td><td><span class="code">0x05</span></td><td>Format, Information Data</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_FIND_BY_TYPE_VALUE_REQ</td><td><span class="code">0x06</span></td><td>Handle Range, Attr Type, Value</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_FIND_BY_TYPE_VALUE_RSP</td><td><span class="code">0x07</span></td><td>Handles Information List</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_READ_BY_TYPE_REQ</td><td><span class="code">0x08</span></td><td>Handle Range, UUID</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_READ_BY_TYPE_RSP</td><td><span class="code">0x09</span></td><td>Length, Attribute Data List</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_READ_REQ</td><td><span class="code">0x0A</span></td><td>Attribute Handle</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_READ_RSP</td><td><span class="code">0x0B</span></td><td>Attribute Value</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_READ_BLOB_REQ</td><td><span class="code">0x0C</span></td><td>Handle, Value Offset</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_READ_BLOB_RSP</td><td><span class="code">0x0D</span></td><td>Part Attribute Value</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_READ_MULTIPLE_REQ</td><td><span class="code">0x0E</span></td><td>Handle Set</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_READ_MULTIPLE_RSP</td><td><span class="code">0x0F</span></td><td>Value Set</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_READ_BY_GROUP_TYPE_REQ</td><td><span class="code">0x10</span></td><td>Handle Range, UUID</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_READ_BY_GROUP_TYPE_RSP</td><td><span class="code">0x11</span></td><td>Length, Attribute Data List</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_WRITE_REQ</td><td><span class="code">0x12</span></td><td>Handle, Attribute Value</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_WRITE_RSP</td><td><span class="code">0x13</span></td><td>（无）</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_WRITE_CMD</td><td><span class="code">0x52</span></td><td>Handle, Attribute Value</td><td><span class="pill pill-blue">CMD</span></td></tr>
+          <tr><td>ATT_PREPARE_WRITE_REQ</td><td><span class="code">0x16</span></td><td>Handle, Offset, Part Value</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_PREPARE_WRITE_RSP</td><td><span class="code">0x17</span></td><td>Handle, Offset, Part Value</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_EXECUTE_WRITE_REQ</td><td><span class="code">0x18</span></td><td>Flags</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_EXECUTE_WRITE_RSP</td><td><span class="code">0x19</span></td><td>（无）</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_READ_MULTIPLE_VARIABLE_REQ</td><td><span class="code">0x20</span></td><td>Set Of Handles</td><td><span class="pill pill-green">REQ</span></td></tr>
+          <tr><td>ATT_READ_MULTIPLE_VARIABLE_RSP</td><td><span class="code">0x21</span></td><td>Length Value Tuple List</td><td><span class="pill pill-orange">RSP</span></td></tr>
+          <tr><td>ATT_MULTIPLE_HANDLE_VALUE_NTF</td><td><span class="code">0x23</span></td><td>Handle Length Value Tuple List</td><td><span class="pill pill-purple">NTF</span></td></tr>
+          <tr><td>ATT_HANDLE_VALUE_NTF</td><td><span class="code">0x1B</span></td><td>Handle, Attribute Value</td><td><span class="pill pill-purple">NTF</span></td></tr>
+          <tr><td>ATT_HANDLE_VALUE_IND</td><td><span class="code">0x1D</span></td><td>Handle, Attribute Value</td><td><span class="pill pill-red">IND</span></td></tr>
+          <tr><td>ATT_HANDLE_VALUE_CFM</td><td><span class="code">0x1E</span></td><td>（无）</td><td><span class="pill pill-gray">CFM</span></td></tr>
+          <tr><td>ATT_SIGNED_WRITE_CMD</td><td><span class="code">0xD2</span></td><td>Handle, Value, Auth Signature</td><td><span class="pill pill-blue">CMD</span></td></tr>
+        </table>
+      </section>
+
+      <section id="sec-3-4-9">
+        <h4 class="subsub-title">3.4.9 PDU 响应汇总（Response Summary）</h4>
+        <p>下表列出每个 ATT 请求对应的成功响应，以及是否允许返回 ATT_ERROR_RSP：</p>
+        <table class="spec-table">
+          <tr><th>请求 PDU</th><th>成功响应</th><th>允许 ERROR_RSP</th></tr>
+          <tr><td>ATT_EXCHANGE_MTU_REQ</td><td>ATT_EXCHANGE_MTU_RSP</td><td>✅ (0x06)</td></tr>
+          <tr><td>ATT_FIND_INFORMATION_REQ</td><td>ATT_FIND_INFORMATION_RSP</td><td>✅ (0x01, 0x0A)</td></tr>
+          <tr><td>ATT_FIND_BY_TYPE_VALUE_REQ</td><td>ATT_FIND_BY_TYPE_VALUE_RSP</td><td>✅ (0x01, 0x06, 0x0A)</td></tr>
+          <tr><td>ATT_READ_BY_TYPE_REQ</td><td>ATT_READ_BY_TYPE_RSP</td><td>✅ (多种错误码)</td></tr>
+          <tr><td>ATT_READ_REQ</td><td>ATT_READ_RSP</td><td>✅ (多种错误码)</td></tr>
+          <tr><td>ATT_READ_BLOB_REQ</td><td>ATT_READ_BLOB_RSP</td><td>✅ (含 0x07 Invalid Offset)</td></tr>
+          <tr><td>ATT_READ_MULTIPLE_REQ</td><td>ATT_READ_MULTIPLE_RSP</td><td>✅</td></tr>
+          <tr><td>ATT_READ_BY_GROUP_TYPE_REQ</td><td>ATT_READ_BY_GROUP_TYPE_RSP</td><td>✅ (含 0x10 Unsupported Group)</td></tr>
+          <tr><td>ATT_READ_MULTIPLE_VARIABLE_REQ</td><td>ATT_READ_MULTIPLE_VARIABLE_RSP</td><td>✅</td></tr>
+          <tr><td>ATT_WRITE_REQ</td><td>ATT_WRITE_RSP</td><td>✅</td></tr>
+          <tr><td>ATT_WRITE_CMD</td><td>无响应</td><td>❌</td></tr>
+          <tr><td>ATT_SIGNED_WRITE_CMD</td><td>无响应</td><td>❌</td></tr>
+          <tr><td>ATT_PREPARE_WRITE_REQ</td><td>ATT_PREPARE_WRITE_RSP</td><td>✅</td></tr>
+          <tr><td>ATT_EXECUTE_WRITE_REQ</td><td>ATT_EXECUTE_WRITE_RSP</td><td>✅ (0x07, 0x0D)</td></tr>
+          <tr><td>ATT_HANDLE_VALUE_NTF</td><td>无响应</td><td>❌</td></tr>
+          <tr><td>ATT_HANDLE_VALUE_IND</td><td>ATT_HANDLE_VALUE_CFM</td><td>❌</td></tr>
+          <tr><td>ATT_MULTIPLE_HANDLE_VALUE_NTF</td><td>无响应</td><td>❌</td></tr>
+        </table>
+      </section>
+    </section>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 4: SECURITY
+  ═══════════════════════════════════════ -->
+  <section class="spec-section" id="sec-4">
+    <h2 class="sec-title">4. 安全考量（Security Considerations）</h2>
+    <p>ATT 协议可用于访问可能需要授权和已认证加密物理链路的信息。</p>
+
+    <div class="diagram-card">
+      <div class="diagram-title">🔷 图4-1 · 服务端安全检查顺序（必须严格遵守）</div>
+      <svg viewBox="0 0 540 200" xmlns="http://www.w3.org/2000/svg" style="max-height:200px">
+        <defs>
+          <marker id="da" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#6b7280"/>
+          </marker>
+        </defs>
+        <!-- Steps -->
+        <rect x="200" y="10" width="140" height="34" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="270" y="32" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e40af">Client 发送请求</text>
+        <path d="M270 44 L270 60" stroke="#6b7280" stroke-width="1.5" marker-end="url(#da)"/>
+        <rect x="170" y="60" width="200" height="34" rx="8" fill="#fee2e2" stroke="#ef4444" stroke-width="1.5"/>
+        <text x="270" y="78" text-anchor="middle" font-size="11" font-weight="bold" fill="#991b1b">① 检查 认证 &amp; 授权</text>
+        <text x="270" y="90" text-anchor="middle" font-size="9" fill="#b91c1c">必须首先执行（防止信息泄露）</text>
+        <path d="M270 94 L270 110" stroke="#6b7280" stroke-width="1.5" marker-end="url(#da)"/>
+        <rect x="170" y="110" width="200" height="34" rx="8" fill="#ffedd5" stroke="#f59e0b" stroke-width="1.5"/>
+        <text x="270" y="128" text-anchor="middle" font-size="11" font-weight="bold" fill="#92400e">② 检查 加密 要求</text>
+        <text x="270" y="140" text-anchor="middle" font-size="9" fill="#b45309">链路是否加密？密钥长度够？</text>
+        <path d="M270 144 L270 160" stroke="#6b7280" stroke-width="1.5" marker-end="url(#da)"/>
+        <rect x="170" y="160" width="200" height="34" rx="8" fill="#d1fae5" stroke="#10b981" stroke-width="1.5"/>
+        <text x="270" y="178" text-anchor="middle" font-size="11" font-weight="bold" fill="#065f46">③ 执行读/写访问</text>
+        <text x="270" y="190" text-anchor="middle" font-size="9" fill="#059669">返回正常响应</text>
+        <!-- Warning arrows -->
+        <path d="M370 77 L420 77" stroke="#ef4444" stroke-width="1.2" marker-end="url(#da)"/>
+        <text x="480" y="73" text-anchor="middle" font-size="9" fill="#991b1b">ERROR_RSP 0x08</text>
+        <text x="480" y="84" text-anchor="middle" font-size="9" fill="#991b1b">Insufficient Auth</text>
+        <path d="M370 127 L420 127" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#da)"/>
+        <text x="480" y="123" text-anchor="middle" font-size="9" fill="#92400e">ERROR_RSP 0x0F/0x0C</text>
+        <text x="480" y="134" text-anchor="middle" font-size="9" fill="#92400e">Insuff. Encryption</text>
+      </svg>
+    </div>
+
+    <div class="note">
+      <strong>重要：</strong>属性列表（ATT_FIND_INFORMATION_REQ）不被视为私密信息，因此始终允许执行，服务端不得对此请求返回 <em>Insufficient Authorization</em> (0x08) 或 <em>Insufficient Authentication</em> (0x05) 错误。
+    </div>
+
+    <p>安全注意事项摘要：</p>
+    <table class="spec-table">
+      <tr><th>场景</th><th>服务端行为</th><th>错误码</th></tr>
+      <tr><td>客户端未被授权访问属性</td><td>拒绝访问</td><td><span class="code">0x08</span> Insufficient Authorization</td></tr>
+      <tr><td>物理链路未认证</td><td>拒绝访问</td><td><span class="code">0x05</span> Insufficient Authentication</td></tr>
+      <tr><td>链路未加密但属性要求加密</td><td>拒绝访问</td><td><span class="code">0x0F</span> Insufficient Encryption</td></tr>
+      <tr><td>加密密钥长度不足</td><td>拒绝访问</td><td><span class="code">0x0C</span> Encryption Key Size Too Short</td></tr>
+      <tr><td>多个 Bearer，不同安全等级</td><td>各 Bearer 独立检查</td><td>服务端不可假设跨 Bearer 认证共享</td></tr>
+    </table>
+    <p>一个属性可能允许任何设备读取，但仅允许已认证设备写入。实现者不应假设"可读"意味着"可写"，反之亦然。</p>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       SECTION 5: REFERENCES
+  ═══════════════════════════════════════ -->
+  <section class="spec-section" id="sec-5">
+    <h2 class="sec-title">5. 参考文献（References）</h2>
+    <table class="spec-table">
+      <tr><th>#</th><th>文件</th><th>说明</th></tr>
+      <tr><td>[1]</td><td>Core Specification Supplement, Part B</td><td>Common Profile and Service Error Codes（公共 Profile 和服务错误码，0xE0–0xFF）</td></tr>
+    </table>
+  </section>
+
+  <!-- ═══════════════════════════════════════
+       APPENDIX A: PDU NAME CHANGES
+  ═══════════════════════════════════════ -->
+  <section class="spec-section" id="sec-appendix">
+    <h2 class="sec-title">附录 A · PDU 名称变更（Changes to PDU Names）</h2>
+    <p>本规范之前的版本使用了不同的 PDU 名称。下表列出旧名称与当前名称的对应关系：</p>
+    <table class="spec-table">
+      <tr><th>旧名称（Previous Name）</th><th>当前名称（Current Name）</th></tr>
+      <tr><td>Error Response</td><td>ATT_ERROR_RSP</td></tr>
+      <tr><td>Exchange MTU Request</td><td>ATT_EXCHANGE_MTU_REQ</td></tr>
+      <tr><td>Exchange MTU Response</td><td>ATT_EXCHANGE_MTU_RSP</td></tr>
+      <tr><td>Execute Write Request</td><td>ATT_EXECUTE_WRITE_REQ</td></tr>
+      <tr><td>Execute Write Response</td><td>ATT_EXECUTE_WRITE_RSP</td></tr>
+      <tr><td>Find By Type Value Request</td><td>ATT_FIND_BY_TYPE_VALUE_REQ</td></tr>
+      <tr><td>Find By Type Value Response</td><td>ATT_FIND_BY_TYPE_VALUE_RSP</td></tr>
+      <tr><td>Find Information Request</td><td>ATT_FIND_INFORMATION_REQ</td></tr>
+      <tr><td>Find Information Response</td><td>ATT_FIND_INFORMATION_RSP</td></tr>
+      <tr><td>Handle Value Confirmation</td><td>ATT_HANDLE_VALUE_CFM</td></tr>
+      <tr><td>Handle Value Indication</td><td>ATT_HANDLE_VALUE_IND</td></tr>
+      <tr><td>Handle Value Notification</td><td>ATT_HANDLE_VALUE_NTF</td></tr>
+      <tr><td>Prepare Write Request</td><td>ATT_PREPARE_WRITE_REQ</td></tr>
+      <tr><td>Prepare Write Response</td><td>ATT_PREPARE_WRITE_RSP</td></tr>
+      <tr><td>Read Blob Request</td><td>ATT_READ_BLOB_REQ</td></tr>
+      <tr><td>Read Blob Response</td><td>ATT_READ_BLOB_RSP</td></tr>
+      <tr><td>Read by Group Type Request</td><td>ATT_READ_BY_GROUP_TYPE_REQ</td></tr>
+      <tr><td>Read by Group Type Response</td><td>ATT_READ_BY_GROUP_TYPE_RSP</td></tr>
+      <tr><td>Read By Type Request</td><td>ATT_READ_BY_TYPE_REQ</td></tr>
+      <tr><td>Read By Type Response</td><td>ATT_READ_BY_TYPE_RSP</td></tr>
+      <tr><td>Read Multiple Request</td><td>ATT_READ_MULTIPLE_REQ</td></tr>
+      <tr><td>Read Multiple Response</td><td>ATT_READ_MULTIPLE_RSP</td></tr>
+      <tr><td>Read Request</td><td>ATT_READ_REQ</td></tr>
+      <tr><td>Read Response</td><td>ATT_READ_RSP</td></tr>
+      <tr><td>Signed Write Command</td><td>ATT_SIGNED_WRITE_CMD</td></tr>
+      <tr><td>Write Command</td><td>ATT_WRITE_CMD</td></tr>
+      <tr><td>Write Request</td><td>ATT_WRITE_REQ</td></tr>
+      <tr><td>Write Response</td><td>ATT_WRITE_RSP</td></tr>
+    </table>
+  </section>
+
+</main>
+
+<script>
+  // ── Active nav highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('#sidebar a.nav-item');
+
+  function onScroll() {
+    let current = '';
+    const scrollY = window.scrollY + 80;
+    sections.forEach(sec => {
+      if (sec.offsetTop <= scrollY) current = sec.id;
+    });
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + current) {
+        link.classList.add('active');
+        // scroll nav into view
+        const sidebar = document.getElementById('sidebar');
+        const linkTop = link.offsetTop;
+        const sidebarH = sidebar.clientHeight;
+        if (linkTop < sidebar.scrollTop || linkTop > sidebar.scrollTop + sidebarH - 60) {
+          sidebar.scrollTo({ top: linkTop - sidebarH / 2, behavior: 'smooth' });
+        }
+      }
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // ── Smooth scroll on nav click
+  navLinks.forEach(link => {
+    link.addEventListener('click', e => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) {
+          if (window.btScrollToEl) window.btScrollToEl(target, 72);
+          else {
+            const top = target.getBoundingClientRect().top + window.scrollY - 72;
+            window.scrollTo({ top, behavior: 'smooth' });
+          }
+          if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+        }
+      }
+    });
+  });
+
+  // ── Init active on load
+  onScroll();
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

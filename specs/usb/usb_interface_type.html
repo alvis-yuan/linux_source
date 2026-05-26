@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USB 接口类型完全指南</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root {
+      --usb-blue: #1a6fc4;
+      --usb-dark: #0d1b2a;
+      --usb-accent: #00aaff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: #0d1b2a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      scroll-behavior: smooth;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0d1b2a 0%, #1a3558 50%, #0d1b2a 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(0,170,255,.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(26,111,196,.2)  0%, transparent 50%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      background-image:
+        linear-gradient(rgba(0,170,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,170,255,.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      position: absolute;
+      inset: 0;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: linear-gradient(135deg, #1a2744 0%, #1e3050 100%);
+      border: 1px solid rgba(0,170,255,.2);
+      border-radius: 16px;
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,.4), 0 0 20px rgba(0,170,255,.15);
+      border-color: rgba(0,170,255,.5);
+    }
+
+    /* ── Tabs ── */
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      border: 1px solid rgba(0,170,255,.25);
+      color: #94a3b8;
+      background: rgba(255,255,255,.04);
+      white-space: nowrap;
+    }
+    .tab-btn:hover { border-color: rgba(0,170,255,.6); color: #e2e8f0; }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #1a6fc4, #0ea5e9);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,170,255,.35);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Pin diagram ── */
+    .pin-diagram {
+      background: #0d1b2a;
+      border: 1px solid rgba(0,170,255,.2);
+      border-radius: 12px;
+      padding: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: .82rem;
+      line-height: 1.8;
+    }
+
+    /* ── Pin table ── */
+    .pin-table { width: 100%; border-collapse: collapse; }
+    .pin-table th {
+      background: rgba(0,170,255,.12);
+      color: #00aaff;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .pin-table td {
+      padding: 9px 14px;
+      font-size: .85rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .pin-table tr:hover td { background: rgba(0,170,255,.06); }
+    .pin-table tr:last-child td { border-bottom: none; }
+
+    /* ── Badges ── */
+    .badge-power   { background: rgba(239,68,68,.15);  color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+    .badge-data    { background: rgba(59,130,246,.15); color: #60a5fa; border: 1px solid rgba(59,130,246,.3); }
+    .badge-ss      { background: rgba(168,85,247,.15); color: #c084fc; border: 1px solid rgba(168,85,247,.3); }
+    .badge-ctrl    { background: rgba(234,179,8,.15);  color: #fbbf24; border: 1px solid rgba(234,179,8,.3); }
+    .badge-gnd     { background: rgba(107,114,128,.15);color: #9ca3af; border: 1px solid rgba(107,114,128,.3); }
+    .badge-alt     { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+
+    /* ── SVG connector shapes ── */
+    .connector-svg { display: block; margin: 0 auto; }
+
+    /* ── Spec pills ── */
+    .spec-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(0,170,255,.08);
+      border: 1px solid rgba(0,170,255,.2);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: .8rem;
+    }
+    .spec-pill span { color: #00aaff; font-weight: 700; }
+
+    /* ── Doc link ── */
+    .doc-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, rgba(26,111,196,.2), rgba(14,165,233,.2));
+      border: 1px solid rgba(0,170,255,.35);
+      border-radius: 10px;
+      padding: 10px 18px;
+      color: #60a5fa;
+      text-decoration: none;
+      font-size: .85rem;
+      font-weight: 600;
+      transition: all .2s;
+    }
+    .doc-link:hover {
+      background: linear-gradient(135deg, rgba(26,111,196,.4), rgba(14,165,233,.4));
+      color: #93c5fd;
+      box-shadow: 0 4px 16px rgba(0,170,255,.2);
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0d1b2a; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,170,255,.3); border-radius: 3px; }
+
+    /* section divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,170,255,.4), transparent);
+      margin: 0;
+    }
+
+    /* version badge */
+    .ver-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+    }
+    .ver-usb2  { background: rgba(16,185,129,.2);  color: #34d399; border: 1px solid rgba(16,185,129,.4); }
+    .ver-usb3  { background: rgba(59,130,246,.2);  color: #60a5fa; border: 1px solid rgba(59,130,246,.4); }
+    .ver-usb4  { background: rgba(168,85,247,.2);  color: #c084fc; border: 1px solid rgba(168,85,247,.4); }
+
+    .timeline-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #00aaff;
+      box-shadow: 0 0 8px rgba(0,170,255,.6);
+      flex-shrink: 0;
+    }
+
+    @media(max-width:640px){
+      .tab-btn { padding: 8px 12px; font-size: .78rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ HERO ══════════════ -->
+<section class="hero min-h-[320px] flex items-center justify-center py-16 px-4 relative">
+  <div class="hero-grid"></div>
+  <div class="relative z-10 text-center max-w-4xl mx-auto">
+    <!-- USB Icon SVG -->
+    <div class="flex justify-center mb-6">
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="36" cy="36" r="35" fill="rgba(0,170,255,0.1)" stroke="rgba(0,170,255,0.4)" stroke-width="1"/>
+        <path d="M36 14 L36 58" stroke="#00aaff" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M36 14 L27 22 M36 14 L45 22" stroke="#00aaff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="22" cy="30" r="4" stroke="#00aaff" stroke-width="2" fill="none"/>
+        <circle cx="50" cy="38" r="4" fill="#00aaff"/>
+        <path d="M22 34 L22 44 M36 44 L22 44" stroke="#00aaff" stroke-width="2" stroke-linecap="round"/>
+        <path d="M50 34 L50 44 M50 44 L36 44" stroke="#00aaff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1 class="text-4xl md:text-5xl font-black mb-4 leading-tight">
+      <span style="background: linear-gradient(135deg,#ffffff,#00aaff); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">USB 接口类型</span>
+      <br/>完全技术指南
+    </h1>
+    <p class="text-slate-400 text-lg max-w-2xl mx-auto mb-8">
+      涵盖所有主流 USB 接口形态、详细引脚定义、电气规格及官方标准文档链接
+    </p>
+    <!-- Quick stats -->
+    <div class="flex flex-wrap justify-center gap-4">
+      <div class="spec-pill">🔌 接口类型 <span>7+</span></div>
+      <div class="spec-pill">📌 最多引脚 <span>24 Pin</span></div>
+      <div class="spec-pill">⚡ 最高功率 <span>240 W</span></div>
+      <div class="spec-pill">🚀 最高速率 <span>40 Gbps</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ TIMELINE ══════════════ -->
+<section class="py-10 px-4">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="text-xl font-bold text-center mb-8 text-slate-300">USB 标准演进时间线</h2>
+    <div class="overflow-x-auto">
+      <div class="flex items-start gap-0 min-w-[700px] relative">
+        <div class="absolute top-4 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent"></div>
+        <!-- items -->
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot"></div>
+          <div class="text-xs text-blue-400 font-bold">1996</div>
+          <div class="text-xs text-slate-400 text-center">USB 1.0<br/>1.5/12 Mbps</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot"></div>
+          <div class="text-xs text-blue-400 font-bold">2000</div>
+          <div class="text-xs text-slate-400 text-center">USB 2.0<br/>480 Mbps</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot"></div>
+          <div class="text-xs text-blue-400 font-bold">2008</div>
+          <div class="text-xs text-slate-400 text-center">USB 3.0<br/>5 Gbps</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot"></div>
+          <div class="text-xs text-blue-400 font-bold">2013</div>
+          <div class="text-xs text-slate-400 text-center">USB 3.1<br/>10 Gbps</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot"></div>
+          <div class="text-xs text-blue-400 font-bold">2014</div>
+          <div class="text-xs text-slate-400 text-center">USB Type-C<br/>规范发布</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot"></div>
+          <div class="text-xs text-blue-400 font-bold">2017</div>
+          <div class="text-xs text-slate-400 text-center">USB 3.2<br/>20 Gbps</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot" style="background:#c084fc;box-shadow:0 0 8px rgba(192,132,252,.6)"></div>
+          <div class="text-xs text-purple-400 font-bold">2019</div>
+          <div class="text-xs text-slate-400 text-center">USB4<br/>40 Gbps</div>
+        </div>
+        <div class="flex-1 flex flex-col items-center gap-2 relative z-10">
+          <div class="timeline-dot" style="background:#c084fc;box-shadow:0 0 8px rgba(192,132,252,.6)"></div>
+          <div class="text-xs text-purple-400 font-bold">2022</div>
+          <div class="text-xs text-slate-400 text-center">USB4 v2.0<br/>80 Gbps</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ MAIN CONTENT ══════════════ -->
+<section class="py-10 px-4">
+  <div class="max-w-6xl mx-auto">
+    <!-- Tab Navigation -->
+    <div class="flex flex-wrap gap-2 mb-8 justify-center" id="tabNav">
+      <button class="tab-btn active" data-tab="usba">USB Type-A</button>
+      <button class="tab-btn" data-tab="usbb">USB Type-B</button>
+      <button class="tab-btn" data-tab="mini">Mini-USB</button>
+      <button class="tab-btn" data-tab="micro">Micro-USB</button>
+      <button class="tab-btn" data-tab="usbc">USB Type-C</button>
+      <button class="tab-btn" data-tab="usb3a">USB 3.x Type-A</button>
+      <button class="tab-btn" data-tab="usb3b">USB 3.x Type-B</button>
+    </div>
+
+    <!-- ════ TAB: USB Type-A ════ -->
+    <div class="tab-panel active" id="tab-usba">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left: Overview -->
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,170,255,.15)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="2" y="6" width="18" height="10" rx="2" fill="none" stroke="#00aaff" stroke-width="1.5"/><line x1="5" y1="10" x2="17" y2="10" stroke="#00aaff" stroke-width="1" opacity=".5"/><line x1="5" y1="13" x2="17" y2="13" stroke="#00aaff" stroke-width="1" opacity=".5"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">USB Type-A</h2>
+                <span class="ver-badge ver-usb2">USB 2.0</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              最广泛使用的 USB 接口，扁平矩形设计，仅能单向插入。通常作为<strong class="text-slate-200">主机端</strong>（Host）接口，见于电脑、充电头、Hub 等设备。
+            </p>
+            <!-- Connector SVG -->
+            <div class="pin-diagram text-center py-4">
+              <svg width="200" height="100" viewBox="0 0 200 100" class="connector-svg">
+                <!-- Connector body -->
+                <rect x="20" y="20" width="160" height="60" rx="4" fill="#1a3558" stroke="#00aaff" stroke-width="1.5"/>
+                <!-- USB A shape inner -->
+                <rect x="30" y="30" width="140" height="40" rx="2" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <!-- Pins 4 contacts -->
+                <rect x="45" y="42" width="18" height="16" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="75" y="42" width="18" height="16" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="105" y="42" width="18" height="16" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="135" y="42" width="18" height="16" rx="1" fill="#9ca3af" opacity=".8"/>
+                <!-- Labels -->
+                <text x="54" y="38" font-size="8" fill="#fbbf24" text-anchor="middle">1</text>
+                <text x="84" y="38" font-size="8" fill="#60a5fa" text-anchor="middle">2</text>
+                <text x="114" y="38" font-size="8" fill="#60a5fa" text-anchor="middle">3</text>
+                <text x="144" y="38" font-size="8" fill="#9ca3af" text-anchor="middle">4</text>
+                <text x="54" y="70" font-size="7" fill="#fbbf24" text-anchor="middle">VCC</text>
+                <text x="84" y="70" font-size="7" fill="#60a5fa" text-anchor="middle">D-</text>
+                <text x="114" y="70" font-size="7" fill="#60a5fa" text-anchor="middle">D+</text>
+                <text x="144" y="70" font-size="7" fill="#9ca3af" text-anchor="middle">GND</text>
+                <!-- shield -->
+                <text x="100" y="95" font-size="9" fill="#475569" text-anchor="middle">← 矩形外壳（屏蔽层）→</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">引脚数 <span>4</span></div>
+              <div class="spec-pill text-xs">速率 <span>480 Mbps</span></div>
+              <div class="spec-pill text-xs">电压 <span>5V</span></div>
+              <div class="spec-pill text-xs">电流 <span>0.5A</span></div>
+            </div>
+          </div>
+          <!-- Photo -->
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/229543/pexels-photo-229543.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="USB Type-A connector" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">USB Type-A 连接器实物图</p>
+          </div>
+          <!-- Doc link -->
+          <a href="https://www.usb.org/developers/docs/usb20_docs" target="_blank" class="doc-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            USB 2.0 官方规范 (usb.org)
+          </a>
+        </div>
+
+        <!-- Right: Pin Table -->
+        <div class="lg:col-span-2 card p-6">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <span class="w-1 h-5 rounded bg-blue-500 inline-block"></span>
+            引脚定义详解（4 Pin）
+          </h3>
+          <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+            <table class="pin-table">
+              <thead><tr>
+                <th>引脚 #</th><th>信号名称</th><th>类型</th><th>说明</th><th>导线颜色</th>
+              </tr></thead>
+              <tbody>
+                <tr>
+                  <td class="font-bold text-white">1</td>
+                  <td class="font-mono text-yellow-400">VBUS (+5V)</td>
+                  <td><span class="badge badge-power">电源</span></td>
+                  <td class="text-slate-300">电源正极，提供 +5V 电压，为连接的设备供电，标准电流 500mA（USB 2.0）</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-red-500 border border-red-400 mr-1"></span>红色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">2</td>
+                  <td class="font-mono text-blue-400">D−</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td class="text-slate-300">USB 2.0 差分数据信号负极。与 D+ 构成差分对，用于半双工数据传输（最高 480 Mbps）</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-white border border-slate-300 mr-1"></span>白色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">3</td>
+                  <td class="font-mono text-blue-400">D+</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td class="text-slate-300">USB 2.0 差分数据信号正极。与 D− 共同承载双向数据，通过电压差区分逻辑 0/1</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-green-500 border border-green-400 mr-1"></span>绿色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">4</td>
+                  <td class="font-mono text-slate-400">GND</td>
+                  <td><span class="badge badge-gnd">地线</span></td>
+                  <td class="text-slate-300">电源与信号公共地，为整个电路提供参考电位，保证信号完整性</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-gray-900 border border-gray-600 mr-1"></span>黑色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">外壳</td>
+                  <td class="font-mono text-slate-400">Shield</td>
+                  <td><span class="badge badge-gnd">屏蔽</span></td>
+                  <td class="text-slate-300">金属外壳屏蔽层，接大地（Chassis GND），减少电磁干扰（EMI）</td>
+                  <td>—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-6 p-4 rounded-xl" style="background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2)">
+            <p class="text-sm text-emerald-400 font-semibold mb-2">💡 应用场景</p>
+            <p class="text-sm text-slate-300">键盘、鼠标、U盘、USB Hub、充电头插口、早期外部存储设备。Type-A 接口仅允许一个方向插入，误插力量过大会损坏接口。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: USB Type-B ════ -->
+    <div class="tab-panel" id="tab-usbb">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,170,255,.15)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="3" width="14" height="16" rx="2" fill="none" stroke="#00aaff" stroke-width="1.5"/><line x1="8" y1="9" x2="14" y2="9" stroke="#00aaff" stroke-width="1" opacity=".6"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">USB Type-B</h2>
+                <span class="ver-badge ver-usb2">USB 2.0</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              近似正方形接口，顶部有两个斜切角。主要用于<strong class="text-slate-200">设备端</strong>（Device），常见于打印机、扫描仪、音频接口等大型外设，机械强度高，耐插拔。
+            </p>
+            <div class="pin-diagram text-center py-4">
+              <svg width="180" height="110" viewBox="0 0 180 110" class="connector-svg">
+                <!-- Type-B shape: square with two top corners cut -->
+                <polygon points="40,25 90,15 140,25 150,90 30,90" fill="#1a3558" stroke="#00aaff" stroke-width="1.5"/>
+                <!-- inner cavity -->
+                <polygon points="50,32 90,24 130,32 138,80 42,80" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <!-- 4 pins -->
+                <rect x="55" y="52" width="14" height="14" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="76" y="52" width="14" height="14" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="97" y="52" width="14" height="14" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="118" y="52" width="14" height="14" rx="1" fill="#9ca3af" opacity=".8"/>
+                <text x="62" y="48" font-size="7" fill="#fbbf24" text-anchor="middle">1</text>
+                <text x="83" y="48" font-size="7" fill="#60a5fa" text-anchor="middle">2</text>
+                <text x="104" y="48" font-size="7" fill="#60a5fa" text-anchor="middle">3</text>
+                <text x="125" y="48" font-size="7" fill="#9ca3af" text-anchor="middle">4</text>
+                <text x="62" y="74" font-size="6.5" fill="#fbbf24" text-anchor="middle">VCC</text>
+                <text x="83" y="74" font-size="6.5" fill="#60a5fa" text-anchor="middle">D-</text>
+                <text x="104" y="74" font-size="6.5" fill="#60a5fa" text-anchor="middle">D+</text>
+                <text x="125" y="74" font-size="6.5" fill="#9ca3af" text-anchor="middle">GND</text>
+                <text x="90" y="105" font-size="8" fill="#475569" text-anchor="middle">正方形（顶部斜切）外壳</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">引脚数 <span>4</span></div>
+              <div class="spec-pill text-xs">速率 <span>480 Mbps</span></div>
+              <div class="spec-pill text-xs">电压 <span>5V</span></div>
+              <div class="spec-pill text-xs">电流 <span>0.5A</span></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/6726749/pexels-photo-6726749.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="USB Type-B" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">USB Type-B 接口常见于打印机等大型外设</p>
+          </div>
+          <a href="https://www.usb.org/developers/docs/usb20_docs" target="_blank" class="doc-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            USB 2.0 官方规范 (usb.org)
+          </a>
+        </div>
+        <div class="lg:col-span-2 card p-6">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <span class="w-1 h-5 rounded bg-blue-500 inline-block"></span>
+            引脚定义详解（4 Pin）
+          </h3>
+          <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+            <table class="pin-table">
+              <thead><tr><th>引脚 #</th><th>信号名称</th><th>类型</th><th>说明</th><th>导线颜色</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="font-bold text-white">1</td>
+                  <td class="font-mono text-yellow-400">VBUS (+5V)</td>
+                  <td><span class="badge badge-power">电源</span></td>
+                  <td class="text-slate-300">电源正极 +5V，为设备供电，Type-B 设备通常从主机端获取总线供电</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span>红色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">2</td>
+                  <td class="font-mono text-blue-400">D−</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td class="text-slate-300">差分数据信号负极，与 D+ 共同承载 USB 2.0 数据（最高 480 Mbps 高速模式）</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-white border border-slate-300 mr-1"></span>白色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">3</td>
+                  <td class="font-mono text-blue-400">D+</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td class="text-slate-300">差分数据信号正极，通过检测 D+/D− 上的上拉电阻判断设备速度类型</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>绿色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">4</td>
+                  <td class="font-mono text-slate-400">GND</td>
+                  <td><span class="badge badge-gnd">地线</span></td>
+                  <td class="text-slate-300">公共地线，信号和电源返回路径</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-gray-900 border border-gray-600 mr-1"></span>黑色</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-6 p-4 rounded-xl" style="background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2)">
+            <p class="text-sm text-emerald-400 font-semibold mb-2">💡 应用场景</p>
+            <p class="text-sm text-slate-300">打印机、扫描仪、MIDI 音频接口、早期外置硬盘盒。Type-B 接口机械结构稳固，适合需要频繁插拔的工业/办公环境，耐用性优于 Mini/Micro USB。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: Mini-USB ════ -->
+    <div class="tab-panel" id="tab-mini">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,170,255,.15)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="5" y="7" width="12" height="8" rx="1" fill="none" stroke="#00aaff" stroke-width="1.5"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">Mini-USB</h2>
+                <span class="ver-badge ver-usb2">USB 2.0</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              Mini-USB（Mini-B 最常见）是早期便携设备的标准接口，比 Type-A/B 更小，有 5 个引脚（增加了 ID 引脚，支持 OTG）。现已被 Micro-USB 取代。
+            </p>
+            <div class="pin-diagram text-center py-4">
+              <svg width="200" height="100" viewBox="0 0 200 100" class="connector-svg">
+                <!-- Mini-B shape: trapezoid-like, wider at top -->
+                <polygon points="40,20 160,20 155,80 45,80" fill="#1a3558" stroke="#00aaff" stroke-width="1.5"/>
+                <polygon points="50,30 150,30 146,70 54,70" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <!-- 5 pins -->
+                <rect x="57" y="42" width="12" height="12" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="76" y="42" width="12" height="12" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="95" y="42" width="12" height="12" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="114" y="42" width="12" height="12" rx="1" fill="#fbbf24" opacity=".5"/>
+                <rect x="133" y="42" width="12" height="12" rx="1" fill="#9ca3af" opacity=".8"/>
+                <text x="63" y="38" font-size="6.5" fill="#fbbf24" text-anchor="middle">1</text>
+                <text x="82" y="38" font-size="6.5" fill="#60a5fa" text-anchor="middle">2</text>
+                <text x="101" y="38" font-size="6.5" fill="#60a5fa" text-anchor="middle">3</text>
+                <text x="120" y="38" font-size="6.5" fill="#fbbf24" text-anchor="middle">4</text>
+                <text x="139" y="38" font-size="6.5" fill="#9ca3af" text-anchor="middle">5</text>
+                <text x="63" y="66" font-size="6" fill="#fbbf24" text-anchor="middle">VCC</text>
+                <text x="82" y="66" font-size="6" fill="#60a5fa" text-anchor="middle">D-</text>
+                <text x="101" y="66" font-size="6" fill="#60a5fa" text-anchor="middle">D+</text>
+                <text x="120" y="66" font-size="6" fill="#fbbf24" text-anchor="middle">ID</text>
+                <text x="139" y="66" font-size="6" fill="#9ca3af" text-anchor="middle">GND</text>
+                <text x="100" y="95" font-size="8" fill="#475569" text-anchor="middle">梯形外壳（Mini-B）</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">引脚数 <span>5</span></div>
+              <div class="spec-pill text-xs">速率 <span>480 Mbps</span></div>
+              <div class="spec-pill text-xs">电压 <span>5V</span></div>
+              <div class="spec-pill text-xs">OTG <span>支持</span></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/4219867/pexels-photo-4219867.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="Mini USB" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">Mini-USB 接口曾广泛用于早期数码相机</p>
+          </div>
+          <a href="https://www.usb.org/developers/docs/usb20_docs" target="_blank" class="doc-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            USB 2.0 Mini 规范 (usb.org)
+          </a>
+        </div>
+        <div class="lg:col-span-2 card p-6">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <span class="w-1 h-5 rounded bg-blue-500 inline-block"></span>
+            引脚定义详解（5 Pin）
+          </h3>
+          <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+            <table class="pin-table">
+              <thead><tr><th>引脚 #</th><th>信号名称</th><th>类型</th><th>说明</th><th>导线颜色</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="font-bold text-white">1</td>
+                  <td class="font-mono text-yellow-400">VBUS (+5V)</td>
+                  <td><span class="badge badge-power">电源</span></td>
+                  <td class="text-slate-300">电源正极 +5V，为连接设备供电，最大电流 500mA</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span>红色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">2</td>
+                  <td class="font-mono text-blue-400">D−</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td class="text-slate-300">差分数据负极，与 D+ 组成传输对，实现 USB 2.0 高速数据通信</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-white border border-slate-300 mr-1"></span>白色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">3</td>
+                  <td class="font-mono text-blue-400">D+</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td class="text-slate-300">差分数据正极，通过 D+/D− 差分电压传输数据信号</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>绿色</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">4</td>
+                  <td class="font-mono text-yellow-300">ID</td>
+                  <td><span class="badge badge-ctrl">控制</span></td>
+                  <td class="text-slate-300">OTG 身份识别引脚：Mini-A 端接 GND（作为主机），Mini-B 端悬空（作为设备）。用于 USB On-The-Go 主从切换</td>
+                  <td>—</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">5</td>
+                  <td class="font-mono text-slate-400">GND</td>
+                  <td><span class="badge badge-gnd">地线</span></td>
+                  <td class="text-slate-300">公共地，信号与电源的返回路径</td>
+                  <td><span class="inline-block w-3 h-3 rounded-full bg-gray-900 border border-gray-600 mr-1"></span>黑色</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-4 p-4 rounded-xl" style="background:rgba(234,179,8,.08); border:1px solid rgba(234,179,8,.2)">
+            <p class="text-sm text-yellow-400 font-semibold mb-2">⚠️ 关于 ID 引脚（OTG）</p>
+            <p class="text-sm text-slate-300">ID 引脚是 Mini/Micro USB 相对标准 Type-A/B 新增的引脚，用于实现 USB On-The-Go（OTG）功能。当 ID 接地时，设备作为 Host；悬空时作为 Device。这使得如手机、相机可直接读取 U 盘等外设，无需电脑中转。</p>
+          </div>
+          <div class="mt-4 p-4 rounded-xl" style="background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2)">
+            <p class="text-sm text-emerald-400 font-semibold mb-2">💡 应用场景</p>
+            <p class="text-sm text-slate-300">早期数码相机（佳能、索尼）、MP3 播放器、GPS 导航仪、部分早期功能手机、PSP 游戏机。已基本被 Micro-USB 替代。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: Micro-USB ════ -->
+    <div class="tab-panel" id="tab-micro">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(0,170,255,.15)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="8" width="14" height="6" rx="1" fill="none" stroke="#00aaff" stroke-width="1.5"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">Micro-USB</h2>
+                <span class="ver-badge ver-usb2 mr-1">USB 2.0</span>
+                <span class="ver-badge ver-usb3">USB 3.0</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              Micro-USB 是曾经最普及的移动设备接口，比 Mini-USB 更薄更耐用（标称 10,000 次插拔）。Micro-B 2.0 有 5 针，而 Micro-B 3.0 则扩展至 10 针。
+            </p>
+            <div class="pin-diagram text-center py-2">
+              <p class="text-xs text-blue-400 font-semibold mb-2">Micro-B USB 2.0（5 Pin）</p>
+              <svg width="200" height="80" viewBox="0 0 200 80" class="connector-svg mb-3">
+                <!-- Micro-B: very flat trapezoid -->
+                <polygon points="35,18 165,18 160,62 40,62" fill="#1a3558" stroke="#00aaff" stroke-width="1.5"/>
+                <polygon points="45,26 155,26 151,54 49,54" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <rect x="55" y="34" width="11" height="12" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="73" y="34" width="11" height="12" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="91" y="34" width="11" height="12" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="109" y="34" width="11" height="12" rx="1" fill="#fbbf24" opacity=".5"/>
+                <rect x="127" y="34" width="11" height="12" rx="1" fill="#9ca3af" opacity=".8"/>
+                <text x="60" y="30" font-size="6" fill="#fbbf24" text-anchor="middle">1</text>
+                <text x="78" y="30" font-size="6" fill="#60a5fa" text-anchor="middle">2</text>
+                <text x="96" y="30" font-size="6" fill="#60a5fa" text-anchor="middle">3</text>
+                <text x="114" y="30" font-size="6" fill="#fbbf24" text-anchor="middle">4</text>
+                <text x="132" y="30" font-size="6" fill="#9ca3af" text-anchor="middle">5</text>
+                <text x="60" y="58" font-size="5.5" fill="#fbbf24" text-anchor="middle">VCC</text>
+                <text x="78" y="58" font-size="5.5" fill="#60a5fa" text-anchor="middle">D-</text>
+                <text x="96" y="58" font-size="5.5" fill="#60a5fa" text-anchor="middle">D+</text>
+                <text x="114" y="58" font-size="5.5" fill="#fbbf24" text-anchor="middle">ID</text>
+                <text x="132" y="58" font-size="5.5" fill="#9ca3af" text-anchor="middle">GND</text>
+                <text x="100" y="75" font-size="7.5" fill="#475569" text-anchor="middle">超薄梯形外壳（Micro-B）</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">2.0引脚 <span>5</span></div>
+              <div class="spec-pill text-xs">3.0引脚 <span>10</span></div>
+              <div class="spec-pill text-xs">速率 <span>5 Gbps</span></div>
+              <div class="spec-pill text-xs">OTG <span>支持</span></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/3921696/pexels-photo-3921696.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="Micro USB" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">Micro-USB 曾是安卓手机标配接口</p>
+          </div>
+          <a href="https://www.usb.org/developers/docs/usb20_docs" target="_blank" class="doc-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            USB 2.0 Micro 规范 (usb.org)
+          </a>
+        </div>
+        <div class="lg:col-span-2 flex flex-col gap-4">
+          <div class="card p-6">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <span class="w-1 h-5 rounded bg-blue-500 inline-block"></span>
+              Micro-B USB 2.0 引脚（5 Pin）
+            </h3>
+            <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+              <table class="pin-table">
+                <thead><tr><th>引脚 #</th><th>信号名称</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="font-bold text-white">1</td><td class="font-mono text-yellow-400">VBUS</td><td><span class="badge badge-power">电源</span></td><td class="text-slate-300">+5V 电源，为设备供电，最大 500mA（USB 2.0）</td></tr>
+                  <tr><td class="font-bold text-white">2</td><td class="font-mono text-blue-400">D−</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">差分数据负极，USB 2.0 数据传输（最高 480 Mbps）</td></tr>
+                  <tr><td class="font-bold text-white">3</td><td class="font-mono text-blue-400">D+</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">差分数据正极，与 D− 共同承载数据信号</td></tr>
+                  <tr><td class="font-bold text-white">4</td><td class="font-mono text-yellow-300">ID</td><td><span class="badge badge-ctrl">控制</span></td><td class="text-slate-300">OTG 主从识别：Micro-A 接地（主机），Micro-B 悬空（设备）</td></tr>
+                  <tr><td class="font-bold text-white">5</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">公共地，电源与信号返回路径</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card p-6">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <span class="w-1 h-5 rounded bg-purple-500 inline-block"></span>
+              Micro-B USB 3.0 扩展引脚（10 Pin）
+            </h3>
+            <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+              <table class="pin-table">
+                <thead><tr><th>引脚 #</th><th>信号名称</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="font-bold text-white">1</td><td class="font-mono text-yellow-400">VBUS</td><td><span class="badge badge-power">电源</span></td><td class="text-slate-300">+5V 电源（向后兼容 USB 2.0 引脚 1~5）</td></tr>
+                  <tr><td class="font-bold text-white">2</td><td class="font-mono text-blue-400">D−</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">USB 2.0 差分数据负极（后向兼容）</td></tr>
+                  <tr><td class="font-bold text-white">3</td><td class="font-mono text-blue-400">D+</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">USB 2.0 差分数据正极（后向兼容）</td></tr>
+                  <tr><td class="font-bold text-white">4</td><td class="font-mono text-yellow-300">ID</td><td><span class="badge badge-ctrl">控制</span></td><td class="text-slate-300">OTG 主从识别引脚</td></tr>
+                  <tr><td class="font-bold text-white">5</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">公共地（USB 2.0 部分）</td></tr>
+                  <tr><td class="font-bold text-white">6</td><td class="font-mono text-purple-400">SSTX−</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">USB 3.0 超速发送差分负极（SuperSpeed TX，5 Gbps）</td></tr>
+                  <tr><td class="font-bold text-white">7</td><td class="font-mono text-purple-400">SSTX+</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">USB 3.0 超速发送差分正极</td></tr>
+                  <tr><td class="font-bold text-white">8</td><td class="font-mono text-slate-400">GND_DRAIN</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">超速信号地，专用于高速差分对的返回路径</td></tr>
+                  <tr><td class="font-bold text-white">9</td><td class="font-mono text-purple-400">SSRX−</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">USB 3.0 超速接收差分负极（SuperSpeed RX）</td></tr>
+                  <tr><td class="font-bold text-white">10</td><td class="font-mono text-purple-400">SSRX+</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">USB 3.0 超速接收差分正极，与 SSRX− 构成全双工接收对</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-4 p-4 rounded-xl" style="background:rgba(168,85,247,.08); border:1px solid rgba(168,85,247,.2)">
+              <p class="text-sm text-purple-400 font-semibold mb-2">📌 USB 3.0 Micro-B 设计要点</p>
+              <p class="text-sm text-slate-300">Micro-B 3.0 接口在 Micro-B 2.0 接口旁边增加了一个额外的 5 针扩展区域（引脚 6-10），从而实现后向兼容。外形比 Micro-B 2.0 宽约一倍，可轻松辨别。常见于早期三星 Galaxy 手机和 USB 3.0 移动硬盘。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: USB Type-C ════ -->
+    <div class="tab-panel" id="tab-usbc">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(168,85,247,.2)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="3" y="7" width="16" height="8" rx="4" fill="none" stroke="#c084fc" stroke-width="1.5"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">USB Type-C</h2>
+                <span class="ver-badge ver-usb3 mr-1">USB 3.x</span>
+                <span class="ver-badge ver-usb4">USB4</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              可翻转对称设计，24 个引脚，支持 <strong class="text-slate-200">USB4（40Gbps）</strong>、<strong class="text-slate-200">240W 供电（EPR）</strong>、DisplayPort/HDMI 视频输出、Thunderbolt 4 等多种协议复用。是当前最主流的现代接口。
+            </p>
+            <!-- Type-C SVG -->
+            <div class="pin-diagram text-center py-2">
+              <svg width="220" height="130" viewBox="0 0 220 130" class="connector-svg">
+                <!-- Oval shape -->
+                <rect x="10" y="25" width="200" height="80" rx="40" fill="#1a3558" stroke="#c084fc" stroke-width="1.5"/>
+                <rect x="18" y="33" width="184" height="64" rx="36" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <!-- Top row A (A1-A12), 12 pins -->
+                <text x="110" y="50" font-size="7" fill="#c084fc" text-anchor="middle">Side A（上排 A1→A12）</text>
+                <!-- simplified pins top row -->
+                <rect x="30"  y="54" width="11" height="8" rx="1" fill="#9ca3af" opacity=".8"/>
+                <rect x="45"  y="54" width="11" height="8" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="60"  y="54" width="11" height="8" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="75"  y="54" width="11" height="8" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="90"  y="54" width="11" height="8" rx="1" fill="#fde68a" opacity=".8"/>
+                <rect x="105" y="54" width="11" height="8" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="120" y="54" width="11" height="8" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="135" y="54" width="11" height="8" rx="1" fill="#34d399" opacity=".8"/>
+                <rect x="150" y="54" width="11" height="8" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="165" y="54" width="11" height="8" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="180" y="54" width="11" height="8" rx="1" fill="#9ca3af" opacity=".8"/>
+                <!-- A labels top row -->
+                <text x="35"  y="51" font-size="5" fill="#9ca3af" text-anchor="middle">A1</text>
+                <text x="50"  y="51" font-size="5" fill="#c084fc" text-anchor="middle">A2</text>
+                <text x="65"  y="51" font-size="5" fill="#c084fc" text-anchor="middle">A3</text>
+                <text x="80"  y="51" font-size="5" fill="#fbbf24" text-anchor="middle">A4</text>
+                <text x="95"  y="51" font-size="5" fill="#fde68a" text-anchor="middle">A5</text>
+                <text x="110" y="51" font-size="5" fill="#60a5fa" text-anchor="middle">A6</text>
+                <text x="125" y="51" font-size="5" fill="#60a5fa" text-anchor="middle">A7</text>
+                <text x="140" y="51" font-size="5" fill="#34d399" text-anchor="middle">A8</text>
+                <text x="155" y="51" font-size="5" fill="#fbbf24" text-anchor="middle">A9</text>
+                <text x="170" y="51" font-size="5" fill="#c084fc" text-anchor="middle">A10</text>
+                <text x="185" y="51" font-size="5" fill="#9ca3af" text-anchor="middle">A12</text>
+                <!-- Bottom row B -->
+                <text x="110" y="76" font-size="7" fill="#c084fc" text-anchor="middle">Side B（下排 B12←B1）</text>
+                <rect x="30"  y="80" width="11" height="8" rx="1" fill="#9ca3af" opacity=".8"/>
+                <rect x="45"  y="80" width="11" height="8" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="60"  y="80" width="11" height="8" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="75"  y="80" width="11" height="8" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="90"  y="80" width="11" height="8" rx="1" fill="#fde68a" opacity=".8"/>
+                <rect x="105" y="80" width="11" height="8" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="120" y="80" width="11" height="8" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="135" y="80" width="11" height="8" rx="1" fill="#34d399" opacity=".8"/>
+                <rect x="150" y="80" width="11" height="8" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="165" y="80" width="11" height="8" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="180" y="80" width="11" height="8" rx="1" fill="#9ca3af" opacity=".8"/>
+                <text x="110" y="120" font-size="8" fill="#475569" text-anchor="middle">椭圆形可翻转外壳（24 Pin 对称布局）</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">引脚数 <span>24</span></div>
+              <div class="spec-pill text-xs">速率 <span>40 Gbps</span></div>
+              <div class="spec-pill text-xs">功率 <span>240 W</span></div>
+              <div class="spec-pill text-xs">可翻转 <span>✓</span></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/3921713/pexels-photo-3921713.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="USB Type-C" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">USB Type-C 椭圆形可翻转接口</p>
+          </div>
+          <div class="flex flex-col gap-2">
+            <a href="https://www.usb.org/document-library/usb-type-cr-cable-and-connector-specification-revision-21" target="_blank" class="doc-link">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              USB Type-C 规范 Rev 2.1 (usb.org)
+            </a>
+            <a href="https://www.usb.org/document-library/usb-power-delivery" target="_blank" class="doc-link">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              USB Power Delivery 规范 (usb.org)
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: Pin Tables -->
+        <div class="lg:col-span-2 flex flex-col gap-4">
+          <div class="card p-6">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <span class="w-1 h-5 rounded bg-purple-500 inline-block"></span>
+              Side A 引脚（A1 ~ A12）
+            </h3>
+            <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+              <table class="pin-table">
+                <thead><tr><th>引脚</th><th>信号名称</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="font-bold text-white">A1</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">公共地，电源和信号返回路径</td></tr>
+                  <tr><td class="font-bold text-white">A2</td><td class="font-mono text-purple-400">TX1+</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">SuperSpeed 差分发送正极（USB 3.x/USB4 高速数据发送 TX）</td></tr>
+                  <tr><td class="font-bold text-white">A3</td><td class="font-mono text-purple-400">TX1−</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">SuperSpeed 差分发送负极，与 TX1+ 构成发送差分对</td></tr>
+                  <tr><td class="font-bold text-white">A4</td><td class="font-mono text-yellow-400">VBUS</td><td><span class="badge badge-power">电源</span></td><td class="text-slate-300">电源总线，标准 5V 或 PD 协商后可达 5V-20V（EPR 可达 48V）</td></tr>
+                  <tr><td class="font-bold text-white">A5</td><td class="font-mono text-amber-300">CC1</td><td><span class="badge badge-ctrl">控制</span></td><td class="text-slate-300">配置通道 1（Configuration Channel）：用于接口插入检测、主从协商、Power Delivery 通信及电缆方向识别</td></tr>
+                  <tr><td class="font-bold text-white">A6</td><td class="font-mono text-blue-400">D+</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">USB 2.0 差分数据正极（向后兼容 USB 2.0 及以下协议）</td></tr>
+                  <tr><td class="font-bold text-white">A7</td><td class="font-mono text-blue-400">D−</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">USB 2.0 差分数据负极</td></tr>
+                  <tr><td class="font-bold text-white">A8</td><td class="font-mono text-emerald-400">SBU1</td><td><span class="badge badge-alt">旁路</span></td><td class="text-slate-300">Sideband Use 1：旁路信号，用于 Alternate Mode（如 DisplayPort AUX、音频 GND）</td></tr>
+                  <tr><td class="font-bold text-white">A9</td><td class="font-mono text-yellow-400">VBUS</td><td><span class="badge badge-power">电源</span></td><td class="text-slate-300">第二路 VBUS，与 A4 并联增大载流能力（多引脚分担电流）</td></tr>
+                  <tr><td class="font-bold text-white">A10</td><td class="font-mono text-purple-400">RX2−</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">SuperSpeed 差分接收负极（接收来自对端的高速数据）</td></tr>
+                  <tr><td class="font-bold text-white">A11</td><td class="font-mono text-purple-400">RX2+</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">SuperSpeed 差分接收正极，与 RX2− 构成接收差分对</td></tr>
+                  <tr><td class="font-bold text-white">A12</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">公共地</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+              <span class="w-1 h-5 rounded bg-purple-500 inline-block"></span>
+              Side B 引脚（B1 ~ B12，镜像对称）
+            </h3>
+            <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+              <table class="pin-table">
+                <thead><tr><th>引脚</th><th>信号名称</th><th>类型</th><th>说明</th></tr></thead>
+                <tbody>
+                  <tr><td class="font-bold text-white">B1</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">公共地（与 A1 对称，保证翻转后信号完整）</td></tr>
+                  <tr><td class="font-bold text-white">B2</td><td class="font-mono text-purple-400">TX2+</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">第二组 SuperSpeed 发送正极，当线缆翻转时启用（A 侧 TX1 切换为 B 侧 TX2）</td></tr>
+                  <tr><td class="font-bold text-white">B3</td><td class="font-mono text-purple-400">TX2−</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">第二组 SuperSpeed 发送负极</td></tr>
+                  <tr><td class="font-bold text-white">B4</td><td class="font-mono text-yellow-400">VBUS</td><td><span class="badge badge-power">电源</span></td><td class="text-slate-300">电源总线（与 A4 并联）</td></tr>
+                  <tr><td class="font-bold text-white">B5</td><td class="font-mono text-amber-300">CC2</td><td><span class="badge badge-ctrl">控制</span></td><td class="text-slate-300">配置通道 2：当线缆翻转时，CC2 替代 CC1 承担 PD 通信；未翻转时用于电缆 VCONN 供电检测</td></tr>
+                  <tr><td class="font-bold text-white">B6</td><td class="font-mono text-blue-400">D+</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">USB 2.0 数据正极（与 A6 在接口内部连接）</td></tr>
+                  <tr><td class="font-bold text-white">B7</td><td class="font-mono text-blue-400">D−</td><td><span class="badge badge-data">数据</span></td><td class="text-slate-300">USB 2.0 数据负极（与 A7 在接口内部连接）</td></tr>
+                  <tr><td class="font-bold text-white">B8</td><td class="font-mono text-emerald-400">SBU2</td><td><span class="badge badge-alt">旁路</span></td><td class="text-slate-300">Sideband Use 2：翻转后的旁路信号通道，与 SBU1 互为镜像</td></tr>
+                  <tr><td class="font-bold text-white">B9</td><td class="font-mono text-yellow-400">VBUS</td><td><span class="badge badge-power">电源</span></td><td class="text-slate-300">第四路 VBUS，多路并联保证大电流输出（240W EPR 模式下总电流 5A）</td></tr>
+                  <tr><td class="font-bold text-white">B10</td><td class="font-mono text-purple-400">RX1−</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">第一组 SuperSpeed 接收负极（与 A 侧 RX2 对应，翻转后切换使用）</td></tr>
+                  <tr><td class="font-bold text-white">B11</td><td class="font-mono text-purple-400">RX1+</td><td><span class="badge badge-ss">超速</span></td><td class="text-slate-300">第一组 SuperSpeed 接收正极</td></tr>
+                  <tr><td class="font-bold text-white">B12</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td class="text-slate-300">公共地</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="mt-4 p-4 rounded-xl" style="background:rgba(168,85,247,.08); border:1px solid rgba(168,85,247,.2)">
+              <p class="text-sm text-purple-400 font-semibold mb-2">🔄 可翻转设计原理</p>
+              <p class="text-sm text-slate-300">Type-C 两侧引脚镜像对称。CC1/CC2 用于检测插入方向：当识别到哪一侧被插入，控制器即激活对应一侧的 TX/RX 差分对，同时将另一侧的 CC 用于 VCONN 为有源线缆供电，从而实现无论正反插均可正常工作。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: USB 3.x Type-A ════ -->
+    <div class="tab-panel" id="tab-usb3a">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(59,130,246,.2)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="2" y="6" width="18" height="10" rx="2" fill="none" stroke="#60a5fa" stroke-width="1.5"/><line x1="5" y1="10" x2="17" y2="10" stroke="#60a5fa" stroke-width="1" opacity=".6"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">USB 3.x Type-A</h2>
+                <span class="ver-badge ver-usb3">SuperSpeed</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              外形与 USB 2.0 Type-A 相同，内部增加 5 个 SuperSpeed 引脚，<strong class="text-slate-200">蓝色舌片</strong>是识别特征。向下兼容 USB 2.0 设备，广泛用于现代 PC、笔记本和 U 盘。
+            </p>
+            <div class="pin-diagram text-center py-3">
+              <svg width="220" height="120" viewBox="0 0 220 120" class="connector-svg">
+                <!-- Outer shell -->
+                <rect x="10" y="15" width="200" height="90" rx="4" fill="#1a3558" stroke="#60a5fa" stroke-width="1.5"/>
+                <!-- Inner cavity -->
+                <rect x="20" y="25" width="180" height="70" rx="2" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <!-- USB 2.0 area (top row) -->
+                <text x="110" y="42" font-size="7.5" fill="#60a5fa" text-anchor="middle" font-style="italic">USB 2.0 区（Pin 1-4）</text>
+                <rect x="40"  y="46" width="20" height="12" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="74"  y="46" width="20" height="12" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="108" y="46" width="20" height="12" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="142" y="46" width="20" height="12" rx="1" fill="#9ca3af" opacity=".8"/>
+                <text x="50"  y="43" font-size="6.5" fill="#fbbf24" text-anchor="middle">1</text>
+                <text x="84"  y="43" font-size="6.5" fill="#60a5fa" text-anchor="middle">2</text>
+                <text x="118" y="43" font-size="6.5" fill="#60a5fa" text-anchor="middle">3</text>
+                <text x="152" y="43" font-size="6.5" fill="#9ca3af" text-anchor="middle">4</text>
+                <!-- USB 3.0 area (bottom row) - blue -->
+                <text x="110" y="72" font-size="7.5" fill="#c084fc" text-anchor="middle" font-style="italic">SuperSpeed 区（Pin 5-9）</text>
+                <rect x="26"  y="76" width="15" height="12" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="52"  y="76" width="15" height="12" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="78"  y="76" width="15" height="12" rx="1" fill="#9ca3af" opacity=".5"/>
+                <rect x="112" y="76" width="15" height="12" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="145" y="76" width="15" height="12" rx="1" fill="#c084fc" opacity=".8"/>
+                <text x="33"  y="73" font-size="6" fill="#c084fc" text-anchor="middle">5</text>
+                <text x="59"  y="73" font-size="6" fill="#c084fc" text-anchor="middle">6</text>
+                <text x="85"  y="73" font-size="6" fill="#9ca3af" text-anchor="middle">7</text>
+                <text x="119" y="73" font-size="6" fill="#c084fc" text-anchor="middle">8</text>
+                <text x="152" y="73" font-size="6" fill="#c084fc" text-anchor="middle">9</text>
+                <text x="110" y="112" font-size="8" fill="#60a5fa" text-anchor="middle">（蓝色舌片为 USB 3.x 标志）</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">引脚数 <span>9</span></div>
+              <div class="spec-pill text-xs">速率 <span>5~20 Gbps</span></div>
+              <div class="spec-pill text-xs">电压 <span>5V</span></div>
+              <div class="spec-pill text-xs">电流 <span>0.9A</span></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/3921708/pexels-photo-3921708.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="USB 3.x" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">蓝色内芯是 USB 3.x Type-A 的识别标志</p>
+          </div>
+          <a href="https://www.usb.org/document-library/usb-32-specification" target="_blank" class="doc-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            USB 3.2 官方规范 (usb.org)
+          </a>
+        </div>
+
+        <div class="lg:col-span-2 card p-6">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <span class="w-1 h-5 rounded bg-blue-500 inline-block"></span>
+            引脚定义详解（9 Pin）
+          </h3>
+          <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+            <table class="pin-table">
+              <thead><tr><th>引脚 #</th><th>信号名称</th><th>类型</th><th>USB 版本</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td class="font-bold text-white">1</td>
+                  <td class="font-mono text-yellow-400">VBUS (+5V)</td>
+                  <td><span class="badge badge-power">电源</span></td>
+                  <td><span class="ver-badge ver-usb2" style="font-size:.65rem">USB 2.0+</span></td>
+                  <td class="text-slate-300">电源正极 +5V，USB 2.0 最大 500mA，USB 3.0 最大 900mA</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">2</td>
+                  <td class="font-mono text-blue-400">D−</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td><span class="ver-badge ver-usb2" style="font-size:.65rem">USB 2.0+</span></td>
+                  <td class="text-slate-300">USB 2.0 差分数据负极，用于后向兼容，保证与旧设备通信</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">3</td>
+                  <td class="font-mono text-blue-400">D+</td>
+                  <td><span class="badge badge-data">数据</span></td>
+                  <td><span class="ver-badge ver-usb2" style="font-size:.65rem">USB 2.0+</span></td>
+                  <td class="text-slate-300">USB 2.0 差分数据正极</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">4</td>
+                  <td class="font-mono text-slate-400">GND</td>
+                  <td><span class="badge badge-gnd">地线</span></td>
+                  <td><span class="ver-badge ver-usb2" style="font-size:.65rem">USB 2.0+</span></td>
+                  <td class="text-slate-300">公共地，电源与 USB 2.0 信号的参考地</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">5</td>
+                  <td class="font-mono text-purple-400">StdA_SSRX−</td>
+                  <td><span class="badge badge-ss">超速</span></td>
+                  <td><span class="ver-badge ver-usb3" style="font-size:.65rem">USB 3.0+</span></td>
+                  <td class="text-slate-300">SuperSpeed 接收差分负极，接收来自设备的高速数据（5~20 Gbps）</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">6</td>
+                  <td class="font-mono text-purple-400">StdA_SSRX+</td>
+                  <td><span class="badge badge-ss">超速</span></td>
+                  <td><span class="ver-badge ver-usb3" style="font-size:.65rem">USB 3.0+</span></td>
+                  <td class="text-slate-300">SuperSpeed 接收差分正极，与 Pin5 构成全双工接收对</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">7</td>
+                  <td class="font-mono text-slate-400">GND_DRAIN</td>
+                  <td><span class="badge badge-gnd">地线</span></td>
+                  <td><span class="ver-badge ver-usb3" style="font-size:.65rem">USB 3.0+</span></td>
+                  <td class="text-slate-300">SuperSpeed 信号专用接地，减少高频信号的串扰和阻抗不匹配，保证信号完整性</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">8</td>
+                  <td class="font-mono text-purple-400">StdA_SSTX−</td>
+                  <td><span class="badge badge-ss">超速</span></td>
+                  <td><span class="ver-badge ver-usb3" style="font-size:.65rem">USB 3.0+</span></td>
+                  <td class="text-slate-300">SuperSpeed 发送差分负极，向设备发送高速数据</td>
+                </tr>
+                <tr>
+                  <td class="font-bold text-white">9</td>
+                  <td class="font-mono text-purple-400">StdA_SSTX+</td>
+                  <td><span class="badge badge-ss">超速</span></td>
+                  <td><span class="ver-badge ver-usb3" style="font-size:.65rem">USB 3.0+</span></td>
+                  <td class="text-slate-300">SuperSpeed 发送差分正极，与 Pin8 构成全双工发送对（独立于接收对，支持同时收发）</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-xl" style="background:rgba(59,130,246,.08); border:1px solid rgba(59,130,246,.2)">
+              <p class="text-sm text-blue-400 font-semibold mb-2">🔄 后向兼容性</p>
+              <p class="text-sm text-slate-300">USB 3.x Type-A 完全兼容 USB 2.0 设备。当接入 USB 2.0 设备时，仅使用 Pin1-4；接入 USB 3.0 设备时，Pin5-9 同时激活实现 SuperSpeed 传输。</p>
+            </div>
+            <div class="p-4 rounded-xl" style="background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2)">
+              <p class="text-sm text-emerald-400 font-semibold mb-2">💡 应用场景</p>
+              <p class="text-sm text-slate-300">USB 3.x U 盘、外置 SSD、USB 3.0 集线器（Hub）、网卡、摄像头、现代 PC/Mac 的 USB-A 口。速率支持 USB 3.0（5G）/ 3.1（10G）/ 3.2（20G）。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ TAB: USB 3.x Type-B ════ -->
+    <div class="tab-panel" id="tab-usb3b">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 flex flex-col gap-4">
+          <div class="card p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(59,130,246,.2)">
+                <svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="3" width="14" height="16" rx="2" fill="none" stroke="#60a5fa" stroke-width="1.5"/><line x1="7" y1="9" x2="15" y2="9" stroke="#60a5fa" stroke-width="1" opacity=".6"/><line x1="7" y1="12" x2="15" y2="12" stroke="#60a5fa" stroke-width="1" opacity=".4"/></svg>
+              </div>
+              <div>
+                <h2 class="text-lg font-bold text-white">USB 3.x Type-B</h2>
+                <span class="ver-badge ver-usb3">SuperSpeed</span>
+              </div>
+            </div>
+            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+              USB 3.0 Type-B 是标准 Type-B 的升级版，在正方形外壳顶部增加了一个额外的凸出区域（容纳 5 个 SuperSpeed 引脚），共 9 个引脚。外形更高，不向下兼容 2.0 Type-B 线缆插入 3.0 Type-B 口。
+            </p>
+            <div class="pin-diagram text-center py-3">
+              <svg width="180" height="130" viewBox="0 0 180 130" class="connector-svg">
+                <!-- USB 3.0 Type-B: square bottom + extra top hump -->
+                <!-- Top SuperSpeed section -->
+                <rect x="40" y="10" width="100" height="30" rx="3" fill="#1e3a5f" stroke="#60a5fa" stroke-width="1.5"/>
+                <!-- Main body -->
+                <polygon points="30,40 150,40 155,120 25,120" fill="#1a3558" stroke="#60a5fa" stroke-width="1.5"/>
+                <!-- inner main -->
+                <polygon points="40,50 140,50 144,112 36,112" fill="#0d1b2a" stroke="#334155" stroke-width="1"/>
+                <!-- SS pins top area -->
+                <text x="90" y="22" font-size="6.5" fill="#c084fc" text-anchor="middle">SuperSpeed 引脚（5-9）</text>
+                <rect x="50" y="25" width="10" height="10" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="67" y="25" width="10" height="10" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="85" y="25" width="10" height="10" rx="1" fill="#9ca3af" opacity=".6"/>
+                <rect x="103" y="25" width="10" height="10" rx="1" fill="#c084fc" opacity=".8"/>
+                <rect x="120" y="25" width="10" height="10" rx="1" fill="#c084fc" opacity=".8"/>
+                <!-- 2.0 pins main area -->
+                <text x="90" y="68" font-size="6.5" fill="#60a5fa" text-anchor="middle">USB 2.0 引脚（1-4）</text>
+                <rect x="52" y="72" width="14" height="14" rx="1" fill="#fbbf24" opacity=".8"/>
+                <rect x="74" y="72" width="14" height="14" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="96" y="72" width="14" height="14" rx="1" fill="#60a5fa" opacity=".8"/>
+                <rect x="118" y="72" width="14" height="14" rx="1" fill="#9ca3af" opacity=".8"/>
+                <text x="90" y="125" font-size="7.5" fill="#475569" text-anchor="middle">Type-B 3.0（顶部突出）</text>
+              </svg>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="spec-pill text-xs">引脚数 <span>9</span></div>
+              <div class="spec-pill text-xs">速率 <span>5 Gbps</span></div>
+              <div class="spec-pill text-xs">电压 <span>5V</span></div>
+              <div class="spec-pill text-xs">兼容 <span>2.0 设备</span></div>
+            </div>
+          </div>
+          <div class="card overflow-hidden">
+            <img src="https://images.pexels.com/photos/3921708/pexels-photo-3921708.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=200&w=400" alt="USB 3.x Type-B" class="w-full h-40 object-cover"/>
+            <p class="text-xs text-slate-500 px-4 py-2 text-center">USB 3.x Type-B 常见于高速外置硬盘及打印机</p>
+          </div>
+          <a href="https://www.usb.org/document-library/usb-32-specification" target="_blank" class="doc-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            USB 3.2 官方规范 (usb.org)
+          </a>
+        </div>
+
+        <div class="lg:col-span-2 card p-6">
+          <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+            <span class="w-1 h-5 rounded bg-blue-500 inline-block"></span>
+            引脚定义详解（9 Pin）
+          </h3>
+          <div class="overflow-x-auto rounded-lg border border-slate-700/50">
+            <table class="pin-table">
+              <thead><tr><th>引脚 #</th><th>信号名称</th><th>类型</th><th>USB版本</th><th>说明</th></tr></thead>
+              <tbody>
+                <tr><td class="font-bold text-white">1</td><td class="font-mono text-yellow-400">VBUS (+5V)</td><td><span class="badge badge-power">电源</span></td><td><span class="ver-badge ver-usb2" style="font-size:.65rem">2.0+</span></td><td class="text-slate-300">电源正极，USB 3.0 最大供电 900mA</td></tr>
+                <tr><td class="font-bold text-white">2</td><td class="font-mono text-blue-400">D−</td><td><span class="badge badge-data">数据</span></td><td><span class="ver-badge ver-usb2" style="font-size:.65rem">2.0+</span></td><td class="text-slate-300">USB 2.0 差分数据负极（后向兼容）</td></tr>
+                <tr><td class="font-bold text-white">3</td><td class="font-mono text-blue-400">D+</td><td><span class="badge badge-data">数据</span></td><td><span class="ver-badge ver-usb2" style="font-size:.65rem">2.0+</span></td><td class="text-slate-300">USB 2.0 差分数据正极（后向兼容）</td></tr>
+                <tr><td class="font-bold text-white">4</td><td class="font-mono text-slate-400">GND</td><td><span class="badge badge-gnd">地线</span></td><td><span class="ver-badge ver-usb2" style="font-size:.65rem">2.0+</span></td><td class="text-slate-300">公共地，USB 2.0 信号和电源参考地</td></tr>
+                <tr><td class="font-bold text-white">5</td><td class="font-mono text-purple-400">SSRX−</td><td><span class="badge badge-ss">超速</span></td><td><span class="ver-badge ver-usb3" style="font-size:.65rem">3.0+</span></td><td class="text-slate-300">SuperSpeed 接收差分负极，接收主机发来的高速数据</td></tr>
+                <tr><td class="font-bold text-white">6</td><td class="font-mono text-purple-400">SSRX+</td><td><span class="badge badge-ss">超速</span></td><td><span class="ver-badge ver-usb3" style="font-size:.65rem">3.0+</span></td><td class="text-slate-300">SuperSpeed 接收差分正极</td></tr>
+                <tr><td class="font-bold text-white">7</td><td class="font-mono text-slate-400">GND_DRAIN</td><td><span class="badge badge-gnd">地线</span></td><td><span class="ver-badge ver-usb3" style="font-size:.65rem">3.0+</span></td><td class="text-slate-300">SuperSpeed 专用信号接地，抑制高频差分信号的回流噪声</td></tr>
+                <tr><td class="font-bold text-white">8</td><td class="font-mono text-purple-400">SSTX−</td><td><span class="badge badge-ss">超速</span></td><td><span class="ver-badge ver-usb3" style="font-size:.65rem">3.0+</span></td><td class="text-slate-300">SuperSpeed 发送差分负极，设备向主机发送高速数据</td></tr>
+                <tr><td class="font-bold text-white">9</td><td class="font-mono text-purple-400">SSTX+</td><td><span class="badge badge-ss">超速</span></td><td><span class="ver-badge ver-usb3" style="font-size:.65rem">3.0+</span></td><td class="text-slate-300">SuperSpeed 发送差分正极，与 Pin8 共同构成全双工发送对</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-6 p-4 rounded-xl" style="background:rgba(234,179,8,.08); border:1px solid rgba(234,179,8,.2)">
+            <p class="text-sm text-yellow-400 font-semibold mb-2">⚠️ 兼容性注意</p>
+            <p class="text-sm text-slate-300">USB 3.0 Type-B 插头<strong class="text-white">无法</strong>插入 USB 2.0 Type-B 插座（外形不兼容）；但 USB 2.0 Type-B 插头可以插入 USB 3.0 Type-B 插座（降速至 USB 2.0 运行）。</p>
+          </div>
+          <div class="mt-4 p-4 rounded-xl" style="background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2)">
+            <p class="text-sm text-emerald-400 font-semibold mb-2">💡 应用场景</p>
+            <p class="text-sm text-slate-300">USB 3.0 外置硬盘、高速扫描仪、工业相机、台式打印机（配备 USB 3.0 的机型）、USB 3.0 测试仪器。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ COMPARISON TABLE ══════════════ -->
+<section class="py-12 px-4">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-2xl font-black text-center mb-2 text-white">接口规格横向对比</h2>
+    <p class="text-slate-500 text-sm text-center mb-8">一表掌握所有 USB 接口关键参数</p>
+    <div class="card overflow-x-auto p-0">
+      <table class="w-full text-sm" style="min-width:700px">
+        <thead>
+          <tr style="background:linear-gradient(90deg,rgba(0,170,255,.15),rgba(168,85,247,.1))">
+            <th class="px-5 py-4 text-left text-slate-300 font-bold">接口类型</th>
+            <th class="px-4 py-4 text-center text-slate-300 font-bold">引脚数</th>
+            <th class="px-4 py-4 text-center text-slate-300 font-bold">最高速率</th>
+            <th class="px-4 py-4 text-center text-slate-300 font-bold">最大功率</th>
+            <th class="px-4 py-4 text-center text-slate-300 font-bold">OTG</th>
+            <th class="px-4 py-4 text-center text-slate-300 font-bold">可翻转</th>
+            <th class="px-4 py-4 text-left text-slate-300 font-bold">主要应用</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-t border-slate-700/50">
+            <td class="px-5 py-3 font-semibold text-white">USB Type-A 2.0</td>
+            <td class="px-4 py-3 text-center text-slate-300">4</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-data">480 Mbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">2.5W</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">键盘、鼠标、U盘、充电器</td>
+          </tr>
+          <tr class="border-t border-slate-700/50" style="background:rgba(59,130,246,.04)">
+            <td class="px-5 py-3 font-semibold text-white">USB Type-A 3.x</td>
+            <td class="px-4 py-3 text-center text-slate-300">9</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-ss">20 Gbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">4.5W</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">高速U盘、外置SSD、Hub</td>
+          </tr>
+          <tr class="border-t border-slate-700/50">
+            <td class="px-5 py-3 font-semibold text-white">USB Type-B 2.0</td>
+            <td class="px-4 py-3 text-center text-slate-300">4</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-data">480 Mbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">2.5W</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">打印机、扫描仪、MIDI接口</td>
+          </tr>
+          <tr class="border-t border-slate-700/50" style="background:rgba(59,130,246,.04)">
+            <td class="px-5 py-3 font-semibold text-white">USB Type-B 3.x</td>
+            <td class="px-4 py-3 text-center text-slate-300">9</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-ss">5 Gbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">4.5W</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">高速外置硬盘、工业设备</td>
+          </tr>
+          <tr class="border-t border-slate-700/50">
+            <td class="px-5 py-3 font-semibold text-white">Mini-USB (Mini-B)</td>
+            <td class="px-4 py-3 text-center text-slate-300">5</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-data">480 Mbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">2.5W</td>
+            <td class="px-4 py-3 text-center text-emerald-400">✓</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">早期相机、GPS、MP3（已淘汰）</td>
+          </tr>
+          <tr class="border-t border-slate-700/50" style="background:rgba(59,130,246,.04)">
+            <td class="px-5 py-3 font-semibold text-white">Micro-USB 2.0</td>
+            <td class="px-4 py-3 text-center text-slate-300">5</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-data">480 Mbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">2.5W</td>
+            <td class="px-4 py-3 text-center text-emerald-400">✓</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">旧款安卓手机（逐渐淘汰）</td>
+          </tr>
+          <tr class="border-t border-slate-700/50">
+            <td class="px-5 py-3 font-semibold text-white">Micro-USB 3.0</td>
+            <td class="px-4 py-3 text-center text-slate-300">10</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-ss">5 Gbps</span></td>
+            <td class="px-4 py-3 text-center text-slate-300">4.5W</td>
+            <td class="px-4 py-3 text-center text-emerald-400">✓</td>
+            <td class="px-4 py-3 text-center text-slate-500">✗</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">早期三星Galaxy、USB移动硬盘</td>
+          </tr>
+          <tr class="border-t border-slate-700/50" style="background:rgba(168,85,247,.06)">
+            <td class="px-5 py-3 font-bold text-purple-300">USB Type-C</td>
+            <td class="px-4 py-3 text-center font-bold text-purple-300">24</td>
+            <td class="px-4 py-3 text-center"><span class="badge badge-ss">40 Gbps</span></td>
+            <td class="px-4 py-3 text-center font-bold text-purple-300">240W</td>
+            <td class="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
+            <td class="px-4 py-3 text-center text-emerald-400 font-bold">✓</td>
+            <td class="px-4 py-3 text-slate-300 text-xs">现代手机、笔记本、显示器、Dock</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════ OFFICIAL DOCS ══════════════ -->
+<section class="py-12 px-4">
+  <div class="max-w-5xl mx-auto">
+    <h2 class="text-2xl font-black text-center mb-2 text-white">官方规范文档</h2>
+    <p class="text-slate-500 text-sm text-center mb-8">所有文档由 USB Implementers Forum (USB-IF) 官方发布</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <a href="https://www.usb.org/developers/docs/usb20_docs" target="_blank"
+         class="card p-5 flex items-start gap-4 hover:no-underline group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(16,185,129,.15)">
+          <span class="text-emerald-400 text-lg">📄</span>
+        </div>
+        <div>
+          <p class="text-white font-semibold group-hover:text-blue-400 transition-colors">USB 2.0 规范文档库</p>
+          <p class="text-slate-400 text-xs mt-1">包含 Type-A、Type-B、Mini、Micro USB 2.0 完整规范及 ECN</p>
+          <p class="text-blue-500 text-xs mt-2 font-mono">usb.org/developers/docs/usb20_docs</p>
+        </div>
+      </a>
+      <a href="https://www.usb.org/document-library/usb-32-specification" target="_blank"
+         class="card p-5 flex items-start gap-4 hover:no-underline group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(59,130,246,.15)">
+          <span class="text-blue-400 text-lg">📄</span>
+        </div>
+        <div>
+          <p class="text-white font-semibold group-hover:text-blue-400 transition-colors">USB 3.2 规范</p>
+          <p class="text-slate-400 text-xs mt-1">SuperSpeed USB，含 Type-A 3.x / Type-B 3.x / Micro-B 3.0 引脚定义</p>
+          <p class="text-blue-500 text-xs mt-2 font-mono">usb.org/document-library/usb-32-specification</p>
+        </div>
+      </a>
+      <a href="https://www.usb.org/document-library/usb-type-cr-cable-and-connector-specification-revision-21" target="_blank"
+         class="card p-5 flex items-start gap-4 hover:no-underline group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(168,85,247,.15)">
+          <span class="text-purple-400 text-lg">📄</span>
+        </div>
+        <div>
+          <p class="text-white font-semibold group-hover:text-blue-400 transition-colors">USB Type-C 线缆与连接器规范 Rev 2.1</p>
+          <p class="text-slate-400 text-xs mt-1">Type-C 24 Pin 完整引脚定义、Power Delivery、Alternate Mode 规范</p>
+          <p class="text-blue-500 text-xs mt-2 font-mono">usb.org/document-library/usb-type-c...</p>
+        </div>
+      </a>
+      <a href="https://www.usb.org/document-library/usb-power-delivery" target="_blank"
+         class="card p-5 flex items-start gap-4 hover:no-underline group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(239,68,68,.15)">
+          <span class="text-red-400 text-lg">⚡</span>
+        </div>
+        <div>
+          <p class="text-white font-semibold group-hover:text-blue-400 transition-colors">USB Power Delivery 规范</p>
+          <p class="text-slate-400 text-xs mt-1">USB PD 协议、CC 引脚通信、EPR 240W 供电规格说明</p>
+          <p class="text-blue-500 text-xs mt-2 font-mono">usb.org/document-library/usb-power-delivery</p>
+        </div>
+      </a>
+      <a href="https://www.usb.org/document-library/usb4tm-specification" target="_blank"
+         class="card p-5 flex items-start gap-4 hover:no-underline group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(168,85,247,.15)">
+          <span class="text-purple-400 text-lg">🚀</span>
+        </div>
+        <div>
+          <p class="text-white font-semibold group-hover:text-blue-400 transition-colors">USB4 规范</p>
+          <p class="text-slate-400 text-xs mt-1">USB4 Gen 2×2（20G）/ Gen 3×2（40G），仅支持 USB-C 接口</p>
+          <p class="text-blue-500 text-xs mt-2 font-mono">usb.org/document-library/usb4-specification</p>
+        </div>
+      </a>
+      <a href="https://www.usb.org/documents" target="_blank"
+         class="card p-5 flex items-start gap-4 hover:no-underline group">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,170,255,.15)">
+          <span class="text-blue-400 text-lg">🏛️</span>
+        </div>
+        <div>
+          <p class="text-white font-semibold group-hover:text-blue-400 transition-colors">USB-IF 完整文档库</p>
+          <p class="text-slate-400 text-xs mt-1">USB-IF 官方所有标准、勘误表（ECN）、白皮书的完整列表</p>
+          <p class="text-blue-500 text-xs mt-2 font-mono">usb.org/documents</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer class="py-8 px-4 text-center border-t border-slate-800">
+  <p class="text-slate-500 text-sm">数据来源：<a href="https://www.usb.org" target="_blank" class="text-blue-500 hover:text-blue-400">USB Implementers Forum (USB-IF)</a> 官方规范文档</p>
+  <p class="text-slate-600 text-xs mt-2">USB™ 及 USB Type-C™ 是 USB-IF 的注册商标</p>
+</footer>
+
+<script>
+  // Tab switching
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+
+      // Update buttons
+      tabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Update panels
+      tabPanels.forEach(p => p.classList.remove('active'));
+      const panel = document.getElementById('tab-' + target);
+      if (panel) {
+        panel.classList.add('active');
+        // Smooth scroll to panel on mobile
+        if (window.innerWidth < 768) {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    });
+  });
+
+  // Animated number counters on scroll
+  const counters = document.querySelectorAll('.spec-pill span');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '0';
+        setTimeout(() => {
+          entry.target.style.transition = 'opacity 0.5s';
+          entry.target.style.opacity = '1';
+        }, 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  counters.forEach(c => observer.observe(c));
+
+  // Pin row highlight on hover (pulse effect)
+  document.querySelectorAll('.pin-table tbody tr').forEach(row => {
+    row.style.transition = 'background 0.15s';
+  });
+</script>
+</body>
+</html>

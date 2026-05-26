@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BLE 第二次连接至抓包结束（honor50_sunmi_ble_ota）</title>
+  <style>
+    :root {
+      --bg: #f4f2ef;
+      --card: #fff;
+      --text: #1a2332;
+      --muted: #5c6b7a;
+      --border: #e2e8f0;
+      --adv: #0d9488;
+      --adv-soft: #ccfbf1;
+      --gap: #d97706;
+      --gap-soft: #fffbeb;
+      --link: #1d4ed8;
+      --link-soft: #dbeafe;
+      --llcp: #6d28d9;
+      --llcp-soft: #ede9fe;
+      --data: #64748b;
+      --data-soft: #f1f5f9;
+      --end: #b45309;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.7 "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+    .hero {
+      background: linear-gradient(155deg, #0d9488 0%, #1d4ed8 50%, #6d28d9 100%);
+      color: #fff;
+      padding: 48px 24px 36px;
+      text-align: center;
+    }
+    .hero h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 34px); }
+    .hero p { margin: 0 auto; max-width: 900px; opacity: 0.92; font-size: 15px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .badge.adv { background: var(--adv-soft); color: var(--adv); }
+    .badge.gap { background: var(--gap-soft); color: var(--gap); }
+    .badge.link { background: var(--link-soft); color: var(--link); }
+    .badge.llcp { background: var(--llcp-soft); color: var(--llcp); }
+    .badge.data { background: var(--data-soft); color: var(--data); }
+    .badge.end { background: #ffedd5; color: var(--end); }
+    .lead { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+
+    .phase {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin: 14px 0;
+      overflow: hidden;
+    }
+    .phase-head {
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .phase-head.g0 { background: var(--gap-soft); border-bottom: 3px solid var(--gap); }
+    .phase-head.g1 { background: var(--adv-soft); border-bottom: 3px solid var(--adv); }
+    .phase-head.g2 { background: var(--link-soft); border-bottom: 3px solid var(--link); }
+    .phase-head.g3 { background: var(--llcp-soft); border-bottom: 3px solid var(--llcp); }
+    .phase-head.g4 { background: var(--data-soft); border-bottom: 3px solid var(--data); }
+    .phase-head.g5 { background: #ffedd5; border-bottom: 3px solid var(--end); }
+    .phase-body { padding: 14px 16px 16px; }
+
+    .why {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fff;
+      border-left: 4px solid var(--adv);
+      font-size: 14px;
+    }
+
+    .hex {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .hex .a { color: #94a3b8; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+    th, td { border: 1px solid var(--border); padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+
+    .timeline-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .tl {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      font-family: ui-monospace, monospace;
+    }
+    .tl.on { background: #dbeafe; font-weight: 600; }
+
+    .warn {
+      border-left: 4px solid #dc2626;
+      background: #fef2f2;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      margin: 14px 0;
+      color: #7f1d1d;
+    }
+    .info {
+      border-left: 4px solid #2563eb;
+      background: #eff6ff;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      margin: 14px 0;
+      color: #1e3a8a;
+    }
+
+    .bar-chart { margin: 12px 0; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+    }
+    .bar-label { width: 36px; color: var(--muted); }
+    .bar-fill {
+      height: 18px;
+      background: linear-gradient(90deg, #94a3b8, #64748b);
+      border-radius: 4px;
+      min-width: 4px;
+    }
+
+    nav.links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    nav.links a {
+      color: rgba(255,255,255,0.95);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 4px 12px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px;
+    }
+    nav.links a:hover { background: rgba(255,255,255,0.15); }
+  
+    .seq-container {
+      background: #f8faff;
+      border: 1px solid #dde3ee;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+    .seq-container svg { display: block; max-width: 100%; height: auto; }
+
+  
+    /* ── 左侧目录导航（packet 抓包文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar) {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">BLE 第二次连接至抓包结束（honor50_sunmi_ble_ota）</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">抓包流程 · Packet Flow</div>
+    <div class="doc-name">BLE 第二次连接至抓包结束（honor50_sunmi_ble_ota）</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#compare">两次连接对照</a>
+  <a class="packet-nav-link" href="#gap">阶段 A：第一次断开 → 第二次建链 46.902 – 47.622 s</a>
+  <a class="packet-nav-link" href="#connect">阶段 B：第二次 Connection Indication 47.622130 s</a>
+  <a class="packet-nav-link" href="#llcp">阶段 C：LLCP 链路协商 47.653 – 58.692 s</a>
+  <a class="packet-nav-link" href="#att">阶段 D：ATT / GATT — 抓包观察 无可见 PDU</a>
+  <a class="packet-nav-link" href="#data">阶段 E：连接保持期空口活动 48.6 – 59.1 s</a>
+  <a class="packet-nav-link" href="#end">阶段 F：抓包结束（非协议断开）59.112171 s</a>
+  <a class="packet-nav-link" href="#时间轴总览">时间轴总览</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+  <a class="packet-nav-link doc" href="paging_to_setup_complete_packet_flow.html">Paging → Setup Complete</a>
+  <a class="packet-nav-link doc" href="setup_complete_to_io_capability_packet_flow.html">Setup → IO Capability</a>
+  <a class="packet-nav-link doc" href="bt_secure_pairing_packet_flow.html">SSP 安全配对</a>
+  <a class="packet-nav-link doc" href="sdp_packet_flow.html">SDP 服务发现</a>
+  <a class="packet-nav-link doc" href="l2cap_session_packet_flow.html">L2CAP 多会话</a>
+  <a class="packet-nav-link doc" href="hid_connection_packet_flow.html">HID 连接</a>
+  <a class="packet-nav-link doc" href="ble_first_connection_packet_flow.html">BLE 首次连接</a>
+  <a class="packet-nav-link doc current-doc" href="ble_second_connection_packet_flow.html">BLE 第二次连接</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<header class="hero">
+    <h1>BLE 第二次连接 → 抓包结束</h1>
+    <p>
+      HONOR 50 Pro ↔ CloudPrint_0159 · <code>honor50_sunmi_ble_ota.csv</code><br>
+      范围：<strong>首次断开后重连（47.622s）→ 文件末尾（59.112s）</strong>，约 <strong>11.5 s</strong>，<strong>抓包内无第二次 LLCP Termination</strong>。
+    </p>
+    <nav class="links">
+      <a href="ble_first_connection_packet_flow.html">← 第一次连接</a>
+      <a href="#compare">与第一次对比</a>
+      <a href="#gap">重连间隔</a>
+      <a href="#llcp">LLCP</a>
+      <a href="#att">ATT 观察</a>
+      <a href="#end">抓包结束</a>
+    </nav>
+  </header>
+
+  <div class="packet-main container">
+
+    <section class="card" id="compare">
+      <h2>两次连接对照</h2>
+      <table>
+        <tr><th>项目</th><th>第一次连接</th><th>第二次连接（本页）</th></tr>
+        <tr><td>建链时间</td><td>35.325 s</td><td><strong>47.622 s</strong></td></tr>
+        <tr><td>Access Address</td><td><code>0x93F4E4CB</code></td><td><code>0x9319BEB9</code>（新链路）</td></tr>
+        <tr><td>断开</td><td>46.902 s · LLCP Termination 0x13</td><td><strong>无</strong>（仍在连接态结束抓包）</td></tr>
+        <tr><td>持续时长</td><td>~11.6 s</td><td>~11.5 s（至 EOF）</td></tr>
+        <tr><td>ATT 可见</td><td>完整 GATT 发现 + 0x993F 业务</td><td><strong>0 条 ATT</strong>（Wireshark 未解出）</td></tr>
+        <tr><td>LLCP</td><td>Feature → Length → ConnParam → Version → ChMap → PHY 2M</td><td>相同序列，PHY 约 <strong>+1.0 s</strong> 完成（更快）</td></tr>
+        <tr><td>空口负载</td><td>ATT 明文占主导</td><td>约 <strong>~200 Empty LE/s</strong>（链路维持，无 ATT 解析）</td></tr>
+      </table>
+
+            <div class="seq-container" id="msc-1" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;第一次 35.3s–46.9s ATT+OTA 后断开&quot;}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;C&quot;], &quot;text&quot;: &quot;46.96s 恢复广播 ~0.66s&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Connection Indication (47.622s, AA 9319BEB9)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;LLCP 协商 ~1s，PHY 2M @48.61s&quot;}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;48.6s–59.1s 仅链路层 PDU，无 ATT 解包&quot;}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;59.11s 抓包结束，连接未断&quot;}]}"></div>
+
+    </section>
+
+  <!-- Gap -->
+    <section class="card" id="gap">
+      <h2>阶段 A：第一次断开 → 第二次建链 <span class="badge gap">46.902 – 47.622 s</span></h2>
+
+      <div class="phase">
+        <div class="phase-head g0">LLCP Termination · CSV 第 5728 行</div>
+        <div class="phase-body">
+          <p><code>LLCP Termination (Remote User Terminated Connection)</code> · 原因 <strong>0x13</strong></p>
+          <p>第一次会话在 WiFi 扫描通知等业务结束后由对端/应用层关闭。</p>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head g1">外设恢复广播 · 46.965 s 起</div>
+        <div class="phase-body">
+          <p>约 <strong>63 ms</strong> 后 CloudPrint 再次发送 <code>Connectable Undirected Adv</code>（名称、0x180A 与首次相同）。</p>
+          <p>间隔窗口内约 <strong>42 条</strong> 广播、<strong>2 条</strong> Scan，HONOR 未长时间扫描即发起连接。</p>
+          <div class="why">
+            短间隔重连典型场景：应用层「断开后立即 reconnect」或协议栈 fast reconnect；外设持续可连接广播供 Central 快速二次建链。
+          </div>
+        </div>
+      </div>
+    </section>
+
+  <!-- Connect -->
+    <section class="card" id="connect">
+      <h2>阶段 B：第二次 Connection Indication <span class="badge link">47.622130 s</span></h2>
+
+      <div class="phase">
+        <div class="phase-head g2">CONNECT_IND · CSV 第 5787 行</div>
+        <div class="phase-body">
+          <table>
+            <tr><th>字段</th><th>值</th></tr>
+            <tr><td>Initiator</td><td>59:54:A9:E2:43:20 (HONOR, Resolvable)</td></tr>
+            <tr><td>Advertiser</td><td>68:50:8C:23:70:C1 (CloudPrint_0159)</td></tr>
+            <tr><td>ChSel</td><td>#2</td></tr>
+            <tr><td>Access Address</td><td><code>0x9319BEB9</code>（与第一次不同，新链路实例）</td></tr>
+            <tr><td>Conn Interval（初始）</td><td>24 × 1.25 ms = 30 ms（CONNECT_IND 内 Win/Interval 字段）</td></tr>
+          </table>
+          <div class="hex">
+<span class="a">/* CONNECT_IND Data — 第 5787 行 */</span>
+65 22 20 43 E2 A9 54 59 C1 70 23 8C 50 68
+B9 BE 19 93  <span class="a">Access Address 0x9319BEB9</span>
+4F 63 F9 01 17 00 18 00 00 00 F4 01 83 3F C0 0F 1C B0 53 23 E8
+          </div>
+        </div>
+      </div>
+    </section>
+
+  <!-- LLCP -->
+    <section class="card" id="llcp">
+      <h2>阶段 C：LLCP 链路协商 <span class="badge llcp">47.653 – 58.692 s</span></h2>
+      <p class="lead">与第一次连接<strong>同类型 PDU 序列</strong>，时间压缩；建链后约 <strong>0.99 s</strong> 即完成 PHY 2M（第一次约 1.08 s）。</p>
+
+      <table>
+        <tr><th>时间</th><th>相对建链</th><th>LLCP</th><th>要点</th></tr>
+        <tr><td>47.653</td><td>+31 ms</td><td>Feature Exchange</td><td>Encr, ParReq, FeatEx, Ping…（与首次相同能力位）</td></tr>
+        <tr><td>47.713–47.803</td><td>+91 ms</td><td>Length Req/Rsp</td><td>协商至 <strong>MaxRx/MaxTx = 251 B</strong></td></tr>
+        <tr><td>47.743–47.773</td><td>+121 ms</td><td>Conn Param Req/Update</td><td><strong>Interval = 15 ms</strong>, Lat=0, Timeout=5 s</td></tr>
+        <tr><td>47.833–47.863</td><td>+211 ms</td><td>Version Exchange</td><td>Central BLE 5.2 Qualcomm · Peripheral BLE 6.0 Infineon</td></tr>
+        <tr><td>48.582–48.612</td><td>+960 ms</td><td>PHY Req/Rsp/Update</td><td><strong>LE 2M</strong> 双向</td></tr>
+        <tr><td>49.362</td><td>+1.74 s</td><td>Channel Map</td><td>Used 0–1,7–36 / Unused 2–6</td></tr>
+        <tr><td>51.717</td><td>+4.09 s</td><td>Channel Map</td><td>Used 0–1,7–12,23–36</td></tr>
+        <tr><td>56.367</td><td>+8.74 s</td><td>Channel Map</td><td>Used 0–13,28–32</td></tr>
+        <tr><td>58.692</td><td>+11.07 s</td><td>Channel Map</td><td>Used 0–10,23–24,31–32（抓包结束前最后一次）</td></tr>
+      </table>
+
+      <div class="info">
+        <strong>48.837 s</strong> 出现 <code>Out Of Sync Packets (Duration=0 ms, x 1)</code>：单次失步，随后链路继续，未触发 Termination。
+      </div>
+
+            <div class="seq-container" id="msc-2" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Feature / Length (251B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Conn Param Req (15ms)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Conn Update Ind&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Version 5.2&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Version 6.0&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;PHY → LE 2M&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;↻ 链路维护期&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Channel Map Ind (自适应)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+    </section>
+
+  <!-- ATT -->
+    <section class="card" id="att">
+      <h2>阶段 D：ATT / GATT — 抓包观察 <span class="badge data">无可见 PDU</span></h2>
+
+      <div class="warn">
+        <strong>重要结论：</strong>第二次连接区间（CSV 第 5787–8207 行）内，Wireshark <strong>未解出任何 ATT / L2CAP-ATT 报文</strong>（第一次连接共约 391 条 ATT，末条在 <strong>46.842 s</strong>）。
+      </div>
+
+      <div class="phase">
+        <div class="phase-head g4">与第一次的差异（推断）</div>
+        <div class="phase-body">
+          <table>
+            <tr><th>第一次有、第二次无</th><th>可能原因</th></tr>
+            <tr><td>Read By Group/Type、Find Information</td><td>Host 使用 <strong>GATT 缓存</strong>（句柄 0x993F 等已在首次发现），跳过服务发现</td></tr>
+            <tr><td>Write CCC / Write Command / Notification</td><td>① 业务已在首次连接完成；② 二次连接仅保持链路；③ 或存在<strong>未解密的加密载荷</strong>（全文件无 SMP PDU，本抓包无法证实加密）</td></tr>
+          </table>
+
+          <p><strong>第一次会话末条 ATT（对照）：</strong></p>
+          <div class="hex">
+46.842  ATT Notification (0x993F: …04 04 00 00 00)  <span class="a">WiFi 列表分片尾声</span>
+46.902  LLCP Termination
+<span class="a">— 约 0.78 s 无 ATT —</span>
+47.622  第二次 Connection Indication
+          </div>
+
+          <div class="why">
+            若应用层在二次连接继续 OTA，按第一次模式应出现 <code>AA 55</code> 写命令与 Notification；当前导出中<strong>完全缺失</strong>，更符合「重连后仅维持 ACL、尚未下发 GATT」或「抓包在业务恢复前结束」。
+          </div>
+        </div>
+      </div>
+    </section>
+
+  <!-- Data plane -->
+    <section class="card" id="data">
+      <h2>阶段 E：连接保持期空口活动 <span class="badge data">48.6 – 59.1 s</span></h2>
+      <p class="lead">PHY 2M 生效后，空口以 <code>Empty LE Packet</code> 为主（5 字节 LL 头 + 极短载荷），约每 <strong>15 ms</strong> 连接事件一轮，符合已协商的连接间隔。</p>
+
+      <div class="bar-chart" aria-label="每秒 Empty LE 数量">
+        <p style="font-size:13px;color:var(--muted);margin:0 0 8px;">相对建链后每秒 Empty LE 条数（Depth 展开后统计）</p>
+        <div class="bar-row"><span class="bar-label">+0s</span><div class="bar-fill" style="width:78%"></div> 156</div>
+        <div class="bar-row"><span class="bar-label">+1s</span><div class="bar-fill" style="width:100%"></div> 210</div>
+        <div class="bar-row"><span class="bar-label">+2s</span><div class="bar-fill" style="width:96%"></div> 218</div>
+        <div class="bar-row"><span class="bar-label">+3s</span><div class="bar-fill" style="width:90%"></div> 205</div>
+        <div class="bar-row"><span class="bar-label">+4s</span><div class="bar-fill" style="width:92%"></div> 208</div>
+        <div class="bar-row"><span class="bar-label">+5–10s</span><div class="bar-fill" style="width:88%"></div> ~200/s 平稳</div>
+        <div class="bar-row"><span class="bar-label">+11s</span><div class="bar-fill" style="width:48%"></div> 100（截断）</div>
+      </div>
+
+      <div class="hex">
+<span class="a">/* 典型 Empty LE（PHY 2M 后，每连接事件）*/</span>
+01 00 42 43 68
+05 00 91 45 68
+0D 00 37 48 68
+09 00 E4 4E 68
+<span class="a">→ 链路层 ACK / 空数据 PDU，非 ATT 明文</span>
+      </div>
+
+      <div class="why">
+        高频率 Empty LE 表示链路<strong>仍处于连接态且调度正常</strong>，但在本 CSV 中无对应上层业务解析；不能等同于「无业务」，只表示<strong>抓包/解密层未呈现 GATT</strong>。
+      </div>
+    </section>
+
+  <!-- End -->
+    <section class="card" id="end">
+      <h2>阶段 F：抓包结束（非协议断开）<span class="badge end">59.112171 s</span></h2>
+
+      <div class="phase">
+        <div class="phase-head g5">文件末行 · CSV 第 8207 行</div>
+        <div class="phase-body">
+          <p><code>Empty LE Packet</code> — 抓包停止时链路<strong>仍为连接态</strong>。</p>
+          <p>全文件仅 <strong>1 次</strong> LLCP Termination（对应第一次断开）；<strong>第二次连接未在抓包内关闭</strong>。</p>
+
+          <table>
+            <tr><th>统计项</th><th>数值</th></tr>
+            <tr><td>第二次连接 CSV 行</td><td>5787 – 8207（2421 行）</td></tr>
+            <tr><td>命名 LLCP PDU</td><td>18 条（含 4 次 Channel Map）</td></tr>
+            <tr><td>命名 ATT PDU</td><td><strong>0</strong></td></tr>
+            <tr><td>Empty LE（含子行）</td><td>约 2320+</td></tr>
+          </table>
+
+          <div class="why">
+            分析「到最后」= 到 <strong>59.112 s 抓包 EOF</strong>，而非到协议断开。若需二次断开时刻，需延长抓包或提供后续 pcap。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="时间轴总览">
+      <h2>时间轴总览</h2>
+      <div class="timeline-chips">
+        <span class="tl">46.902s 第一次 Termination</span>
+        <span class="tl">46.965s 恢复广播</span>
+        <span class="tl on">47.622s 第二次 CONNECT</span>
+        <span class="tl on">47.65s LLCP 完成基础协商</span>
+        <span class="tl on">48.612s PHY 2M</span>
+        <span class="tl">49–58s ChMap + Empty LE</span>
+        <span class="tl on">59.112s 抓包结束（仍连接）</span>
+      </div>
+      <p class="lead" style="margin:0;">
+        相关文档：<a href="ble_first_connection_packet_flow.html">第一次连接全流程（广播→ATT OTA→断开）</a>
+      </p>
+    </section>
+  </div>
+
+  
+  <script>
+
+(function () {
+  'use strict';
+  var PALETTE = [
+    { stroke: '#1565c0', fill: '#e3f2fd' },
+    { stroke: '#2e7d32', fill: '#e8f5e9' },
+    { stroke: '#e65100', fill: '#fff3e0' },
+    { stroke: '#6a1b9a', fill: '#f3e5f5' },
+    { stroke: '#c62828', fill: '#ffebee' },
+    { stroke: '#00695c', fill: '#e0f2f1' }
+  ];
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function splitLabel(label) {
+    return label.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  }
+
+  window.btPacketMsc = {
+    render: function (container, spec) {
+      if (typeof container === 'string') {
+        container = document.getElementById(container);
+      }
+      if (!container || !spec || !spec.actors || !spec.actors.length) return;
+
+      var actors = spec.actors;
+      var items = spec.messages || [];
+      var n = actors.length;
+      var padX = 24;
+      var actorW = 118;
+      var gap = Math.max(28, (720 - padX * 2 - actorW) / Math.max(1, n - 1));
+      var width = Math.max(560, padX * 2 + actorW + gap * (n - 1));
+      var xs = actors.map(function (_, i) {
+        return padX + i * gap + actorW / 2;
+      });
+
+      var rowH = 30;
+      var noteH = 34;
+      var topH = 48;
+      var y = topH;
+      var rows = [];
+
+      items.forEach(function (it) {
+        if (it.type === 'note') {
+          rows.push({ kind: 'note', text: it.text, ids: it.actors || actors.map(function (a) { return a.id; }), y: y });
+          y += noteH;
+        } else {
+          rows.push({
+            kind: 'msg',
+            from: it.from,
+            to: it.to,
+            label: it.label || '',
+            ret: !!it.return,
+            air: !!(it.air || (it.label && /\[Air\]/i.test(it.label))),
+            y: y
+          });
+          y += rowH;
+        }
+      });
+      var height = y + 28;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      actors.forEach(function (_, i) {
+        var m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        m.setAttribute('id', 'pkt-m' + i);
+        m.setAttribute('markerWidth', '7');
+        m.setAttribute('markerHeight', '7');
+        m.setAttribute('refX', '5');
+        m.setAttribute('refY', '3.5');
+        m.setAttribute('orient', 'auto');
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0,7 3.5,0 7');
+        poly.setAttribute('fill', PALETTE[i % PALETTE.length].stroke);
+        m.appendChild(poly);
+        defs.appendChild(m);
+      });
+      svg.appendChild(defs);
+
+      var idIndex = {};
+      actors.forEach(function (a, i) {
+        idIndex[a.id] = i;
+        var p = PALETTE[i % PALETTE.length];
+        var rx = xs[i] - actorW / 2;
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(rx));
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', String(actorW));
+        rect.setAttribute('height', '32');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', p.fill);
+        rect.setAttribute('stroke', p.stroke);
+        rect.setAttribute('stroke-width', '1.5');
+        svg.appendChild(rect);
+        var lines = splitLabel(a.label);
+        lines.forEach(function (ln, li) {
+          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', String(xs[i]));
+          t.setAttribute('y', String(22 + li * 11 - (lines.length - 1) * 5));
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', lines.length > 1 ? '9' : '10');
+          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('fill', p.stroke);
+          t.textContent = ln;
+          svg.appendChild(t);
+        });
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(xs[i]));
+        line.setAttribute('y1', '42');
+        line.setAttribute('x2', String(xs[i]));
+        line.setAttribute('y2', String(height - 8));
+        line.setAttribute('stroke', p.stroke);
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '4,3');
+        line.setAttribute('opacity', '0.45');
+        svg.appendChild(line);
+      });
+
+      rows.forEach(function (row) {
+        if (row.kind === 'note') {
+          var idxs = row.ids.map(function (id) { return idIndex[id]; }).filter(function (x) { return x !== undefined; });
+          if (!idxs.length) return;
+          var x0 = xs[Math.min.apply(null, idxs)] - actorW / 2;
+          var x1 = xs[Math.max.apply(null, idxs)] + actorW / 2;
+          var nr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          nr.setAttribute('x', String(x0 + 4));
+          nr.setAttribute('y', String(row.y - 4));
+          nr.setAttribute('width', String(x1 - x0 - 8));
+          nr.setAttribute('height', '22');
+          nr.setAttribute('rx', '4');
+          nr.setAttribute('fill', '#fff8e1');
+          nr.setAttribute('stroke', '#f9a825');
+          nr.setAttribute('stroke-width', '1');
+          svg.appendChild(nr);
+          var nt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          nt.setAttribute('x', String((x0 + x1) / 2));
+          nt.setAttribute('y', String(row.y + 10));
+          nt.setAttribute('text-anchor', 'middle');
+          nt.setAttribute('font-size', '9');
+          nt.setAttribute('fill', '#6d4c00');
+          nt.setAttribute('font-weight', '600');
+          nt.textContent = row.text;
+          svg.appendChild(nt);
+          return;
+        }
+        var fi = idIndex[row.from];
+        var ti = idIndex[row.to];
+        if (fi === undefined || ti === undefined) return;
+        var x1 = xs[fi];
+        var x2 = xs[ti];
+        var color = PALETTE[fi % PALETTE.length].stroke;
+        if (row.air) color = '#e65100';
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', String(x1));
+        ln.setAttribute('y1', String(row.y));
+        ln.setAttribute('x2', String(x2));
+        ln.setAttribute('y2', String(row.y));
+        ln.setAttribute('stroke', color);
+        ln.setAttribute('stroke-width', row.air ? '2' : '1.5');
+        ln.setAttribute('marker-end', 'url(#pkt-m' + ti + ')');
+        if (row.ret || row.air) ln.setAttribute('stroke-dasharray', '6,3');
+        svg.appendChild(ln);
+        var lines = splitLabel(row.label);
+        var mid = (x1 + x2) / 2;
+        lines.forEach(function (lb, li) {
+          var lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lt.setAttribute('x', String(mid));
+          lt.setAttribute('y', String(row.y - 6 - (lines.length - 1 - li) * 10));
+          lt.setAttribute('text-anchor', 'middle');
+          lt.setAttribute('font-size', '9');
+          lt.setAttribute('fill', color);
+          lt.setAttribute('font-weight', 'bold');
+          lt.textContent = lb;
+          svg.appendChild(lt);
+        });
+      });
+
+      container.innerHTML = '';
+      container.appendChild(svg);
+    }
+  };
+
+  document.querySelectorAll('.seq-container[data-msc]').forEach(function (el) {
+    try {
+      var spec = JSON.parse(el.getAttribute('data-msc'));
+      window.btPacketMsc.render(el, spec);
+    } catch (e) {
+      console.error('btPacketMsc', e);
+    }
+  });
+})();
+
+  </script>
+</div>
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

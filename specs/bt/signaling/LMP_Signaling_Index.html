@@ -1,0 +1,3484 @@
+<!DOCTYPE html>
+<!--
+  单文件离线版：样式、脚本、PDU/参数数据均内联，无外部 .js / .css / .json 依赖。
+  使用方式：浏览器直接打开本文件即可（file:// 或双击），无需 HTTP 服务器或同目录其他资源。
+  仅「规范原文」链接需联网点击；索引、搜索、折叠导航均可离线使用。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMP (Link Manager Protocol) 信令格式与参数交互索引表 (Bluetooth Core 6.0)</title>
+  <style>
+    :root {
+      --primary-color: #0082FC; /* Bluetooth Classic Blue */
+      --primary-hover: #0066cc;
+      --bg-color: #f8fafc;
+      --panel-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --border-color: #e2e8f0;
+      --badge-std: #10b981;
+      --badge-ext: #8b5cf6;
+      --highlight-bg: rgba(0, 130, 252, 0.15);
+      --highlight-border: #0082FC;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 顶部导航与搜索 */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      flex-shrink: 0;
+      border-bottom: 2px solid var(--primary-color);
+    }
+
+    .brand-title h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .brand-title p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .search-wrapper {
+      position: relative;
+      width: 380px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.6rem 1rem 0.6rem 2.5rem;
+      border-radius: 9999px;
+      border: 1px solid #334155;
+      background-color: #1e293b;
+      color: #fff;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 10px rgba(0, 130, 252, 0.3);
+      background-color: #0f172a;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      pointer-events: none;
+    }
+
+    /* 页面主体布局 */
+    .main-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* 左侧 PDU 侧边栏列表 */
+    .sidebar {
+      width: 320px;
+      border-right: 1px solid var(--border-color);
+      background-color: #fff;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      background-color: #f1f5f9;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pdu-count-badge {
+      background-color: #cbd5e1;
+      color: #334155;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+    }
+
+    .pdu-menu-list {
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+    }
+
+    .pdu-menu-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .pdu-menu-item:hover {
+      background-color: #f1f5f9;
+    }
+
+    .pdu-menu-item.active {
+      background-color: rgba(0, 130, 252, 0.08);
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .pdu-menu-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pdu-menu-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .pdu-menu-op {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    .sidebar-toolbar {
+      display: flex;
+      gap: 0.35rem;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      background: #fafbfc;
+      flex-shrink: 0;
+    }
+
+    .sidebar-toolbar button {
+      flex: 1;
+      font-size: 0.7rem;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: #fff;
+      color: var(--text-sub);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sidebar-toolbar button:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+
+    .nav-group {
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .nav-group-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+      background: #f8fafc;
+      cursor: pointer;
+      user-select: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #334155;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .nav-group-header:hover {
+      background: #f1f5f9;
+    }
+
+    .nav-group-chevron {
+      display: inline-block;
+      width: 1rem;
+      text-align: center;
+      font-size: 0.65rem;
+      color: #64748b;
+      transition: transform 0.2s;
+    }
+
+    .nav-group.collapsed .nav-group-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .nav-group.collapsed .nav-group-items {
+      display: none;
+    }
+
+    .nav-group-items {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .nav-group-count {
+      margin-left: auto;
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: #94a3b8;
+      background: #e2e8f0;
+      padding: 0.1rem 0.45rem;
+      border-radius: 9999px;
+    }
+
+    .nav-group-desc {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: #64748b;
+      padding: 0.35rem 0.75rem 0.5rem 1.75rem;
+      line-height: 1.45;
+      background: #fafbfc;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .nav-group.collapsed .nav-group-desc {
+      display: none;
+    }
+
+    .nav-group-header .nav-group-section {
+      font-size: 0.68rem;
+      font-weight: 500;
+      color: #94a3b8;
+      margin-right: 0.25rem;
+    }
+
+    .badge-procedure {
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .procedure-section-header {
+      margin: 2rem 0 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: linear-gradient(90deg, rgba(0, 130, 252, 0.06) 0%, transparent 100%);
+    }
+
+    .procedure-section-header h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .procedure-section-header p {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    /* 右侧主显示区域 */
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      scroll-behavior: smooth;
+    }
+
+    /* 协议导读 */
+    .intro-section {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .intro-section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: var(--primary-color);
+    }
+
+    .intro-section p {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--text-sub);
+    }
+
+    .intro-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .intro-card {
+      background-color: #f8fafc;
+      padding: 1rem;
+      border-radius: 6px;
+      border-left: 3px solid #64748b;
+    }
+
+    .intro-card h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .intro-card p {
+      font-size: 0.8rem;
+    }
+
+    /* PDU卡片样式 */
+    .catalog-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .pdu-card {
+      background-color: var(--panel-bg);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 2rem;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .pdu-card-header {
+      padding: 1rem 1.5rem;
+      background-color: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pdu-title-block {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .pdu-card-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-standard {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--badge-std);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-extended {
+      background-color: rgba(139, 92, 246, 0.1);
+      color: var(--badge-ext);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .pdu-card-meta {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .pdu-card-body {
+      padding: 1.5rem;
+    }
+
+    .pdu-desc {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-sub);
+      margin-bottom: 1.25rem;
+      background-color: #f8fafc;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+    }
+
+    /* 载荷结构表 */
+    .payload-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    .payload-table th, .payload-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .payload-table th {
+      background-color: #f1f5f9;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+
+    .payload-table tbody tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .param-link {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .param-link:hover {
+      color: var(--primary-hover);
+      text-decoration: underline;
+    }
+
+    /* 详细参数目录 */
+    .parameters-directory {
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 3px dashed #cbd5e1;
+    }
+
+    .parameter-card {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      transition: all 0.3s;
+    }
+
+    .parameter-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 0.5rem;
+    }
+
+    .parameter-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .parameter-type {
+      font-size: 0.75rem;
+      background-color: #e2e8f0;
+      color: #334155;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .parameter-desc {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-sub);
+      margin-bottom: 1rem;
+    }
+
+    .parameter-relations {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .relation-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .relation-badge {
+      font-size: 0.75rem;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      border: 1px solid var(--border-color);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .relation-badge:hover {
+      background-color: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+    }
+
+    /* 高亮定位效果 */
+    .highlight-target {
+      animation: highlight-flash 2.5s ease-out;
+      border-color: var(--primary-color) !important;
+      box-shadow: 0 0 15px rgba(0, 130, 252, 0.25) !important;
+    }
+
+    @keyframes highlight-flash {
+      0% { background-color: rgba(0, 130, 252, 0.4); }
+      100% { background-color: transparent; }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* 浮动返回顶部按钮 */
+    .back-to-top {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: #0f172a;
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+      opacity: 0.8;
+    }
+
+    .back-to-top:hover {
+      opacity: 1;
+      background-color: var(--primary-color);
+    }
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+  <!-- 顶部标题与搜索栏 -->
+  <header class="header">
+    <div class="brand-title">
+      <h1>Bluetooth LMP Signaling Directory</h1>
+      <p>基础率/增强速率(BR/EDR)链路管理器协议交互索引工具 (Bluetooth Core 6.0)</p>
+    </div>
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="PDU / 操作码 / §4 过程 (例: sniff / 4.2.7 / 127/3)...">
+    </div>
+  </header>
+
+  <!-- 页面主体布局 -->
+  <div class="main-container">
+    <!-- 左边菜单索引栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>信令 PDU 索引</span>
+        <span class="pdu-count-badge" id="pduCount">0 / 0</span>
+      </div>
+      <div class="sidebar-toolbar">
+        <button type="button" id="expandAllNav" title="展开全部分组">全部展开</button>
+        <button type="button" id="collapseAllNav" title="折叠全部分组">全部折叠</button>
+      </div>
+      <div class="pdu-menu-list" id="pduMenuList">
+        <!-- JS 动态载入分组列表 -->
+      </div>
+    </aside>
+
+    <!-- 右边内容区 -->
+    <main class="content-area" id="contentArea">
+      <!-- 协议基础概念导读 -->
+      <section class="intro-section">
+        <h2>蓝牙 Core 6.0 规范 - LMP PDU 传输机制简述</h2>
+        <p>LMP 消息（协议数据单元，PDU）通常使用 <strong>DM1</strong> 物理层分组包进行传输，以保证可靠的数据传输控制，当物理链路存在语音业务（如 HV1）且载荷小于 9 字节时，也可以使用 <strong>DV</strong> 数据语音包传输。所有的 LMP 操作以事务（Transactions）形式进行，其信令帧格式由第一个字节决定。本索引与 <a href="https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-60/out/en/br-edr-controller/link-manager-protocol-specification.html#UUID-ba8ab41a-ac8a-df49-9a25-3fd32d7de5bf" target="_blank" rel="noopener">Bluetooth Core 6.0 — Link Manager Protocol Specification</a> 中 Table 5.1（PDU 汇总）及 §5.2（参数定义）对齐，共 <strong>88</strong> 条 LMP PDU。</p>
+<p class="bt-spec-related" style="margin-top:0.75rem;font-size:0.82rem;color:#64748b;"><!-- bt-spec-related-links -->相关文档：<a href="../overview/bt_lmp_overview.html">LMP 链路管理协议</a> · <a href="../misc/lmp_ssp_deepdive.html">LMP 与 SSP 深度拆解</a></p>
+
+        <p style="margin-top:0.5rem;">左侧导航与下方 PDU 卡片按规范 <a href="https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-60/out/en/br-edr-controller/link-manager-protocol-specification.html#UUID-6a5aab41-7561-e007-6a82-5288b8bb7cf0" target="_blank" rel="noopener"><strong>§4 Procedure rules</strong></a> 划分：<strong>4.1</strong> 连接控制、<strong>4.2</strong> 安全、<strong>4.3</strong> 信息交换、<strong>4.4</strong> 角色切换、<strong>4.5</strong> 运行模式、<strong>4.6</strong> 逻辑传输、<strong>4.7</strong> 测试模式，以及跨事务的通用应答信令。</p>
+        <p style="margin-top:0.75rem;font-size:0.8rem;color:#64748b;"><strong>离线使用：</strong>本页为单文件自包含（约 147KB），可直接用浏览器打开 <code>file://</code> 路径或双击本 HTML；不依赖 <code>lmp_pdu_format_core60.json</code> 等同目录文件。仅上方规范链接需联网查看原文。</p>
+        <div class="intro-grid">
+          <div class="intro-card">
+            <h4>7-bit 基础操作码 (Standard Opcode)</h4>
+            <p>首字节低 1 位为事务 ID（TID，Central 发起为 0，Peripheral 发起为 1），高 7 位为操作码（值 0 ~ 123）。参数排布从 payload 的第 2 字节开始。</p>
+          </div>
+          <div class="intro-card" style="border-left-color: var(--badge-ext);">
+            <h4>15-bit 扩展操作码 (Extended Opcode)</h4>
+            <p>当首字节高 7 位包含转义码（Escape Opcode，固定为 <strong>127</strong>）时，第二字节将用于表示扩展操作码（值 1 ~ 37）。参数排布自第 3 字节开始。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PDU 详细定义卡片区 -->
+      <section>
+        <h3 class="catalog-title">📘 LMP PDU 结构定义</h3>
+        <div id="pduCatalog">
+          <!-- JS 动态生成详细内容 -->
+        </div>
+      </section>
+
+      <!-- 详细参数列表 -->
+      <section class="parameters-directory">
+        <h3 class="catalog-title" style="border-bottom-color: var(--primary-color);">📋 LMP 协议参数详细字典</h3>
+        <div id="parametersContainer">
+          <!-- JS 动态生成参数说明 -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <button class="back-to-top" onclick="scrollToTop()" title="返回顶部">▲</button>
+
+  <script>
+    // ==========================================
+    // 1. 数据结构定义 (LMP PDUs 和参数属性表)
+    // ==========================================
+const pduData = [
+      {
+        name: "lmp_accepted",
+        procedure: "general",
+        opcode: 3,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "常规确认消息。用于在单字节基础操作码的信令流程中，确认并同意对端发出的请求。",
+        payload: [
+          { name: "Opcode", pos: "Byte 2", type: "uint8", desc: "确认接收或拒绝的对应信令的操作码。对应单字节基础操作码（Opcode）。在被确认或者拒绝时，将直接被拷贝至该字段内通告对端。" }
+        ]
+      },
+      {
+        name: "lmp_accepted_ext",
+        procedure: "general",
+        opcode: 1,
+        isExtended: true,
+        length: 4,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "扩展操作码确认消息。当被确认同意的申请信令是 15 字节扩展操作码格式时，应使用本信令回复同意。",
+        payload: [
+          { name: "Escape_Opcode", pos: "Byte 3", type: "uint8", desc: "转义操作码。放置在 LMP 操作载荷的首字节高 7 位，用来告之接收端 LM，后续字节将使用 15-bit 的 Extended Opcode 结构，必须按照双操作码格式解析参数。" },
+          { name: "Extended_Opcode", pos: "Byte 4", type: "uint8", desc: "扩展操作码。位于 LMP 扩展消息载荷的第 2 字节（紧随 127 之后）。唯一标志和指向特定的高级或扩展蓝牙功能的底层信令命令。" }
+        ]
+      },
+      {
+        name: "lmp_au_rand",
+        procedure: "sec_auth",
+        opcode: 11,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "身份认证挑战消息。由挑战发起方（Verifier）发出，包含 128 位的随机挑战值，要求申辩方验证。",
+        payload: [
+          { name: "Random_Number", pos: "Byte 2~17", type: "uint128", desc: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。" }
+        ]
+      },
+      {
+        name: "lmp_auto_rate",
+        procedure: "cqdrr",
+        opcode: 35,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "指示对端采用物理链路自适应速率调节（根据 CQDDR 信道质量动态协商调制类型和帧槽位限制）。",
+        payload: []
+      },
+      {
+        name: "lmp_channel_classification",
+        procedure: "channel_class",
+        opcode: 17,
+        isExtended: true,
+        length: 12,
+        direction: "C ← P",
+        packetTypes: "DM1",
+        description: "从端向主端递交信道分类报告。用以更新主端的跳频数据库。以 40 组二进制比特码表示信道对的优劣。",
+        payload: [
+          { name: "AFH_Channel_Classification", pos: "Byte 3~12", type: "uint8[10]", desc: "信道报告体数据。每 2 位对应一个信道对。值意义：0x00=未知, 0x01=良好频段, 0x02=保留未用, 0x03=存在射频干扰（坏信道，提请 Central 主动剔除屏蔽）。" }
+        ]
+      },
+      {
+        name: "lmp_channel_classification_req",
+        procedure: "channel_class",
+        opcode: 16,
+        isExtended: true,
+        length: 7,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "主设备向从设备发出信道分类上报机制配置。要求从设备按规定时间和敏感度周期性汇报信道噪声测量值。",
+        payload: [
+          { name: "AFH_Reporting_Mode", pos: "Byte 3", type: "uint8", desc: "分类报告机制开关。1 允许从设备管理器周期评估并向 Central 发送跳频点坏信道分类，对整个网络的抗同频干扰进行补充自愈。" },
+          { name: "AFH_Min_Interval", pos: "Byte 4~5", type: "uint16", desc: "限定从设备 Peripheral 主动报告跳频信道状态变化的最短保护周期时间。防止从端频繁发送报告、严重浪费宝贵的空口 ACL 控制带宽。" },
+          { name: "AFH_Max_Interval", pos: "Byte 6~7", type: "uint16", desc: "强制跳频报告的时间上限。如果从设备在 `AFH_Max_Interval` 规定时间内未发生实质信道物理干扰改变，也必须在此超时到达时强制上报一次信道图，向主端通告从端工作射频依然处于受控状态。" }
+        ]
+      },
+      {
+        name: "lmp_clk_adj",
+        procedure: "clk_adj",
+        opcode: 5,
+        isExtended: true,
+        length: 15,
+        direction: "B",
+        packetTypes: "DM1",
+        description: "时钟调整事件实施包。主设备发送给从设备执行时钟相位的微调、槽位偏移与重对齐。",
+        payload: [
+          { name: "Clk_Adj_ID", pos: "Byte 3", type: "uint8", desc: "粗时钟调整事件 ID 标识。用来在一个微网内唯一追踪并确认某一特定发起的时钟偏移粗略调整进程，防止时序信号混乱。" },
+          { name: "Clk_Adj_Instant", pos: "Byte 4~7", type: "uint32", desc: "时钟调整实施包对应的旧 Native CLK 瞬间。主从两端硬件必须精准在此瞬间同时进行相位切换，保证微秒级的多 slot 分组不发生物理滑码。" },
+          { name: "Clk_Adj_Offset", pos: "Byte 8~9", type: "sint16", desc: "新旧槽位边缘相位时间偏移微调参数。用于将切换相位引起的分组边缘重叠在微秒上进行精密补偿。" },
+          { name: "Clk_Adj_Slots", pos: "Byte 10", type: "uint8", desc: "由于时钟调整导致的系统槽位时钟变动绝对差值：CLKnew[27:1] - CLKold[27:1]。" },
+          { name: "Clk_Adj_Mode", pos: "Byte 11", type: "uint8", desc: "指定时钟粗调是在 `Clk_Adj_Instant` 对齐时刻到来之前还是之后执行，用来指导基带调度锁相逻辑。" },
+          { name: "Clk_Adj_Clk", pos: "Byte 12~15", type: "uint32", desc: "发送该时钟调整实施信令时的绝对物理时钟参考值（以 1.25ms 为周期跳变的时钟）。" }
+        ]
+      },
+      {
+        name: "lmp_clk_adj_ack",
+        procedure: "clk_adj",
+        opcode: 6,
+        isExtended: true,
+        length: 3,
+        direction: "C ← P",
+        packetTypes: "DM1",
+        description: "时钟调整实施确认消息。返回被成功接收且对准 ID 的调整应答。",
+        payload: [
+          { name: "Clk_Adj_ID", pos: "Byte 3", type: "uint8", desc: "粗时钟调整事件 ID 标识。用来在一个微网内唯一追踪并确认某一特定发起的时钟偏移粗略调整进程，防止时序信号混乱。" }
+        ]
+      },
+      {
+        name: "lmp_clk_adj_req",
+        procedure: "clk_adj",
+        opcode: 7,
+        isExtended: true,
+        length: 6,
+        direction: "C ← P",
+        packetTypes: "DM1",
+        description: "提出或者协商需要更改和微调时钟相位及对齐频率的提议信令。",
+        payload: [
+          { name: "Clk_Adj_Offset", pos: "Byte 3~4", type: "sint16", desc: "新旧槽位边缘相位时间偏移微调参数。用于将切换相位引起的分组边缘重叠在微秒上进行精密补偿。" },
+          { name: "Clk_Adj_Slots", pos: "Byte 5", type: "uint8", desc: "由于时钟调整导致的系统槽位时钟变动绝对差值：CLKnew[27:1] - CLKold[27:1]。" },
+          { name: "Clk_Adj_Period", pos: "Byte 6", type: "uint8", desc: "提示对端如果时序不齐，通过在此参数的整数倍添加时延或调整步长，能同样快速寻回与主端的锁相和频率重对齐。" }
+        ]
+      },
+      {
+        name: "lmp_clkoffset_req",
+        procedure: "info_clkoffset",
+        opcode: 5,
+        isExtended: false,
+        length: 1,
+        direction: "C → P",
+        packetTypes: "DM1/DV",
+        description: "请求对端当前的蓝牙原生时钟偏移值，用于快速连接、寻呼或散射网对齐。",
+        payload: []
+      },
+      {
+        name: "lmp_clkoffset_res",
+        procedure: "info_clkoffset",
+        opcode: 6,
+        isExtended: false,
+        length: 3,
+        direction: "C ← P",
+        packetTypes: "DM1/DV",
+        description: "时钟偏移响应。返回本端当前的 CLKN 差值，精度为 1.25 ms。",
+        payload: [
+          { name: "Clock_Offset", pos: "Byte 2~3", type: "uint15 (存储于2字节)", desc: "表示对端从设备与主端 Central 之间的精确本地参考时钟对齐相位偏差值。其值等于：(CLKN16-2_Peri - CLKN16-2_Cent) mod 2^15。其时间计量单位以一个槽位对（1.25 ms）为一个刻度单位。" }
+        ]
+      },
+      {
+        name: "lmp_comb_key",
+        procedure: "sec_pairing",
+        opcode: 9,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "用于在传统安全认证中，向对方安全交换用于合成链路密钥的组合密钥随机量（Combination Key）。",
+        payload: [
+          { name: "Random_Number", pos: "Byte 2~17", type: "uint128", desc: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。" }
+        ]
+      },
+      {
+        name: "lmp_decr_power_req",
+        procedure: "power",
+        opcode: 32,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求对端设备降低无线空中发射功率级数，用以优化能耗和减少对临近无线网的同频段干扰。",
+        payload: [
+          { name: "Reserved", pos: "Byte 2", type: "bytes", desc: "Reserved（见 Core 6.0 §5.2）" }
+        ]
+      },
+      {
+        name: "lmp_detach",
+        procedure: "detach",
+        opcode: 7,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "显式关闭逻辑链路命令。链路管理器可以通过此分组主动拆除当前的 ACL 连接并通告原因。",
+        payload: [
+          { name: "Error_Code", pos: "Byte 2", type: "uint8", desc: "控制器故障代码。指示为什么这次的信令操作（包括加密对齐、配对行为、断链细节）未能成功执行。最典型的错误包括：0x05 Authentication Failure (身份校验失败), 0x24 LMP PDU Not Allowed ..." }
+        ]
+      },
+      {
+        name: "lmp_dhkey_check",
+        procedure: "sec_ssp",
+        opcode: 65,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "SSP 配对的收尾阶段信令。双方验证产生的 Diffie-Hellman 会话链路主密钥一致性，并确定安全绑定关系。",
+        payload: [
+          { name: "Confirmation_Value", pos: "Byte 2~17", type: "uint128", desc: "LMP DHKey Check 阶段互发的数据。该值通过本地派生的 DHKey、两端的 Nonce、BD_ADDR等结合规定的哈希计算（如 F3 或 H6 算法）取得。双方交换并确认该确认值一致，表示物理空中链路在未传输任何私密链路密..." }
+        ]
+      },
+      {
+        name: "lmp_encapsulated_header",
+        procedure: "encaps",
+        opcode: 61,
+        isExtended: false,
+        length: 4,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "为了支持大于 16 字节的控制载荷交互，定义了封装包头（用于发送如 DHKey, 椭圆曲线公钥等）。其后紧随若干 Payload 消息。",
+        payload: [
+          { name: "Encap_Major_Type", pos: "Byte 2", type: "uint8", desc: "封装大载荷分组主类型代码。用来声明封装分片内传输数据的性质（目前蓝牙规范核心中主要在 SSP 公开密钥和验证要素阶段派上用场）。" },
+          { name: "Encap_Minor_Type", pos: "Byte 3", type: "uint8", desc: "封装分组中主类型下的精确次属性。例如在 P-256 安全连接标准被强制推行后，0x02 标示内部传送的是 64 字节的 P-256 加密公钥数据。" },
+          { name: "Encap_Payload_Length", pos: "Byte 4", type: "uint8", desc: "向接收端指示将需要连续接收多少字节以重构完整的原始安全控制数据。接收端以此长度启动分片读取计数和存储开辟。" }
+        ]
+      },
+      {
+        name: "lmp_encapsulated_payload",
+        procedure: "encaps",
+        opcode: 62,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "发送被大分组封装的有效片段数据。每次传递 16 字节。最后一片如果不满 16 字节需用 0 填充齐整。",
+        payload: [
+          { name: "Encap_Data", pos: "Byte 2~17", type: "uint8[16]", desc: "每次由 `LMP_encapsulated_payload` 传载传输的 16 字节被分片的数据体。接收方将其顺序拼接到缓冲区，重组为完整的公开椭圆曲线密钥。如果最后一片数据不满 16 字节，其余空闲空间在传输时必须采用 0 进行填充。" }
+        ]
+      },
+      {
+        name: "lmp_encryption_key_size_mask_req",
+        procedure: "sec_key_size_mask",
+        opcode: 58,
+        isExtended: false,
+        length: 1,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "请求对端所支持的可选加密密钥长度范围掩码。用于进行安全能力审查。",
+        payload: []
+      },
+      {
+        name: "lmp_encryption_key_size_mask_res",
+        procedure: "sec_key_size_mask",
+        opcode: 59,
+        isExtended: false,
+        length: 3,
+        direction: "C ← P",
+        packetTypes: "DM1",
+        description: "响应密钥长度掩码请求，向对端报告本端允许接受的安全密钥位长度掩码。",
+        payload: [
+          { name: "Key_Size_Mask", pos: "Byte 2~3", type: "uint16", desc: "16 位的位组合掩码，每一位标示本端控制器硬件是否可以接受和支持对应字节数的密钥运算。用以检测配对时是否可以提供强制的 16 字节高等级高熵保密密钥保护。" }
+        ]
+      },
+      {
+        name: "lmp_encryption_key_size_req",
+        procedure: "sec_encryption",
+        opcode: 16,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "对协商后最终的加密密钥大小进行交互验证。用于防范熵消减攻击。",
+        payload: [
+          { name: "Key_Size", pos: "Byte 2", type: "uint8", desc: "提议或协商的最终加密中间会话密钥的实际运算字节长度（Key Size in bytes）。主从两端通过多次请求和应答来确定一个双方芯片和区域法规都能够支持的最大高熵长度（通常协商结果为 16 字节）。" }
+        ]
+      },
+      {
+        name: "lmp_encryption_mode_req",
+        procedure: "sec_encryption",
+        opcode: 15,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求对端设备开启或关闭空中物理分组链路层数据加密机制。",
+        payload: [
+          { name: "Encryption_Mode", pos: "Byte 2", type: "uint8", desc: "控制器对空中基带分组载荷执行硬件加密的行为指示模式。随着蓝牙协议更新，早期传统的 1、2 等低保密模式已被 Core 5.0+ 废弃，当前 Core 6.0 会在此之上启用更高强度的安全连接 CCM（AES-CCM）点对点高防护加密。" }
+        ]
+      },
+      {
+        name: "lmp_esco_link_req",
+        procedure: "lt_esco",
+        opcode: 12,
+        isExtended: true,
+        length: 16,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "申请建立增强型同步面向连接（eSCO）音频链路。eSCO 提供重传保障，通过设置最大延迟和纠错来实现无噪声语音流。",
+        payload: [
+          { name: "eSCO_Handle", pos: "Byte 3", type: "uint8", desc: "增强型同步连接音频链路的逻辑句柄代号。用于底层唯一识别和维护该高重传、低延迟、高质量的同步双向语音物理流。" },
+          { name: "eSCO_LT_ADDR", pos: "Byte 4", type: "uint8", desc: "eSCO 音频连接在微网通道中附加的、独享的物理逻辑传输地址。主端不可随意将一个已活动的 eSCO 重新映射分配给不同的物理逻辑地址。" },
+          { name: "Timing_Control_Flags", pos: "Byte 5", type: "uint8", desc: "在模式转换（如 Sniff/eSCO/SAM）时指示时序规则。Bit 0：标志是否变更时序（Timing Change）；Bit 1：指示初始化工作采用时序集合 1（0）还是集合 2（1）；Bit 2：指示是否需要开启特定的接入轮询控..." },
+          { name: "DeSCO", pos: "Byte 6", type: "uint8", desc: "eSCO 音频物理时隙窗口的分配相位偏移。表示在此延迟后，硬件开始 eSCO 规定的严格语音分组发送。" },
+          { name: "TeSCO", pos: "Byte 7", type: "uint8", desc: "eSCO 通道空中严格周期性传送音频载荷帧的物理周期设定值。" },
+          { name: "WeSCO", pos: "Byte 8", type: "uint8", desc: "eSCO 区别于经典话音 SCO 最重要的特征。 WeSCO 规定了在音频时空周期内，如果由于射频干扰发生分组校验失败，硬件允许在随后保留的多少个时隙内强制重新发包。该设计保证了在高强干扰下，同步话音依然能获得完美的低误码音质表现。" },
+          { name: "eSCO_Packet_Type C→P", pos: "Byte 9", type: "bytes", desc: "eSCO_Packet_Type C→P（见 Core 6.0 §5.2）" },
+          { name: "eSCO_Packet_Type P→C", pos: "Byte 10", type: "bytes", desc: "eSCO_Packet_Type P→C（见 Core 6.0 §5.2）" },
+          { name: "Packet_LengthC→P", pos: "Byte 11~12", type: "bytes", desc: "Packet_LengthC→P（见 Core 6.0 §5.2）" },
+          { name: "Packet_LengthP→C", pos: "Byte 13~14", type: "bytes", desc: "Packet_LengthP→C（见 Core 6.0 §5.2）" },
+          { name: "Air_Mode", pos: "Byte 15", type: "uint8", desc: "音频流传输中的空中数字话音编译码（Codec）及压缩规格。蓝牙经典耳机和话筒常配置为 2 (CVSD 连续可变斜率增量调制)，能够很好对抗空中丢包引入的爆音和突变噪声。" },
+          { name: "Negotiation_State", pos: "Byte 16", type: "bytes", desc: "Negotiation_State（见 Core 6.0 §5.2）" }
+        ]
+      },
+      {
+        name: "lmp_features_req",
+        procedure: "info_features",
+        opcode: 39,
+        isExtended: false,
+        length: 9,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "功能特征协商请求。用于获取对端控制器所实现支持的第一页（Page 0）传统 LMP 协议功能硬件标志。",
+        payload: [
+          { name: "Features", pos: "Byte 2~9", type: "uint64", desc: "Page 0 特征掩码。这 64 个独立位分别唯一代表控制器在基础率下是否物理实现了某种能力（例如：Bit 0 表示是否支持 3槽 分组包，Bit 2 表示是否实现了数据加密机制，Bit 5 标示是否支持 Role Switch 角色..." }
+        ]
+      },
+      {
+        name: "lmp_features_req_ext",
+        procedure: "info_features",
+        opcode: 3,
+        isExtended: true,
+        length: 12,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "扩展特征请求。支持查询 Page 1, Page 2 特征。用于后续更高蓝牙规范功能交互前进行审查。",
+        payload: [
+          { name: "Features_Page", pos: "Byte 3", type: "uint8", desc: "表示提议或请求查询的控制器硬件 LMP 特征页码。主页 0 代表经典特性，页 1、页 2 分别容纳后续蓝牙规范（如 EDR、高吞吐、安全连接特征）逐步加入的底层高级功能特征位。" },
+          { name: "Max_Supported_Page", pos: "Byte 4", type: "uint8", desc: "告知对端，本端控制器内部非零的、支持的特征掩码（Features Page）的最大页数，防止对方进行溢出页面查询或过多无用查询。" },
+          { name: "Extended_Features", pos: "Byte 5~12", type: "uint64", desc: "对应 `Features_Page` 的 64 位功能使能状态。每一位直接在底层指导或开启某种蓝牙高级物理协议（如：AES-CCM 高防护加密是否支持、是否支持 Ping 定时链路完整保护、是否支持 Channel Sounding ..." }
+        ]
+      },
+      {
+        name: "lmp_features_res",
+        procedure: "info_features",
+        opcode: 40,
+        isExtended: false,
+        length: 9,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "返回自身的 Page 0 硬件特征支持状况，指导连接后续信令的激活情况。",
+        payload: [
+          { name: "Features", pos: "Byte 2~9", type: "uint64", desc: "Page 0 特征掩码。这 64 个独立位分别唯一代表控制器在基础率下是否物理实现了某种能力（例如：Bit 0 表示是否支持 3槽 分组包，Bit 2 表示是否实现了数据加密机制，Bit 5 标示是否支持 Role Switch 角色..." }
+        ]
+      },
+      {
+        name: "lmp_features_res_ext",
+        procedure: "info_features",
+        opcode: 4,
+        isExtended: true,
+        length: 12,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "向对端报告指定页码（Features_Page）下的本端扩展硬件特征支持位标志。",
+        payload: [
+          { name: "Features_Page", pos: "Byte 3", type: "uint8", desc: "表示提议或请求查询的控制器硬件 LMP 特征页码。主页 0 代表经典特性，页 1、页 2 分别容纳后续蓝牙规范（如 EDR、高吞吐、安全连接特征）逐步加入的底层高级功能特征位。" },
+          { name: "Max_Supported_Page", pos: "Byte 4", type: "uint8", desc: "告知对端，本端控制器内部非零的、支持的特征掩码（Features Page）的最大页数，防止对方进行溢出页面查询或过多无用查询。" },
+          { name: "Extended_Features", pos: "Byte 5~12", type: "uint64", desc: "对应 `Features_Page` 的 64 位功能使能状态。每一位直接在底层指导或开启某种蓝牙高级物理协议（如：AES-CCM 高防护加密是否支持、是否支持 Ping 定时链路完整保护、是否支持 Channel Sounding ..." }
+        ]
+      },
+      {
+        name: "lmp_hold",
+        procedure: "mode_hold",
+        opcode: 20,
+        isExtended: false,
+        length: 7,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "强制设备以既定的参数和对齐瞬间，进入连接低功耗状态中的保持模式（Hold Mode）。",
+        payload: [
+          { name: "Hold_Time", pos: "Byte 2~3", type: "uint16", desc: "链路进入 Hold 保持休眠状态的持续总时间。单位以时隙计量（即 0.625 ms * 时隙数）。在此状态下，从设备硬件不与 Central 发生轮询收发，允许低功耗挂机。" },
+          { name: "Hold_Instant", pos: "Byte 4~7", type: "uint32", desc: "时序中开始正式挂起 ACL 有功通信、设备转入 Hold 低功耗状态对应的 Central 设备对齐原生时钟时间。" }
+        ]
+      },
+      {
+        name: "lmp_hold_req",
+        procedure: "mode_hold",
+        opcode: 21,
+        isExtended: false,
+        length: 7,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "协商提议进行保持模式（Hold Mode）的配置参数。可以多次交互协商。",
+        payload: [
+          { name: "Hold_Time", pos: "Byte 2~3", type: "uint16", desc: "链路进入 Hold 保持休眠状态的持续总时间。单位以时隙计量（即 0.625 ms * 时隙数）。在此状态下，从设备硬件不与 Central 发生轮询收发，允许低功耗挂机。" },
+          { name: "Hold_Instant", pos: "Byte 4~7", type: "uint32", desc: "时序中开始正式挂起 ACL 有功通信、设备转入 Hold 低功耗状态对应的 Central 设备对齐原生时钟时间。" }
+        ]
+      },
+      {
+        name: "lmp_host_connection_req",
+        procedure: "conn_establish",
+        opcode: 51,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "链路控制核心。指示对端的链路管理器向其对端的主机（Host）通知此新建连接意图，触发安全机制或连接决策。",
+        payload: []
+      },
+      {
+        name: "lmp_in_rand",
+        procedure: "sec_pairing",
+        opcode: 8,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "传统配对中的初始化随机数传输包（配对协商/验证第一阶段）。",
+        payload: [
+          { name: "Random_Number", pos: "Byte 2~17", type: "uint128", desc: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。" }
+        ]
+      },
+      {
+        name: "lmp_incr_power_req",
+        procedure: "power",
+        opcode: 31,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求对端提升空中发射功率阶梯，以纠正逐渐变差的物理信噪比（RSSI低下）。",
+        payload: [
+          { name: "Reserved", pos: "Byte 2", type: "bytes", desc: "Reserved（见 Core 6.0 §5.2）" }
+        ]
+      },
+      {
+        name: "lmp_io_capability_req",
+        procedure: "sec_ssp",
+        opcode: 25,
+        isExtended: true,
+        length: 5,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "安全简易配对发起。向对端通告本地控制器的输入输出物理硬件交互能力（例如是否有键盘、屏幕等）。",
+        payload: [
+          { name: "IO_Capabilities", pos: "Byte 3", type: "uint8", desc: "声明本端控制器的物理交互媒介。根据主从两端相互上报的 IO 交互能力，简易配对模块（SSP）将自动在底层选定配对执行路径。例：若一方为 DisplayOnly，另一方为 KeyboardOnly，配对方式将自动路由并强制使用 Pass..." },
+          { name: "OOB_Auth_Data", pos: "Byte 4", type: "uint8", desc: "声明是否能提供带外 OOB 安全通道（如 NFC，私有短距无线通信等）收集到的对方随机 commitments 和 nonce。此项若为 1 则将直接采用安全性最高的一键“Just Works/OOB”安全绑定。" },
+          { name: "Authentication_Requirements", pos: "Byte 5", type: "uint8", desc: "位掩码，标明本次 SSP 配对流程的安全强度等级。主要控制：1. 是否开启防窃听和防中间人注入（MITM Protection Required）；2. 产生的加密链路密钥是仅针对单次会话临时使用，还是需要写入非易失 RAM 进行 D..." }
+        ]
+      },
+      {
+        name: "lmp_io_capability_res",
+        procedure: "sec_ssp",
+        opcode: 26,
+        isExtended: true,
+        length: 5,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "安全简易配对流程中，对端向发起端相应汇报其自身输入输出和 OOB/安全保护能力配置参数。",
+        payload: [
+          { name: "IO_Capabilities", pos: "Byte 3", type: "uint8", desc: "声明本端控制器的物理交互媒介。根据主从两端相互上报的 IO 交互能力，简易配对模块（SSP）将自动在底层选定配对执行路径。例：若一方为 DisplayOnly，另一方为 KeyboardOnly，配对方式将自动路由并强制使用 Pass..." },
+          { name: "OOB_Auth_Data", pos: "Byte 4", type: "uint8", desc: "声明是否能提供带外 OOB 安全通道（如 NFC，私有短距无线通信等）收集到的对方随机 commitments 和 nonce。此项若为 1 则将直接采用安全性最高的一键“Just Works/OOB”安全绑定。" },
+          { name: "Authentication_Requirements", pos: "Byte 5", type: "uint8", desc: "位掩码，标明本次 SSP 配对流程的安全强度等级。主要控制：1. 是否开启防窃听和防中间人注入（MITM Protection Required）；2. 产生的加密链路密钥是仅针对单次会话临时使用，还是需要写入非易失 RAM 进行 D..." }
+        ]
+      },
+      {
+        name: "lmp_keypress_notification",
+        procedure: "sec_ssp",
+        opcode: 30,
+        isExtended: true,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "在 Passkey 输入配对动作进行时，向对方设备空中同步告知用户的键盘敲击和输入进程事件。",
+        payload: [
+          { name: "Notification_Type", pos: "Byte 2", type: "uint8", desc: "在 SSP Passkey 配对过程中，本地向对端空中交互通告本端设备上键盘输入状态的进度。这能使对端设备在用户界面（UI）上实时呈现本端用户的配对输入进度条，具有良好的人机工程体验。" }
+        ]
+      },
+      {
+        name: "lmp_max_power",
+        procedure: "power",
+        opcode: 33,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "告知对端，本地无线发射功率当前的射频已达硬件上限，无法再执行继续递增功率等级请求的操作。",
+        payload: []
+      },
+      {
+        name: "lmp_max_slot",
+        procedure: "multislot",
+        opcode: 45,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "主端通知从端在后续的 ACL 通信中，可以发送的最长的帧时隙数量（限定对端多槽包能力）。",
+        payload: [
+          { name: "Max_Slots", pos: "Byte 2", type: "uint8", desc: "表示设备允许进行单次基带物理发包所允许占用的物理频率时隙极限值（单时隙包，3时隙包或 5时隙包）。如果当前外界干扰极大导致重传率过高，链路层可以请求降低 Max_Slots 使得帧更短以避开干扰。" }
+        ]
+      },
+      {
+        name: "lmp_max_slot_req",
+        procedure: "multislot",
+        opcode: 46,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求变更两端当前的发射帧最大时隙配置，用以实现更高的带宽数据吞吐。",
+        payload: [
+          { name: "Max_Slots", pos: "Byte 2", type: "uint8", desc: "表示设备允许进行单次基带物理发包所允许占用的物理频率时隙极限值（单时隙包，3时隙包或 5时隙包）。如果当前外界干扰极大导致重传率过高，链路层可以请求降低 Max_Slots 使得帧更短以避开干扰。" }
+        ]
+      },
+      {
+        name: "lmp_min_power",
+        procedure: "power",
+        opcode: 34,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "告知对端，本地无线发射功率已经达到射频芯片最低输出等级限制，无法再对其进行递减。",
+        payload: []
+      },
+      {
+        name: "lmp_name_req",
+        procedure: "info_name",
+        opcode: 1,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求对端远程蓝牙设备的友好名称。使用 Name_Offset 来请求名字的具体片段（分片拉取）。",
+        payload: [
+          { name: "Name_Offset", pos: "Byte 2", type: "uint8", desc: "请求蓝牙友好名字片段的字节偏移值。由于 LMP 单包容量限制，友好名称需每次请求最大 14 字节的名字片段（UTF-8 字符）。第一次请求时该值为 0x00，后续则需每次累加 14 (如 0x0E, 0x1C...) 依次循环发送直到..." }
+        ]
+      },
+      {
+        name: "lmp_name_res",
+        procedure: "info_name",
+        opcode: 2,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "响应远程设备的名称。返回包含指定偏移量开始的、最大 14 字节的名字字符片段。",
+        payload: [
+          { name: "Name_Offset", pos: "Byte 2", type: "uint8", desc: "请求蓝牙友好名字片段的字节偏移值。由于 LMP 单包容量限制，友好名称需每次请求最大 14 字节的名字片段（UTF-8 字符）。第一次请求时该值为 0x00，后续则需每次累加 14 (如 0x0E, 0x1C...) 依次循环发送直到..." },
+          { name: "Name_Length", pos: "Byte 3", type: "uint8", desc: "远程设备的蓝牙友好友好名称总长度，以字节（Bytes）为单位。用来提示请求端接收到何种偏移深度时说明已经成功把全名字段接收。" },
+          { name: "Name_Fragment", pos: "Byte 4~17", type: "utf8s[14]", desc: "设备返回的实际名称片段。如果名字过短或者在该偏移区间已达到末尾，多余空间在小端对齐时，必须采用 0x00 进行填充。" }
+        ]
+      },
+      {
+        name: "lmp_not_accepted",
+        procedure: "general",
+        opcode: 4,
+        isExtended: false,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "拒绝响应消息。用于在基础操作码信令流程中，拒绝并解释不接受对端请求的控制器原因。",
+        payload: [
+          { name: "Opcode", pos: "Byte 2", type: "uint8", desc: "确认接收或拒绝的对应信令的操作码。对应单字节基础操作码（Opcode）。在被确认或者拒绝时，将直接被拷贝至该字段内通告对端。" },
+          { name: "Error_Code", pos: "Byte 3", type: "uint8", desc: "控制器故障代码。指示为什么这次的信令操作（包括加密对齐、配对行为、断链细节）未能成功执行。最典型的错误包括：0x05 Authentication Failure (身份校验失败), 0x24 LMP PDU Not Allowed ..." }
+        ]
+      },
+      {
+        name: "lmp_not_accepted_ext",
+        procedure: "general",
+        opcode: 2,
+        isExtended: true,
+        length: 5,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "扩展操作码拒绝信令。用于拒绝来自对端的、对应扩展格式的信令请求。",
+        payload: [
+          { name: "Escape_Opcode", pos: "Byte 3", type: "uint8", desc: "转义操作码。放置在 LMP 操作载荷的首字节高 7 位，用来告之接收端 LM，后续字节将使用 15-bit 的 Extended Opcode 结构，必须按照双操作码格式解析参数。" },
+          { name: "Extended_Opcode", pos: "Byte 4", type: "uint8", desc: "扩展操作码。位于 LMP 扩展消息载荷的第 2 字节（紧随 127 之后）。唯一标志和指向特定的高级或扩展蓝牙功能的底层信令命令。" },
+          { name: "Error_Code", pos: "Byte 5", type: "uint8", desc: "控制器故障代码。指示为什么这次的信令操作（包括加密对齐、配对行为、断链细节）未能成功执行。最典型的错误包括：0x05 Authentication Failure (身份校验失败), 0x24 LMP PDU Not Allowed ..." }
+        ]
+      },
+      {
+        name: "lmp_numeric_comparison_failed",
+        procedure: "sec_ssp",
+        opcode: 27,
+        isExtended: true,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "安全简易配对失败。代表在数值比较（Numeric Comparison）配对中，用户确认双方屏幕生成的 6 位数字不匹配或本端算法校验失败。",
+        payload: []
+      },
+      {
+        name: "lmp_oob_failed",
+        procedure: "sec_ssp",
+        opcode: 29,
+        isExtended: true,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "利用带外机制（如NFC、二维码）辅助安全简易配对时失败，带外安全交换的数据无法得到哈希模块验证。",
+        payload: []
+      },
+      {
+        name: "lmp_packet_type_table_req",
+        procedure: "edr",
+        opcode: 11,
+        isExtended: true,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "请求切换两端物理层数据分组的基础速率（BR）和增强速率（EDR）解密支持表。激活 EDR 2M/3M 带宽能力。",
+        payload: [
+          { name: "Packet_Type_Table", pos: "Byte 3", type: "uint8", desc: "硬件分组调制表映射切换标识。1 表示允许并开启 EDR 解密。激活对端的 π/4-DQPSK (2 Mbps) 和 8DPSK (3 Mbps) 射频解调能力，使得后续可以用多时隙大分组接收业务数据。" }
+        ]
+      },
+      {
+        name: "lmp_page_mode_req",
+        procedure: "paging",
+        opcode: 53,
+        isExtended: false,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "向对端推荐、协商寻呼方案参数（Page Mode Setup）。",
+        payload: [
+          { name: "Paging_Scheme", pos: "Byte 2", type: "uint8", desc: "蓝牙建立连接物理寻呼过程中使用的物理无线跳频信道和时序方案代码。" },
+          { name: "Paging_Scheme_Settings", pos: "Byte 3", type: "uint8", desc: "寻呼方案的子配置参数，包括无线寻呼扫描频次、占空比等参数。" }
+        ]
+      },
+      {
+        name: "lmp_page_scan_mode_req",
+        procedure: "paging",
+        opcode: 54,
+        isExtended: false,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "协商并通知对端其自身采用的无线寻呼扫描（Page Scan）工作方式、时序和占空比设定。",
+        payload: [
+          { name: "Paging_Scheme", pos: "Byte 2", type: "uint8", desc: "蓝牙建立连接物理寻呼过程中使用的物理无线跳频信道和时序方案代码。" },
+          { name: "Paging_Scheme_Settings", pos: "Byte 3", type: "uint8", desc: "寻呼方案的子配置参数，包括无线寻呼扫描频次、占空比等参数。" }
+        ]
+      },
+      {
+        name: "lmp_passkey_failed",
+        procedure: "sec_ssp",
+        opcode: 28,
+        isExtended: true,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "SSP 临时密钥（Passkey Entry）输入配对中失败。说明两端输入的共享配对码内容存在差异或输入严重超时。",
+        payload: []
+      },
+      {
+        name: "lmp_pause_encryption_aes_req",
+        procedure: "sec_encryption",
+        opcode: 66,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "Bluetooth Core 6.0 Table 5.1 — LMP_PAUSE_ENCRYPTION_AES_REQ。",
+        payload: [
+          { name: "Random_Number", pos: "Byte 2~17", type: "uint128", desc: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。" }
+        ]
+      },
+      {
+        name: "lmp_pause_encryption_req",
+        procedure: "sec_encryption",
+        opcode: 23,
+        isExtended: true,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "因配对重建、重新生成会话链路密钥或角色切换等高级流程，链路管理器发出的临时中止数据加密传输的控制信令。",
+        payload: []
+      },
+      {
+        name: "lmp_ping_req",
+        procedure: "ping",
+        opcode: 33,
+        isExtended: true,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "发送 LMP Ping。用于周期性强制从端硬件接收并响应链路帧，以维持、重置物理层加密认证生命周期，防范劫持。",
+        payload: []
+      },
+      {
+        name: "lmp_ping_res",
+        procedure: "ping",
+        opcode: 34,
+        isExtended: true,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "向主端返回 Ping 响应数据包。用于向主端管理器自证空中物理信道和加密认证依然处于安全连接中。",
+        payload: []
+      },
+      {
+        name: "lmp_power_control_req",
+        procedure: "power",
+        opcode: 31,
+        isExtended: true,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "向对端申请增加或降低发射功率等级控制（EPC自适应功率控制重要命令）。",
+        payload: [
+          { name: "Power_Adj_Req", pos: "Byte 3", type: "uint8", desc: "发射功率控制 EPC 动作控制码。直接向对方射频芯片发出调大或调小功率的请求，维持空中射频平衡。" }
+        ]
+      },
+      {
+        name: "lmp_power_control_res",
+        procedure: "power",
+        opcode: 32,
+        isExtended: true,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "向对端汇报在各种调制方式下（GFSK, EDR-DPSK），在完成或响应上端功率更改要求后的本地功率限度状态。",
+        payload: [
+          { name: "Power_Adj_Rsp", pos: "Byte 3", type: "uint8", desc: "功率调整结果反馈。包含了在 GFSK 及 2M/3M EDR 调制下实施调整后的现状反馈：0=不支持该调整，1=已调整，2=已达最强，3=已达最弱。" }
+        ]
+      },
+      {
+        name: "lmp_preferred_rate",
+        procedure: "cqdrr",
+        opcode: 36,
+        isExtended: false,
+        length: 2,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "通告本端设备基于当前空中干扰接收率，所推荐首选的最大封包多时隙和调制速率组合模式。",
+        payload: [
+          { name: "Data_Rate", pos: "Byte 2", type: "uint8", desc: "When in Basic Rate mode:bit 0 = 0: use FECbit 0 = 1: do not use FECbits 1-2=0: No packet-size preference availablebit..." }
+        ]
+      },
+      {
+        name: "lmp_quality_of_service",
+        procedure: "qos",
+        opcode: 41,
+        isExtended: false,
+        length: 4,
+        direction: "C → P",
+        packetTypes: "DM1/DV",
+        description: "指示对方当前通信物理层 QoS 运行参数（主要是关于最频繁的主机轮询周期和重传）。",
+        payload: [
+          { name: "Poll_Interval", pos: "Byte 2~3", type: "uint16", desc: "主端对该从设备发送 POLL 的最大轮询间隔（时隙）" },
+          { name: "NBC", pos: "Byte 4", type: "uint8", desc: "广播分组重传次数" }
+        ]
+      },
+      {
+        name: "lmp_quality_of_service_req",
+        procedure: "qos",
+        opcode: 42,
+        isExtended: false,
+        length: 4,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "主动向对端申请修改现有的服务质量 QoS 配置参数限制。",
+        payload: [
+          { name: "Poll_Interval", pos: "Byte 2~3", type: "uint16", desc: "主端对该从设备发送 POLL 的最大轮询间隔（时隙）" },
+          { name: "NBC", pos: "Byte 4", type: "uint8", desc: "广播分组重传次数" }
+        ]
+      },
+      {
+        name: "lmp_remove_esco_link_req",
+        procedure: "lt_esco",
+        opcode: 13,
+        isExtended: true,
+        length: 4,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "断开并拆除指定的增强型 eSCO 同步链路连接。",
+        payload: [
+          { name: "eSCO_Handle", pos: "Byte 3", type: "uint8", desc: "增强型同步连接音频链路的逻辑句柄代号。用于底层唯一识别和维护该高重传、低延迟、高质量的同步双向语音物理流。" },
+          { name: "Error_Code", pos: "Byte 4", type: "uint8", desc: "控制器故障代码。指示为什么这次的信令操作（包括加密对齐、配对行为、断链细节）未能成功执行。最典型的错误包括：0x05 Authentication Failure (身份校验失败), 0x24 LMP PDU Not Allowed ..." }
+        ]
+      },
+      {
+        name: "lmp_remove_sco_link_req",
+        procedure: "lt_sco",
+        opcode: 44,
+        isExtended: false,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求拆除某个现存的 SCO 音频通路连接，并释放被抢占的时隙资源。",
+        payload: [
+          { name: "SCO_Handle", pos: "Byte 2", type: "uint8", desc: "指派给特定同步话音业务 SCO 物理连接的逻辑句柄编号。底层以此句柄值在基带层建立和关闭（LMP_remove_SCO_link_req）对应的同步话音信道（如 SCO A/B 通道映射）。" },
+          { name: "Error_Code", pos: "Byte 3", type: "uint8", desc: "控制器故障代码。指示为什么这次的信令操作（包括加密对齐、配对行为、断链细节）未能成功执行。最典型的错误包括：0x05 Authentication Failure (身份校验失败), 0x24 LMP PDU Not Allowed ..." }
+        ]
+      },
+      {
+        name: "lmp_resume_encryption_req",
+        procedure: "sec_encryption",
+        opcode: 24,
+        isExtended: true,
+        length: 2,
+        direction: "C ← P",
+        packetTypes: "DM1",
+        description: "指示两端加密会话流程已重构完毕，重新启动物理封包层的数据硬件加密保护机制。",
+        payload: []
+      },
+      {
+        name: "lmp_sam_define_map",
+        procedure: "sam",
+        opcode: 36,
+        isExtended: true,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "协商并完整定义或更改当前具有特定索引号（SAM_Index）的时隙可用性掩码分布图。",
+        payload: [
+          { name: "SAM_Index", pos: "Byte 3", type: "uint8", desc: "在设备两端交互和定义的 SAM 掩码图唯一索引卡片号。后续进行可用图快速切换（LMP_SAM_SWITCH）时，直接指派此索引编号完成在 Instant 瞬间的空中切换。" },
+          { name: "TSAM_SM", pos: "Byte 4", type: "uint8", desc: "可用性时隙子地图在时间周期的循环跨度长度。" },
+          { name: "NSAM_SM", pos: "Byte 5", type: "uint8", desc: "时隙可用性掩码定义中包含的连续子地图个数。用于计算总图的大小。" },
+          { name: "SAM_Submaps", pos: "Byte 6~17", type: "uint8[12]", desc: "具体配置在 `TSAM_SM` 规定时间间隔槽内，各时隙物理允许收发状态的详细二进制对齐数据。" }
+        ]
+      },
+      {
+        name: "lmp_sam_set_type0",
+        procedure: "sam",
+        opcode: 35,
+        isExtended: true,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "配置本地的时隙可用性掩码（SAM）的 Type 0 子掩码信息。多用于解决与蜂窝网、Wi-Fi同频干扰共存的硬件协调场景。",
+        payload: [
+          { name: "Update_Mode", pos: "Byte 3", type: "uint8", desc: "时隙可用性掩码（SAM）的时效更新机制代码。" },
+          { name: "SAM_Type0_Submap", pos: "Byte 4~17", type: "uint8[14]", desc: "时隙可用性掩码中 0 型子图定义。56 个 slots 状态二进制标志（0x00=不可收发，0x01=只许发送，0x02=只许接收，0x03=可以双向进行 ACL 数据包收发）。设备可以通过此掩码在物理信道上完美规避干扰。" }
+        ]
+      },
+      {
+        name: "lmp_sam_switch",
+        procedure: "sam",
+        opcode: 37,
+        isExtended: true,
+        length: 9,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "时隙可用性掩码快速切换。指示通信双方同时在指定的 Instant 蓝牙时钟瞬间快速应用已存在或已定义的掩码地图。",
+        payload: [
+          { name: "SAM_Index", pos: "Byte 3", type: "uint8", desc: "在设备两端交互和定义的 SAM 掩码图唯一索引卡片号。后续进行可用图快速切换（LMP_SAM_SWITCH）时，直接指派此索引编号完成在 Instant 瞬间的空中切换。" },
+          { name: "Timing_Control_Flags", pos: "Byte 4", type: "uint8", desc: "在模式转换（如 Sniff/eSCO/SAM）时指示时序规则。Bit 0：标志是否变更时序（Timing Change）；Bit 1：指示初始化工作采用时序集合 1（0）还是集合 2（1）；Bit 2：指示是否需要开启特定的接入轮询控..." },
+          { name: "DSAM", pos: "Byte 5", type: "uint16", desc: "可用时隙掩码切换在时钟到达 `SAM_Instant` 后，要对齐启动应用掩码的基准槽位偏移量。" },
+          { name: "SAM_Instant", pos: "Byte 6~9", type: "uint32", desc: "通信双方时钟到达该特定对齐瞬间时，物理层在没有控制流中断的前提下，同步应用并切换至引用的 `SAM_Index` 时隙可用性掩码图上进行跳频传输。" }
+        ]
+      },
+      {
+        name: "lmp_sco_link_req",
+        procedure: "lt_sco",
+        opcode: 43,
+        isExtended: false,
+        length: 7,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "申请建立传统的 SCO 同步语音连接。包含空中数据物理映射、纠错机制和语音流对齐配置。",
+        payload: [
+          { name: "SCO_Handle", pos: "Byte 2", type: "uint8", desc: "指派给特定同步话音业务 SCO 物理连接的逻辑句柄编号。底层以此句柄值在基带层建立和关闭（LMP_remove_SCO_link_req）对应的同步话音信道（如 SCO A/B 通道映射）。" },
+          { name: "Timing_Control_Flags", pos: "Byte 3", type: "uint8", desc: "在模式转换（如 Sniff/eSCO/SAM）时指示时序规则。Bit 0：标志是否变更时序（Timing Change）；Bit 1：指示初始化工作采用时序集合 1（0）还是集合 2（1）；Bit 2：指示是否需要开启特定的接入轮询控..." },
+          { name: "Dsco", pos: "Byte 4", type: "bytes", desc: "Dsco（见 Core 6.0 §5.2）" },
+          { name: "Tsco", pos: "Byte 5", type: "bytes", desc: "Tsco（见 Core 6.0 §5.2）" },
+          { name: "SCO_Packet", pos: "Byte 6", type: "bytes", desc: "SCO_Packet（见 Core 6.0 §5.2）" },
+          { name: "Air_Mode", pos: "Byte 7", type: "uint8", desc: "音频流传输中的空中数字话音编译码（Codec）及压缩规格。蓝牙经典耳机和话筒常配置为 2 (CVSD 连续可变斜率增量调制)，能够很好对抗空中丢包引入的爆音和突变噪声。" }
+        ]
+      },
+      {
+        name: "lmp_set_afh",
+        procedure: "afh",
+        opcode: 60,
+        isExtended: false,
+        length: 16,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "自适应跳频的核心指令。由主端决定信道状况，发送跳频频点黑名单更新。确保对准特定的生效时钟瞬间。",
+        payload: [
+          { name: "AFH_Instant", pos: "Byte 2~5", type: "uint32", desc: "指示应用新自适应跳频信道映射图（AFH_Channel_Map）在两端开始生效切换的 Central 设备对齐原生时钟数值。双方硬件将在此时钟瞬间同步切换使用的物理载波频点池，屏蔽坏频段。" },
+          { name: "AFH_Mode", pos: "Byte 6", type: "uint8", desc: "直接激活或撤销自适应跳频机制，是蓝牙在工业、医疗等 2.4G 复杂同频干扰环境中稳定数据流的基础机制。" },
+          { name: "AFH_Channel_Map", pos: "Byte 7~16", type: "uint8[10]", desc: "物理跳频图更新矩阵。0 至 78 位按顺序精确对应蓝牙的 0 到 78 物理频点载波。如果某位被 Central 设备置 1，表示该频点没有外部无线干扰，允许被选入跳频集合；如果置 0，说明该频段已被强Wi-Fi、微波等干扰污染，将从..." }
+        ]
+      },
+      {
+        name: "lmp_setup_complete",
+        procedure: "conn_establish",
+        opcode: 49,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "表示本端链路管理器（LM）所有的初始链路、配对、特征和安全协商流程已就绪，两端可以交付上层 L2CAP 通信。",
+        payload: []
+      },
+      {
+        name: "lmp_simple_pairing_confirm",
+        procedure: "sec_ssp",
+        opcode: 63,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "安全简易配对（SSP）中的数值承诺验证信令（传递 Commitment_Value，基于哈希验证）。",
+        payload: [
+          { name: "Commitment_Value", pos: "Byte 2~17", type: "uint128", desc: "安全简易配对中的身份承诺值。它是将 DHKey、两端产生会话随机数（Nonce）通过一方向另一方预先披露其确认信息，但在第二阶段才进行 Nonce 正式交换比对的方式，从数学上杜绝空中被“中间人劫持并伪造参数”的安全高强算法验证体。" }
+        ]
+      },
+      {
+        name: "lmp_simple_pairing_number",
+        procedure: "sec_ssp",
+        opcode: 64,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "SSP 配对中用于产生密钥及哈希计算的数据传输。双方在这个信令中互换各自随机产生的 Nonce 参数。",
+        payload: [
+          { name: "Nonce_Value", pos: "Byte 2~17", type: "uint128", desc: "简易安全配对中双方正式在 Commitment 校验结束后，空中互换公开的各自本地硬件生成的加密伪随机种子（安全 Nonce 随机值）。" }
+        ]
+      },
+      {
+        name: "lmp_slot_offset",
+        procedure: "role_switch",
+        opcode: 52,
+        isExtended: false,
+        length: 9,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "微秒级槽位偏移参数交换。在角色切换前，将两端的时钟边界相位偏移量告知对端进行精确锁相。",
+        payload: [
+          { name: "Slot_Offset", pos: "Byte 2~3", type: "uint16", desc: "角色切换前，由于两个微网之间的时钟存在微秒级错位，从端设备将自身测得的时钟时隙边缘偏差发送给主端。取值范围 0 至 1249 微秒，辅助切换瞬间时序平滑转换。" },
+          { name: "BD_ADDR", pos: "Byte 4~9", type: "bdaddr", desc: "蓝牙设备固有的、唯一的 48 位物理 MAC 硬件物理网络地址。在底层寻呼、配对、时钟相位转换以及唤醒信令（LMP_unpark_BD_ADDR_req）中作为最基本设备特征参数参与直接传输。" }
+        ]
+      },
+      {
+        name: "lmp_sniff_req",
+        procedure: "mode_sniff",
+        opcode: 23,
+        isExtended: false,
+        length: 10,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "发起或者协商呼吸模式（Sniff Mode）的相关轮询参数（该协议允许设备定时休眠和定时周期监听）。",
+        payload: [
+          { name: "Timing_Control_Flags", pos: "Byte 2", type: "uint8", desc: "在模式转换（如 Sniff/eSCO/SAM）时指示时序规则。Bit 0：标志是否变更时序（Timing Change）；Bit 1：指示初始化工作采用时序集合 1（0）还是集合 2（1）；Bit 2：指示是否需要开启特定的接入轮询控..." },
+          { name: "DSniff", pos: "Byte 3~4", type: "uint16", desc: "Sniff 模式起始偏移值。时隙数（0.625 ms）。指示从设备在时钟同步状态下，第一个 Sniff 监听事件相对于 Central 时钟起点的延迟边界槽位数。" },
+          { name: "TSniff", pos: "Byte 5~6", type: "uint16", desc: "Sniff 模式的轮询活动周期值。单位：时隙数（0.625 ms）。确定相邻两次 Sniff 事件（Sniff Anchor Points）开始之间的时间周期。决定了休眠从设备的周期唤醒速率。" },
+          { name: "Sniff_Attempt", pos: "Byte 7~8", type: "uint16", desc: "在每个 Sniff 唤醒起点到来时，从设备芯片保持全功率工作、主动在信道上监听来自主端发包和轮询的主动时隙窗口尺寸（时隙数）。" },
+          { name: "Sniff_Timeout", pos: "Byte 9~10", type: "uint16", desc: "若从端设备在 `Sniff_Attempt` 活动时隙内成功收到了来自主端的分组，将触发此超时。从设备会在此超时周期内（单位：时隙）继续保持唤醒监听状态，等待可能继续传来的后续数据包，否则超时后重新转入低功耗休眠阶段。" }
+        ]
+      },
+      {
+        name: "lmp_sniff_subrating_req",
+        procedure: "mode_sniff",
+        opcode: 21,
+        isExtended: true,
+        length: 9,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "低功耗优化。协商并提出进入更低的呼吸子速率（Sniff Subrating）机制参数。降低特定设备无有效负载交互时的功耗。",
+        payload: [
+          { name: "Max_Sniff_Subrate", pos: "Byte 3", type: "uint8", desc: "呼吸子速率下允许的最大 subrate 因子。表示在完全空闲、没有有效数据帧交互的场景中，设备休眠的 Sniff 周期允许扩大到基础 TSniff 的最大倍数，用于极度省电挂载。" },
+          { name: "Min_Sniff_Mode_Timeout", pos: "Byte 4~5", type: "uint16", desc: "规定从端在退出数据通信后，必须保持在 subrating 状态下的最小超时时间值。防止由于应用层瞬间无数据又迅速发包导致频繁转换功耗状态。" },
+          { name: "Sniff_Subrating_Instant", pos: "Byte 6~9", type: "uint32", desc: "两端同时启动 Sniff Subrating（更长休眠轮询因子）的未来精确 Central 对齐时钟点。" }
+        ]
+      },
+      {
+        name: "lmp_sniff_subrating_res",
+        procedure: "mode_sniff",
+        opcode: 22,
+        isExtended: true,
+        length: 9,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "确认同意并接受对端的 Sniff Subrating 的时间及因子配置参数。",
+        payload: [
+          { name: "Max_Sniff_Subrate", pos: "Byte 3", type: "uint8", desc: "呼吸子速率下允许的最大 subrate 因子。表示在完全空闲、没有有效数据帧交互的场景中，设备休眠的 Sniff 周期允许扩大到基础 TSniff 的最大倍数，用于极度省电挂载。" },
+          { name: "Min_Sniff_Mode_Timeout", pos: "Byte 4~5", type: "uint16", desc: "规定从端在退出数据通信后，必须保持在 subrating 状态下的最小超时时间值。防止由于应用层瞬间无数据又迅速发包导致频繁转换功耗状态。" },
+          { name: "Sniff_Subrating_Instant", pos: "Byte 6~9", type: "uint32", desc: "两端同时启动 Sniff Subrating（更长休眠轮询因子）的未来精确 Central 对齐时钟点。" }
+        ]
+      },
+      {
+        name: "lmp_sres",
+        procedure: "sec_auth",
+        opcode: 12,
+        isExtended: false,
+        length: 5,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "身份认证挑战结果（SRES）反馈包。申辩方（Claimant）返回对其计算得到的加密校验值。",
+        payload: [
+          { name: "Authentication_Rsp", pos: "Byte 2~5", type: "uint32", desc: "申辩方向验证方反馈挑战响应值（通常叫做 SRES）。申辩方在收到 Verifier 发送的 128位 AU_RAND 挑战后，基于本地存储的 Link Key 和两端的蓝牙物理地址（BD_ADDR），利用规定的 E1 或 H5 加密哈..." }
+        ]
+      },
+      {
+        name: "lmp_start_encryption_req",
+        procedure: "sec_encryption",
+        opcode: 17,
+        isExtended: false,
+        length: 17,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "主端发起最终进入或更改加密模式流程的触发包，携带派生加密密钥的基础随机参数。",
+        payload: [
+          { name: "Random_Number", pos: "Byte 2~17", type: "uint128", desc: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。" }
+        ]
+      },
+      {
+        name: "lmp_stop_encryption_req",
+        procedure: "sec_encryption",
+        opcode: 18,
+        isExtended: false,
+        length: 1,
+        direction: "C → P",
+        packetTypes: "DM1/DV",
+        description: "请求两端同时退出数据加密状态，暂时以明文形式进行 Baseband 分组收发（通常在更换密钥时使用）。",
+        payload: []
+      },
+      {
+        name: "lmp_supervision_timeout",
+        procedure: "supervision",
+        opcode: 55,
+        isExtended: false,
+        length: 3,
+        direction: "C → P",
+        packetTypes: "DM1/DV",
+        description: "设置物理链路连接监督超时限制。在此周期内如因无线干扰导致无分组 ACK 交互，则宣告发生了 Link Loss 并断开连接。",
+        payload: [
+          { name: "Supervision_Timeout", pos: "Byte 2~3", type: "uint16", desc: "链路最长通信失效判定限制。在此时间内若由于射频屏蔽、超距或强干扰导致双方完全无法收发数据帧并取得物理 ACK，在 Supervision_Timeout 超时到达瞬间，两端自主强制解除连接（Link Loss），保证芯片不陷入永久挂死状态。" }
+        ]
+      },
+      {
+        name: "lmp_switch_req",
+        procedure: "role_switch",
+        opcode: 19,
+        isExtended: false,
+        length: 5,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "角色切换请求。用于请求改变在当前的 piconet 网络中的主从关系（Central & Peripheral 角色调换）。",
+        payload: [
+          { name: "Switch_Instant", pos: "Byte 2~5", type: "uint32", desc: "角色切换（Role Switch）正式触发并生效的蓝牙系统绝对时钟对齐值。两端在该时钟边界对齐物理射频主从状态，保证散射网建立过程中，切换不导致物理基带射频锁相断链。" }
+        ]
+      },
+      {
+        name: "lmp_temp_key",
+        procedure: "sec_link_key_type",
+        opcode: 14,
+        isExtended: false,
+        length: 17,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "向从端传输当前加密所指派的 128 位临时通信密钥。",
+        payload: [
+          { name: "Key", pos: "Byte 2~17", type: "uint128", desc: "128 位在两端生成的会话物理传输密钥（如传统配对分配的 Unit Key，或者处于零临时更换的多客户端共享 Temporary Key 等）。" }
+        ]
+      },
+      {
+        name: "lmp_temp_rand",
+        procedure: "sec_link_key_type",
+        opcode: 13,
+        isExtended: false,
+        length: 17,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "主端用来发送一个随机数值，用于后续临时链路密钥（Temporary Key）的计算派生。",
+        payload: [
+          { name: "Random_Number", pos: "Byte 2~17", type: "uint128", desc: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。" }
+        ]
+      },
+      {
+        name: "lmp_test_activate",
+        procedure: "test",
+        opcode: 56,
+        isExtended: false,
+        length: 1,
+        direction: "C → P",
+        packetTypes: "DM1/DV",
+        description: "测试控制信令。激活对端控制器的测试执行模块，启动测试指令监听状态。",
+        payload: []
+      },
+      {
+        name: "lmp_test_control",
+        procedure: "test",
+        opcode: 57,
+        isExtended: false,
+        length: 10,
+        direction: "C → P",
+        packetTypes: "DM1",
+        description: "发送详细射频/基带测试用例控制矩阵。可以指定环回、单频、特定分组类型以及发包长度，所有参数发送前都会与 0x55 进行 XOR 掩码转换。",
+        payload: [
+          { name: "Test_Scenario", pos: "Byte 2", type: "uint8", desc: "测试用例场景。指示接收测试包的被测设备（DUT）硬件逻辑如何处理空中数据。发送该 PDU 各参数前，数据整体会进行 XOR 0x55 的加密加扰运算。" },
+          { name: "Hopping_Mode", pos: "Byte 3", type: "uint8", desc: "指示射频测试是在固定单频点工作，还是按照蓝牙标准的 pseudo-random 79 信道正常跳频进行。" },
+          { name: "Tx_Frequency", pos: "Byte 4", type: "uint8", desc: "在执行固定频点无线发射（Tx）射频测试时，被指定的发射频点物理信道编号。" },
+          { name: "Rx_Frequency", pos: "Byte 5", type: "uint8", desc: "在执行单信道无线接收（Rx）测试时，所要求的接收频点信道编号。" },
+          { name: "Power_Mode", pos: "Byte 6", type: "uint8", desc: "射频物理测试中关于输出射频级数的直接状态强制。" },
+          { name: "Poll_Period", pos: "Byte 7", type: "uint8", desc: "测试环境下的主从机专用轮询周期设置参数。" },
+          { name: "Packet_Type", pos: "Byte 8", type: "uint8", desc: "指示测试中两端芯片空中收发的分组格式，用于定量测试特定分组（如 DH5、3-DH5）在当前频点下的误码率（BER）。" },
+          { name: "Test_Data_Length", pos: "Byte 9~10", type: "uint16", desc: "测试过程中，每个发送分组（LMP Test Packet）的有效数据载荷的精准长度字节数。" }
+        ]
+      },
+      {
+        name: "lmp_timing_accuracy_req",
+        procedure: "info_timing",
+        opcode: 47,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求对端设备的低功耗低频率本地时钟晶振准确度参数。用于调整对准保护时间（Guard Time）。",
+        payload: []
+      },
+      {
+        name: "lmp_timing_accuracy_res",
+        procedure: "info_timing",
+        opcode: 48,
+        isExtended: false,
+        length: 3,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "将本端的时钟准确性（晶振温度漂移和抖动特征）向对端汇报。",
+        payload: [
+          { name: "Drift", pos: "Byte 2", type: "uint8", desc: "本地低频低功耗时钟（通常为睡眠 32.768 kHz RTC 晶振）的漂移度指标。用以向对方报告，对方在长期无发包休眠状态下计算下次唤醒的警戒对齐时间偏移量。" },
+          { name: "Jitter", pos: "Byte 3", type: "uint8", desc: "由于本端低频睡眠时钟采样电路所附带的最大相位硬件抖动误差。配合 `Drift` 帮助对端科学精确确定 Sniff Mode 下再次唤醒所预留的接收射频同步冗余时域（Guard Time）。" }
+        ]
+      },
+      {
+        name: "lmp_unit_key",
+        procedure: "sec_pairing",
+        opcode: 10,
+        isExtended: false,
+        length: 17,
+        direction: "C ↔ P",
+        packetTypes: "DM1",
+        description: "传统配对中使用，将本地的单一单元密钥（Unit Key）发送给对端（已被弃用，因为存在安全缺陷）。",
+        payload: [
+          { name: "Key", pos: "Byte 2~17", type: "uint128", desc: "128 位在两端生成的会话物理传输密钥（如传统配对分配的 Unit Key，或者处于零临时更换的多客户端共享 Temporary Key 等）。" }
+        ]
+      },
+      {
+        name: "lmp_unsniff_req",
+        procedure: "mode_sniff",
+        opcode: 24,
+        isExtended: false,
+        length: 1,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求退出呼吸状态并同时返回完全全速活动的有源工作模式（Active Mode）。",
+        payload: []
+      },
+      {
+        name: "lmp_use_semi_permanent_key",
+        procedure: "sec_link_key_type",
+        opcode: 50,
+        isExtended: false,
+        length: 1,
+        direction: "C → P",
+        packetTypes: "DM1/DV",
+        description: "安全和密钥控制。指示将当前的会话主密钥替换为存储的非易失、半永久类型的半配对链路密钥（Semi-permanent Key）。",
+        payload: []
+      },
+      {
+        name: "lmp_version_req",
+        procedure: "info_version",
+        opcode: 37,
+        isExtended: false,
+        length: 6,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "请求对端的 LMP 协议版本和制造商详情。作为链路建立初期的标准流程。",
+        payload: [
+          { name: "Version", pos: "Byte 2", type: "uint8", desc: "指明当前链路控制层实现的蓝牙核心 LMP 规范的最高协议版本编号值。用于连接初始化初期，防止向落后规范版本设备发送其不能理解的高级规范扩展信令。" },
+          { name: "Company_Identifier", pos: "Byte 3~4", type: "uint16", desc: "指明对端芯片和硬件控制器的全球设计和制造厂商标志，用于两端识别和自动向下兼容私有/特定芯片组固件特性。" },
+          { name: "Subversion", pos: "Byte 5~6", type: "uint16", desc: "代表厂商针对该型号芯片发布和升级的固件代码次版本级别参数。方便定位协议层漏洞和固件冲突。" }
+        ]
+      },
+      {
+        name: "lmp_version_res",
+        procedure: "info_version",
+        opcode: 38,
+        isExtended: false,
+        length: 6,
+        direction: "C ↔ P",
+        packetTypes: "DM1/DV",
+        description: "响应对端发出的版本请求，向对端报告自身的固件和 LMP 标准实现版本参数。",
+        payload: [
+          { name: "Version", pos: "Byte 2", type: "uint8", desc: "指明当前链路控制层实现的蓝牙核心 LMP 规范的最高协议版本编号值。用于连接初始化初期，防止向落后规范版本设备发送其不能理解的高级规范扩展信令。" },
+          { name: "Company_Identifier", pos: "Byte 3~4", type: "uint16", desc: "指明对端芯片和硬件控制器的全球设计和制造厂商标志，用于两端识别和自动向下兼容私有/特定芯片组固件特性。" },
+          { name: "Subversion", pos: "Byte 5~6", type: "uint16", desc: "代表厂商针对该型号芯片发布和升级的固件代码次版本级别参数。方便定位协议层漏洞和固件冲突。" }
+        ]
+      }
+    ];
+
+    const parametersData = {
+      "AFH_Channel_Classification": {
+        type: "uint8[10]",
+        size: "10 Bytes",
+        range: "共 40 组，前 39 组每组表示相邻的两个蓝牙频点信道状态",
+        description: "信道报告体数据。每 2 位对应一个信道对。值意义：0x00=未知, 0x01=良好频段, 0x02=保留未用, 0x03=存在射频干扰（坏信道，提请 Central 主动剔除屏蔽）。"
+      },
+      "AFH_Channel_Map": {
+        type: "uint8[10]",
+        size: "10 Bytes",
+        range: "10 字节共 80 位的掩码（第 80 位为保留字，常填 0）",
+        description: "物理跳频图更新矩阵。0 至 78 位按顺序精确对应蓝牙的 0 到 78 物理频点载波。如果某位被 Central 设备置 1，表示该频点没有外部无线干扰，允许被选入跳频集合；如果置 0，说明该频段已被强Wi-Fi、微波等干扰污染，将从两端物理发包频点中剔除屏蔽。"
+      },
+      "AFH_Instant": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "0x00000000 - 0xFFFFFFFF (必须是偶数值时钟); Bits 27:1 of the Central's clock value at the time of switching hop sequences. O",
+        description: "指示应用新自适应跳频信道映射图（AFH_Channel_Map）在两端开始生效切换的 Central 设备对齐原生时钟数值。双方硬件将在此时钟瞬间同步切换使用的物理载波频点池，屏蔽坏频段。"
+      },
+      "AFH_Max_Interval": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "1 至 30 (秒); Range is 0x0640 to 0xBB80 slots (1 to 30 s)Only even values are valid",
+        description: "强制跳频报告的时间上限。如果从设备在 `AFH_Max_Interval` 规定时间内未发生实质信道物理干扰改变，也必须在此超时到达时强制上报一次信道图，向主端通告从端工作射频依然处于受控状态。"
+      },
+      "AFH_Min_Interval": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "1 至 30 (单位：秒); Range is 0x0640 to 0xBB80 slots (1 to 30 s)Only even values are valid",
+        description: "限定从设备 Peripheral 主动报告跳频信道状态变化的最短保护周期时间。防止从端频繁发送报告、严重浪费宝贵的空口 ACL 控制带宽。"
+      },
+      "AFH_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=AFH关闭（恢复使用完整79频点跳频）, 1=AFH启用（仅在良好频点中执行跳频）",
+        description: "直接激活或撤销自适应跳频机制，是蓝牙在工业、医疗等 2.4G 复杂同频干扰环境中稳定数据流的基础机制。"
+      },
+      "AFH_Reporting_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 禁用, 1 = 启用从端自发状态监测报告",
+        description: "分类报告机制开关。1 允许从设备管理器周期评估并向 Central 发送跳频点坏信道分类，对整个网络的抗同频干扰进行补充自愈。"
+      },
+      "Access_Scheme": {
+        type: "uint4",
+        size: "1 Byte",
+        range: "0: polling technique1-15: reserved for future use",
+        description: "0: polling technique1-15: reserved for future use"
+      },
+      "Air_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=µ-Law PCM, 1=A-Law PCM, 2=CVSD, 3=Transparent 无加工",
+        description: "音频流传输中的空中数字话音编译码（Codec）及压缩规格。蓝牙经典耳机和话筒常配置为 2 (CVSD 连续可变斜率增量调制)，能够很好对抗空中丢包引入的爆音和突变噪声。"
+      },
+      "Authentication_Requirements": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "安全控制标志",
+        description: "位掩码，标明本次 SSP 配对流程的安全强度等级。主要控制：1. 是否开启防窃听和防中间人注入（MITM Protection Required）；2. 产生的加密链路密钥是仅针对单次会话临时使用，还是需要写入非易失 RAM 进行 Dedicated Bonding (专用持久绑定) 或 General Bonding (通用绑定)。"
+      },
+      "Authentication_Rsp": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "32位散列值 (SRES)",
+        description: "申辩方向验证方反馈挑战响应值（通常叫做 SRES）。申辩方在收到 Verifier 发送的 128位 AU_RAND 挑战后，基于本地存储的 Link Key 和两端的蓝牙物理地址（BD_ADDR），利用规定的 E1 或 H5 加密哈希散列算法提取。验证方对比此 32 位值与本端产生的期待值，若一致则认为从端设备完全合法。"
+      },
+      "BD_ADDR": {
+        type: "bdaddr",
+        size: "6 Bytes",
+        range: "48 位物理 MAC 蓝牙地址",
+        description: "蓝牙设备固有的、唯一的 48 位物理 MAC 硬件物理网络地址。在底层寻呼、配对、时钟相位转换以及唤醒信令（LMP_unpark_BD_ADDR_req）中作为最基本设备特征参数参与直接传输。"
+      },
+      "Clk_Adj_Clk": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "Bluetooth Clock 槽对; CLK\[27:2\] for the moment that the PDU is transmitted.",
+        description: "发送该时钟调整实施信令时的绝对物理时钟参考值（以 1.25ms 为周期跳变的时钟）。"
+      },
+      "Clk_Adj_ID": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0xFF",
+        description: "粗时钟调整事件 ID 标识。用来在一个微网内唯一追踪并确认某一特定发起的时钟偏移粗略调整进程，防止时序信号混乱。"
+      },
+      "Clk_Adj_Instant": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "0x00000000 - 0xFFFFFFFF (Native CLK 槽对齐); CLKold\[27:1\] at the time of the coarse clock adjustment, based on the value of",
+        description: "时钟调整实施包对应的旧 Native CLK 瞬间。主从两端硬件必须精准在此瞬间同时进行相位切换，保证微秒级的多 slot 分组不发生物理滑码。"
+      },
+      "Clk_Adj_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 瞬间前调整, 1 = 瞬间后调整",
+        description: "指定时钟粗调是在 `Clk_Adj_Instant` 对齐时刻到来之前还是之后执行，用来指导基带调度锁相逻辑。"
+      },
+      "Clk_Adj_Offset": {
+        type: "sint16",
+        size: "2 Bytes",
+        range: "-624 到 624 (单位：微秒 µs); The offset between the old and new slot boundaries. Valid range is ‒624 to +624.",
+        description: "新旧槽位边缘相位时间偏移微调参数。用于将切换相位引起的分组边缘重叠在微秒上进行精密补偿。"
+      },
+      "Clk_Adj_Period": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "时隙数; Indicates to the Central that adding an integer multiple of this value toClk_Adj",
+        description: "提示对端如果时序不齐，通过在此参数的整数倍添加时延或调整步长，能同样快速寻回与主端的锁相和频率重对齐。"
+      },
+      "Clk_Adj_Slots": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "时隙调整量; The difference between the clocks at the adjustment instant(i.e. CLKnew\[27:1\] ",
+        description: "由于时钟调整导致的系统槽位时钟变动绝对差值：CLKnew[27:1] - CLKold[27:1]。"
+      },
+      "Clock_Offset": {
+        type: "uint15 (存储于2字节)",
+        size: "2 Bytes",
+        range: "0x0000 - 0x7FFF; (CLKN16-2 Peripheral \-CLKN16-2 Central) _mod_ 215",
+        description: "表示对端从设备与主端 Central 之间的精确本地参考时钟对齐相位偏差值。其值等于：(CLKN16-2_Peri - CLKN16-2_Cent) mod 2^15。其时间计量单位以一个槽位对（1.25 ms）为一个刻度单位。"
+      },
+      "Commitment_Value": {
+        type: "uint128",
+        size: "16 Bytes",
+        range: "128 位哈希散列确认码",
+        description: "安全简易配对中的身份承诺值。它是将 DHKey、两端产生会话随机数（Nonce）通过一方向另一方预先披露其确认信息，但在第二阶段才进行 Nonce 正式交换比对的方式，从数学上杜绝空中被“中间人劫持并伪造参数”的安全高强算法验证体。"
+      },
+      "Company_Identifier": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "蓝牙 SIG 统一指派的全球厂商代号 (如 0x000F = Broadcom, 0x000A = CSR 等)",
+        description: "指明对端芯片和硬件控制器的全球设计和制造厂商标志，用于两端识别和自动向下兼容私有/特定芯片组固件特性。"
+      },
+      "Confirmation_Value": {
+        type: "uint128",
+        size: "16 Bytes",
+        range: "128位 密钥对齐验证签名散列",
+        description: "LMP DHKey Check 阶段互发的数据。该值通过本地派生的 DHKey、两端的 Nonce、BD_ADDR等结合规定的哈希计算（如 F3 或 H6 算法）取得。双方交换并确认该确认值一致，表示物理空中链路在未传输任何私密链路密钥的前提下，双方已经完全数学对齐并确认共享了同一个高强度 DH 链路密钥。"
+      },
+      "DSAM": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "时隙数 (0.625 ms); Only even values less than TSAM are valid",
+        description: "可用时隙掩码切换在时钟到达 `SAM_Instant` 后，要对齐启动应用掩码的基准槽位偏移量。"
+      },
+      "DSCO": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "slots; Only even values less than TSCO are valid",
+        description: "Only even values less than TSCO are valid"
+      },
+      "DSniff": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0000 - 0xFFFF (且需小于 TSniff); Only even values less than TSniff are valid",
+        description: "Sniff 模式起始偏移值。时隙数（0.625 ms）。指示从设备在时钟同步状态下，第一个 Sniff 监听事件相对于 Central 时钟起点的延迟边界槽位数。"
+      },
+      "Data_Rate": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "When in Basic Rate mode:bit 0 = 0: use FECbit 0 = 1: do not use FECbits 1-2=0: No packet-size preference availablebits 1-2=1: use 1-slot packetsbits 1-2=2: use 3-slot packetsbits 1-2=3: use 5-slot packetsWhen in Enhanced Data Rate mode:bits 3-4=0: use DM1 packetsbits 3-4=1: use 2 Mb/s packetsbits 3-",
+        description: "When in Basic Rate mode:bit 0 = 0: use FECbit 0 = 1: do not use FECbits 1-2=0: No packet-size preference availablebits 1-2=1: use 1-slot packetsbits 1-2=2: use 3-slot packetsbits 1-2=3: use 5-slot packetsWhen in Enhanced Data Rate mode:bits 3-4=0: use DM1 packetsbits 3-4=1: use 2 Mb/s packetsbits 3-4=2: use 3 Mb/s packetsbits 3-4=3: reserved for future usebits 5-6=0: No packet-size preference availablebits 5-6=1: use 1-slot packetsbits 5-6=2: use 3-slot packetsbits 5-6=3: use 5-slot packetsbit 7: reserved for future use"
+      },
+      "DeSCO": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "时隙数 (0.625 ms); Only even values less than TeSCO are valid",
+        description: "eSCO 音频物理时隙窗口的分配相位偏移。表示在此延迟后，硬件开始 eSCO 规定的严格语音分组发送。"
+      },
+      "Drift": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "单位：ppm",
+        description: "本地低频低功耗时钟（通常为睡眠 32.768 kHz RTC 晶振）的漂移度指标。用以向对方报告，对方在长期无发包休眠状态下计算下次唤醒的警戒对齐时间偏移量。"
+      },
+      "Dsco": {
+        type: "bytes",
+        size: "4 Bytes",
+        range: "见规范 §5.2",
+        description: "Dsco，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Encap_Data": {
+        type: "uint8[16]",
+        size: "16 Bytes",
+        range: "16字节的原始封装片段数据",
+        description: "每次由 `LMP_encapsulated_payload` 传载传输的 16 字节被分片的数据体。接收方将其顺序拼接到缓冲区，重组为完整的公开椭圆曲线密钥。如果最后一片数据不满 16 字节，其余空闲空间在传输时必须采用 0 进行填充。"
+      },
+      "Encap_Major_Type": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 = 安全公开密钥交换",
+        description: "封装大载荷分组主类型代码。用来声明封装分片内传输数据的性质（目前蓝牙规范核心中主要在 SSP 公开密钥和验证要素阶段派上用场）。"
+      },
+      "Encap_Minor_Type": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 = P-192 曲线安全密钥, 0x02 = P-256 安全连接曲线公钥",
+        description: "封装分组中主类型下的精确次属性。例如在 P-256 安全连接标准被强制推行后，0x02 标示内部传送的是 64 字节的 P-256 加密公钥数据。"
+      },
+      "Encap_Payload_Length": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "封装总有效数据的整体字节大小（如 P-256 公钥为 64）",
+        description: "向接收端指示将需要连续接收多少字节以重构完整的原始安全控制数据。接收端以此长度启动分片读取计数和存储开辟。"
+      },
+      "Encryption_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=无加密, 1=点对点(仅ACL数据)加密, 2=对点及广播均加密",
+        description: "控制器对空中基带分组载荷执行硬件加密的行为指示模式。随着蓝牙协议更新，早期传统的 1、2 等低保密模式已被 Core 5.0+ 废弃，当前 Core 6.0 会在此之上启用更高强度的安全连接 CCM（AES-CCM）点对点高防护加密。"
+      },
+      "Error_Code": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x00 - 0xFF (详情查看规范 Part F Controller Error Codes)",
+        description: "控制器故障代码。指示为什么这次的信令操作（包括加密对齐、配对行为、断链细节）未能成功执行。最典型的错误包括：0x05 Authentication Failure (身份校验失败), 0x24 LMP PDU Not Allowed (连接在该状态下不能发起此信令), 0x1E Invalid LMP Parameters 等。"
+      },
+      "Escape_Opcode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "124 - 127 (LMP 中常统一使用 127)",
+        description: "转义操作码。放置在 LMP 操作载荷的首字节高 7 位，用来告之接收端 LM，后续字节将使用 15-bit 的 Extended Opcode 结构，必须按照双操作码格式解析参数。"
+      },
+      "Extended_Features": {
+        type: "uint64",
+        size: "8 Bytes",
+        range: "64位扩展页支持特征掩码",
+        description: "对应 `Features_Page` 的 64 位功能使能状态。每一位直接在底层指导或开启某种蓝牙高级物理协议（如：AES-CCM 高防护加密是否支持、是否支持 Ping 定时链路完整保护、是否支持 Channel Sounding 信道探测测量距离等特性）。"
+      },
+      "Extended_Opcode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "1 - 37 (对应已定义的扩展 LMP 信令)",
+        description: "扩展操作码。位于 LMP 扩展消息载荷的第 2 字节（紧随 127 之后）。唯一标志和指向特定的高级或扩展蓝牙功能的底层信令命令。"
+      },
+      "Features": {
+        type: "uint64",
+        size: "8 Bytes",
+        range: "Page 0 的 64 位功能支持掩码",
+        description: "Page 0 特征掩码。这 64 个独立位分别唯一代表控制器在基础率下是否物理实现了某种能力（例如：Bit 0 表示是否支持 3槽 分组包，Bit 2 表示是否实现了数据加密机制，Bit 5 标示是否支持 Role Switch 角色切换，Bit 7 表示是否支持 Sniff 低功耗等）。"
+      },
+      "Features_Page": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 主特征页, 1 = 扩展第一页, 2 = 扩展第二页",
+        description: "表示提议或请求查询的控制器硬件 LMP 特征页码。主页 0 代表经典特性，页 1、页 2 分别容纳后续蓝牙规范（如 EDR、高吞吐、安全连接特征）逐步加入的底层高级功能特征位。"
+      },
+      "Hold_Instant": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "0x00000000 - 0xFFFFFFFF",
+        description: "时序中开始正式挂起 ACL 有功通信、设备转入 Hold 低功耗状态对应的 Central 设备对齐原生时钟时间。"
+      },
+      "Hold_Time": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0002 - 0xFFFF",
+        description: "链路进入 Hold 保持休眠状态的持续总时间。单位以时隙计量（即 0.625 ms * 时隙数）。在此状态下，从设备硬件不与 Central 发生轮询收发，允许低功耗挂机。"
+      },
+      "Hopping_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=不跳频, 1=启用标准 79 跳频测试",
+        description: "指示射频测试是在固定单频点工作，还是按照蓝牙标准的 pseudo-random 79 信道正常跳频进行。"
+      },
+      "IO_Capabilities": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=DisplayOnly, 1=DisplayYesNo, 2=KeyboardOnly, 3=NoInputNoOutput",
+        description: "声明本端控制器的物理交互媒介。根据主从两端相互上报的 IO 交互能力，简易配对模块（SSP）将自动在底层选定配对执行路径。例：若一方为 DisplayOnly，另一方为 KeyboardOnly，配对方式将自动路由并强制使用 Passkey Entry 输入验证配对。"
+      },
+      "Jitter": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "单位：微秒 (µs)",
+        description: "由于本端低频睡眠时钟采样电路所附带的最大相位硬件抖动误差。配合 `Drift` 帮助对端科学精确确定 Sniff Mode 下再次唤醒所预留的接收射频同步冗余时域（Guard Time）。"
+      },
+      "Key": {
+        type: "uint128",
+        size: "16 Bytes",
+        range: "128 位配对/空中链路层密钥",
+        description: "128 位在两端生成的会话物理传输密钥（如传统配对分配的 Unit Key，或者处于零临时更换的多客户端共享 Temporary Key 等）。"
+      },
+      "Key_Size": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0x10 (即 1 到 16 字节)",
+        description: "提议或协商的最终加密中间会话密钥的实际运算字节长度（Key Size in bytes）。主从两端通过多次请求和应答来确定一个双方芯片和区域法规都能够支持的最大高熵长度（通常协商结果为 16 字节）。"
+      },
+      "Key_Size_Mask": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "位掩码 (Bitmask)",
+        description: "16 位的位组合掩码，每一位标示本端控制器硬件是否可以接受和支持对应字节数的密钥运算。用以检测配对时是否可以提供强制的 16 字节高等级高熵保密密钥保护。"
+      },
+      "LMP PDU": {
+        type: "Opcode",
+        size: "Length (bytes)s",
+        range: "Packet type; Possible direction",
+        description: "Possible direction"
+      },
+      "LMP_ACCEPTED": {
+        type: "3",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_ACCEPTED_EXT": {
+        type: "127/01",
+        size: "4 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_AUTO_RATE": {
+        type: "35",
+        size: "1 Byte",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_AU_RAND": {
+        type: "11",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_CHANNEL_CLASSIFICATION": {
+        type: "127/17",
+        size: "12 Bytes",
+        range: "DM1; C ← P",
+        description: "C ← P"
+      },
+      "LMP_CHANNEL_CLASSIFICATION_REQ": {
+        type: "127/16",
+        size: "7 Bytes",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_CLKOFFSET_REQ": {
+        type: "5",
+        size: "1 Byte",
+        range: "DM1/DV; C → P",
+        description: "C → P"
+      },
+      "LMP_CLKOFFSET_RES": {
+        type: "6",
+        size: "3 Bytes",
+        range: "DM1/DV; C ← P",
+        description: "C ← P"
+      },
+      "LMP_CLK_ADJ": {
+        type: "127/5",
+        size: "15 Bytes",
+        range: "DM1; B",
+        description: "B"
+      },
+      "LMP_CLK_ADJ_ACK": {
+        type: "127/6",
+        size: "3 Bytes",
+        range: "DM1; C ← P",
+        description: "C ← P"
+      },
+      "LMP_CLK_ADJ_REQ": {
+        type: "127/7",
+        size: "6 Bytes",
+        range: "DM1; C ← P",
+        description: "C ← P"
+      },
+      "LMP_COMB_KEY": {
+        type: "9",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_DECR_POWER_REQ": {
+        type: "32",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_DETACH": {
+        type: "7",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_DHKEY_CHECK": {
+        type: "65",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_ENCAPSULATED_HEADER": {
+        type: "61",
+        size: "4 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_ENCAPSULATED_PAYLOAD": {
+        type: "62",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_ENCRYPTION_KEY_SIZE_MASK_REQ": {
+        type: "58",
+        size: "1 Byte",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_ENCRYPTION_KEY_SIZE_MASK_RES": {
+        type: "59",
+        size: "3 Bytes",
+        range: "DM1; C ← P",
+        description: "C ← P"
+      },
+      "LMP_ENCRYPTION_KEY_SIZE_REQ": {
+        type: "16",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_ENCRYPTION_MODE_REQ": {
+        type: "15",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_FEATURES_REQ": {
+        type: "39",
+        size: "9 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_FEATURES_REQ_EXT": {
+        type: "127/03",
+        size: "12 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_FEATURES_RES": {
+        type: "40",
+        size: "9 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_FEATURES_RES_EXT": {
+        type: "127/04",
+        size: "12 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_HOLD": {
+        type: "20",
+        size: "7 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_HOLD_REQ": {
+        type: "21",
+        size: "7 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_HOST_CONNECTION_REQ": {
+        type: "51",
+        size: "1 Byte",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_INCR_POWER_REQ": {
+        type: "31",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_IN_RAND": {
+        type: "8",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_IO_CAPABILITY_REQ": {
+        type: "127/25",
+        size: "5 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_IO_CAPABILITY_RES": {
+        type: "127/26",
+        size: "5 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_KEYPRESS_NOTIFICATION": {
+        type: "127/30",
+        size: "3 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_MAX_POWER": {
+        type: "33",
+        size: "1 Byte",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_MAX_SLOT": {
+        type: "45",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_MAX_SLOT_REQ": {
+        type: "46",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_MIN_POWER": {
+        type: "34",
+        size: "1 Byte",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_NAME_REQ": {
+        type: "1",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_NAME_RES": {
+        type: "2",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_NOT_ACCEPTED": {
+        type: "4",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_NOT_ACCEPTED_EXT": {
+        type: "127/02",
+        size: "5 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_NUMERIC_COMPARISON_FAILED": {
+        type: "127/27",
+        size: "2 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_OOB_FAILED": {
+        type: "127/29",
+        size: "2 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PACKET_TYPE_TABLE_REQ": {
+        type: "127/11",
+        size: "3 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PAGE_MODE_REQ": {
+        type: "53",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PAGE_SCAN_MODE_REQ": {
+        type: "54",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PASSKEY_FAILED": {
+        type: "127/28",
+        size: "2 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PAUSE_ENCRYPTION_AES_REQ": {
+        type: "66",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PAUSE_ENCRYPTION_REQ": {
+        type: "127/23",
+        size: "2 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PING_REQ": {
+        type: "127/33",
+        size: "2 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PING_RES": {
+        type: "127/34",
+        size: "2 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_POWER_CONTROL_REQ": {
+        type: "127/31",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_POWER_CONTROL_RES": {
+        type: "127/32",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_PREFERRED_RATE": {
+        type: "36",
+        size: "2 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_QUALITY_OF_SERVICE": {
+        type: "41",
+        size: "4 Bytes",
+        range: "DM1/DV; C → P",
+        description: "C → P"
+      },
+      "LMP_QUALITY_OF_SERVICE_REQ": {
+        type: "42",
+        size: "4 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_REMOVE_SCO_LINK_REQ": {
+        type: "44",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_REMOVE_eSCO_LINK_REQ(see [Note 1](link-manager-protocol-specification.html#UUID-6f8c5c01-7b3e-cfdd-cf11-44ffd9cbe0af%5Fpara-idm13442803433844))": {
+        type: "127/13",
+        size: "4 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_RESUME_ENCRYPTION_REQ": {
+        type: "127/24",
+        size: "2 Bytes",
+        range: "DM1; C ← P",
+        description: "C ← P"
+      },
+      "LMP_SAM_DEFINE_MAP": {
+        type: "127/36",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SAM_SET_TYPE0": {
+        type: "127/35",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SAM_SWITCH": {
+        type: "127/37",
+        size: "9 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SCO_LINK_REQ": {
+        type: "43",
+        size: "7 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SETUP_COMPLETE": {
+        type: "49",
+        size: "1 Byte",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SET_AFH": {
+        type: "60",
+        size: "16 Bytes",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_SIMPLE_PAIRING_CONFIRM": {
+        type: "63",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SIMPLE_PAIRING_NUMBER": {
+        type: "64",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SLOT_OFFSET": {
+        type: "52",
+        size: "9 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SNIFF_REQ": {
+        type: "23",
+        size: "10 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SNIFF_SUBRATING_REQ": {
+        type: "127/21",
+        size: "9 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SNIFF_SUBRATING_RES": {
+        type: "127/22",
+        size: "9 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_SRES": {
+        type: "12",
+        size: "5 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_START_ENCRYPTION_REQ": {
+        type: "17",
+        size: "17 Bytes",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_STOP_ENCRYPTION_REQ": {
+        type: "18",
+        size: "1 Byte",
+        range: "DM1/DV; C → P",
+        description: "C → P"
+      },
+      "LMP_SUPERVISION_TIMEOUT": {
+        type: "55",
+        size: "3 Bytes",
+        range: "DM1/DV; C → P",
+        description: "C → P"
+      },
+      "LMP_SWITCH_REQ": {
+        type: "19",
+        size: "5 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_TEMP_KEY": {
+        type: "14",
+        size: "17 Bytes",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_TEMP_RAND": {
+        type: "13",
+        size: "17 Bytes",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_TEST_ACTIVATE": {
+        type: "56",
+        size: "1 Byte",
+        range: "DM1/DV; C → P",
+        description: "C → P"
+      },
+      "LMP_TEST_CONTROL": {
+        type: "57",
+        size: "10 Bytes",
+        range: "DM1; C → P",
+        description: "C → P"
+      },
+      "LMP_TIMING_ACCURACY_REQ": {
+        type: "47",
+        size: "1 Byte",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_TIMING_ACCURACY_RES": {
+        type: "48",
+        size: "3 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_UNIT_KEY": {
+        type: "10",
+        size: "17 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_UNSNIFF_REQ": {
+        type: "24",
+        size: "1 Byte",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_USE_SEMI_PERMANENT_KEY": {
+        type: "50",
+        size: "1 Byte",
+        range: "DM1/DV; C → P",
+        description: "C → P"
+      },
+      "LMP_VERSION_REQ": {
+        type: "37",
+        size: "6 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_VERSION_RES": {
+        type: "38",
+        size: "6 Bytes",
+        range: "DM1/DV; C ↔ P",
+        description: "C ↔ P"
+      },
+      "LMP_eSCO_LINK_REQ (see [Note 1](link-manager-protocol-specification.html#UUID-6f8c5c01-7b3e-cfdd-cf11-44ffd9cbe0af%5Fpara-idm13442803433844))": {
+        type: "127/12",
+        size: "16 Bytes",
+        range: "DM1; C ↔ P",
+        description: "C ↔ P"
+      },
+      "Max_Slots": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "1, 3, 或 5",
+        description: "表示设备允许进行单次基带物理发包所允许占用的物理频率时隙极限值（单时隙包，3时隙包或 5时隙包）。如果当前外界干扰极大导致重传率过高，链路层可以请求降低 Max_Slots 使得帧更短以避开干扰。"
+      },
+      "Max_Sniff_Subrate": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0xFF (即 1 到 255 倍)",
+        description: "呼吸子速率下允许的最大 subrate 因子。表示在完全空闲、没有有效数据帧交互的场景中，设备休眠的 Sniff 周期允许扩大到基础 TSniff 的最大倍数，用于极度省电挂载。"
+      },
+      "Max_Supported_Page": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "1 - 255",
+        description: "告知对端，本端控制器内部非零的、支持的特征掩码（Features Page）的最大页数，防止对方进行溢出页面查询或过多无用查询。"
+      },
+      "Min_Sniff_Mode_Timeout": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "时隙数 (0.625 ms)",
+        description: "规定从端在退出数据通信后，必须保持在 subrating 状态下的最小超时时间值。防止由于应用层瞬间无数据又迅速发包导致频繁转换功耗状态。"
+      },
+      "NBC": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0xFF",
+        description: "广播重传次数（Number of Broadcast retransmissions）。主端发送无确认广播时，为对抗干扰而重复发送的次数。"
+      },
+      "NSAM_SM": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "子图个数 (为 0 代表删除定义)",
+        description: "时隙可用性掩码定义中包含的连续子地图个数。用于计算总图的大小。"
+      },
+      "Name_Fragment": {
+        type: "utf8s[14]",
+        size: "14 Bytes",
+        range: "14个 UTF-8 格式的字节码组",
+        description: "设备返回的实际名称片段。如果名字过短或者在该偏移区间已达到末尾，多余空间在小端对齐时，必须采用 0x00 进行填充。"
+      },
+      "Name_Length": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x00 - 0xF8 (最大支持248字节)",
+        description: "远程设备的蓝牙友好友好名称总长度，以字节（Bytes）为单位。用来提示请求端接收到何种偏移深度时说明已经成功把全名字段接收。"
+      },
+      "Name_Offset": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x00 - 0xFF",
+        description: "请求蓝牙友好名字片段的字节偏移值。由于 LMP 单包容量限制，友好名称需每次请求最大 14 字节的名字片段（UTF-8 字符）。第一次请求时该值为 0x00，后续则需每次累加 14 (如 0x0E, 0x1C...) 依次循环发送直到拉取到结尾。"
+      },
+      "Negotiation_State": {
+        type: "bytes",
+        size: "16 Bytes",
+        range: "见规范 §5.2",
+        description: "Negotiation_State，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Nonce_Value": {
+        type: "uint128",
+        size: "16 Bytes",
+        range: "128位 SSP 配对随机加密种子",
+        description: "简易安全配对中双方正式在 Commitment 校验结束后，空中互换公开的各自本地硬件生成的加密伪随机种子（安全 Nonce 随机值）。"
+      },
+      "Notification_Type": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=配对码输入开始, 1=敲击数字, 2=删除退格, 3=清空, 4=输入确认完成",
+        description: "在 SSP Passkey 配对过程中，本地向对端空中交互通告本端设备上键盘输入状态的进度。这能使对端设备在用户界面（UI）上实时呈现本端用户的配对输入进度条，具有良好的人机工程体验。"
+      },
+      "OOB_Auth_Data": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 未获得带外数据, 1 = 已获取带外数据",
+        description: "声明是否能提供带外 OOB 安全通道（如 NFC，私有短距无线通信等）收集到的对方随机 commitments 和 nonce。此项若为 1 则将直接采用安全性最高的一键“Just Works/OOB”安全绑定。"
+      },
+      "Opcode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0x7F",
+        description: "确认接收或拒绝的对应信令的操作码。对应单字节基础操作码（Opcode）。在被确认或者拒绝时，将直接被拷贝至该字段内通告对端。"
+      },
+      "Packet_LengthC→P": {
+        type: "bytes",
+        size: "11–12s",
+        range: "见规范 §5.2",
+        description: "Packet_LengthC→P，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Packet_LengthP→C": {
+        type: "bytes",
+        size: "13–14s",
+        range: "见规范 §5.2",
+        description: "Packet_LengthP→C，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Packet_Type": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "空中封包类型对应码",
+        description: "指示测试中两端芯片空中收发的分组格式，用于定量测试特定分组（如 DH5、3-DH5）在当前频点下的误码率（BER）。"
+      },
+      "Packet_Type_Table": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 基础速率 BR 表 (1 Mbps); 1 = EDR 表 (支持 2/3 Mbps)",
+        description: "硬件分组调制表映射切换标识。1 表示允许并开启 EDR 解密。激活对端的 π/4-DQPSK (2 Mbps) 和 8DPSK (3 Mbps) 射频解调能力，使得后续可以用多时隙大分组接收业务数据。"
+      },
+      "Paging_Scheme": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x00 (强制 Paging)",
+        description: "蓝牙建立连接物理寻呼过程中使用的物理无线跳频信道和时序方案代码。"
+      },
+      "Paging_Scheme_Settings": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "寻呼工作参数配置集",
+        description: "寻呼方案的子配置参数，包括无线寻呼扫描频次、占空比等参数。"
+      },
+      "Poll_Interval": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0001 - 0xFFFF (时隙，0.625 ms)",
+        description: "主设备 Central 周期性地向该从设备 Peripheral 发送 POLL 分组的最大轮询间隔（时隙数）。用于 QoS 与链路活跃性维护。"
+      },
+      "Poll_Period": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "轮询时间槽位（10倍Slot计）",
+        description: "测试环境下的主从机专用轮询周期设置参数。"
+      },
+      "Power_Adj_Req": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 减少1级, 1 = 增加1级, 2 = 强制至最大",
+        description: "发射功率控制 EPC 动作控制码。直接向对方射频芯片发出调大或调小功率的请求，维持空中射频平衡。"
+      },
+      "Power_Adj_Rsp": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "位组合应答参数 (GFSK, EDR-DPSK 调制模式状态组合)",
+        description: "功率调整结果反馈。包含了在 GFSK 及 2M/3M EDR 调制下实施调整后的现状反馈：0=不支持该调整，1=已调整，2=已达最强，3=已达最弱。"
+      },
+      "Power_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=不改变发射功率, 1=强制使用最大硬件发射级数",
+        description: "射频物理测试中关于输出射频级数的直接状态强制。"
+      },
+      "Random_Number": {
+        type: "uint128",
+        size: "16 Bytes",
+        range: "任意产生的 128 位无规律随机数",
+        description: "由控制器内部加密安全的随机硬件信号源产生的 128 位挑战数。此参数为蓝牙配对、连接身份校验以及产生加密主链路密钥（Combination Key、DHKey、Session Key）的最主要运算母数参数。"
+      },
+      "Reserved": {
+        type: "bytes",
+        size: "",
+        range: "见规范 §5.2",
+        description: "Reserved，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Rx_Frequency": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 - 78",
+        description: "在执行单信道无线接收（Rx）测试时，所要求的接收频点信道编号。"
+      },
+      "SAM_Index": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x00, 0x01, 0x02 或 0xFF (0xFF 表示删除)",
+        description: "在设备两端交互和定义的 SAM 掩码图唯一索引卡片号。后续进行可用图快速切换（LMP_SAM_SWITCH）时，直接指派此索引编号完成在 Instant 瞬间的空中切换。"
+      },
+      "SAM_Instant": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "Central absolute Clock slots",
+        description: "通信双方时钟到达该特定对齐瞬间时，物理层在没有控制流中断的前提下，同步应用并切换至引用的 `SAM_Index` 时隙可用性掩码图上进行跳频传输。"
+      },
+      "SAM_Submaps": {
+        type: "uint8[12]",
+        size: "12 Bytes",
+        range: "12 字节的数据可用图定义掩码",
+        description: "具体配置在 `TSAM_SM` 规定时间间隔槽内，各时隙物理允许收发状态的详细二进制对齐数据。"
+      },
+      "SAM_Type0_Submap": {
+        type: "uint8[14]",
+        size: "14 Bytes",
+        range: "每 2 位代表一个 slot（共计 56 个 slots 可用状态配置组）",
+        description: "时隙可用性掩码中 0 型子图定义。56 个 slots 状态二进制标志（0x00=不可收发，0x01=只许发送，0x02=只许接收，0x03=可以双向进行 ACL 数据包收发）。设备可以通过此掩码在物理信道上完美规避干扰。"
+      },
+      "SCO_Handle": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0xFF",
+        description: "指派给特定同步话音业务 SCO 物理连接的逻辑句柄编号。底层以此句柄值在基带层建立和关闭（LMP_remove_SCO_link_req）对应的同步话音信道（如 SCO A/B 通道映射）。"
+      },
+      "SCO_Packet": {
+        type: "bytes",
+        size: "6 Bytes",
+        range: "见规范 §5.2",
+        description: "SCO_Packet，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Slot_Offset": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0000 - 0x04DF (单位：微秒 µs)",
+        description: "角色切换前，由于两个微网之间的时钟存在微秒级错位，从端设备将自身测得的时钟时隙边缘偏差发送给主端。取值范围 0 至 1249 微秒，辅助切换瞬间时序平滑转换。"
+      },
+      "Sniff_Attempt": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0001 - 0xFFFF",
+        description: "在每个 Sniff 唤醒起点到来时，从设备芯片保持全功率工作、主动在信道上监听来自主端发包和轮询的主动时隙窗口尺寸（时隙数）。"
+      },
+      "Sniff_Subrating_Instant": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "Central Native 时钟槽对齐 (必须是偶数值)",
+        description: "两端同时启动 Sniff Subrating（更长休眠轮询因子）的未来精确 Central 对齐时钟点。"
+      },
+      "Sniff_Timeout": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0000 - 0xFFFF",
+        description: "若从端设备在 `Sniff_Attempt` 活动时隙内成功收到了来自主端的分组，将触发此超时。从设备会在此超时周期内（单位：时隙）继续保持唤醒监听状态，等待可能继续传来的后续数据包，否则超时后重新转入低功耗休眠阶段。"
+      },
+      "Subversion": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "厂商和芯片自定义内部次版本固件号",
+        description: "代表厂商针对该型号芯片发布和升级的固件代码次版本级别参数。方便定位协议层漏洞和固件冲突。"
+      },
+      "Supervision_Timeout": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0001 - 0xFFFF (时隙数，最大12.5秒)",
+        description: "链路最长通信失效判定限制。在此时间内若由于射频屏蔽、超距或强干扰导致双方完全无法收发数据帧并取得物理 ACK，在 Supervision_Timeout 超时到达瞬间，两端自主强制解除连接（Link Loss），保证芯片不陷入永久挂死状态。"
+      },
+      "Switch_Instant": {
+        type: "uint32",
+        size: "4 Bytes",
+        range: "0x00000000 - 0xFFFFFFFF (偶数槽位有效)",
+        description: "角色切换（Role Switch）正式触发并生效的蓝牙系统绝对时钟对齐值。两端在该时钟边界对齐物理射频主从状态，保证散射网建立过程中，切换不导致物理基带射频锁相断链。"
+      },
+      "TSAM_SM": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "时隙数 (范围 2 - 56 槽)",
+        description: "可用性时隙子地图在时间周期的循环跨度长度。"
+      },
+      "TSniff": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "0x0002 - 0xFFFF",
+        description: "Sniff 模式的轮询活动周期值。单位：时隙数（0.625 ms）。确定相邻两次 Sniff 事件（Sniff Anchor Points）开始之间的时间周期。决定了休眠从设备的周期唤醒速率。"
+      },
+      "TeSCO": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "时隙数 (如 6, 8, 10 等时隙周期)",
+        description: "eSCO 通道空中严格周期性传送音频载荷帧的物理周期设定值。"
+      },
+      "Test_Data_Length": {
+        type: "uint16",
+        size: "2 Bytes",
+        range: "字节数",
+        description: "测试过程中，每个发送分组（LMP Test Packet）的有效数据载荷的精准长度字节数。"
+      },
+      "Test_Scenario": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0=退出测试, 1=接收测试, 2=发射测试, 3=环回测试",
+        description: "测试用例场景。指示接收测试包的被测设备（DUT）硬件逻辑如何处理空中数据。发送该 PDU 各参数前，数据整体会进行 XOR 0x55 的加密加扰运算。"
+      },
+      "Timing_Control_Flags": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "位掩码 (Bitmask)",
+        description: "在模式转换（如 Sniff/eSCO/SAM）时指示时序规则。Bit 0：标志是否变更时序（Timing Change）；Bit 1：指示初始化工作采用时序集合 1（0）还是集合 2（1）；Bit 2：指示是否需要开启特定的接入轮询控制扫描窗口。"
+      },
+      "Tsco": {
+        type: "bytes",
+        size: "5 Bytes",
+        range: "见规范 §5.2",
+        description: "Tsco，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "Tx_Frequency": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 - 78 (对应射频频点 2402 MHz 至 2480 MHz)",
+        description: "在执行固定频点无线发射（Tx）射频测试时，被指定的发射频点物理信道编号。"
+      },
+      "Update_Mode": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0 = 废弃旧 SAM, 1 = 立即启动新 Type0 掩码, 2 = 在下个子区间应用",
+        description: "时隙可用性掩码（SAM）的时效更新机制代码。"
+      },
+      "Version": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 = v1.1, 0x02 = v1.2, 0x03 = v2.0, 0x09 = v5.0, 0x0D = v6.0",
+        description: "指明当前链路控制层实现的蓝牙核心 LMP 规范的最高协议版本编号值。用于连接初始化初期，防止向落后规范版本设备发送其不能理解的高级规范扩展信令。"
+      },
+      "WeSCO": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "eSCO 重传重发时隙时限",
+        description: "eSCO 区别于经典话音 SCO 最重要的特征。 WeSCO 规定了在音频时空周期内，如果由于射频干扰发生分组校验失败，硬件允许在随后保留的多少个时隙内强制重新发包。该设计保证了在高强干扰下，同步话音依然能获得完美的低误码音质表现。"
+      },
+      "eSCO_Handle": {
+        type: "uint8",
+        size: "1 Byte",
+        range: "0x01 - 0xFF",
+        description: "增强型同步连接音频链路的逻辑句柄代号。用于底层唯一识别和维护该高重传、低延迟、高质量的同步双向语音物理流。"
+      },
+      "eSCO_LT_ADDR": {
+        type: "uint8",
+        size: "1 Byte (占用其低3个bits)",
+        range: "0x01 - 0x07",
+        description: "eSCO 音频连接在微网通道中附加的、独享的物理逻辑传输地址。主端不可随意将一个已活动的 eSCO 重新映射分配给不同的物理逻辑地址。"
+      },
+      "eSCO_Packet_Type C→P": {
+        type: "bytes",
+        size: "9 Bytes",
+        range: "见规范 §5.2",
+        description: "eSCO_Packet_Type C→P，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      },
+      "eSCO_Packet_Type P→C": {
+        type: "bytes",
+        size: "10 Bytes",
+        range: "见规范 §5.2",
+        description: "eSCO_Packet_Type P→C，定义见 Bluetooth Core 6.0 LMP §5.2。"
+      }
+    };
+
+    // ==========================================
+    // 2. 交互逻辑 (动态反向关联计算与渲染)
+    // ==========================================
+    const paramToPdusMap = {};
+
+    // 动态统计各参数与PDU的反向交叉链接关系
+    function generateBacklinks() {
+      // 初始化每个参数对应的关联PDU数组
+      for (const paramKey in parametersData) {
+        paramToPdusMap[paramKey] = [];
+      }
+
+      // 遍历 PDU 数据，为参数追加 PDU 名称
+      pduData.forEach(pdu => {
+        if (pdu.payload && pdu.payload.length > 0) {
+          pdu.payload.forEach(item => {
+            const paramName = item.name;
+            if (parametersData[paramName]) {
+              if (!paramToPdusMap[paramName].includes(pdu.name)) {
+                paramToPdusMap[paramName].push(pdu.name);
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // 平滑滚动并带有高亮引导动画
+    function navigateTo(targetId) {
+      const element = document.getElementById(targetId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // 触发高亮闪烁效果
+        element.classList.remove('highlight-target');
+        void element.offsetWidth; // 触发浏览器重绘重排
+        element.classList.add('highlight-target');
+
+        // 左侧菜单也同步高亮选中状态
+        if (targetId.startsWith('pdu-')) {
+          const pduName = targetId.replace('pdu-', '');
+          const menuItems = document.querySelectorAll('.pdu-menu-item');
+          menuItems.forEach(item => {
+            if (item.getAttribute('data-pdu') === pduName) {
+              item.classList.add('active');
+              item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+              item.classList.remove('active');
+            }
+          });
+        }
+      }
+    }
+
+    /** §4 Procedure rules — 侧栏分组顺序（与规范章节一致） */
+    const PROCEDURE_ORDER = [
+      'general',
+      'conn_establish', 'detach', 'power', 'afh', 'channel_class', 'supervision', 'cqdrr', 'qos',
+      'paging', 'multislot', 'edr', 'encaps', 'ping', 'clk_adj', 'sam',
+      'sec_auth', 'sec_pairing', 'sec_link_key_type', 'sec_encryption', 'sec_key_size_mask', 'sec_ssp',
+      'info_timing', 'info_clkoffset', 'info_version', 'info_features', 'info_name',
+      'role_switch', 'mode_hold', 'mode_sniff', 'lt_sco', 'lt_esco', 'test'
+    ];
+
+    const PROCEDURE_CATALOG = {
+      general: { section: '—', title: '通用事务应答', parent: '跨 §4 各过程', desc: 'LMP_ACCEPTED / NOT_ACCEPTED（含扩展形式），确认或拒绝其它信令事务。', color: '#64748b', defaultCollapsed: false },
+      conn_establish: { section: '4.1.1', title: '连接建立', parent: '4.1 连接控制', desc: 'HOST 连接请求与 SETUP_COMPLETE；可与 §4.3 信息交换、§4.2 安全过程衔接。', color: '#0082FC', defaultCollapsed: false },
+      detach: { section: '4.1.2', title: '断开连接', parent: '4.1 连接控制', desc: 'LMP_DETACH 及 Error_Code，终止 ACL 物理链路。', color: '#0082FC', defaultCollapsed: false },
+      power: { section: '4.1.3', title: '功率控制', parent: '4.1 连接控制', desc: '传统 INCR/DECR/MAX/MIN 与增强 POWER_CONTROL_REQ/RSP。', color: '#0082FC', defaultCollapsed: true },
+      afh: { section: '4.1.4', title: '自适应跳频 (AFH)', parent: '4.1 连接控制', desc: 'LMP_SET_AFH：AFH_Instant、AFH_Mode、AFH_Channel_Map。', color: '#0082FC', defaultCollapsed: true },
+      channel_class: { section: '4.1.5', title: '信道分类', parent: '4.1 连接控制', desc: '从端上报信道质量，供主端更新 AFH 信道图。', color: '#0082FC', defaultCollapsed: true },
+      supervision: { section: '4.1.6', title: '链路监督', parent: '4.1 连接控制', desc: '设置 Supervision_Timeout，检测链路丢失。', color: '#0082FC', defaultCollapsed: true },
+      cqdrr: { section: '4.1.7', title: 'CQDDR 速率', parent: '4.1 连接控制', desc: 'AUTO_RATE 与 PREFERRED_RATE，按信道质量调节分组类型。', color: '#0082FC', defaultCollapsed: true },
+      qos: { section: '4.1.8', title: '服务质量 (QoS)', parent: '4.1 连接控制', desc: 'Poll 间隔与 NBC 广播重复次数协商。', color: '#0082FC', defaultCollapsed: true },
+      paging: { section: '4.1.9', title: '寻呼方案参数', parent: '4.1 连接控制', desc: 'Page / Page Scan 模式与寻呼方案设置。', color: '#0082FC', defaultCollapsed: true },
+      multislot: { section: '4.1.10', title: '多时隙分组控制', parent: '4.1 连接控制', desc: 'MAX_SLOT / MAX_SLOT_REQ 限制 ACL 连续时隙数。', color: '#0082FC', defaultCollapsed: true },
+      edr: { section: '4.1.11', title: '增强数据速率 (EDR)', parent: '4.1 连接控制', desc: 'PACKET_TYPE_TABLE_REQ 切换分组类型表与调制模式。', color: '#0082FC', defaultCollapsed: true },
+      encaps: { section: '4.1.12', title: '封装 LMP PDU', parent: '4.1 连接控制', desc: 'ENCAPSULATED_HEADER + PAYLOAD 传输超长载荷。', color: '#0082FC', defaultCollapsed: true },
+      ping: { section: '4.1.13', title: 'Ping', parent: '4.1 连接控制', desc: '验证对端 LM 存在与 ACL 完整性（含 MIC）。', color: '#0082FC', defaultCollapsed: true },
+      clk_adj: { section: '4.1.14', title: 'Piconet 时钟调整', parent: '4.1 连接控制', desc: '粗调 CLK_ADJ / ACK / REQ。', color: '#0082FC', defaultCollapsed: true },
+      sam: { section: '4.1.15', title: '时隙可用性掩码 (SAM)', parent: '4.1 连接控制', desc: 'MWS 共存：SAM_SET_TYPE0、DEFINE_MAP、SWITCH。', color: '#0082FC', defaultCollapsed: true },
+      sec_auth: { section: '4.2.1', title: '认证', parent: '4.2 安全', desc: 'AU_RAND / SRES；传统与 Secure Authentication。', color: '#dc2626', defaultCollapsed: false },
+      sec_pairing: { section: '4.2.2', title: '配对', parent: '4.2 安全', desc: 'IN_RAND、COMB_KEY、UNIT_KEY 等；COMB_KEY 亦用于 §4.2.3 更换链路密钥。', color: '#dc2626', defaultCollapsed: true },
+      sec_link_key_type: { section: '4.2.4', title: '当前链路密钥类型', parent: '4.2 安全', desc: '临时密钥 TEMP_RAND/KEY 与恢复半永久密钥。', color: '#dc2626', defaultCollapsed: true },
+      sec_encryption: { section: '4.2.5', title: '加密', parent: '4.2 安全', desc: '加密模式、密钥长度、启停及 Pause/Resume（含 AES）。', color: '#dc2626', defaultCollapsed: true },
+      sec_key_size_mask: { section: '4.2.6', title: '支持的加密密钥长度', parent: '4.2 安全', desc: 'ENCRYPTION_KEY_SIZE_MASK_REQ/RSP 位掩码。', color: '#dc2626', defaultCollapsed: true },
+      sec_ssp: { section: '4.2.7', title: '安全简单配对 (SSP)', parent: '4.2 安全', desc: 'IO 能力、公钥交换、Numeric/Passkey/OOB、DHKey Check 等。', color: '#dc2626', defaultCollapsed: true },
+      info_timing: { section: '4.3.1', title: '定时精度', parent: '4.3 信息请求', desc: 'TIMING_ACCURACY_REQ/RSP。', color: '#059669', defaultCollapsed: true },
+      info_clkoffset: { section: '4.3.2', title: '时钟偏移', parent: '4.3 信息请求', desc: 'CLKOFFSET_REQ/RSP，Paging 后常用。', color: '#059669', defaultCollapsed: true },
+      info_version: { section: '4.3.3', title: 'LMP 版本', parent: '4.3 信息请求', desc: 'VERSION_REQ/RSP。', color: '#059669', defaultCollapsed: true },
+      info_features: { section: '4.3.4', title: '支持特性', parent: '4.3 信息请求', desc: 'FEATURES_REQ/RSP（含扩展特性页）。', color: '#059669', defaultCollapsed: true },
+      info_name: { section: '4.3.5', title: '名称请求', parent: '4.3 信息请求', desc: 'NAME_REQ/RSP 分段读取设备名。', color: '#059669', defaultCollapsed: true },
+      role_switch: { section: '4.4', title: '角色切换', parent: '4.4 Role switch', desc: 'SLOT_OFFSET 与 SWITCH_REQ（含连接建立时可选角色切换）。', color: '#d97706', defaultCollapsed: true },
+      mode_hold: { section: '4.5.1', title: 'Hold 模式', parent: '4.5 运行模式', desc: 'HOLD / HOLD_REQ 进入保持状态。', color: '#7c3aed', defaultCollapsed: true },
+      mode_sniff: { section: '4.5.3', title: 'Sniff 模式', parent: '4.5 运行模式', desc: 'SNIFF_REQ、UNSNIFF_REQ、Sniff Subrating。', color: '#7c3aed', defaultCollapsed: true },
+      lt_sco: { section: '4.6.1', title: 'SCO 逻辑传输', parent: '4.6 逻辑传输', desc: 'SCO_LINK_REQ、REMOVE_SCO_LINK_REQ。', color: '#0891b2', defaultCollapsed: true },
+      lt_esco: { section: '4.6.2', title: 'eSCO 逻辑传输', parent: '4.6 逻辑传输', desc: 'ESCO_LINK_REQ、REMOVE_ESCO_LINK_REQ。', color: '#0891b2', defaultCollapsed: true },
+      test: { section: '4.7', title: '测试模式', parent: '4.7 Test mode', desc: 'TEST_ACTIVATE、TEST_CONTROL 激活与控制测试。', color: '#475569', defaultCollapsed: true }
+    };
+
+    function getProcedureMeta(pdu) {
+      return PROCEDURE_CATALOG[pdu.procedure] || { section: '?', title: pdu.procedure, parent: '', desc: '', color: '#94a3b8', defaultCollapsed: false };
+    }
+
+    function sortPdusByProcedure(pdus) {
+      return [...pdus].sort((a, b) => {
+        const ai = PROCEDURE_ORDER.indexOf(a.procedure);
+        const bi = PROCEDURE_ORDER.indexOf(b.procedure);
+        const aIdx = ai < 0 ? 999 : ai;
+        const bIdx = bi < 0 ? 999 : bi;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        if (a.isExtended !== b.isExtended) return a.isExtended ? 1 : -1;
+        if (a.opcode !== b.opcode) return a.opcode - b.opcode;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    function createPduMenuItem(pdu) {
+      const li = document.createElement('li');
+      li.className = 'pdu-menu-item';
+      li.setAttribute('data-pdu', pdu.name);
+      li.onclick = () => navigateTo(`pdu-${pdu.name}`);
+
+      const opText = pdu.isExtended ? `127/${pdu.opcode}` : `${pdu.opcode}`;
+      const badgeClass = pdu.isExtended ? 'badge-extended' : 'badge-standard';
+      const badgeText = pdu.isExtended ? 'Ext' : 'Std';
+
+      li.innerHTML = `
+        <div class="pdu-menu-info">
+          <span class="pdu-menu-name">${pdu.name}</span>
+          <span class="pdu-menu-op">Op ${opText} | ${pdu.direction}</span>
+        </div>
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      `;
+      return li;
+    }
+
+    function toggleNavGroup(groupId) {
+      const group = document.querySelector(`.nav-group[data-group="${groupId}"]`);
+      if (group) group.classList.toggle('collapsed');
+    }
+
+    function setAllNavGroups(collapsed) {
+      document.querySelectorAll('.nav-group').forEach(g => {
+        if (collapsed) g.classList.add('collapsed');
+        else g.classList.remove('collapsed');
+      });
+    }
+
+    // 渲染左侧导航侧边栏（按 §4 Procedure rules 分组 + 折叠/展开）
+    function renderSidebar(filteredPdus = pduData) {
+      const listContainer = document.getElementById('pduMenuList');
+      listContainer.innerHTML = '';
+
+      document.getElementById('pduCount').innerText = `${filteredPdus.length} / ${pduData.length}`;
+
+      const isSearch = filteredPdus.length !== pduData.length;
+
+      PROCEDURE_ORDER.forEach(procKey => {
+        const meta = PROCEDURE_CATALOG[procKey];
+        if (!meta) return;
+
+        const groupPdus = sortPdusByProcedure(filteredPdus.filter(p => p.procedure === procKey));
+        if (groupPdus.length === 0) return;
+
+        const section = document.createElement('div');
+        section.className = 'nav-group';
+        if (!isSearch && meta.defaultCollapsed) {
+          section.classList.add('collapsed');
+        }
+        section.setAttribute('data-group', procKey);
+
+        const header = document.createElement('div');
+        header.className = 'nav-group-header';
+        header.style.borderLeft = `3px solid ${meta.color}`;
+        header.innerHTML = `
+          <span class="nav-group-chevron">▼</span>
+          <span class="nav-group-section">${meta.section}</span>
+          <span>${meta.title}</span>
+          <span class="nav-group-count">${groupPdus.length}</span>
+        `;
+        header.onclick = (e) => {
+          e.stopPropagation();
+          toggleNavGroup(procKey);
+        };
+
+        const desc = document.createElement('div');
+        desc.className = 'nav-group-desc';
+        desc.textContent = meta.parent ? `${meta.parent} — ${meta.desc}` : meta.desc;
+
+        const items = document.createElement('ul');
+        items.className = 'nav-group-items';
+        groupPdus.forEach(pdu => items.appendChild(createPduMenuItem(pdu)));
+
+        section.appendChild(header);
+        section.appendChild(desc);
+        section.appendChild(items);
+        listContainer.appendChild(section);
+      });
+    }
+
+    function setupSidebarCollapse() {
+      document.getElementById('expandAllNav').addEventListener('click', () => setAllNavGroups(false));
+      document.getElementById('collapseAllNav').addEventListener('click', () => setAllNavGroups(true));
+    }
+
+    // 渲染 PDU 核心目录（按 §4 过程分组排序）
+    function renderPduCatalog() {
+      const catalogContainer = document.getElementById('pduCatalog');
+      catalogContainer.innerHTML = '';
+
+      let lastProcedure = null;
+
+      sortPdusByProcedure(pduData).forEach(pdu => {
+        const procMeta = getProcedureMeta(pdu);
+        if (pdu.procedure !== lastProcedure) {
+          lastProcedure = pdu.procedure;
+          const sectionHdr = document.createElement('div');
+          sectionHdr.className = 'procedure-section-header';
+          sectionHdr.id = `procedure-${pdu.procedure}`;
+          sectionHdr.style.borderLeftColor = procMeta.color;
+          sectionHdr.innerHTML = `
+            <h4 style="color:${procMeta.color}">§${procMeta.section} ${procMeta.title}</h4>
+            <p><strong>${procMeta.parent}</strong> — ${procMeta.desc}</p>
+          `;
+          catalogContainer.appendChild(sectionHdr);
+        }
+
+        const card = document.createElement('div');
+        card.className = 'pdu-card';
+        card.id = `pdu-${pdu.name}`;
+        card.setAttribute('data-procedure', pdu.procedure);
+
+        const opText = pdu.isExtended ? `127 / ${pdu.opcode} (0x7F / 0x${pdu.opcode.toString(16).toUpperCase()})` : `${pdu.opcode} (0x${pdu.opcode.toString(16).toUpperCase()})`;
+        const badgeClass = pdu.isExtended ? 'badge-extended' : 'badge-standard';
+        const badgeText = pdu.isExtended ? '15-bit Extended PDU' : '7-bit Standard PDU';
+        const procBadge = `<span class="badge-procedure" style="background:${procMeta.color}18;color:${procMeta.color};border:1px solid ${procMeta.color}40">§${procMeta.section}</span>`;
+
+        // 构造载荷表 HTML
+        let payloadHtml = '';
+        if (pdu.payload && pdu.payload.length > 0) {
+          payloadHtml = `
+            <table class="payload-table">
+              <thead>
+                <tr>
+                  <th style="width: 15%">载荷字节位置</th>
+                  <th style="width: 30%">参数名称 (点击查看字典)</th>
+                  <th style="width: 15%">数据类型</th>
+                  <th style="width: 40%">在 PDU 中含义概述</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pdu.payload.map(item => `
+                  <tr>
+                    <td style="font-family: monospace;">${item.pos}</td>
+                    <td>
+                      ${parametersData[item.name] 
+                        ? `<a href="#param-${item.name}" class="param-link" onclick="event.preventDefault(); navigateTo('param-${item.name}')">${item.name}</a>`
+                        : `<span style="font-weight:600;">${item.name}</span>`
+                      }
+                    </td>
+                    <td style="font-family: monospace; color:#3b82f6;">${item.type}</td>
+                    <td>${item.desc}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          `;
+        } else {
+          payloadHtml = `<div style="font-size:0.85rem; color:var(--text-sub); font-style:italic;">该 LMP 信令不含参数载荷 (仅含操作码和 Transaction ID)</div>`;
+        }
+
+        card.innerHTML = `
+          <div class="pdu-card-header">
+            <div class="pdu-title-block">
+              <span class="pdu-card-name">${pdu.name}</span>
+              ${procBadge}
+              <span class="badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <div class="pdu-card-meta">
+              <span><strong>方向:</strong> ${pdu.direction}</span>
+              <span><strong>分组物理包:</strong> ${pdu.packetTypes}</span>
+              <span><strong>操作码:</strong> ${opText}</span>
+            </div>
+          </div>
+          <div class="pdu-card-body">
+            <div class="pdu-desc">${pdu.description}</div>
+            ${payloadHtml}
+          </div>
+        `;
+        catalogContainer.appendChild(card);
+      });
+    }
+
+    // 渲染详细参数字典
+    function renderParameterDirectory() {
+      const paramContainer = document.getElementById('parametersContainer');
+      paramContainer.innerHTML = '';
+
+      // 对参数按字母名字排序显示
+      const sortedKeys = Object.keys(parametersData).sort();
+
+      sortedKeys.forEach(key => {
+        const param = parametersData[key];
+        const linkedPdus = paramToPdusMap[key] || [];
+
+        const card = document.createElement('div');
+        card.className = 'parameter-card';
+        card.id = `param-${key}`;
+
+        card.innerHTML = `
+          <div class="parameter-card-header">
+            <span class="parameter-title">${key}</span>
+            <span class="parameter-type">${param.type} (${param.size})</span>
+          </div>
+          <div class="parameter-desc">
+            <div style="margin-bottom: 0.5rem;"><strong>取值范围/位属性:</strong> <code style="background-color:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:0.8rem;">${param.range}</code></div>
+            <div>${param.description}</div>
+          </div>
+          <div class="parameter-relations">
+            <span class="relation-label">使用此参数的信令/PDU:</span>
+            ${linkedPdus.length > 0 
+              ? linkedPdus.map(pduName => `
+                  <a href="#pdu-${pduName}" class="relation-badge" onclick="event.preventDefault(); navigateTo('pdu-${pduName}')">${pduName}</a>
+                `).join('')
+              : `<span style="font-size:0.75rem; color:#94a3b8; font-style:italic;">暂无 PDU 显式引用该参数</span>`
+            }
+          </div>
+        `;
+        paramContainer.appendChild(card);
+      });
+    }
+
+    // 初始化搜索功能
+    function setupSearch() {
+      const searchInput = document.getElementById('searchInput');
+
+      searchInput.addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+
+        if (!query) {
+          // 清空输入则显示全部
+          renderSidebar(pduData);
+          document.querySelectorAll('.pdu-card, .procedure-section-header').forEach(el => el.classList.remove('hidden'));
+          return;
+        }
+
+        // 支持双工搜索: 按PDU名称，或操作码匹配
+        const filtered = pduData.filter(pdu => {
+          const nameMatch = pdu.name.toLowerCase().includes(query);
+          const meta = getProcedureMeta(pdu);
+          const procMatch = pdu.procedure.includes(query)
+            || meta.title.toLowerCase().includes(query)
+            || meta.section.toLowerCase().includes(query)
+            || meta.parent.toLowerCase().includes(query)
+            || meta.desc.toLowerCase().includes(query);
+          
+          // 尝试匹配操作码。例如输入 "1" 可以匹配标准 1, 输入 "127/3" 匹配扩展 3
+          let opMatch = false;
+          const normalizedOp = query.replace(/[\/\s\-_]/g, ' '); // 格式化斜杠、减号和空格
+          const parts = normalizedOp.split(' ').filter(Boolean);
+
+          if (parts.length === 1) {
+            const num = parseInt(parts[0], 10);
+            if (!isNaN(num)) {
+              // 单个数字既匹配标准操作码，又匹配扩展子操作码
+              opMatch = (!pdu.isExtended && pdu.opcode === num) || (pdu.isExtended && pdu.opcode === num);
+            }
+          } else if (parts.length === 2) {
+            const first = parseInt(parts[0], 10);
+            const second = parseInt(parts[1], 10);
+            // 匹配 "127 3"
+            if (first === 127 && !isNaN(second)) {
+              opMatch = pdu.isExtended && pdu.opcode === second;
+            }
+          }
+
+          return nameMatch || opMatch || procMatch;
+        });
+
+        // 重新渲染侧边栏菜单
+        renderSidebar(filtered);
+
+        // 控制右侧大卡片的显示/隐藏，实现精准检索效果
+        const visiblePduNames = filtered.map(p => p.name);
+        document.querySelectorAll('.pdu-card').forEach(card => {
+          const cardName = card.id.replace('pdu-', '');
+          if (visiblePduNames.includes(cardName)) {
+            card.classList.remove('hidden');
+          } else {
+            card.classList.add('hidden');
+          }
+        });
+
+        document.querySelectorAll('.procedure-section-header').forEach(hdr => {
+          const procKey = hdr.id.replace('procedure-', '');
+          const hasVisible = filtered.some(p => p.procedure === procKey);
+          hdr.classList.toggle('hidden', !hasVisible);
+        });
+
+        // 如果只有唯一匹配，自动滚动并带高亮闪烁
+        if (filtered.length === 1) {
+          navigateTo(`pdu-${filtered[0].name}`);
+        }
+      });
+    }
+
+    function scrollToTop() {
+      document.getElementById('contentArea').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==========================================
+    // 3. 页面载入初始化
+    // ==========================================
+    window.onload = function() {
+      generateBacklinks();
+      renderSidebar();
+      renderPduCatalog();
+      renderParameterDirectory();
+      setupSearch();
+      setupSidebarCollapse();
+    };
+  </script>
+</body>
+</html>

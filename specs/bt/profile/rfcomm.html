@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>蓝牙 RFCOMM v1.1 协议详解</title>
+  <style>
+    :root {
+      --blue-dark: #0a1628;
+      --blue-mid: #0d2346;
+      --blue-accent: #0082fc;
+      --blue-light: #00c6ff;
+      --teal: #00e5cc;
+      --gold: #f5a623;
+      --red: #ff4d6d;
+      --green: #00d084;
+      --purple: #9b59b6;
+      --gray-text: #c8d6e5;
+      --section-bg: #0f1e38;
+      --card-bg: #132140;
+      --border: #1e3560;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: var(--blue-dark);
+      color: var(--gray-text);
+      line-height: 1.75;
+    }
+
+    /* ====== HERO ====== */
+    .hero {
+      background: linear-gradient(135deg, #04090f 0%, #0a1e3c 50%, #0d2f6e 100%);
+      padding: 60px 20px 50px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -80px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,130,252,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(0,130,252,0.15);
+      border: 1px solid rgba(0,130,252,0.4);
+      color: var(--blue-light);
+      border-radius: 20px;
+      padding: 4px 18px;
+      font-size: 13px;
+      letter-spacing: 1px;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(26px, 5vw, 52px);
+      font-weight: 800;
+      background: linear-gradient(90deg, #fff 0%, var(--blue-light) 60%, var(--teal) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+    .hero p {
+      font-size: 16px;
+      color: #8faec8;
+      max-width: 720px;
+      margin: 0 auto 30px;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 26px;
+      text-align: center;
+    }
+    .stat-card .val {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--blue-light);
+    }
+    .stat-card .lbl { font-size: 12px; color: #7a9ab5; margin-top: 2px; }
+
+    /* ====== NAV ====== */
+    nav {
+      background: var(--blue-mid);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      overflow-x: auto;
+    }
+    nav ul {
+      display: flex;
+      list-style: none;
+      padding: 0 20px;
+      min-width: max-content;
+    }
+    nav ul li a {
+      display: block;
+      padding: 14px 16px;
+      color: #8faec8;
+      text-decoration: none;
+      font-size: 13px;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    nav ul li a:hover { color: var(--blue-light); border-bottom-color: var(--blue-light); }
+    nav ul li a.active { color: var(--blue-light); border-bottom-color: var(--blue-light); }
+
+    /* ====== MAIN ====== */
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ====== SECTION ====== */
+    .spec-section {
+      margin-bottom: 60px;
+      scroll-margin-top: 60px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-num {
+      background: linear-gradient(135deg, var(--blue-accent), var(--blue-light));
+      color: #fff;
+      font-weight: 800;
+      font-size: 14px;
+      border-radius: 8px;
+      padding: 6px 12px;
+      white-space: nowrap;
+    }
+    .section-header h2 {
+      font-size: clamp(18px, 3vw, 26px);
+      font-weight: 700;
+      color: #e8f4ff;
+    }
+    .section-desc {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--blue-accent);
+      border-radius: 0 10px 10px 0;
+      padding: 18px 22px;
+      margin-bottom: 24px;
+      font-size: 15px;
+      color: #b0c8e0;
+    }
+
+    /* ====== DIAGRAM CONTAINERS ====== */
+    .diagram { margin: 24px 0; }
+    .diagram-title {
+      font-size: 13px;
+      color: #6a8ba8;
+      text-align: center;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ====== SVG CHARTS ====== */
+    svg { display: block; margin: 0 auto; }
+    .chart-wrap {
+      background: var(--section-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    /* ====== GRID CARDS ====== */
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin: 20px 0; }
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 20px 0; }
+    .info-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .info-card h4 {
+      color: var(--blue-light);
+      font-size: 15px;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .info-card p, .info-card li { font-size: 14px; color: #9ab6ce; }
+    .info-card ul { padding-left: 18px; }
+    .info-card ul li { margin-bottom: 5px; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      display: inline-block; flex-shrink: 0;
+    }
+
+    /* ====== FRAME FIELD TABLE ====== */
+    .frame-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    .frame-table th {
+      background: rgba(0,130,252,0.2);
+      color: var(--blue-light);
+      padding: 10px 14px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+    .frame-table td {
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      text-align: center;
+      color: #b0c8e0;
+    }
+    .frame-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .frame-table tr:hover td { background: rgba(0,130,252,0.06); }
+
+    /* ====== BADGE ====== */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-blue { background: rgba(0,130,252,0.2); color: var(--blue-light); }
+    .badge-green { background: rgba(0,208,132,0.2); color: var(--green); }
+    .badge-gold { background: rgba(245,166,35,0.2); color: var(--gold); }
+    .badge-red { background: rgba(255,77,109,0.2); color: var(--red); }
+    .badge-purple { background: rgba(155,89,182,0.2); color: var(--purple); }
+    .badge-teal { background: rgba(0,229,204,0.2); color: var(--teal); }
+
+    /* ====== FLOW / SEQUENCE ====== */
+    .seq-wrap {
+      background: var(--section-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      margin: 20px 0;
+    }
+    .seq-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 10px;
+      font-size: 14px;
+    }
+    .seq-device {
+      width: 90px;
+      text-align: center;
+      font-weight: 600;
+      color: #e0f0ff;
+      flex-shrink: 0;
+    }
+    .seq-arrow {
+      flex: 1;
+      position: relative;
+      height: 32px;
+      display: flex;
+      align-items: center;
+    }
+    .seq-line {
+      height: 2px;
+      flex: 1;
+      background: linear-gradient(90deg, var(--blue-accent), var(--teal));
+    }
+    .seq-line.rev { background: linear-gradient(90deg, var(--teal), var(--blue-accent)); }
+    .seq-head {
+      width: 0; height: 0;
+      border-top: 6px solid transparent;
+      border-bottom: 6px solid transparent;
+    }
+    .seq-head-right { border-left: 10px solid var(--teal); }
+    .seq-head-left { border-right: 10px solid var(--blue-accent); }
+    .seq-label {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: var(--gold);
+      white-space: nowrap;
+      background: var(--section-bg);
+      padding: 0 6px;
+    }
+    .seq-step-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--blue-accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .seq-text { flex: 1; color: #9ab6ce; font-size: 13px; }
+
+    /* ====== PROTOCOL STACK ====== */
+    .stack-layer {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform 0.2s;
+    }
+    .stack-layer:hover { transform: translateX(4px); }
+    .stack-layer .layer-name { font-weight: 700; font-size: 14px; min-width: 120px; }
+    .stack-layer .layer-desc { font-size: 13px; color: #7a9ab5; }
+
+    /* ====== CODE BLOCK ====== */
+    .code-block {
+      background: #060d18;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 22px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      color: #7dd3fc;
+      overflow-x: auto;
+      margin: 16px 0;
+      line-height: 1.8;
+    }
+    .code-block .cm { color: #4a6e85; }
+    .code-block .kw { color: #c792ea; }
+    .code-block .str { color: #80cbc4; }
+    .code-block .num { color: var(--gold); }
+
+    /* ====== TABS ====== */
+    .tabs { margin: 20px 0; }
+    .tab-btns { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
+    .tab-btn {
+      background: var(--section-bg);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      padding: 8px 18px;
+      color: #6a8ba8;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: var(--card-bg); color: var(--blue-light); border-color: var(--blue-accent); }
+    .tab-content {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--blue-accent);
+      border-radius: 0 10px 10px 10px;
+      padding: 22px;
+    }
+    .tab-content.active { display: block; }
+
+    /* ====== LEGEND ====== */
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; font-size: 13px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; color: #8faec8; }
+    .legend-box { width: 16px; height: 16px; border-radius: 4px; }
+
+    /* ====== RESPONSIVE ====== */
+    @media (max-width: 600px) {
+      .hero-stats { gap: 14px; }
+      .stat-card { padding: 10px 16px; }
+    }
+  
+    /* ── 左侧目录导航（Profile 规范文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    nav#topnav,
+    body > nav:not(.packet-sidebar) { display: none !important; }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+      overflow-x: hidden;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+  main.packet-main {
+      max-width: 1140px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 44px 22px 90px;
+    }
+    .packet-page .hero {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page .spec,
+    .packet-page .spec-section {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    body { overflow-x: hidden; }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+    }
+
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+@media (max-width: 820px) {
+  .bt-spec-index-link { bottom: 72px; }
+}
+</style>
+</head>
+<body><a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">RFCOMM v1.1 协议详解</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">Profile · 应用规范</div>
+    <div class="doc-name">RFCOMM v1.1 协议详解</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#s1">简介与目标（Introduction）</a>
+  <a class="packet-nav-link" href="#s2">RFCOMM 参考模型（Reference Model）</a>
+  <a class="packet-nav-link" href="#s3">蓝牙协议栈中的位置（Stack Position）</a>
+  <a class="packet-nav-link" href="#s4">支持的帧类型（Frame Types）</a>
+  <a class="packet-nav-link" href="#s5">帧结构（Frame Structure）</a>
+  <a class="packet-nav-link" href="#s6">多路复用控制命令（Multiplexer Commands）</a>
+  <a class="packet-nav-link" href="#s7">连接建立与断开（Connection Establishment）</a>
+  <a class="packet-nav-link" href="#s8">流量控制机制（Flow Control）</a>
+  <a class="packet-nav-link" href="#s9">DLCI 编址与服务器信道（DLCI &amp; Server Channel）</a>
+  <a class="packet-nav-link" href="#s10">RS-232 串口信号仿真（Port Emulation）</a>
+  <a class="packet-nav-link" href="#s11">错误处理与链路丢失（Error Handling）</a>
+  <a class="packet-nav-link" href="#s12">服务发现（Service Discovery via SDP）</a>
+  <a class="packet-nav-link" href="#summary">协议核心要点汇总</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="spp.html">Serial Port Profile v1.1</a>
+  <a class="packet-nav-link doc current-doc" href="rfcomm.html">RFCOMM v1.1 协议详解</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<!-- ======================== HERO ======================== -->
+<div class="hero">
+  <div class="hero-badge">🔵 Bluetooth SIG 官方规范</div>
+  <h1>蓝牙 RFCOMM 协议 v1.1<br>完整技术详解</h1>
+  <p>RFCOMM（Radio Frequency Communication）—— 基于 GSM TS 07.10 的蓝牙串口仿真协议。严格按照规范章节顺序，逐节解析其结构、机制与图表。</p>
+  <div class="hero-stats">
+    <div class="stat-card"><div class="val">60</div><div class="lbl">最大并发信道数</div></div>
+    <div class="stat-card"><div class="val">PSM 3</div><div class="lbl">L2CAP 端口号</div></div>
+    <div class="stat-card"><div class="val">127B</div><div class="lbl">默认帧长度</div></div>
+    <div class="stat-card"><div class="val">RS-232</div><div class="lbl">仿真接口标准</div></div>
+    <div class="stat-card"><div class="val">TS 07.10</div><div class="lbl">基础规范来源</div></div>
+  </div>
+</div>
+
+<!-- ======================== MAIN ======================== -->
+<main class="packet-main">
+
+<!-- ===== §1 简介 ===== -->
+<div class="spec-section" id="s1">
+  <div class="section-header">
+    <div class="section-num">§ 1</div>
+    <h2>简介与目标（Introduction）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 是蓝牙的串行端口仿真协议，全称 Radio Frequency Communication。它基于 ETSI 标准 GSM TS 07.10，运行于 L2CAP 之上，目的是让原本依赖 RS-232（EIA/TIA-232-E）串口的应用程序，无需修改即可通过蓝牙无线传输数据。
+  </div>
+
+  <div class="grid-2">
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--blue-light)"></span> 协议目标</h4>
+      <ul>
+        <li>仿真 RS-232 的 9 个电路信号</li>
+        <li>让传统串口应用无缝迁移至蓝牙</li>
+        <li>支持两设备间最多 60 条并发串口连接</li>
+        <li>提供可靠、有序的数据传输</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--teal)"></span> 适用场景</h4>
+      <ul>
+        <li>PC ↔ 手机数据同步（SPP 串口 Profile）</li>
+        <li>蓝牙耳机拨号（HSP / HFP）</li>
+        <li>打印机、PDA 无线连接</li>
+        <li>PPP / 拨号上网（DUN Profile）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 协议起源图 -->
+  <div class="diagram">
+    <div class="diagram-title">RFCOMM 技术溯源</div>
+    <div class="chart-wrap">
+      <svg width="700" height="180" viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto">
+            <polygon points="0 0, 8 3.5, 0 7" fill="#00c6ff"/>
+          </marker>
+        </defs>
+        <!-- boxes -->
+        <rect x="10" y="60" width="150" height="60" rx="10" fill="#132140" stroke="#1e3560" stroke-width="1.5"/>
+        <text x="85" y="86" text-anchor="middle" fill="#f5a623" font-size="13" font-weight="700">GSM TS 07.10</text>
+        <text x="85" y="104" text-anchor="middle" fill="#7a9ab5" font-size="11">串口多路复用标准</text>
+
+        <rect x="220" y="60" width="150" height="60" rx="10" fill="#132140" stroke="#1e3560" stroke-width="1.5"/>
+        <text x="295" y="86" text-anchor="middle" fill="#00c6ff" font-size="13" font-weight="700">RS-232 串口</text>
+        <text x="295" y="104" text-anchor="middle" fill="#7a9ab5" font-size="11">9 针物理接口标准</text>
+
+        <rect x="430" y="60" width="150" height="60" rx="10" fill="#132140" stroke="#1e3560" stroke-width="1.5"/>
+        <text x="505" y="86" text-anchor="middle" fill="#00e5cc" font-size="13" font-weight="700">L2CAP</text>
+        <text x="505" y="104" text-anchor="middle" fill="#7a9ab5" font-size="11">蓝牙逻辑链路层</text>
+
+        <!-- arrows in -->
+        <line x1="160" y1="90" x2="270" y2="90" stroke="#00c6ff" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="215" y="83" text-anchor="middle" fill="#6a8ba8" font-size="11">基于</text>
+        <line x1="370" y1="90" x2="420" y2="90" stroke="#00c6ff" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="395" y="83" text-anchor="middle" fill="#6a8ba8" font-size="11">运行于</text>
+
+        <!-- RFCOMM box -->
+        <rect x="220" y="0" width="150" height="48" rx="10" fill="rgba(0,130,252,0.2)" stroke="#0082fc" stroke-width="2"/>
+        <text x="295" y="20" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800">RFCOMM v1.1</text>
+        <text x="295" y="38" text-anchor="middle" fill="#00c6ff" font-size="11">蓝牙串口仿真协议</text>
+
+        <!-- arrows down -->
+        <line x1="200" y1="48" x2="200" y2="60" stroke="#0082fc" stroke-width="1.5" stroke-dasharray="4"/>
+        <line x1="390" y1="48" x2="390" y2="60" stroke="#0082fc" stroke-width="1.5" stroke-dasharray="4"/>
+
+        <!-- label bottom -->
+        <text x="295" y="168" text-anchor="middle" fill="#4a6e85" font-size="12">RFCOMM 融合了 GSM 07.10 的多路复用架构 + RS-232 信号仿真 + L2CAP 传输能力</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §2 参考模型 ===== -->
+<div class="spec-section" id="s2">
+  <div class="section-header">
+    <div class="section-num">§ 2</div>
+    <h2>RFCOMM 参考模型（Reference Model）</h2>
+  </div>
+  <div class="section-desc">
+    规范定义了 RFCOMM 参考模型，描述了两台设备间"虚拟串口通信段"的完整架构。通信路径包含两端的应用程序（通信端点）和它们之间的蓝牙无线链路（通信段）。RFCOMM 只关注设备间直连情形，或设备与调制解调器之间的连接。
+  </div>
+
+  <!-- 参考模型图 -->
+  <div class="diagram">
+    <div class="diagram-title">RFCOMM 参考模型（含多虚拟串口示意）</div>
+    <div class="chart-wrap">
+      <svg width="680" height="320" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr2" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto">
+            <polygon points="0 0, 8 3.5, 0 7" fill="#00e5cc"/>
+          </marker>
+        </defs>
+        <!-- Device A -->
+        <rect x="10" y="20" width="200" height="280" rx="14" fill="#0f1e38" stroke="#1e3560" stroke-width="1.5"/>
+        <text x="110" y="50" text-anchor="middle" fill="#e0f0ff" font-size="14" font-weight="700">设备 A（发起方）</text>
+
+        <rect x="26" y="62" width="168" height="36" rx="7" fill="rgba(245,166,35,0.12)" stroke="rgba(245,166,35,0.4)"/>
+        <text x="110" y="80" text-anchor="middle" fill="#f5a623" font-size="12" font-weight="600">应用程序</text>
+        <text x="110" y="94" text-anchor="middle" fill="#7a9ab5" font-size="10">(COM1, COM2…)</text>
+
+        <rect x="26" y="108" width="168" height="36" rx="7" fill="rgba(0,229,204,0.1)" stroke="rgba(0,229,204,0.3)"/>
+        <text x="110" y="131" text-anchor="middle" fill="#00e5cc" font-size="12" font-weight="600">RFCOMM 实体</text>
+
+        <rect x="26" y="154" width="168" height="36" rx="7" fill="rgba(0,130,252,0.1)" stroke="rgba(0,130,252,0.3)"/>
+        <text x="110" y="177" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="600">L2CAP 层</text>
+
+        <rect x="26" y="200" width="168" height="36" rx="7" fill="rgba(155,89,182,0.1)" stroke="rgba(155,89,182,0.3)"/>
+        <text x="110" y="223" text-anchor="middle" fill="#9b59b6" font-size="12" font-weight="600">基带 / HCI</text>
+
+        <rect x="26" y="246" width="168" height="40" rx="7" fill="rgba(255,77,109,0.1)" stroke="rgba(255,77,109,0.3)"/>
+        <text x="110" y="264" text-anchor="middle" fill="#ff4d6d" font-size="12" font-weight="600">蓝牙无线电</text>
+        <text x="110" y="279" text-anchor="middle" fill="#7a9ab5" font-size="10">2.4 GHz ISM</text>
+
+        <!-- Device B -->
+        <rect x="470" y="20" width="200" height="280" rx="14" fill="#0f1e38" stroke="#1e3560" stroke-width="1.5"/>
+        <text x="570" y="50" text-anchor="middle" fill="#e0f0ff" font-size="14" font-weight="700">设备 B（响应方）</text>
+
+        <rect x="486" y="62" width="168" height="36" rx="7" fill="rgba(245,166,35,0.12)" stroke="rgba(245,166,35,0.4)"/>
+        <text x="570" y="80" text-anchor="middle" fill="#f5a623" font-size="12" font-weight="600">应用程序</text>
+        <text x="570" y="94" text-anchor="middle" fill="#7a9ab5" font-size="10">(COM1, COM2…)</text>
+
+        <rect x="486" y="108" width="168" height="36" rx="7" fill="rgba(0,229,204,0.1)" stroke="rgba(0,229,204,0.3)"/>
+        <text x="570" y="131" text-anchor="middle" fill="#00e5cc" font-size="12" font-weight="600">RFCOMM 实体</text>
+
+        <rect x="486" y="154" width="168" height="36" rx="7" fill="rgba(0,130,252,0.1)" stroke="rgba(0,130,252,0.3)"/>
+        <text x="570" y="177" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="600">L2CAP 层</text>
+
+        <rect x="486" y="200" width="168" height="36" rx="7" fill="rgba(155,89,182,0.1)" stroke="rgba(155,89,182,0.3)"/>
+        <text x="570" y="223" text-anchor="middle" fill="#9b59b6" font-size="12" font-weight="600">基带 / HCI</text>
+
+        <rect x="486" y="246" width="168" height="40" rx="7" fill="rgba(255,77,109,0.1)" stroke="rgba(255,77,109,0.3)"/>
+        <text x="570" y="264" text-anchor="middle" fill="#ff4d6d" font-size="12" font-weight="600">蓝牙无线电</text>
+        <text x="570" y="279" text-anchor="middle" fill="#7a9ab5" font-size="10">2.4 GHz ISM</text>
+
+        <!-- 无线链路 -->
+        <g>
+          <!-- channel 1 -->
+          <line x1="210" y1="118" x2="466" y2="118" stroke="#00e5cc" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr2)"/>
+          <text x="340" y="111" text-anchor="middle" fill="#00e5cc" font-size="11">DLCI 2  虚拟串口 #1</text>
+          <!-- channel 2 -->
+          <line x1="210" y1="140" x2="466" y2="140" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr2)"/>
+          <text x="340" y="155" text-anchor="middle" fill="#f5a623" font-size="11">DLCI 4  虚拟串口 #2</text>
+
+          <!-- L2CAP link -->
+          <line x1="210" y1="172" x2="466" y2="172" stroke="#00c6ff" stroke-width="2" marker-end="url(#arr2)"/>
+          <text x="340" y="167" text-anchor="middle" fill="#00c6ff" font-size="11">L2CAP 信道 (PSM=3)</text>
+
+          <!-- RF link -->
+          <path d="M210,266 Q340,240 466,266" stroke="#ff4d6d" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+          <text x="340" y="258" text-anchor="middle" fill="#ff4d6d" font-size="11">蓝牙无线链路</text>
+        </g>
+
+        <!-- 中间 RFCOMM box -->
+        <rect x="270" y="180" width="140" height="62" rx="10" fill="rgba(0,130,252,0.15)" stroke="#0082fc" stroke-width="1.5"/>
+        <text x="340" y="200" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">RFCOMM 会话</text>
+        <text x="340" y="218" text-anchor="middle" fill="#00c6ff" font-size="10">TS 07.10 复用器</text>
+        <text x="340" y="234" text-anchor="middle" fill="#7a9ab5" font-size="10">DLCI 0 = 控制信道</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--gold)"></span> 通信端点（Endpoints）</h4>
+      <p>位于两个不同设备上的应用程序，通过虚拟 COM 口与 RFCOMM 交互，完全感知不到底层无线传输细节。</p>
+    </div>
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--teal)"></span> 通信段（Communication Segment）</h4>
+      <p>两设备之间的蓝牙链路。RFCOMM 仅关注此直连段，不处理端到端路由或中继场景。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §3 协议栈位置 ===== -->
+<div class="spec-section" id="s3">
+  <div class="section-header">
+    <div class="section-num">§ 3</div>
+    <h2>蓝牙协议栈中的位置（Stack Position）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 位于蓝牙协议栈的中间层：下接 L2CAP（通过 PSM=3 注册），上供各类 Profile（SPP、DUN、HSP、HFP 等）使用。它扮演"中间人"角色，把 L2CAP 数据报文通道转化为应用程序可见的虚拟串口。
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">蓝牙完整协议栈（RFCOMM 位置高亮）</div>
+    <div class="chart-wrap" style="max-width:560px;margin:0 auto;">
+      <div class="stack-layer" style="background:rgba(0,208,132,0.1);border-color:rgba(0,208,132,0.4);">
+        <div class="layer-name" style="color:var(--green)">应用层 Profile</div>
+        <div class="layer-desc">SPP / DUN / HSP / HFP / OBEX …</div>
+        <span class="badge badge-green">用户应用</span>
+      </div>
+      <div class="stack-layer" style="background:rgba(0,130,252,0.2);border-color:#0082fc;box-shadow:0 0 16px rgba(0,130,252,0.2);">
+        <div class="layer-name" style="color:#fff;font-size:16px;">⭐ RFCOMM</div>
+        <div class="layer-desc">串口仿真 · TS 07.10 多路复用 · RS-232 信号映射</div>
+        <span class="badge badge-blue">本规范</span>
+      </div>
+      <div style="text-align:center;color:#3a5a78;font-size:12px;padding:3px 0;">↕ PSM = 0x0003</div>
+      <div class="stack-layer" style="background:rgba(0,198,255,0.08);border-color:rgba(0,198,255,0.3);">
+        <div class="layer-name" style="color:var(--blue-light)">L2CAP</div>
+        <div class="layer-desc">逻辑链路控制与适配协议 · 分段重组 · 多路复用</div>
+        <span class="badge badge-blue">传输</span>
+      </div>
+      <div class="stack-layer" style="background:rgba(155,89,182,0.08);border-color:rgba(155,89,182,0.3);">
+        <div class="layer-name" style="color:var(--purple)">HCI</div>
+        <div class="layer-desc">主机控制器接口 · 命令/事件/数据通道</div>
+        <span class="badge badge-purple">控制</span>
+      </div>
+      <div class="stack-layer" style="background:rgba(155,89,182,0.08);border-color:rgba(155,89,182,0.3);">
+        <div class="layer-name" style="color:var(--purple)">LMP</div>
+        <div class="layer-desc">链路管理协议 · 认证/加密/功率控制</div>
+        <span class="badge badge-purple">链路</span>
+      </div>
+      <div class="stack-layer" style="background:rgba(255,77,109,0.08);border-color:rgba(255,77,109,0.3);">
+        <div class="layer-name" style="color:var(--red)">基带 Baseband</div>
+        <div class="layer-desc">ACL / SCO 链路 · 跳频 · 数据包调度</div>
+        <span class="badge badge-red">物理</span>
+      </div>
+      <div class="stack-layer" style="background:rgba(255,77,109,0.08);border-color:rgba(255,77,109,0.3);">
+        <div class="layer-name" style="color:var(--red)">无线电 Radio</div>
+        <div class="layer-desc">2.4 GHz ISM · FHSS · 调制解调</div>
+        <span class="badge badge-red">射频</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §4 帧类型 ===== -->
+<div class="spec-section" id="s4">
+  <div class="section-header">
+    <div class="section-num">§ 4</div>
+    <h2>支持的帧类型（Frame Types）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 使用 TS 07.10 基本选项（Basic Option），支持 5 种帧类型。注意：TS 07.10 中的 UI（Unnumbered Information）帧在 RFCOMM 中<strong style="color:var(--red)">不支持</strong>。所有帧均通过 L2CAP 传输，无需 RFCOMM 层重传。
+  </div>
+
+  <!-- 帧类型表 -->
+  <div class="chart-wrap">
+    <table class="frame-table">
+      <thead>
+        <tr>
+          <th>帧类型</th>
+          <th>全称</th>
+          <th>控制字段值</th>
+          <th>方向</th>
+          <th>用途</th>
+          <th>需要响应</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="badge badge-blue">SABM</span></td>
+          <td>Set Asynchronous Balanced Mode</td>
+          <td><code>0x2F</code></td>
+          <td>命令</td>
+          <td>建立连接（启动复用器 / DLC）</td>
+          <td><span class="badge badge-green">✓ UA 或 DM</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-green">UA</span></td>
+          <td>Unnumbered Acknowledgement</td>
+          <td><code>0x63</code></td>
+          <td>响应</td>
+          <td>确认 SABM / DISC，表示接受</td>
+          <td><span class="badge badge-red">✗</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-red">DM</span></td>
+          <td>Disconnected Mode</td>
+          <td><code>0x0F</code></td>
+          <td>响应</td>
+          <td>拒绝连接，表示处于断连状态</td>
+          <td><span class="badge badge-red">✗</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gold">DISC</span></td>
+          <td>Disconnect</td>
+          <td><code>0x43</code></td>
+          <td>命令</td>
+          <td>断开 DLC 或关闭复用器</td>
+          <td><span class="badge badge-green">✓ UA</span></td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-teal">UIH</span></td>
+          <td>Unnumbered Information with Header check</td>
+          <td><code>0xEF</code></td>
+          <td>命令/响应</td>
+          <td>传输数据（DLCI≠0）或多路控制命令（DLCI=0）</td>
+          <td><span class="badge badge-red">✗（异步）</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 帧类型状态图 -->
+  <div class="diagram">
+    <div class="diagram-title">帧类型交互关系图</div>
+    <div class="chart-wrap">
+      <svg width="660" height="200" viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a3" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#00c6ff"/>
+          </marker>
+          <marker id="a4" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#f5a623"/>
+          </marker>
+          <marker id="a5" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#ff4d6d"/>
+          </marker>
+          <marker id="a6" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#00e5cc"/>
+          </marker>
+        </defs>
+        <!-- States -->
+        <ellipse cx="80" cy="100" rx="65" ry="32" fill="#132140" stroke="#1e3560" stroke-width="1.5"/>
+        <text x="80" y="96" text-anchor="middle" fill="#8faec8" font-size="13" font-weight="600">已断开</text>
+        <text x="80" y="112" text-anchor="middle" fill="#6a8ba8" font-size="10">Disconnected</text>
+
+        <ellipse cx="330" cy="60" rx="65" ry="32" fill="#132140" stroke="#0082fc" stroke-width="1.5"/>
+        <text x="330" y="56" text-anchor="middle" fill="#00c6ff" font-size="13" font-weight="600">连接中</text>
+        <text x="330" y="72" text-anchor="middle" fill="#6a8ba8" font-size="10">Connecting</text>
+
+        <ellipse cx="330" cy="145" rx="65" ry="32" fill="#132140" stroke="#00e5cc" stroke-width="1.5"/>
+        <text x="330" y="141" text-anchor="middle" fill="#00e5cc" font-size="13" font-weight="600">已连接</text>
+        <text x="330" y="157" text-anchor="middle" fill="#6a8ba8" font-size="10">Connected / ABM</text>
+
+        <ellipse cx="575" cy="100" rx="65" ry="32" fill="#132140" stroke="#f5a623" stroke-width="1.5"/>
+        <text x="575" y="96" text-anchor="middle" fill="#f5a623" font-size="13" font-weight="600">断开中</text>
+        <text x="575" y="112" text-anchor="middle" fill="#6a8ba8" font-size="10">Disconnecting</text>
+
+        <!-- arrows -->
+        <line x1="145" y1="80" x2="264" y2="64" stroke="#00c6ff" stroke-width="1.5" marker-end="url(#a3)"/>
+        <text x="198" y="64" text-anchor="middle" fill="#00c6ff" font-size="11">SABM →</text>
+
+        <line x1="264" y1="76" x2="145" y2="108" stroke="#ff4d6d" stroke-width="1.5" marker-end="url(#a5)"/>
+        <text x="196" y="102" text-anchor="middle" fill="#ff4d6d" font-size="11">← DM</text>
+
+        <line x1="330" y1="92" x2="330" y2="113" stroke="#00e5cc" stroke-width="1.5" marker-end="url(#a6)"/>
+        <text x="356" y="108" text-anchor="middle" fill="#00e5cc" font-size="11">UA →</text>
+
+        <line x1="395" y1="140" x2="510" y2="112" stroke="#f5a623" stroke-width="1.5" marker-end="url(#a4)"/>
+        <text x="460" y="120" text-anchor="middle" fill="#f5a623" font-size="11">DISC →</text>
+
+        <line x1="510" y1="100" x2="395" y2="158" stroke="#00c6ff" stroke-width="1.5" marker-end="url(#a3)"/>
+        <text x="462" y="148" text-anchor="middle" fill="#00c6ff" font-size="11">← UA</text>
+
+        <!-- UIH self loop -->
+        <path d="M265,155 Q200,185 265,160" stroke="#00e5cc" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+        <text x="213" y="183" text-anchor="middle" fill="#00e5cc" font-size="11">UIH 数据传输</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §5 帧结构 ===== -->
+<div class="spec-section" id="s5">
+  <div class="section-header">
+    <div class="section-num">§ 5</div>
+    <h2>帧结构（Frame Structure）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 采用 TS 07.10 基本选项帧格式（去掉开头/结尾 Flag 字节）。每个 L2CAP 包只含一个 RFCOMM 帧。帧由 Address、Control、Length、Data（仅 UIH）、FCS 五个字段组成。
+  </div>
+
+  <!-- 帧结构可视化 -->
+  <div class="diagram">
+    <div class="diagram-title">RFCOMM 帧字段布局（UIH 数据帧）</div>
+    <div class="chart-wrap">
+      <svg width="660" height="120" viewBox="0 0 660 120" xmlns="http://www.w3.org/2000/svg">
+        <!-- field boxes -->
+        <rect x="10" y="30" width="90" height="50" rx="6" fill="rgba(0,130,252,0.2)" stroke="#0082fc" stroke-width="1.5"/>
+        <text x="55" y="52" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="700">Address</text>
+        <text x="55" y="68" text-anchor="middle" fill="#7a9ab5" font-size="10">1 byte</text>
+
+        <rect x="106" y="30" width="90" height="50" rx="6" fill="rgba(0,229,204,0.15)" stroke="#00e5cc" stroke-width="1.5"/>
+        <text x="151" y="52" text-anchor="middle" fill="#00e5cc" font-size="12" font-weight="700">Control</text>
+        <text x="151" y="68" text-anchor="middle" fill="#7a9ab5" font-size="10">1 byte</text>
+
+        <rect x="202" y="30" width="120" height="50" rx="6" fill="rgba(155,89,182,0.15)" stroke="#9b59b6" stroke-width="1.5"/>
+        <text x="262" y="52" text-anchor="middle" fill="#c39bd3" font-size="12" font-weight="700">Length</text>
+        <text x="262" y="68" text-anchor="middle" fill="#7a9ab5" font-size="10">1~2 bytes (EA扩展)</text>
+
+        <rect x="328" y="30" width="240" height="50" rx="6" fill="rgba(245,166,35,0.12)" stroke="#f5a623" stroke-width="1.5"/>
+        <text x="448" y="52" text-anchor="middle" fill="#f5a623" font-size="12" font-weight="700">Data（信息字段）</text>
+        <text x="448" y="68" text-anchor="middle" fill="#7a9ab5" font-size="10">0~32767 bytes（仅 UIH 帧含此字段）</text>
+
+        <rect x="574" y="30" width="76" height="50" rx="6" fill="rgba(255,77,109,0.15)" stroke="#ff4d6d" stroke-width="1.5"/>
+        <text x="612" y="52" text-anchor="middle" fill="#ff4d6d" font-size="12" font-weight="700">FCS</text>
+        <text x="612" y="68" text-anchor="middle" fill="#7a9ab5" font-size="10">1 byte CRC-8</text>
+
+        <!-- bit labels for Address -->
+        <text x="55" y="20" text-anchor="middle" fill="#4a6e85" font-size="9">EA|C/R|D|SC5~SC1</text>
+        <!-- bit labels for Control -->
+        <text x="151" y="20" text-anchor="middle" fill="#4a6e85" font-size="9">P/F bit + 帧类型</text>
+        <!-- bottom labels -->
+        <text x="262" y="100" text-anchor="middle" fill="#4a6e85" font-size="9">EA=1:单字节 / EA=0:双字节</text>
+        <text x="448" y="100" text-anchor="middle" fill="#4a6e85" font-size="9">默认 MTU=127B，最大 32767B</text>
+        <text x="612" y="100" text-anchor="middle" fill="#4a6e85" font-size="9">UIH只校验前2字段</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Address 字段 -->
+  <div class="tabs">
+    <div class="tab-btns">
+      <button class="tab-btn active" onclick="switchTab('addr-tab','t1')">Address 字段</button>
+      <button class="tab-btn" onclick="switchTab('addr-tab','t2')">Control 字段</button>
+      <button class="tab-btn" onclick="switchTab('addr-tab','t3')">Length 字段</button>
+      <button class="tab-btn" onclick="switchTab('addr-tab','t4')">FCS 字段</button>
+    </div>
+    <div class="tab-content active" id="addr-tab-t1">
+      <p style="margin-bottom:12px;color:#9ab6ce;font-size:14px;">Address 字段为 1 字节，包含 4 个子字段，决定帧的寻址与命令/响应性质：</p>
+      <div class="chart-wrap">
+        <svg width="620" height="80" viewBox="0 0 620 80" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="20" width="46" height="40" rx="4" fill="rgba(0,130,252,0.2)" stroke="#0082fc"/>
+          <text x="33" y="36" text-anchor="middle" fill="#00c6ff" font-size="11" font-weight="700">EA</text>
+          <text x="33" y="50" text-anchor="middle" fill="#00c6ff" font-size="11">bit0</text>
+          <text x="33" y="72" text-anchor="middle" fill="#4a6e85" font-size="9">扩展位=1</text>
+
+          <rect x="62" y="20" width="46" height="40" rx="4" fill="rgba(0,229,204,0.15)" stroke="#00e5cc"/>
+          <text x="85" y="36" text-anchor="middle" fill="#00e5cc" font-size="11" font-weight="700">C/R</text>
+          <text x="85" y="50" text-anchor="middle" fill="#00e5cc" font-size="11">bit1</text>
+          <text x="85" y="72" text-anchor="middle" fill="#4a6e85" font-size="9">命令/响应</text>
+
+          <rect x="114" y="20" width="46" height="40" rx="4" fill="rgba(245,166,35,0.15)" stroke="#f5a623"/>
+          <text x="137" y="36" text-anchor="middle" fill="#f5a623" font-size="11" font-weight="700">D</text>
+          <text x="137" y="50" text-anchor="middle" fill="#f5a623" font-size="11">bit2</text>
+          <text x="137" y="72" text-anchor="middle" fill="#4a6e85" font-size="9">方向位</text>
+
+          <rect x="166" y="20" width="240" height="40" rx="4" fill="rgba(155,89,182,0.15)" stroke="#9b59b6"/>
+          <text x="286" y="36" text-anchor="middle" fill="#c39bd3" font-size="11" font-weight="700">Server Channel (SC)</text>
+          <text x="286" y="50" text-anchor="middle" fill="#c39bd3" font-size="11">bits 7~3（5位）</text>
+          <text x="286" y="72" text-anchor="middle" fill="#4a6e85" font-size="9">服务器信道号（1~30），SC+D 组合得 DLCI</text>
+
+          <text x="450" y="40" fill="#7a9ab5" font-size="13">DLCI = SC × 2 + D</text>
+          <text x="450" y="60" fill="#4a6e85" font-size="11">发起方 D=1，响应方 D=0</text>
+        </svg>
+      </div>
+    </div>
+    <div class="tab-content" id="addr-tab-t2">
+      <p style="margin-bottom:12px;color:#9ab6ce;font-size:14px;">Control 字段标识帧类型，P/F（Poll/Final）位用于命令/响应握手：</p>
+      <table class="frame-table">
+        <thead><tr><th>帧类型</th><th>Control 值（P/F=1）</th><th>Control 值（P/F=0）</th></tr></thead>
+        <tbody>
+          <tr><td>SABM</td><td>0x3F</td><td>0x2F</td></tr>
+          <tr><td>UA</td><td>0x73</td><td>0x63</td></tr>
+          <tr><td>DM</td><td>0x1F</td><td>0x0F</td></tr>
+          <tr><td>DISC</td><td>0x53</td><td>0x43</td></tr>
+          <tr><td>UIH</td><td>0xFF（带 Credit）</td><td>0xEF</td></tr>
+        </tbody>
+      </table>
+      <p style="color:#7a9ab5;font-size:13px;margin-top:8px;">P/F=1 的 UIH 帧用于信用（Credit）传递，是流量控制的核心机制。</p>
+    </div>
+    <div class="tab-content" id="addr-tab-t3">
+      <p style="margin-bottom:12px;color:#9ab6ce;font-size:14px;">Length 字段使用 EA 扩展机制，允许表示更大的数据负载：</p>
+      <div class="code-block">
+<span class="cm">// 单字节 Length（EA=1，最大 127 字节）</span>
+[L7 L6 L5 L4 L3 L2 L1 EA=1]   <span class="cm">// EA=1 表示只有这一字节</span>
+
+<span class="cm">// 双字节 Length（EA=0，最大 32767 字节）</span>
+[L7 L6 L5 L4 L3 L2 L1 EA=0]   <span class="cm">// 低字节，EA=0 表示还有下一字节</span>
+[L14 L13 L12 L11 L10 L9 L8  0] <span class="cm">// 高字节</span>
+
+<span class="cm">// 默认 MTU = 127 字节，最大 = 32767 字节</span>
+      </div>
+    </div>
+    <div class="tab-content" id="addr-tab-t4">
+      <p style="margin-bottom:12px;color:#9ab6ce;font-size:14px;">FCS（Frame Check Sequence）使用 CRC-8 算法，多项式为 x⁸+x²+x+1（0x07）：</p>
+      <div class="grid-2">
+        <div class="info-card">
+          <h4><span class="dot" style="background:var(--blue-light)"></span> SABM / DISC / UA / DM</h4>
+          <p>FCS 计算覆盖：<strong style="color:var(--blue-light)">Address + Control + Length</strong> 三个字段</p>
+        </div>
+        <div class="info-card">
+          <h4><span class="dot" style="background:var(--teal)"></span> UIH 帧</h4>
+          <p>FCS 仅计算：<strong style="color:var(--teal)">Address + Control</strong> 两个字段（不含 Data，性能优化）</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §6 多路复用命令 ===== -->
+<div class="spec-section" id="s6">
+  <div class="section-header">
+    <div class="section-num">§ 6</div>
+    <h2>多路复用控制命令（Multiplexer Commands）</h2>
+  </div>
+  <div class="section-desc">
+    控制命令通过 DLCI=0 的 UIH 帧传输，用于管理 RFCOMM 连接。规范定义了 7 类命令/响应，每条命令都有对应的响应格式。若收到不支持的命令，必须回复 NSC（Non-Supported Command）。
+  </div>
+
+  <div class="grid-3">
+    <div class="info-card" style="border-top:3px solid var(--blue-accent);">
+      <h4><span class="dot" style="background:var(--blue-accent)"></span> PN — 参数协商</h4>
+      <p>Parameter Negotiation。建立 DLC 前协商帧大小、优先级、信用数等参数。<br><span class="badge badge-blue" style="margin-top:6px;display:inline-block;">必须</span></p>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--teal);">
+      <h4><span class="dot" style="background:var(--teal)"></span> MSC — 调制解调器状态</h4>
+      <p>Modem Status Command。传递 RS-232 控制信号（FC、RTC、RTR、IC、DV、Break）。<br><span class="badge badge-green" style="margin-top:6px;display:inline-block;">必须</span></p>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--gold);">
+      <h4><span class="dot" style="background:var(--gold)"></span> RPN — 远程端口协商</h4>
+      <p>Remote Port Negotiation。协商虚拟串口参数（波特率、数据位、停止位、校验位、流控方式）。<br><span class="badge badge-gold" style="margin-top:6px;display:inline-block;">可选</span></p>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--red);">
+      <h4><span class="dot" style="background:var(--red)"></span> RLS — 远程线路状态</h4>
+      <p>Remote Line Status。通知对端线路错误（过载、奇偶校验错误、成帧错误）。<br><span class="badge badge-gold" style="margin-top:6px;display:inline-block;">可选（但必须能响应）</span></p>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--purple);">
+      <h4><span class="dot" style="background:var(--purple)"></span> Test — 测试命令</h4>
+      <p>发送测试数据并要求对端原样回应，用于测试链路连通性与延迟。<br><span class="badge badge-purple" style="margin-top:6px;display:inline-block;">可选</span></p>
+    </div>
+    <div class="info-card" style="border-top:3px solid #e67e22;">
+      <h4><span class="dot" style="background:#e67e22"></span> FCon / FCoff — 流控</h4>
+      <p>Flow Control On/Off。聚合流控命令，暂停/恢复所有 DLC 的数据流（已被信用机制补充）。<br><span class="badge badge-red" style="margin-top:6px;display:inline-block;">已弱化</span></p>
+    </div>
+    <div class="info-card" style="border-top:3px solid #5dade2;">
+      <h4><span class="dot" style="background:#5dade2"></span> NSC — 不支持命令响应</h4>
+      <p>Non-Supported Command。收到任何不识别的命令类型时，必须以 NSC 响应，不得忽略。<br><span class="badge badge-blue" style="margin-top:6px;display:inline-block;">必须</span></p>
+    </div>
+  </div>
+
+  <!-- PN 命令详细字段 -->
+  <div class="diagram">
+    <div class="diagram-title">PN（参数协商）命令字段详解</div>
+    <div class="chart-wrap">
+      <table class="frame-table">
+        <thead>
+          <tr><th>字段</th><th>长度（bits）</th><th>含义</th><th>备注</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>DLCI</td><td>6</td><td>待协商的数据链路连接标识符</td><td>标识目标 DLC</td></tr>
+          <tr><td>I1~I4</td><td>4</td><td>帧类型标识</td><td>RFCOMM 中必须为 0（使用 UIH）</td></tr>
+          <tr><td>CL1~CL4</td><td>4</td><td>信用流控标识</td><td>PN CMD 发送时置 15(0xF)，RSP 置 14(0xE)</td></tr>
+          <tr><td>Priority</td><td>6</td><td>DLC 优先级（0~63）</td><td>响应方可降低但不可提高</td></tr>
+          <tr><td>T1</td><td>8</td><td>应答定时器（已废弃）</td><td>在 RFCOMM 中不使用，置 0</td></tr>
+          <tr><td>N1 (MaxFrameSize)</td><td>16</td><td>最大帧长度（字节）</td><td>默认 127，最大 32767</td></tr>
+          <tr><td>N2</td><td>8</td><td>最大重传次数（已废弃）</td><td>在 RFCOMM 中置 0</td></tr>
+          <tr><td>K (Credits)</td><td>3</td><td>初始信用数量</td><td>启动信用流控的初始值</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §7 连接建立 ===== -->
+<div class="spec-section" id="s7">
+  <div class="section-header">
+    <div class="section-num">§ 7</div>
+    <h2>连接建立与断开（Connection Establishment）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 连接分为两个阶段：① 先建立 L2CAP 信道（PSM=3），再建立 RFCOMM 会话（复用器，DLCI=0）；② 在已建立的会话上建立 DLC（具体虚拟串口，DLCI≠0）。所有这些步骤都需要精确的帧交互。
+  </div>
+
+  <!-- 完整连接序列图 -->
+  <div class="diagram">
+    <div class="diagram-title">RFCOMM 完整连接建立时序图</div>
+    <div class="chart-wrap">
+      <svg width="660" height="440" viewBox="0 0 660 440" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ra" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#00c6ff"/>
+          </marker>
+          <marker id="rb" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto-start-reverse">
+            <polygon points="0 3.5, 7 0, 7 7" fill="#00e5cc"/>
+          </marker>
+        </defs>
+
+        <!-- columns -->
+        <text x="120" y="24" text-anchor="middle" fill="#e0f0ff" font-size="14" font-weight="700">设备 A（发起方）</text>
+        <text x="540" y="24" text-anchor="middle" fill="#e0f0ff" font-size="14" font-weight="700">设备 B（响应方）</text>
+        <line x1="120" y1="32" x2="120" y2="435" stroke="#1e3560" stroke-width="1.5" stroke-dasharray="5,4"/>
+        <line x1="540" y1="32" x2="540" y2="435" stroke="#1e3560" stroke-width="1.5" stroke-dasharray="5,4"/>
+
+        <!-- Phase 1 label -->
+        <rect x="10" y="38" width="640" height="22" rx="4" fill="rgba(155,89,182,0.1)"/>
+        <text x="330" y="53" text-anchor="middle" fill="#9b59b6" font-size="12" font-weight="600">阶段一：建立 L2CAP 信道（PSM = 0x0003）</text>
+
+        <!-- Step 1 -->
+        <line x1="120" y1="80" x2="510" y2="80" stroke="#9b59b6" stroke-width="1.5" marker-end="url(#ra)" style="marker-end: url(#ra);"/>
+        <polygon points="510,77 540,80 510,83" fill="#9b59b6"/>
+        <text x="330" y="73" text-anchor="middle" fill="#c39bd3" font-size="11">L2CAP_ConnectReq (PSM=3)</text>
+        <text x="88" y="84" text-anchor="end" fill="#4a6e85" font-size="10">①</text>
+
+        <line x1="540" y1="105" x2="150" y2="105" stroke="#9b59b6" stroke-width="1.5"/>
+        <polygon points="150,102 120,105 150,108" fill="#9b59b6"/>
+        <text x="330" y="98" text-anchor="middle" fill="#c39bd3" font-size="11">L2CAP_ConnectRsp (成功)</text>
+        <text x="552" y="109" text-anchor="start" fill="#4a6e85" font-size="10">②</text>
+
+        <!-- Phase 2 label -->
+        <rect x="10" y="120" width="640" height="22" rx="4" fill="rgba(0,130,252,0.1)"/>
+        <text x="330" y="135" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="600">阶段二：建立 RFCOMM 会话（复用器）DLCI = 0</text>
+
+        <!-- SABM 0 -->
+        <line x1="120" y1="160" x2="510" y2="160" stroke="#00c6ff" stroke-width="1.5"/>
+        <polygon points="510,157 540,160 510,163" fill="#00c6ff"/>
+        <text x="330" y="153" text-anchor="middle" fill="#00c6ff" font-size="11" font-weight="600">SABM (DLCI=0)  →  [启动复用器]</text>
+        <text x="88" y="164" text-anchor="end" fill="#4a6e85" font-size="10">③</text>
+
+        <!-- UA 0 -->
+        <line x1="540" y1="185" x2="150" y2="185" stroke="#00e5cc" stroke-width="1.5"/>
+        <polygon points="150,182 120,185 150,188" fill="#00e5cc"/>
+        <text x="330" y="178" text-anchor="middle" fill="#00e5cc" font-size="11" font-weight="600">UA (DLCI=0)  ←  [确认复用器就绪]</text>
+        <text x="552" y="189" text-anchor="start" fill="#4a6e85" font-size="10">④</text>
+
+        <!-- Phase 3 label -->
+        <rect x="10" y="200" width="640" height="22" rx="4" fill="rgba(0,229,204,0.1)"/>
+        <text x="330" y="215" text-anchor="middle" fill="#00e5cc" font-size="12" font-weight="600">阶段三：建立 DLC（虚拟串口）DLCI = 2~61</text>
+
+        <!-- PN CMD -->
+        <line x1="120" y1="240" x2="510" y2="240" stroke="#f5a623" stroke-width="1.5"/>
+        <polygon points="510,237 540,240 510,243" fill="#f5a623"/>
+        <text x="330" y="233" text-anchor="middle" fill="#f5a623" font-size="11">UIH(DLCI=0) + PN CMD  →  [协商帧大小/信用]</text>
+        <text x="88" y="244" text-anchor="end" fill="#4a6e85" font-size="10">⑤</text>
+
+        <!-- PN RSP -->
+        <line x1="540" y1="262" x2="150" y2="262" stroke="#f5a623" stroke-width="1.5"/>
+        <polygon points="150,259 120,262 150,265" fill="#f5a623"/>
+        <text x="330" y="255" text-anchor="middle" fill="#f5a623" font-size="11">UIH(DLCI=0) + PN RSP  ←  [协商结果确认]</text>
+        <text x="552" y="266" text-anchor="start" fill="#4a6e85" font-size="10">⑥</text>
+
+        <!-- SABM DLCI -->
+        <line x1="120" y1="287" x2="510" y2="287" stroke="#00c6ff" stroke-width="1.5"/>
+        <polygon points="510,284 540,287 510,290" fill="#00c6ff"/>
+        <text x="330" y="280" text-anchor="middle" fill="#00c6ff" font-size="11" font-weight="600">SABM (DLCI=N)  →  [请求建立虚拟串口 N]</text>
+        <text x="88" y="291" text-anchor="end" fill="#4a6e85" font-size="10">⑦</text>
+
+        <!-- UA DLCI -->
+        <line x1="540" y1="310" x2="150" y2="310" stroke="#00e5cc" stroke-width="1.5"/>
+        <polygon points="150,307 120,310 150,313" fill="#00e5cc"/>
+        <text x="330" y="303" text-anchor="middle" fill="#00e5cc" font-size="11" font-weight="600">UA (DLCI=N)  ←  [接受虚拟串口]</text>
+        <text x="552" y="314" text-anchor="start" fill="#4a6e85" font-size="10">⑧</text>
+
+        <!-- MSC CMD -->
+        <line x1="120" y1="335" x2="510" y2="335" stroke="#00d084" stroke-width="1.5"/>
+        <polygon points="510,332 540,335 510,338" fill="#00d084"/>
+        <text x="330" y="328" text-anchor="middle" fill="#00d084" font-size="11">UIH(DLCI=0) + MSC CMD  →  [传 RS-232 信号]</text>
+        <text x="88" y="339" text-anchor="end" fill="#4a6e85" font-size="10">⑨</text>
+
+        <line x1="540" y1="357" x2="150" y2="357" stroke="#00d084" stroke-width="1.5"/>
+        <polygon points="150,354 120,357 150,360" fill="#00d084"/>
+        <text x="330" y="350" text-anchor="middle" fill="#00d084" font-size="11">UIH(DLCI=0) + MSC RSP  ←</text>
+        <text x="552" y="361" text-anchor="start" fill="#4a6e85" font-size="10">⑩</text>
+
+        <!-- Phase 4 -->
+        <rect x="10" y="372" width="640" height="22" rx="4" fill="rgba(0,208,132,0.1)"/>
+        <text x="330" y="387" text-anchor="middle" fill="#00d084" font-size="12" font-weight="600">阶段四：数据传输 — UIH (DLCI=N) 双向传输用户数据</text>
+
+        <line x1="120" y1="415" x2="510" y2="415" stroke="#f5a623" stroke-width="1.8" stroke-dasharray="6,4"/>
+        <polygon points="510,412 540,415 510,418" fill="#f5a623"/>
+        <line x1="540" y1="430" x2="150" y2="430" stroke="#f5a623" stroke-width="1.8" stroke-dasharray="6,4"/>
+        <polygon points="150,427 120,430 150,433" fill="#f5a623"/>
+        <text x="330" y="410" text-anchor="middle" fill="#f5a623" font-size="11">UIH(DLCI=N) + 用户数据（双向流）</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 断开流程 -->
+  <div class="diagram" style="margin-top:30px;">
+    <div class="diagram-title">RFCOMM 连接断开时序图</div>
+    <div class="chart-wrap">
+      <svg width="660" height="160" viewBox="0 0 660 160" xmlns="http://www.w3.org/2000/svg">
+        <text x="120" y="24" text-anchor="middle" fill="#e0f0ff" font-size="13" font-weight="600">设备 A</text>
+        <text x="540" y="24" text-anchor="middle" fill="#e0f0ff" font-size="13" font-weight="600">设备 B</text>
+        <line x1="120" y1="30" x2="120" y2="155" stroke="#1e3560" stroke-width="1.5" stroke-dasharray="5,4"/>
+        <line x1="540" y1="30" x2="540" y2="155" stroke="#1e3560" stroke-width="1.5" stroke-dasharray="5,4"/>
+
+        <line x1="120" y1="60" x2="510" y2="60" stroke="#ff4d6d" stroke-width="1.5"/>
+        <polygon points="510,57 540,60 510,63" fill="#ff4d6d"/>
+        <text x="330" y="53" text-anchor="middle" fill="#ff4d6d" font-size="11" font-weight="600">DISC (DLCI=N)  →  [关闭单个虚拟串口]</text>
+        <text x="88" y="64" text-anchor="end" fill="#4a6e85" font-size="10">①</text>
+
+        <line x1="540" y1="85" x2="150" y2="85" stroke="#00e5cc" stroke-width="1.5"/>
+        <polygon points="150,82 120,85 150,88" fill="#00e5cc"/>
+        <text x="330" y="78" text-anchor="middle" fill="#00e5cc" font-size="11">UA (DLCI=N)  ←  [确认断开]</text>
+        <text x="552" y="89" text-anchor="start" fill="#4a6e85" font-size="10">②</text>
+
+        <line x1="120" y1="115" x2="510" y2="115" stroke="#ff4d6d" stroke-width="1.5"/>
+        <polygon points="510,112 540,115 510,118" fill="#ff4d6d"/>
+        <text x="330" y="108" text-anchor="middle" fill="#ff4d6d" font-size="11" font-weight="600">DISC (DLCI=0)  →  [关闭复用器]</text>
+        <text x="88" y="119" text-anchor="end" fill="#4a6e85" font-size="10">③</text>
+
+        <line x1="540" y1="140" x2="150" y2="140" stroke="#00e5cc" stroke-width="1.5"/>
+        <polygon points="150,137 120,140 150,143" fill="#00e5cc"/>
+        <text x="330" y="133" text-anchor="middle" fill="#00e5cc" font-size="11">UA (DLCI=0)  ←  [复用器关闭完成]</text>
+        <text x="552" y="144" text-anchor="start" fill="#4a6e85" font-size="10">④</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §8 流控机制 ===== -->
+<div class="spec-section" id="s8">
+  <div class="section-header">
+    <div class="section-num">§ 8</div>
+    <h2>流量控制机制（Flow Control）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM v1.1 强制要求实现<strong style="color:var(--blue-light)">信用（Credit）流控</strong>机制，这是相较于原始 TS 07.10 的核心扩展。信用机制在单个 DLC 级别精细控制数据流，替代了仅能全局暂停的 FCon/FCoff 方式。
+  </div>
+
+  <!-- 信用流控图 -->
+  <div class="diagram">
+    <div class="diagram-title">信用（Credit）流控工作原理</div>
+    <div class="chart-wrap">
+      <svg width="660" height="300" viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg">
+        <!-- A side -->
+        <rect x="20" y="20" width="160" height="260" rx="12" fill="#0f1e38" stroke="#1e3560"/>
+        <text x="100" y="44" text-anchor="middle" fill="#e0f0ff" font-size="13" font-weight="700">设备 A</text>
+        <text x="100" y="66" text-anchor="middle" fill="#f5a623" font-size="12">信用余额：</text>
+        <text x="100" y="90" text-anchor="middle" fill="#f5a623" font-size="36" font-weight="800" id="creditA">7</text>
+        <text x="100" y="112" text-anchor="middle" fill="#7a9ab5" font-size="11">（可发送帧数）</text>
+        <rect x="36" y="130" width="128" height="40" rx="8" fill="rgba(0,130,252,0.15)" stroke="#0082fc"/>
+        <text x="100" y="154" text-anchor="middle" fill="#00c6ff" font-size="11">发送 UIH + P/F=1</text>
+        <text x="100" y="168" text-anchor="middle" fill="#7a9ab5" font-size="10">每帧消耗 1 信用</text>
+        <rect x="36" y="192" width="128" height="40" rx="8" fill="rgba(0,229,204,0.1)" stroke="#00e5cc"/>
+        <text x="100" y="208" text-anchor="middle" fill="#00e5cc" font-size="11">收到 P/F=1 帧</text>
+        <text x="100" y="222" text-anchor="middle" fill="#7a9ab5" font-size="10">获得新信用（增加余额）</text>
+        <text x="100" y="258" text-anchor="middle" fill="#4a6e85" font-size="10">信用=0 时停止发送</text>
+
+        <!-- B side -->
+        <rect x="480" y="20" width="160" height="260" rx="12" fill="#0f1e38" stroke="#1e3560"/>
+        <text x="560" y="44" text-anchor="middle" fill="#e0f0ff" font-size="13" font-weight="700">设备 B</text>
+        <text x="560" y="66" text-anchor="middle" fill="#00e5cc" font-size="12">信用余额：</text>
+        <text x="560" y="90" text-anchor="middle" fill="#00e5cc" font-size="36" font-weight="800" id="creditB">7</text>
+        <text x="560" y="112" text-anchor="middle" fill="#7a9ab5" font-size="11">（可发送帧数）</text>
+        <rect x="496" y="130" width="128" height="40" rx="8" fill="rgba(0,229,204,0.1)" stroke="#00e5cc"/>
+        <text x="560" y="154" text-anchor="middle" fill="#00e5cc" font-size="11">收到数据后</text>
+        <text x="560" y="168" text-anchor="middle" fill="#7a9ab5" font-size="10">发送新信用（P/F=1 帧）</text>
+        <rect x="496" y="192" width="128" height="40" rx="8" fill="rgba(245,166,35,0.1)" stroke="#f5a623"/>
+        <text x="560" y="208" text-anchor="middle" fill="#f5a623" font-size="11">接收缓冲区满时</text>
+        <text x="560" y="222" text-anchor="middle" fill="#7a9ab5" font-size="10">暂停发放新信用</text>
+        <text x="560" y="258" text-anchor="middle" fill="#4a6e85" font-size="10">动态控制背压</text>
+
+        <!-- arrows middle -->
+        <line x1="185" y1="130" x2="475" y2="130" stroke="#f5a623" stroke-width="1.5"/>
+        <polygon points="472,127 480,130 472,133" fill="#f5a623"/>
+        <text x="330" y="123" text-anchor="middle" fill="#f5a623" font-size="11">UIH(P/F=1, credit=N) + 数据  →</text>
+
+        <line x1="480" y1="165" x2="190" y2="165" stroke="#00e5cc" stroke-width="1.5"/>
+        <polygon points="193,162 185,165 193,168" fill="#00e5cc"/>
+        <text x="330" y="178" text-anchor="middle" fill="#00e5cc" font-size="11">←  UIH(P/F=1, credit=M)（补充信用）</text>
+
+        <!-- PN credit negotiation note -->
+        <rect x="220" y="205" width="220" height="58" rx="8" fill="rgba(155,89,182,0.1)" stroke="rgba(155,89,182,0.4)"/>
+        <text x="330" y="224" text-anchor="middle" fill="#c39bd3" font-size="11" font-weight="600">PN 协商阶段</text>
+        <text x="330" y="240" text-anchor="middle" fill="#9ab6ce" font-size="10">PN CMD: CL=0xF（请求信用流控）</text>
+        <text x="330" y="255" text-anchor="middle" fill="#9ab6ce" font-size="10">PN RSP: CL=0xE（确认支持）</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--gold)"></span> FCon / FCoff（全局流控）</h4>
+      <p style="margin-bottom:8px;">老式聚合流控，通过 DLCI=0 的控制命令对所有信道同时生效，粒度粗，现已被信用机制取代。</p>
+      <span class="badge badge-gold">遗留机制</span>
+    </div>
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--blue-light)"></span> Credit 信用流控（强制）</h4>
+      <p style="margin-bottom:8px;">每个 DLC 独立维护收发信用计数。发送方每发一帧消耗 1 信用，信用耗尽则停止发送，直到对端通过 UIH(P/F=1) 补充信用。</p>
+      <span class="badge badge-blue">强制实现</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §9 DLCI 编址 ===== -->
+<div class="spec-section" id="s9">
+  <div class="section-header">
+    <div class="section-num">§ 9</div>
+    <h2>DLCI 编址与服务器信道（DLCI &amp; Server Channel）</h2>
+  </div>
+  <div class="section-desc">
+    DLCI（Data Link Connection Identifier，数据链路连接标识符）是一个 6 位字段，由方向位 D 和 5 位服务器信道号（Server Channel，1~30）组合构成。DLCI 在两设备之间的 RFCOMM 会话中唯一标识一条虚拟串口连接。
+  </div>
+
+  <!-- DLCI 计算图 -->
+  <div class="diagram">
+    <div class="diagram-title">DLCI 值域分配图</div>
+    <div class="chart-wrap">
+      <svg width="660" height="200" viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- ruler -->
+        <rect x="20" y="70" width="620" height="50" rx="6" fill="#0a1628" stroke="#1e3560"/>
+        <!-- segments -->
+        <rect x="20" y="70" width="20" height="50" rx="0" fill="rgba(155,89,182,0.3)" stroke="#9b59b6"/>
+        <text x="30" y="100" text-anchor="middle" fill="#9b59b6" font-size="10">0</text>
+        <text x="30" y="140" text-anchor="middle" fill="#9b59b6" font-size="9">控制信道</text>
+
+        <rect x="40" y="70" width="16" height="50" rx="0" fill="rgba(255,77,109,0.2)" stroke="#ff4d6d"/>
+        <text x="48" y="100" text-anchor="middle" fill="#ff4d6d" font-size="10">1</text>
+        <text x="48" y="140" text-anchor="middle" fill="#ff4d6d" font-size="9">保留</text>
+
+        <rect x="56" y="70" width="520" height="50" rx="0" fill="rgba(0,130,252,0.15)" stroke="#0082fc"/>
+        <text x="316" y="92" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="600">DLCI 2 ~ 61（可用信道，共 60 个）</text>
+        <text x="316" y="108" text-anchor="middle" fill="#7a9ab5" font-size="10">发起方（D=1）：2,4,6…60 ▏ 响应方（D=0）：3,5,7…61</text>
+        <text x="316" y="122" text-anchor="middle" fill="#4a6e85" font-size="10">Server Channel 1~30，DLCI = SC×2 + D</text>
+
+        <rect x="576" y="70" width="32" height="50" rx="0" fill="rgba(255,77,109,0.2)" stroke="#ff4d6d"/>
+        <text x="592" y="100" text-anchor="middle" fill="#ff4d6d" font-size="10">62~63</text>
+        <text x="592" y="140" text-anchor="middle" fill="#ff4d6d" font-size="9">保留</text>
+
+        <!-- scale labels -->
+        <text x="20" y="165" text-anchor="middle" fill="#4a6e85" font-size="10">0</text>
+        <text x="640" y="165" text-anchor="middle" fill="#4a6e85" font-size="10">63</text>
+        <text x="330" y="185" text-anchor="middle" fill="#4a6e85" font-size="11">DLCI 6 位字段，值域 0~63，实际可用 2~61</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--blue-light)"></span> DLCI 计算规则</h4>
+      <div class="code-block">
+<span class="cm">// 发起方（Initiator, D=1）</span>
+DLCI = ServerChannel × 2 + 1
+<span class="cm">// 示例：Server Channel = 9</span>
+DLCI = 9×2 + 1 = <span class="num">19</span>  (0x13)
+
+<span class="cm">// 响应方（Responder, D=0）</span>
+DLCI = ServerChannel × 2 + 0
+<span class="cm">// 示例：Server Channel = 9</span>
+DLCI = 9×2 + 0 = <span class="num">18</span>  (0x12)
+      </div>
+    </div>
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--gold)"></span> 服务器信道（Server Channel）</h4>
+      <ul>
+        <li>范围：1 ~ 30（共 30 个）</li>
+        <li>服务器信道号需在 SDP 数据库注册</li>
+        <li>客户端通过 SDP 查询获取目标服务器信道号</li>
+        <li>多个 Profile 可在同一会话中并行使用不同信道</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 多信道复用图 -->
+  <div class="diagram">
+    <div class="diagram-title">两设备间多虚拟串口复用示意</div>
+    <div class="chart-wrap">
+      <svg width="660" height="200" viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="130" height="160" rx="10" fill="#0f1e38" stroke="#1e3560"/>
+        <text x="85" y="44" text-anchor="middle" fill="#e0f0ff" font-size="12" font-weight="700">设备 A</text>
+        <rect x="32" y="56" width="106" height="26" rx="5" fill="rgba(245,166,35,0.15)" stroke="#f5a623" stroke-width="1"/>
+        <text x="85" y="73" text-anchor="middle" fill="#f5a623" font-size="11">SPP (SC=1) DLCI=2</text>
+        <rect x="32" y="90" width="106" height="26" rx="5" fill="rgba(0,130,252,0.15)" stroke="#0082fc" stroke-width="1"/>
+        <text x="85" y="107" text-anchor="middle" fill="#00c6ff" font-size="11">DUN (SC=2) DLCI=4</text>
+        <rect x="32" y="124" width="106" height="26" rx="5" fill="rgba(0,229,204,0.15)" stroke="#00e5cc" stroke-width="1"/>
+        <text x="85" y="141" text-anchor="middle" fill="#00e5cc" font-size="11">HFP (SC=3) DLCI=6</text>
+
+        <!-- center L2CAP channel -->
+        <rect x="220" y="80" width="220" height="50" rx="10" fill="rgba(0,130,252,0.08)" stroke="#0082fc"/>
+        <text x="330" y="101" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="700">L2CAP 信道 (PSM=3)</text>
+        <text x="330" y="118" text-anchor="middle" fill="#4a6e85" font-size="10">RFCOMM 会话 / TS 07.10 复用器</text>
+
+        <!-- arrows -->
+        <line x1="150" y1="70" x2="215" y2="96" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="150" y1="106" x2="215" y2="106" stroke="#0082fc" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="150" y1="138" x2="215" y2="116" stroke="#00e5cc" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+        <rect x="510" y="20" width="130" height="160" rx="10" fill="#0f1e38" stroke="#1e3560"/>
+        <text x="575" y="44" text-anchor="middle" fill="#e0f0ff" font-size="12" font-weight="700">设备 B</text>
+        <rect x="522" y="56" width="106" height="26" rx="5" fill="rgba(245,166,35,0.15)" stroke="#f5a623" stroke-width="1"/>
+        <text x="575" y="73" text-anchor="middle" fill="#f5a623" font-size="11">SPP (SC=1) DLCI=3</text>
+        <rect x="522" y="90" width="106" height="26" rx="5" fill="rgba(0,130,252,0.15)" stroke="#0082fc" stroke-width="1"/>
+        <text x="575" y="107" text-anchor="middle" fill="#00c6ff" font-size="11">DUN (SC=2) DLCI=5</text>
+        <rect x="522" y="124" width="106" height="26" rx="5" fill="rgba(0,229,204,0.15)" stroke="#00e5cc" stroke-width="1"/>
+        <text x="575" y="141" text-anchor="middle" fill="#00e5cc" font-size="11">HFP (SC=3) DLCI=7</text>
+
+        <line x1="445" y1="96" x2="510" y2="70" stroke="#f5a623" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="445" y1="106" x2="510" y2="106" stroke="#0082fc" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="445" y1="116" x2="510" y2="138" stroke="#00e5cc" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+        <text x="330" y="178" text-anchor="middle" fill="#4a6e85" font-size="11">同一 L2CAP 信道承载多条虚拟串口，节省无线资源</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §10 串口信号仿真 ===== -->
+<div class="spec-section" id="s10">
+  <div class="section-header">
+    <div class="section-num">§ 10</div>
+    <h2>RS-232 串口信号仿真（Port Emulation）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 通过 MSC（Modem Status Command）命令传递 RS-232 的 9 个控制信号，并通过 RPN（Remote Port Negotiation）协商虚拟串口参数（如波特率、数据位、奇偶校验），使传统串口应用无感知地运行于蓝牙之上。
+  </div>
+
+  <!-- RS-232 vs RFCOMM 对照图 -->
+  <div class="diagram">
+    <div class="diagram-title">RS-232 物理信号 ↔ RFCOMM 虚拟信号对照</div>
+    <div class="chart-wrap">
+      <svg width="660" height="260" viewBox="0 0 660 260" xmlns="http://www.w3.org/2000/svg">
+        <!-- RS-232 connector -->
+        <text x="120" y="22" text-anchor="middle" fill="#e0f0ff" font-size="13" font-weight="700">RS-232（物理）</text>
+        <rect x="20" y="30" width="200" height="220" rx="10" fill="#0f1e38" stroke="#1e3560"/>
+
+        <!-- pins -->
+        <g font-size="11" font-family="monospace">
+          <rect x="30" y="42" width="180" height="22" rx="4" fill="rgba(0,130,252,0.1)" stroke="#1e3560"/>
+          <text x="40" y="57" fill="#00c6ff">TxD</text><text x="130" y="57" fill="#7a9ab5">发送数据</text>
+          <rect x="30" y="68" width="180" height="22" rx="4" fill="rgba(0,130,252,0.1)" stroke="#1e3560"/>
+          <text x="40" y="83" fill="#00c6ff">RxD</text><text x="130" y="83" fill="#7a9ab5">接收数据</text>
+          <rect x="30" y="94" width="180" height="22" rx="4" fill="rgba(0,229,204,0.1)" stroke="#1e3560"/>
+          <text x="40" y="109" fill="#00e5cc">RTS</text><text x="130" y="109" fill="#7a9ab5">请求发送</text>
+          <rect x="30" y="120" width="180" height="22" rx="4" fill="rgba(0,229,204,0.1)" stroke="#1e3560"/>
+          <text x="40" y="135" fill="#00e5cc">CTS</text><text x="130" y="135" fill="#7a9ab5">允许发送</text>
+          <rect x="30" y="146" width="180" height="22" rx="4" fill="rgba(245,166,35,0.1)" stroke="#1e3560"/>
+          <text x="40" y="161" fill="#f5a623">DTR</text><text x="130" y="161" fill="#7a9ab5">数据终端就绪</text>
+          <rect x="30" y="172" width="180" height="22" rx="4" fill="rgba(245,166,35,0.1)" stroke="#1e3560"/>
+          <text x="40" y="187" fill="#f5a623">DSR</text><text x="130" y="187" fill="#7a9ab5">数据集就绪</text>
+          <rect x="30" y="198" width="180" height="22" rx="4" fill="rgba(255,77,109,0.1)" stroke="#1e3560"/>
+          <text x="40" y="213" fill="#ff4d6d">DCD</text><text x="130" y="213" fill="#7a9ab5">数据载波检测</text>
+          <rect x="30" y="224" width="180" height="22" rx="4" fill="rgba(155,89,182,0.1)" stroke="#1e3560"/>
+          <text x="40" y="239" fill="#9b59b6">RI</text><text x="130" y="239" fill="#7a9ab5">振铃指示</text>
+        </g>
+
+        <!-- RFCOMM side -->
+        <text x="540" y="22" text-anchor="middle" fill="#e0f0ff" font-size="13" font-weight="700">RFCOMM（虚拟）</text>
+        <rect x="440" y="30" width="200" height="220" rx="10" fill="#0f1e38" stroke="#0082fc"/>
+
+        <g font-size="11" font-family="monospace">
+          <rect x="450" y="42" width="180" height="22" rx="4" fill="rgba(0,130,252,0.2)" stroke="#0082fc"/>
+          <text x="460" y="57" fill="#00c6ff">UIH Data</text><text x="560" y="57" fill="#7a9ab5">数据净荷</text>
+          <rect x="450" y="68" width="180" height="22" rx="4" fill="rgba(0,130,252,0.2)" stroke="#0082fc"/>
+          <text x="460" y="83" fill="#00c6ff">UIH Data</text><text x="560" y="83" fill="#7a9ab5">数据净荷</text>
+          <rect x="450" y="94" width="180" height="22" rx="4" fill="rgba(0,229,204,0.2)" stroke="#00e5cc"/>
+          <text x="460" y="109" fill="#00e5cc">MSC.RTR</text><text x="560" y="109" fill="#7a9ab5">Ready to Receive</text>
+          <rect x="450" y="120" width="180" height="22" rx="4" fill="rgba(0,229,204,0.2)" stroke="#00e5cc"/>
+          <text x="460" y="135" fill="#00e5cc">MSC.FC</text><text x="560" y="135" fill="#7a9ab5">Flow Control</text>
+          <rect x="450" y="146" width="180" height="22" rx="4" fill="rgba(245,166,35,0.2)" stroke="#f5a623"/>
+          <text x="460" y="161" fill="#f5a623">MSC.RTC</text><text x="560" y="161" fill="#7a9ab5">Ready To Comm.</text>
+          <rect x="450" y="172" width="180" height="22" rx="4" fill="rgba(245,166,35,0.2)" stroke="#f5a623"/>
+          <text x="460" y="187" fill="#f5a623">MSC.RTC</text><text x="560" y="187" fill="#7a9ab5">Ready To Comm.</text>
+          <rect x="450" y="198" width="180" height="22" rx="4" fill="rgba(255,77,109,0.2)" stroke="#ff4d6d"/>
+          <text x="460" y="213" fill="#ff4d6d">MSC.DV</text><text x="560" y="213" fill="#7a9ab5">Data Valid</text>
+          <rect x="450" y="224" width="180" height="22" rx="4" fill="rgba(155,89,182,0.2)" stroke="#9b59b6"/>
+          <text x="460" y="239" fill="#9b59b6">MSC.IC</text><text x="560" y="239" fill="#7a9ab5">Incoming Call</text>
+        </g>
+
+        <!-- mapping arrows -->
+        <g stroke-dasharray="4,3">
+          <line x1="222" y1="53" x2="438" y2="53" stroke="#00c6ff" stroke-width="1"/>
+          <line x1="222" y1="79" x2="438" y2="79" stroke="#00c6ff" stroke-width="1"/>
+          <line x1="222" y1="105" x2="438" y2="105" stroke="#00e5cc" stroke-width="1"/>
+          <line x1="222" y1="131" x2="438" y2="131" stroke="#00e5cc" stroke-width="1"/>
+          <line x1="222" y1="157" x2="438" y2="157" stroke="#f5a623" stroke-width="1"/>
+          <line x1="222" y1="183" x2="438" y2="183" stroke="#f5a623" stroke-width="1"/>
+          <line x1="222" y1="209" x2="438" y2="209" stroke="#ff4d6d" stroke-width="1"/>
+          <line x1="222" y1="235" x2="438" y2="235" stroke="#9b59b6" stroke-width="1"/>
+        </g>
+
+        <text x="330" y="253" text-anchor="middle" fill="#4a6e85" font-size="11">通过 MSC 命令在 RFCOMM 层传递控制信号，完全仿真物理串口行为</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- RPN 参数表 -->
+  <div class="diagram">
+    <div class="diagram-title">RPN（Remote Port Negotiation）可协商参数</div>
+    <div class="chart-wrap">
+      <table class="frame-table">
+        <thead><tr><th>参数</th><th>可选值</th><th>默认值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>波特率</td><td>2400/4800/9600/19200/38400/57600/115200/…</td><td>9600</td><td>虚拟串口波特率（不影响实际蓝牙带宽）</td></tr>
+          <tr><td>数据位</td><td>5 / 6 / 7 / 8</td><td>8</td><td>每帧数据位数</td></tr>
+          <tr><td>停止位</td><td>1 / 1.5 / 2</td><td>1</td><td>帧停止位</td></tr>
+          <tr><td>奇偶校验</td><td>无 / 奇 / 偶 / 标志 / 空格</td><td>无</td><td>帧校验方式</td></tr>
+          <tr><td>流控方式</td><td>XON/XOFF / RTS/CTS / 无</td><td>无</td><td>端口级流控（区别于信用流控）</td></tr>
+          <tr><td>XON 字符</td><td>0x00~0xFF</td><td>0x11 (DC1)</td><td>软件流控启动字符</td></tr>
+          <tr><td>XOFF 字符</td><td>0x00~0xFF</td><td>0x13 (DC3)</td><td>软件流控停止字符</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== §11 错误处理 ===== -->
+<div class="spec-section" id="s11">
+  <div class="section-header">
+    <div class="section-num">§ 11</div>
+    <h2>错误处理与链路丢失（Error Handling）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 依赖 L2CAP 提供最大可靠性的信道（有序无重复）。RFCOMM 本身不重传，但定义了在链路丢失、FCS 错误、非预期帧等情况下的处理规则，以及各状态下收到 SABM/DISC/UA/DM 的响应行为。
+  </div>
+
+  <!-- 错误处理决策树 -->
+  <div class="diagram">
+    <div class="diagram-title">RFCOMM 错误场景处理决策图</div>
+    <div class="chart-wrap">
+      <svg width="640" height="260" viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ea" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <polygon points="0 0, 7 3.5, 0 7" fill="#8faec8"/>
+          </marker>
+        </defs>
+        <!-- root -->
+        <rect x="220" y="10" width="200" height="40" rx="8" fill="rgba(0,130,252,0.15)" stroke="#0082fc"/>
+        <text x="320" y="35" text-anchor="middle" fill="#00c6ff" font-size="13" font-weight="600">收到帧 / 事件</text>
+
+        <!-- node 1: L2CAP失败 -->
+        <rect x="20" y="90" width="160" height="40" rx="8" fill="rgba(255,77,109,0.15)" stroke="#ff4d6d"/>
+        <text x="100" y="107" text-anchor="middle" fill="#ff4d6d" font-size="11" font-weight="600">L2CAP 链路断开</text>
+        <text x="100" y="122" text-anchor="middle" fill="#7a9ab5" font-size="10">link loss notification</text>
+
+        <rect x="20" y="175" width="160" height="40" rx="8" fill="rgba(255,77,109,0.1)" stroke="#ff4d6d"/>
+        <text x="100" y="192" text-anchor="middle" fill="#ff4d6d" font-size="11">关闭所有 DLC</text>
+        <text x="100" y="207" text-anchor="middle" fill="#7a9ab5" font-size="10">通知上层应用断开</text>
+
+        <!-- node 2: FCS错误 -->
+        <rect x="220" y="90" width="160" height="40" rx="8" fill="rgba(245,166,35,0.15)" stroke="#f5a623"/>
+        <text x="300" y="107" text-anchor="middle" fill="#f5a623" font-size="11" font-weight="600">FCS 校验失败</text>
+        <text x="300" y="122" text-anchor="middle" fill="#7a9ab5" font-size="10">帧数据损坏</text>
+
+        <rect x="220" y="175" width="160" height="40" rx="8" fill="rgba(245,166,35,0.1)" stroke="#f5a623"/>
+        <text x="300" y="192" text-anchor="middle" fill="#f5a623" font-size="11">丢弃帧</text>
+        <text x="300" y="207" text-anchor="middle" fill="#7a9ab5" font-size="10">不重传（依赖 L2CAP 可靠性）</text>
+
+        <!-- node 3: 非预期帧 -->
+        <rect x="440" y="90" width="180" height="40" rx="8" fill="rgba(155,89,182,0.15)" stroke="#9b59b6"/>
+        <text x="530" y="107" text-anchor="middle" fill="#c39bd3" font-size="11" font-weight="600">收到非预期/未知帧</text>
+        <text x="530" y="122" text-anchor="middle" fill="#7a9ab5" font-size="10">不支持的命令类型</text>
+
+        <rect x="440" y="175" width="180" height="40" rx="8" fill="rgba(155,89,182,0.1)" stroke="#9b59b6"/>
+        <text x="530" y="192" text-anchor="middle" fill="#c39bd3" font-size="11">回复 NSC 帧</text>
+        <text x="530" y="207" text-anchor="middle" fill="#7a9ab5" font-size="10">Non-Supported Command</text>
+
+        <!-- arrows from root -->
+        <line x1="260" y1="50" x2="100" y2="88" stroke="#8faec8" stroke-width="1.2" marker-end="url(#ea)"/>
+        <line x1="320" y1="50" x2="320" y2="88" stroke="#8faec8" stroke-width="1.2" marker-end="url(#ea)"/>
+        <line x1="380" y1="50" x2="530" y2="88" stroke="#8faec8" stroke-width="1.2" marker-end="url(#ea)"/>
+
+        <!-- arrows down -->
+        <line x1="100" y1="132" x2="100" y2="173" stroke="#ff4d6d" stroke-width="1.2" marker-end="url(#ea)"/>
+        <line x1="300" y1="132" x2="300" y2="173" stroke="#f5a623" stroke-width="1.2" marker-end="url(#ea)"/>
+        <line x1="530" y1="132" x2="530" y2="173" stroke="#9b59b6" stroke-width="1.2" marker-end="url(#ea)"/>
+
+        <text x="320" y="250" text-anchor="middle" fill="#4a6e85" font-size="11">RFCOMM 不做重传——L2CAP 必须保证有序无损投递</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- 状态响应表 -->
+  <div class="chart-wrap">
+    <table class="frame-table">
+      <thead>
+        <tr><th>当前状态</th><th>收到 SABM</th><th>收到 DISC</th><th>收到 UA</th><th>收到 DM</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>已断开（Disconnected）</td>
+          <td><span class="badge badge-blue">回 UA / DM</span></td>
+          <td><span class="badge badge-green">回 UA</span></td>
+          <td>忽略</td>
+          <td>忽略</td>
+        </tr>
+        <tr>
+          <td>已连接（Connected/ABM）</td>
+          <td>重复 SABM → 回 UA</td>
+          <td><span class="badge badge-red">关闭 DLC，回 UA</span></td>
+          <td>忽略</td>
+          <td><span class="badge badge-red">通知上层断开</span></td>
+        </tr>
+        <tr>
+          <td>等待 UA（W4_UA）</td>
+          <td>忽略</td>
+          <td>忽略</td>
+          <td><span class="badge badge-green">连接成功</span></td>
+          <td><span class="badge badge-red">连接被拒</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== §12 服务发现 ===== -->
+<div class="spec-section" id="s12">
+  <div class="section-header">
+    <div class="section-num">§ 12</div>
+    <h2>服务发现（Service Discovery via SDP）</h2>
+  </div>
+  <div class="section-desc">
+    RFCOMM 服务必须在蓝牙 SDP（Service Discovery Protocol）数据库中注册，客户端在建立 RFCOMM 连接之前，先通过 SDP 查询获取目标服务的 Server Channel 号。这是 RFCOMM 连接建立的第一步（零步骤）。
+  </div>
+
+  <!-- SDP + RFCOMM 完整流程 -->
+  <div class="diagram">
+    <div class="diagram-title">含 SDP 查询的完整 RFCOMM 建立流程</div>
+    <div class="seq-wrap">
+      <div class="seq-row">
+        <div class="seq-device">设备 A</div>
+        <div class="seq-step-num">0</div>
+        <div class="seq-text">用户/应用发起连接请求，触发服务发现流程</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--purple)">SDP 查询</div>
+        <div class="seq-step-num" style="background:var(--purple)">1</div>
+        <div class="seq-text">A → B：<strong style="color:var(--purple)">SDP_ServiceSearchAttributeReq</strong>（查询 SPP / HFP 等 Profile 的 ServiceClassID）</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--purple)">SDP 响应</div>
+        <div class="seq-step-num" style="background:var(--purple)">2</div>
+        <div class="seq-text">B → A：<strong style="color:var(--purple)">SDP_ServiceSearchAttributeRsp</strong>（返回 <span class="badge badge-gold">Server Channel = N</span>）</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--blue-light)">L2CAP</div>
+        <div class="seq-step-num" style="background:var(--blue-accent)">3</div>
+        <div class="seq-text">A → B：L2CAP_ConnectReq（PSM=3）建立蓝牙数据信道</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--teal)">RFCOMM</div>
+        <div class="seq-step-num" style="background:var(--teal);color:#000">4</div>
+        <div class="seq-text">A → B：SABM(DLCI=0) — 建立 RFCOMM 会话（复用器）</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--teal)">RFCOMM</div>
+        <div class="seq-step-num" style="background:var(--teal);color:#000">5</div>
+        <div class="seq-text">A → B：UIH + PN CMD（使用 SDP 返回的 Server Channel N，DLCI=N×2+1）</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--teal)">RFCOMM</div>
+        <div class="seq-step-num" style="background:var(--teal);color:#000">6</div>
+        <div class="seq-text">A → B：SABM(DLCI=N×2+1) — 建立目标 Profile 的虚拟串口 DLC</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--gold)">MSC</div>
+        <div class="seq-step-num" style="background:var(--gold);color:#000">7</div>
+        <div class="seq-text">双向交换 MSC（Modem Status Command），协商 RS-232 信号初始状态</div>
+      </div>
+      <div class="seq-row">
+        <div class="seq-device" style="color:var(--green)">数据</div>
+        <div class="seq-step-num" style="background:var(--green);color:#000">8</div>
+        <div class="seq-text">UIH 帧双向传输用户数据，Profile 开始工作（如 SPP 数据同步、HFP 通话控制等）</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SDP 记录结构 -->
+  <div class="grid-2">
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--purple)"></span> SDP 服务记录必要属性</h4>
+      <div class="code-block">
+ServiceClassIDList:
+  [<span class="str">SerialPort</span>]  <span class="cm">// 0x1101 (SPP)</span>
+
+ProtocolDescriptorList:
+  L2CAP: PSM = <span class="num">0x0003</span>
+  RFCOMM: Channel = <span class="num">N</span>  <span class="cm">// 注册的 ServerChannel</span>
+
+BluetoothProfileDescriptorList:
+  [<span class="str">SerialPort</span>, version=<span class="num">0x0102</span>]
+      </div>
+    </div>
+    <div class="info-card">
+      <h4><span class="dot" style="background:var(--gold)"></span> 设备类型说明</h4>
+      <p style="margin-bottom:8px;">规范定义两种设备类型影响信号映射方向：</p>
+      <ul>
+        <li><strong style="color:var(--blue-light)">Type 1 设备（DTE）</strong>：设备本身是通信终端（如 PC、打印机），虚拟 COM 口直接对接 RFCOMM</li>
+        <li style="margin-top:8px;"><strong style="color:var(--teal)">Type 2 设备（含端口代理）</strong>：设备有专用端口驱动层，在非 RFCOMM 侧执行流控，RFCOMM 层透传</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Null Modem 图 -->
+  <div class="diagram">
+    <div class="diagram-title">Null Modem 配置（两 DTE 直连 = RFCOMM 典型场景）</div>
+    <div class="chart-wrap">
+      <svg width="640" height="160" viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg">
+        <!-- DTE A -->
+        <rect x="10" y="30" width="130" height="110" rx="10" fill="#0f1e38" stroke="#1e3560"/>
+        <text x="75" y="52" text-anchor="middle" fill="#e0f0ff" font-size="12" font-weight="700">DTE A（设备 A）</text>
+        <text x="75" y="70" text-anchor="middle" fill="#f5a623" font-size="11">TxD →</text>
+        <text x="75" y="88" text-anchor="middle" fill="#00e5cc" font-size="11">← RxD</text>
+        <text x="75" y="106" text-anchor="middle" fill="#00c6ff" font-size="11">RTS / DTR →</text>
+        <text x="75" y="124" text-anchor="middle" fill="#9b59b6" font-size="11">← CTS / DSR</text>
+
+        <!-- cable -->
+        <rect x="150" y="55" width="80" height="60" rx="6" fill="rgba(245,166,35,0.1)" stroke="#f5a623"/>
+        <text x="190" y="80" text-anchor="middle" fill="#f5a623" font-size="10">Null</text>
+        <text x="190" y="94" text-anchor="middle" fill="#f5a623" font-size="10">Modem</text>
+        <text x="190" y="108" text-anchor="middle" fill="#7a9ab5" font-size="9">交叉线缆</text>
+
+        <!-- RFCOMM -->
+        <rect x="240" y="30" width="160" height="110" rx="10" fill="rgba(0,130,252,0.1)" stroke="#0082fc"/>
+        <text x="320" y="52" text-anchor="middle" fill="#00c6ff" font-size="12" font-weight="700">RFCOMM 会话</text>
+        <text x="320" y="72" text-anchor="middle" fill="#00e5cc" font-size="10">UIH Data ↔ 用户数据</text>
+        <text x="320" y="88" text-anchor="middle" fill="#f5a623" font-size="10">MSC.RTC ↔ DTR/DSR</text>
+        <text x="320" y="104" text-anchor="middle" fill="#00c6ff" font-size="10">MSC.RTR ↔ RTS/CTS</text>
+        <text x="320" y="120" text-anchor="middle" fill="#9b59b6" font-size="10">MSC.IC ↔ RI</text>
+
+        <!-- cable2 -->
+        <rect x="410" y="55" width="80" height="60" rx="6" fill="rgba(245,166,35,0.1)" stroke="#f5a623"/>
+        <text x="450" y="80" text-anchor="middle" fill="#f5a623" font-size="10">Null</text>
+        <text x="450" y="94" text-anchor="middle" fill="#f5a623" font-size="10">Modem</text>
+        <text x="450" y="108" text-anchor="middle" fill="#7a9ab5" font-size="9">交叉线缆</text>
+
+        <!-- DTE B -->
+        <rect x="500" y="30" width="130" height="110" rx="10" fill="#0f1e38" stroke="#1e3560"/>
+        <text x="565" y="52" text-anchor="middle" fill="#e0f0ff" font-size="12" font-weight="700">DTE B（设备 B）</text>
+        <text x="565" y="70" text-anchor="middle" fill="#00e5cc" font-size="11">← TxD</text>
+        <text x="565" y="88" text-anchor="middle" fill="#f5a623" font-size="11">RxD →</text>
+        <text x="565" y="106" text-anchor="middle" fill="#9b59b6" font-size="11">← RTS / DTR</text>
+        <text x="565" y="124" text-anchor="middle" fill="#00c6ff" font-size="11">CTS / DSR →</text>
+
+        <!-- connecting lines -->
+        <line x1="140" y1="85" x2="150" y2="85" stroke="#f5a623" stroke-width="1.2"/>
+        <line x1="230" y1="85" x2="240" y2="85" stroke="#f5a623" stroke-width="1.2"/>
+        <line x1="400" y1="85" x2="410" y2="85" stroke="#f5a623" stroke-width="1.2"/>
+        <line x1="490" y1="85" x2="500" y2="85" stroke="#f5a623" stroke-width="1.2"/>
+
+        <text x="320" y="155" text-anchor="middle" fill="#4a6e85" font-size="11">RFCOMM 完全仿真了两 DTE 通过交叉串口线直连的物理场景</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 总结卡片 ===== -->
+<div class="spec-section" id="summary">
+  <div class="section-header">
+    <div class="section-num">📋</div>
+    <h2>协议核心要点汇总</h2>
+  </div>
+  <div class="grid-3">
+    <div class="info-card" style="border-top:3px solid var(--blue-accent);">
+      <h4>帧类型（5种）</h4>
+      <ul>
+        <li><span class="badge badge-blue">SABM</span> 建立连接</li>
+        <li><span class="badge badge-green">UA</span> 确认接受</li>
+        <li><span class="badge badge-red">DM</span> 拒绝/断开态</li>
+        <li><span class="badge badge-gold">DISC</span> 断开请求</li>
+        <li><span class="badge badge-teal">UIH</span> 数据传输</li>
+      </ul>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--teal);">
+      <h4>DLCI 编址</h4>
+      <ul>
+        <li>6位字段，值域 0~63</li>
+        <li>DLCI=0：控制信道</li>
+        <li>DLCI=1,62,63：保留</li>
+        <li>可用：2~61（共60个）</li>
+        <li>公式：DLCI=SC×2+D</li>
+      </ul>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--gold);">
+      <h4>流量控制</h4>
+      <ul>
+        <li>强制：Credit 信用流控</li>
+        <li>PN CMD CL=0xF 开启</li>
+        <li>UIH P/F=1 传递信用</li>
+        <li>遗留：FCon/FCoff</li>
+        <li>每 DLC 独立控制</li>
+      </ul>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--purple);">
+      <h4>控制命令（7类）</h4>
+      <ul>
+        <li>PN：参数协商（必须）</li>
+        <li>MSC：调制解调器状态（必须）</li>
+        <li>RPN：远程端口协商</li>
+        <li>RLS：远程线路状态</li>
+        <li>Test：链路测试</li>
+        <li>FCon/FCoff：流控</li>
+        <li>NSC：不支持命令响应</li>
+      </ul>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--red);">
+      <h4>关键参数</h4>
+      <ul>
+        <li>L2CAP PSM = 0x0003</li>
+        <li>默认帧长 = 127 bytes</li>
+        <li>最大帧长 = 32767 bytes</li>
+        <li>最大 DLC 数 = 60</li>
+        <li>Server Channel 范围：1~30</li>
+      </ul>
+    </div>
+    <div class="info-card" style="border-top:3px solid var(--green);">
+      <h4>连接建立顺序</h4>
+      <ol style="padding-left:16px;color:#9ab6ce;font-size:14px;">
+        <li>SDP 查询 Server Channel</li>
+        <li>建立 L2CAP 信道</li>
+        <li>SABM(0) → 会话</li>
+        <li>UIH+PN → 参数协商</li>
+        <li>SABM(N) → DLC</li>
+        <li>MSC → 信号交换</li>
+        <li>UIH 数据传输</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer style="background:var(--blue-mid);border-top:1px solid var(--border);padding:28px 20px;text-align:center;">
+  <p style="color:#3a5a78;font-size:13px;">基于 Bluetooth SIG RFCOMM Specification v1.1 整理 · 遵循 TS 07.10 章节顺序 · 仅供技术学习参考</p>
+  <p style="color:#2a4260;font-size:12px;margin-top:6px;">GSM TS 07.10 · ETSI · RS-232 EIA/TIA-232-E · Bluetooth SIG</p>
+</footer>
+</div>
+
+
+<script>
+  // ===== Tab switching =====
+  function switchTab(groupPrefix, tabId) {
+    // find all tabs in this group
+    const allContents = document.querySelectorAll(`[id^="${groupPrefix}-"]`);
+    const allBtns = document.querySelectorAll('.tab-btn');
+    allContents.forEach(c => c.classList.remove('active'));
+    const target = document.getElementById(`${groupPrefix}-${tabId}`);
+    if (target) target.classList.add('active');
+    // update button states for nearby buttons
+    const parent = target ? target.parentElement : null;
+    if (parent) {
+      const btns = parent.querySelectorAll('.tab-btn');
+      btns.forEach(b => b.classList.remove('active'));
+    }
+  }
+
+  // Fix: tab button active state
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const parent = this.closest('.tabs');
+      if (!parent) return;
+      parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+
+  // ===== Nav active link on scroll =====
+  const sections = document.querySelectorAll('.spec-section');
+  const navLinks = document.querySelectorAll('nav ul li a');
+
+  function updateNav() {
+    let current = '';
+    sections.forEach(sec => {
+      const top = sec.getBoundingClientRect().top;
+      if (top < 120) current = sec.id;
+    });
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === `#${current}`) {
+        link.classList.add('active');
+      }
+    });
+  }
+  window.addEventListener('scroll', updateNav, { passive: true });
+
+  // ===== Smooth scroll =====
+  navLinks.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // ===== Animated credit counter demo =====
+  let creditA = 7, creditB = 7;
+  const elA = document.getElementById('creditA');
+  const elB = document.getElementById('creditB');
+  if (elA && elB) {
+    setInterval(() => {
+      // simulate A sends, B refills
+      if (creditA > 0) {
+        creditA--;
+        elA.textContent = creditA;
+        elA.style.color = creditA <= 2 ? '#ff4d6d' : '#f5a623';
+      } else {
+        // B sends credit back
+        creditA = Math.min(7, creditA + 3);
+        elA.textContent = creditA;
+        elA.style.color = '#f5a623';
+      }
+      if (creditB > 0) {
+        creditB--;
+        elB.textContent = creditB;
+        elB.style.color = creditB <= 2 ? '#ff4d6d' : '#00e5cc';
+      } else {
+        creditB = Math.min(7, creditB + 3);
+        elB.textContent = creditB;
+        elB.style.color = '#00e5cc';
+      }
+    }, 1200);
+  }
+</script>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

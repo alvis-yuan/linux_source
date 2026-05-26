@@ -1,0 +1,949 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SDP 服务发现过程（抓包对照）</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --card: #fff;
+      --text: #1a2332;
+      --muted: #5c6b7a;
+      --border: #e2e8f0;
+      --sdp: #dc2626;
+      --sdp-soft: #fef2f2;
+      --l2cap: #2563eb;
+      --l2cap-soft: #eff6ff;
+      --hid: #7c3aed;
+      --hid-soft: #f5f3ff;
+      --spp: #059669;
+      --spp-soft: #ecfdf5;
+      --pnp: #d97706;
+      --pnp-soft: #fffbeb;
+      --ok: #0d9488;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.7 "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+    .hero {
+      background: linear-gradient(155deg, #7f1d1d 0%, #dc2626 40%, #1e40af 100%);
+      color: #fff;
+      padding: 48px 24px 36px;
+      text-align: center;
+    }
+    .hero h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 34px); }
+    .hero p { margin: 0 auto; max-width: 860px; opacity: 0.92; font-size: 15px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .badge.sdp { background: var(--sdp-soft); color: var(--sdp); }
+    .badge.l2cap { background: var(--l2cap-soft); color: var(--l2cap); }
+    .badge.csv { background: #f1f5f9; color: #475569; font-family: ui-monospace, monospace; }
+    .lead { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+
+    .session-block {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .session-head {
+      padding: 14px 18px;
+      font-weight: 700;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .session-head.s1 { background: var(--pnp-soft); border-bottom: 3px solid var(--pnp); }
+    .session-head.s2 { background: var(--sdp-soft); border-bottom: 3px solid var(--sdp); }
+    .session-head.s3 { background: var(--pnp-soft); border-bottom: 3px solid var(--pnp); }
+    .session-head.s4 { background: var(--hid-soft); border-bottom: 3px solid var(--hid); }
+
+    .step-list { padding: 0 18px 16px; }
+    .step {
+      border-left: 3px solid var(--l2cap);
+      padding: 12px 14px;
+      margin: 12px 0;
+      background: #fafbfc;
+      border-radius: 0 10px 10px 0;
+    }
+    .step.sdp-step { border-left-color: var(--sdp); }
+    .step h4 { margin: 0 0 6px; font-size: 15px; }
+    .step .meta { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
+
+    .hex {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .hex .a { color: #94a3b8; }
+    .hex .h1 { color: #fbbf24; }
+    .hex .h2 { color: #34d399; }
+    .hex .h3 { color: #60a5fa; }
+
+    .why {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fff;
+      border-left: 4px solid var(--ok);
+      font-size: 14px;
+    }
+    .why strong { color: #0f766e; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+    th, td { border: 1px solid var(--border); padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+    .result-card code { color: var(--sdp); font-weight: 600; }
+
+    .note {
+      border-left: 4px solid #ea580c;
+      background: #fff7ed;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      margin: 14px 0;
+      color: #7c2d12;
+    }
+
+    nav.links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    nav.links a {
+      color: rgba(255,255,255,0.95);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 4px 12px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px;
+    }
+  
+    .seq-container {
+      background: #f8faff;
+      border: 1px solid #dde3ee;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+    .seq-container svg { display: block; max-width: 100%; height: auto; }
+
+  
+    /* ── 左侧目录导航（packet 抓包文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar) {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">SDP 服务发现过程（抓包对照）</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">抓包流程 · Packet Flow</div>
+    <div class="doc-name">SDP 服务发现过程（抓包对照）</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#overview">发现过程总览</a>
+  <a class="packet-nav-link" href="#pdu">SDP PDU 与 Data 列解读</a>
+  <a class="packet-nav-link" href="#s1">会话 1：PnP 快速查询 CID 0x0051</a>
+  <a class="packet-nav-link" href="#s2">会话 2：广谱服务枚举 CID 0x0052</a>
+  <a class="packet-nav-link" href="#s3">会话 3：PnP 按 Handle 精查 CID 0x0053</a>
+  <a class="packet-nav-link" href="#s4">会话 4：HID 按 Handle 精查 CID 0x0054</a>
+  <a class="packet-nav-link" href="#result">发现结果汇总</a>
+  <a class="packet-nav-link" href="#相关文档">相关文档</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+  <a class="packet-nav-link doc" href="paging_to_setup_complete_packet_flow.html">Paging → Setup Complete</a>
+  <a class="packet-nav-link doc" href="setup_complete_to_io_capability_packet_flow.html">Setup → IO Capability</a>
+  <a class="packet-nav-link doc" href="bt_secure_pairing_packet_flow.html">SSP 安全配对</a>
+  <a class="packet-nav-link doc current-doc" href="sdp_packet_flow.html">SDP 服务发现</a>
+  <a class="packet-nav-link doc" href="l2cap_session_packet_flow.html">L2CAP 多会话</a>
+  <a class="packet-nav-link doc" href="hid_connection_packet_flow.html">HID 连接</a>
+  <a class="packet-nav-link doc" href="ble_first_connection_packet_flow.html">BLE 首次连接</a>
+  <a class="packet-nav-link doc" href="ble_second_connection_packet_flow.html">BLE 第二次连接</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<header class="hero">
+    <h1>SDP 服务发现过程</h1>
+    <p>
+      HONOR 50 Pro 在链路加密后（约 <strong>31.436s → 31.719s</strong>）对 CloudPrint_0159 的 SDP 查询。
+      数据源：<code>honor50_sunmi_bt_ota.csv</code> 第 45–66 行。
+    </p>
+    <nav class="links">
+      <a href="#overview">总览</a>
+      <a href="#pdu">SDP PDU</a>
+      <a href="#s1">会话 1</a>
+      <a href="#s2">会话 2</a>
+      <a href="#s3">会话 3</a>
+      <a href="#s4">会话 4</a>
+      <a href="#result">发现结果</a>
+    </nav>
+  </header>
+
+  <div class="packet-main container">
+    <section class="card" id="overview">
+      <h2>发现过程总览</h2>
+      <p class="lead">
+        SDP 跑在 <strong>L2CAP PSM = 0x0001</strong> 上。HONOR 采用<strong>四轮短连接</strong>：每轮 Connect → Configure（MTU 1024）→ 一至多个 SDP 事务 → Disconnect。
+        前两轮用 <strong>Service Search Attribute Request (0x07)</strong> 按 UUID 批量拉属性；后两轮用 <strong>Search (0x03) + Attribute (0x05)</strong> 按 Handle 精查。
+      </p>
+
+            <div class="seq-container" id="msc-1" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;SDP Client&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;SDP Server&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;ACL 已加密&quot;}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;会话1 CID 0x0051&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connect PSM=SDP&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Configure MTU=1024&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP SSA (PnP UUID)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;PnP 记录&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Disconnect&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;会话2 CID 0x0052&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Connect + Configure&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP SSA (HID+SPP+…)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;多服务属性&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP SSA (Phonebook)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;空/短响应&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Disconnect&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;会话3 CID 0x0053 — PnP Handle&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Search → 0x00010008&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Attribute&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Disconnect&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;会话4 CID 0x0054 — HID Handle&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Search → 0x00010001&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Attribute (含 Descriptor)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Disconnect&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;31.724s 起建 HID Control/Interrupt&quot;}]}"></div>
+
+
+      <table>
+        <tr><th>会话</th><th>CID</th><th>时间</th><th>SDP 策略</th><th>目的</th></tr>
+        <tr><td>1</td><td>0x0051</td><td>31.436–31.451</td><td>SSA · 仅 PnP</td><td>快速取设备身份 UUID 0x1200</td></tr>
+        <tr><td>2</td><td>0x0052</td><td>31.456–31.605</td><td>SSA · 广搜 + Phonebook 探测</td><td>枚举 HID、4×SPP、PnP 及属性</td></tr>
+        <tr><td>3</td><td>0x0053</td><td>31.643–31.688</td><td>Search + Attribute</td><td>确认 PnP Handle 0x00010008 全记录</td></tr>
+        <tr><td>4</td><td>0x0054</td><td>31.694–31.719</td><td>Search + Attribute</td><td>拉取 HID 0x00010001 含 Report Descriptor</td></tr>
+      </table>
+
+      <div class="note">
+        CSV 第 45 行起直接为 <code>L2CAP Configure (Dst=0x0051)</code>，<code>Connection</code> 可能紧挨上一事件未单独导出。CloudPrint 侧固定 <code>Src/Dst=0x0040</code> 为 SDP 服务器 CID。
+      </div>
+    </section>
+
+    <section class="card" id="pdu">
+      <h2>SDP PDU 与 Data 列解读</h2>
+      <table>
+        <tr><th>PDU ID</th><th>名称</th><th>本抓包出现</th><th>作用</th></tr>
+        <tr><td><code>0x03</code></td><td>Service Search Request</td><td>会话 3、4</td><td>按 Service Class UUID 模式搜索，返回 <strong>Handle 列表</strong></td></tr>
+        <tr><td><code>0x05</code></td><td>Service Attribute Request</td><td>会话 3、4</td><td>按 <strong>Handle + Attribute ID 范围</strong> 取一条服务记录</td></tr>
+        <tr><td><code>0x07</code></td><td>Service Search Attribute Request</td><td>会话 1、2</td><td>搜索 + 直接返回指定 Attribute，<strong>一轮完成多服务发现</strong></td></tr>
+      </table>
+      <p class="lead" style="margin-top:12px;">公共头格式（大端）：</p>
+      <div class="hex">
+<span class="a">[0]     PDU ID</span>
+<span class="a">[1-2]   Transaction ID（匹配请求/响应）</span>
+<span class="a">[3-4]   Parameter Length（后续参数字节数）</span>
+<span class="a">[5…]   参数：UUID 序列、Attribute ID 列表、Handle 等（Data Element 编码）</span>
+      </div>
+    </section>
+
+    <!-- Session 1 -->
+    <section class="card" id="s1">
+      <h2>会话 1：PnP 快速查询 <span class="badge sdp">CID 0x0051</span></h2>
+
+      <div class="session-block">
+        <div class="session-head s1">31.435829 Configure → 31.443953 SSA → 31.451453 Disconnect</div>
+        <div class="step-list">
+          <div class="step">
+            <h4>L2CAP Configure</h4>
+            <div class="meta">31.435829 / 31.437703 · MTU 256 → 双向 1024</div>
+            <div class="why"><strong>必要性：</strong>SDP 响应可能较长，1024 MTU 减少分片。首轮 Configure 常先提议 256 再协商到 1024。</div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Search Attribute — PnP Information</h4>
+            <div class="meta">CSV 第 47 行 · 31.443953</div>
+            <div class="hex">
+<span class="h1">07</span> <span class="h2">00 00</span> <span class="h3">00 4D</span> 00 4A 35 48 36 00 45 ...
+<span class="a">  07 = Service Search Attribute Request</span>
+<span class="a">  TID = 0x0000 · ParamLen = 0x004D (77)</span>
+<span class="a">  参数中含 UUID 0x1200 (PnP) 及要返回的 Attribute ID 列表</span>
+            </div>
+            <p>响应解码：<strong>PnP Information</strong>，L2CAP/SDP 版本等（Wireshark 摘要）。</p>
+            <div class="why"><strong>发现目的：</strong>读取厂商/产品 ID（Attribute 0x0200–0x0205 族），用于识别打印机型号，无需先知道 Handle。</div>
+          </div>
+          <div class="step">
+            <h4>L2CAP Disconnection</h4>
+            <div class="meta">31.451453 · Src=0x0051</div>
+            <div class="why"><strong>必要性：</strong>Android 栈常见「单任务单通道」；PnP 查完即释放 CID。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Session 2 -->
+    <section class="card" id="s2">
+      <h2>会话 2：广谱服务枚举 <span class="badge sdp">CID 0x0052</span></h2>
+
+      <div class="session-block">
+        <div class="session-head s2">31.456453 Connect → 31.522704 大 SSA → 31.598955 Phonebook → 31.605206 Disconnect</div>
+        <div class="step-list">
+          <div class="step">
+            <h4>L2CAP Connection + Configure</h4>
+            <div class="meta">31.456453 / 31.460830 / 31.485204 · PSM=SDP · MTU=1024</div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Search Attribute — 多服务批量</h4>
+            <div class="meta">CSV 第 52 行 · 31.522704</div>
+            <div class="hex">
+<span class="h1">07</span> <span class="h2">00 00</span> <span class="h3">00 02 F0</span> 02 ED 36 02 EA ...
+<span class="a">  ParamLen = 0x02F0 (752 字节参数) — 本抓包最大 SDP 请求</span>
+            </div>
+            <p><strong>响应摘要（解码器）：</strong></p>
+            <ul style="margin:8px 0;font-size:14px;">
+              <li><strong>HID</strong> 0x1124 — 「Ifx HID Device」、Keyboard/Infineon、HIDP PSM 0x11/0x13、HID 描述符二进制</li>
+              <li><strong>SPP</strong> ×4 — RFCOMM Channel <strong>2/3/4/5</strong>，名 SPP SERVER16/26/36/46</li>
+              <li><strong>PnP Information</strong> 0x1200</li>
+            </ul>
+            <div class="why">
+              <strong>发现目的：</strong>一次 SSA 完成「设备能做什么」的主扫描——手机据此决定连 HID 还是某路 SPP。
+              参数里包含多个 UUID（<code>19 11 24</code>=HID、<code>19 11 01</code>=Serial Port 等）及大段 Attribute ID 列表。
+            </div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Search Attribute — Phonebook Access</h4>
+            <div class="meta">CSV 第 53 行 · 31.598955</div>
+            <div class="hex">
+<span class="h1">07</span> <span class="h2">00 00</span> <span class="h3">00 05</span> 00 02 35 00 00
+<span class="a">  ParamLen = 5 · 查询 Phonebook/PCE UUID</span>
+            </div>
+            <p>响应极短（<code>35 00 00</code> 空序列），表示<strong>未提供</strong>电话本服务或匹配为空。</p>
+            <div class="why"><strong>发现目的：</strong>探测可选 Profile；打印机通常无 PBAP，属兼容性探测。</div>
+          </div>
+          <div class="step">
+            <h4>L2CAP Disconnection</h4>
+            <div class="meta">31.605206 · Src=0x0052</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Session 3 -->
+    <section class="card" id="s3">
+      <h2>会话 3：PnP 按 Handle 精查 <span class="badge sdp">CID 0x0053</span></h2>
+
+      <div class="session-block">
+        <div class="session-head s3">Search → Attribute → Disconnect</div>
+        <div class="step-list">
+          <div class="step">
+            <h4>L2CAP Connect + Configure</h4>
+            <div class="meta">31.642706 – 31.670206</div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Search — PnP</h4>
+            <div class="meta">CSV 第 58 行 · 31.675206</div>
+            <div class="hex">
+<span class="h1">03</span> <span class="h2">00 00</span> <span class="h3">00 00 09</span>
+09 00 01 00 01 00 01 00 08 00
+<span class="a">  03 = Service Search · 搜 UUID 0x1200 (PnP)</span>
+<span class="a">  响应：PnP Information: Handle </span><span class="h2">0x00010008</span>
+            </div>
+            <div class="why"><strong>必要性：</strong>会话 2 已见过 PnP 属性，此处用 Search 单独确认<strong>服务记录 Handle</strong>，供 Attribute 请求使用。</div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Attribute — Handle 0x00010008</h4>
+            <div class="meta">CSV 第 59 行 · 31.680206</div>
+            <div class="hex">
+<span class="h1">05</span> <span class="h2">00 01</span> <span class="h3">00 4A</span> 00 47 35 45 ...
+<span class="a">  05 = Service Attribute · TID=1 · ParamLen=0x004A</span>
+<span class="a">  参数含 Handle 0x00010008 + Attribute 范围</span>
+            </div>
+            <p>返回完整 PnP 记录（与首轮 SSA 中 PnP 段一致，用于校验或缓存刷新）。</p>
+          </div>
+          <div class="step">
+            <h4>Disconnect</h4>
+            <div class="meta">31.687706</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Session 4 -->
+    <section class="card" id="s4">
+      <h2>会话 4：HID 按 Handle 精查 <span class="badge sdp">CID 0x0054</span></h2>
+
+      <div class="session-block">
+        <div class="session-head s4">Search → Attribute（大）→ Disconnect → 建 HID 通道</div>
+        <div class="step-list">
+          <div class="step">
+            <h4>L2CAP Connect + Configure</h4>
+            <div class="meta">31.693956 – 31.698957</div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Search — HID</h4>
+            <div class="meta">CSV 第 64 行 · 31.703957</div>
+            <div class="hex">
+<span class="h1">03</span> <span class="h2">00 00</span> <span class="h3">00 00 09</span> ...
+<span class="a">  搜 UUID 0x1124 (HID)</span>
+<span class="a">  响应：HID: Handle </span><span class="h2">0x00010001</span>
+            </div>
+          </div>
+          <div class="step sdp-step">
+            <h4>SDP Service Attribute — Handle 0x00010001</h4>
+            <div class="meta">CSV 第 65 行 · 31.708956 · 响应约 0x0181 字节</div>
+            <div class="hex">
+<span class="h1">05</span> <span class="h2">00 01</span> <span class="h3">01 81</span> ...
+<span class="a">  ParamLen = 0x0181 (385) — 含完整 HID Descriptor (0x0206)</span>
+            </div>
+            <p>关键属性：<code>ProtocolDescriptorList</code> → L2CAP PSM <strong>0x0011</strong>（Control）、<strong>0x0013</strong>（Interrupt）；<code>ServiceName</code>「Ifx HID Device」。</p>
+            <div class="why">
+              <strong>发现目的：</strong>HID 连接前必须拿到 PSM 与 Report Descriptor。会话 2 的 SSA 已含 HID，本轮按 Handle 再取一遍确保描述符完整（MTU 1024 下单响应承载）。
+            </div>
+          </div>
+          <div class="step">
+            <h4>Disconnect + 转入业务连接</h4>
+            <div class="meta">31.718957 Disconnect 0x0054 · 31.723957 HID Control 0x0055 · 31.738957 HID Interrupt 0x0056</div>
+            <div class="why">
+              <strong>发现完成标志：</strong>客户端已从 SDP 得知 HID Control/Interrupt 的 PSM，随即建立非 SDP 的 L2CAP 通道（不再经过 SDP）。
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="result">
+      <h2>发现结果汇总</h2>
+      <p class="lead">四轮查询后，HONOR 侧掌握的 CloudPrint_0159 服务能力如下（均来自 CSV 解码摘要）。</p>
+
+      <div class="result-grid">
+        <div class="result-card" style="border-left:4px solid var(--hid);">
+          <strong>HID</strong><br>
+          Handle <code>0x00010001</code><br>
+          PSM Control <code>0x0011</code> / Interrupt <code>0x0013</code><br>
+          → 已建 L2CAP 0x0055/0x0056
+        </div>
+        <div class="result-card" style="border-left:4px solid var(--spp);">
+          <strong>SPP ×4</strong><br>
+          RFCOMM Ch 2–5<br>
+          SERVER16/26/36/46<br>
+          → 本片段未建 RFCOMM
+        </div>
+        <div class="result-card" style="border-left:4px solid var(--pnp);">
+          <strong>PnP</strong><br>
+          Handle <code>0x00010008</code><br>
+          UUID 0x1200<br>
+          厂商/产品信息
+        </div>
+        <div class="result-card" style="border-left:4px solid #94a3b8;">
+          <strong>Phonebook</strong><br>
+          无服务<br>
+          探测性查询
+        </div>
+      </div>
+
+      <table>
+        <tr><th>发现阶段</th><th>典型手段</th><th>本抓包对应</th><th>得到的信息</th></tr>
+        <tr><td>广搜</td><td>SSA + 多 UUID</td><td>会话 2</td><td>HID + SPP + PnP 属性全集</td></tr>
+        <tr><td>定向</td><td>SSA 单 UUID</td><td>会话 1</td><td>仅 PnP</td></tr>
+        <tr><td>Handle 化</td><td>Search → Attribute</td><td>会话 3、4</td><td>稳定 Handle + 完整单条记录</td></tr>
+        <tr><td>连接</td><td>读 0x0004 ProtocolDescriptorList</td><td>会话 4 后</td><td>HID L2CAP 建链</td></tr>
+      </table>
+
+      <div class="note">
+        <strong>策略解读：</strong>先 SSA 再 Search+Attribute 看似重复，实为手机栈分层——SSA 快速列表展示/策略决策，Search+Attribute 按 Handle 刷新单条记录（尤其 HID Descriptor）。打印机被动响应即可。
+      </div>
+    </section>
+
+    <section class="card" id="相关文档">
+      <h2>相关文档</h2>
+      <p class="lead" style="margin:0;">
+        <a href="../misc/sdp_database_structure.html">SDP 数据库结构</a> ·
+        <a href="l2cap_session_packet_flow.html">L2CAP 建链与 SDP 通道</a> ·
+        <a href="bt_secure_pairing_packet_flow.html">加密建立（SDP 前置）</a> ·
+        <a href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+      </p>
+    </section>
+  </div>
+
+  
+  <script>
+
+(function () {
+  'use strict';
+  var PALETTE = [
+    { stroke: '#1565c0', fill: '#e3f2fd' },
+    { stroke: '#2e7d32', fill: '#e8f5e9' },
+    { stroke: '#e65100', fill: '#fff3e0' },
+    { stroke: '#6a1b9a', fill: '#f3e5f5' },
+    { stroke: '#c62828', fill: '#ffebee' },
+    { stroke: '#00695c', fill: '#e0f2f1' }
+  ];
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function splitLabel(label) {
+    return label.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  }
+
+  window.btPacketMsc = {
+    render: function (container, spec) {
+      if (typeof container === 'string') {
+        container = document.getElementById(container);
+      }
+      if (!container || !spec || !spec.actors || !spec.actors.length) return;
+
+      var actors = spec.actors;
+      var items = spec.messages || [];
+      var n = actors.length;
+      var padX = 24;
+      var actorW = 118;
+      var gap = Math.max(28, (720 - padX * 2 - actorW) / Math.max(1, n - 1));
+      var width = Math.max(560, padX * 2 + actorW + gap * (n - 1));
+      var xs = actors.map(function (_, i) {
+        return padX + i * gap + actorW / 2;
+      });
+
+      var rowH = 30;
+      var noteH = 34;
+      var topH = 48;
+      var y = topH;
+      var rows = [];
+
+      items.forEach(function (it) {
+        if (it.type === 'note') {
+          rows.push({ kind: 'note', text: it.text, ids: it.actors || actors.map(function (a) { return a.id; }), y: y });
+          y += noteH;
+        } else {
+          rows.push({
+            kind: 'msg',
+            from: it.from,
+            to: it.to,
+            label: it.label || '',
+            ret: !!it.return,
+            air: !!(it.air || (it.label && /\[Air\]/i.test(it.label))),
+            y: y
+          });
+          y += rowH;
+        }
+      });
+      var height = y + 28;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      actors.forEach(function (_, i) {
+        var m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        m.setAttribute('id', 'pkt-m' + i);
+        m.setAttribute('markerWidth', '7');
+        m.setAttribute('markerHeight', '7');
+        m.setAttribute('refX', '5');
+        m.setAttribute('refY', '3.5');
+        m.setAttribute('orient', 'auto');
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0,7 3.5,0 7');
+        poly.setAttribute('fill', PALETTE[i % PALETTE.length].stroke);
+        m.appendChild(poly);
+        defs.appendChild(m);
+      });
+      svg.appendChild(defs);
+
+      var idIndex = {};
+      actors.forEach(function (a, i) {
+        idIndex[a.id] = i;
+        var p = PALETTE[i % PALETTE.length];
+        var rx = xs[i] - actorW / 2;
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(rx));
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', String(actorW));
+        rect.setAttribute('height', '32');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', p.fill);
+        rect.setAttribute('stroke', p.stroke);
+        rect.setAttribute('stroke-width', '1.5');
+        svg.appendChild(rect);
+        var lines = splitLabel(a.label);
+        lines.forEach(function (ln, li) {
+          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', String(xs[i]));
+          t.setAttribute('y', String(22 + li * 11 - (lines.length - 1) * 5));
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', lines.length > 1 ? '9' : '10');
+          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('fill', p.stroke);
+          t.textContent = ln;
+          svg.appendChild(t);
+        });
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(xs[i]));
+        line.setAttribute('y1', '42');
+        line.setAttribute('x2', String(xs[i]));
+        line.setAttribute('y2', String(height - 8));
+        line.setAttribute('stroke', p.stroke);
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '4,3');
+        line.setAttribute('opacity', '0.45');
+        svg.appendChild(line);
+      });
+
+      rows.forEach(function (row) {
+        if (row.kind === 'note') {
+          var idxs = row.ids.map(function (id) { return idIndex[id]; }).filter(function (x) { return x !== undefined; });
+          if (!idxs.length) return;
+          var x0 = xs[Math.min.apply(null, idxs)] - actorW / 2;
+          var x1 = xs[Math.max.apply(null, idxs)] + actorW / 2;
+          var nr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          nr.setAttribute('x', String(x0 + 4));
+          nr.setAttribute('y', String(row.y - 4));
+          nr.setAttribute('width', String(x1 - x0 - 8));
+          nr.setAttribute('height', '22');
+          nr.setAttribute('rx', '4');
+          nr.setAttribute('fill', '#fff8e1');
+          nr.setAttribute('stroke', '#f9a825');
+          nr.setAttribute('stroke-width', '1');
+          svg.appendChild(nr);
+          var nt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          nt.setAttribute('x', String((x0 + x1) / 2));
+          nt.setAttribute('y', String(row.y + 10));
+          nt.setAttribute('text-anchor', 'middle');
+          nt.setAttribute('font-size', '9');
+          nt.setAttribute('fill', '#6d4c00');
+          nt.setAttribute('font-weight', '600');
+          nt.textContent = row.text;
+          svg.appendChild(nt);
+          return;
+        }
+        var fi = idIndex[row.from];
+        var ti = idIndex[row.to];
+        if (fi === undefined || ti === undefined) return;
+        var x1 = xs[fi];
+        var x2 = xs[ti];
+        var color = PALETTE[fi % PALETTE.length].stroke;
+        if (row.air) color = '#e65100';
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', String(x1));
+        ln.setAttribute('y1', String(row.y));
+        ln.setAttribute('x2', String(x2));
+        ln.setAttribute('y2', String(row.y));
+        ln.setAttribute('stroke', color);
+        ln.setAttribute('stroke-width', row.air ? '2' : '1.5');
+        ln.setAttribute('marker-end', 'url(#pkt-m' + ti + ')');
+        if (row.ret || row.air) ln.setAttribute('stroke-dasharray', '6,3');
+        svg.appendChild(ln);
+        var lines = splitLabel(row.label);
+        var mid = (x1 + x2) / 2;
+        lines.forEach(function (lb, li) {
+          var lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lt.setAttribute('x', String(mid));
+          lt.setAttribute('y', String(row.y - 6 - (lines.length - 1 - li) * 10));
+          lt.setAttribute('text-anchor', 'middle');
+          lt.setAttribute('font-size', '9');
+          lt.setAttribute('fill', color);
+          lt.setAttribute('font-weight', 'bold');
+          lt.textContent = lb;
+          svg.appendChild(lt);
+        });
+      });
+
+      container.innerHTML = '';
+      container.appendChild(svg);
+    }
+  };
+
+  document.querySelectorAll('.seq-container[data-msc]').forEach(function (el) {
+    try {
+      var spec = JSON.parse(el.getAttribute('data-msc'));
+      window.btPacketMsc.render(el, spec);
+    } catch (e) {
+      console.error('btPacketMsc', e);
+    }
+  });
+})();
+
+  </script>
+</div>
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

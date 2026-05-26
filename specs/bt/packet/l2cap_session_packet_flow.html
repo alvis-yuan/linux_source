@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>L2CAP 多次建链 / 配置 / 业务 / 断开</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --card: #fff;
+      --text: #1a2332;
+      --muted: #5c6b7a;
+      --border: #e2e8f0;
+      --accent: #2563eb;
+      --accent-soft: #eff6ff;
+      --sig: #6366f1;
+      --sig-soft: #eef2ff;
+      --sdp: #dc2626;
+      --sdp-soft: #fef2f2;
+      --hid: #7c3aed;
+      --hid-soft: #f5f3ff;
+      --ok: #059669;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.7 "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .hero {
+      background: linear-gradient(160deg, #134e4a 0%, #2563eb 100%);
+      color: #fff;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+
+    .hero h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 36px); }
+    .hero p { margin: 0 auto; max-width: 760px; opacity: 0.92; font-size: 15px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .badge.sig { background: var(--sig-soft); color: var(--sig); }
+    .badge.sdp { background: var(--sdp-soft); color: var(--sdp); }
+    .badge.hid { background: var(--hid-soft); color: var(--hid); }
+
+    .lead { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+
+    /* Session timeline cards */
+    .session-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .session-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .session-header.sdp { background: var(--sdp-soft); border-left: 4px solid var(--sdp); }
+    .session-header.hid { background: var(--hid-soft); border-left: 4px solid var(--hid); }
+    .session-header.sig { background: var(--sig-soft); border-left: 4px solid var(--sig); }
+
+    .phase-track {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
+    }
+
+    .phase {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .phase.done { border-color: var(--ok); background: #ecfdf5; }
+    .phase .t { display: block; font-family: ui-monospace, monospace; color: var(--accent); font-size: 11px; margin-top: 4px; }
+    .phase strong { display: block; font-size: 13px; color: var(--text); }
+
+    /* Hex panel */
+    .hex-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+
+    .hex-box .anno { color: #94a3b8; }
+    .hex-box .hl { color: #fbbf24; }
+    .hex-box .hl2 { color: #34d399; }
+    .hex-box .hl3 { color: #60a5fa; }
+
+    .parse-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .parse-table th, .parse-table td {
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .parse-table th { background: #f1f5f9; width: 28%; }
+
+    .note {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      margin-top: 14px;
+    }
+
+    .cid-map {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .cid-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #f8fafc;
+      font-size: 13px;
+    }
+
+    .cid-card code { color: var(--accent); font-weight: 600; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+  
+    .seq-container {
+      background: #f8faff;
+      border: 1px solid #dde3ee;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+    .seq-container svg { display: block; max-width: 100%; height: auto; }
+
+  
+    /* ── 左侧目录导航（packet 抓包文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar) {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">L2CAP 多次建链 / 配置 / 业务 / 断开</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">抓包流程 · Packet Flow</div>
+    <div class="doc-name">L2CAP 多次建链 / 配置 / 业务 / 断开</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#l2cap-在-acl-上的位置-总览">L2CAP 在 ACL 上的位置 总览</a>
+  <a class="packet-nav-link" href="#阶段-0acl-级-l2cap-信令未建业务通道前28412s">阶段 0：ACL 级 L2CAP 信令（未建业务通道前）28.412s</a>
+  <a class="packet-nav-link" href="#单次-l2cap-会话的标准生命周期-四步">单次 L2CAP 会话的标准生命周期 四步</a>
+  <a class="packet-nav-link" href="#会话示例-1sdp-大范围查询-cid-0x0052-psm0x0001">会话示例 ①：SDP 大范围查询 CID 0x0052 · PSM=0x0001</a>
+  <a class="packet-nav-link" href="#会话示例-2按-handle-精查-pnp-cid-0x0053">会话示例 ②：按 Handle 精查 PnP CID 0x0053</a>
+  <a class="packet-nav-link" href="#会话示例-3按-handle-精查-hid-cid-0x0054">会话示例 ③：按 Handle 精查 HID CID 0x0054</a>
+  <a class="packet-nav-link" href="#会话示例-4首轮-pnp-短查询-cid-0x0051">会话示例 ④：首轮 PnP 短查询 CID 0x0051</a>
+  <a class="packet-nav-link" href="#业务通道hid-control-interrupt-建链后保持">业务通道：HID Control / Interrupt 建链后保持</a>
+  <a class="packet-nav-link" href="#完整时间线为何多次建断-汇总">完整时间线：为何“多次”建断 汇总</a>
+  <a class="packet-nav-link" href="#对照表抓包名称-协议-pdu-速查">对照表：抓包名称 ↔ 协议 PDU 速查</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+  <a class="packet-nav-link doc" href="paging_to_setup_complete_packet_flow.html">Paging → Setup Complete</a>
+  <a class="packet-nav-link doc" href="setup_complete_to_io_capability_packet_flow.html">Setup → IO Capability</a>
+  <a class="packet-nav-link doc" href="bt_secure_pairing_packet_flow.html">SSP 安全配对</a>
+  <a class="packet-nav-link doc" href="sdp_packet_flow.html">SDP 服务发现</a>
+  <a class="packet-nav-link doc current-doc" href="l2cap_session_packet_flow.html">L2CAP 多会话</a>
+  <a class="packet-nav-link doc" href="hid_connection_packet_flow.html">HID 连接</a>
+  <a class="packet-nav-link doc" href="ble_first_connection_packet_flow.html">BLE 首次连接</a>
+  <a class="packet-nav-link doc" href="ble_second_connection_packet_flow.html">BLE 第二次连接</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<header class="hero">
+    <h1>L2CAP 多次建链 · 配置 · 业务 · 断开</h1>
+    <p>基于 <code>honor50_sunmi_bt_ota.csv</code>（HONOR 50 Pro ↔ CloudPrint_0159）。说明加密后 SDP/HID 阶段为何出现多轮 L2CAP 会话，以及报文字段如何对应各阶段。</p>
+  </header>
+
+  <div class="packet-main container">
+    <!-- Overview -->
+    <section class="card" id="l2cap-在-acl-上的位置-总览">
+      <h2>L2CAP 在 ACL 上的位置 <span class="badge">总览</span></h2>
+      <p class="lead">一条 BR/EDR ACL 上可并行多条 L2CAP 通道。每条动态通道由<strong>本端 CID</strong>标识，通过 <strong>PSM</strong> 区分上层服务（SDP=0x0001、HID Control=0x0011 等）。建立流程统一为：<strong>Connection → Configure → 数据 → Disconnection</strong>。</p>
+
+      <div class="seq-container" id="msc-1" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;单条 ACL 上可并行多条 L2CAP 通道&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Connection Request (PSM → CID)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Connection Response&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Configure (MTU, Flush TO…)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;业务 SDU / SDP PDU&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Disconnection&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+
+      <h3 style="font-size:16px;margin:20px 0 8px;">抓包中的 CID 分配（HONOR 为 Initiator）</h3>
+      <div class="cid-map">
+        <div class="cid-card"><code>0x0051</code><br>SDP · 第 1 轮（PnP）</div>
+        <div class="cid-card"><code>0x0052</code><br>SDP · 大范围枚举</div>
+        <div class="cid-card"><code>0x0053</code><br>SDP · PnP handle</div>
+        <div class="cid-card"><code>0x0054</code><br>SDP · HID handle</div>
+        <div class="cid-card"><code>0x0055</code><br>HID Control → CloudPrint <code>0x0040</code></div>
+        <div class="cid-card"><code>0x0056</code><br>HID Interrupt → CloudPrint <code>0x0041</code></div>
+      </div>
+      <div class="note">对端 CloudPrint 在 Configure 里出现的 <code>Src=0x0040/0x0041</code> 是其分配的本地 CID；HONOR 的 <code>Dst</code> 即指向这些 CID。</div>
+    </section>
+
+    <!-- Signaling / Information -->
+    <section class="card" id="阶段-0acl-级-l2cap-信令未建业务通道前28412s">
+      <h2>阶段 0：ACL 级 L2CAP 信令（未建业务通道前）<span class="badge sig">28.412s</span></h2>
+      <p class="lead">在加密完成前，双方已在默认信令通道上交换 <strong>L2CAP Information</strong>，协商增强重传（ERTM）与固定信道能力。这不属于某次 SDP 短连接，而是整条 ACL 的 L2CAP 能力发现。</p>
+
+      <table class="parse-table">
+        <tr><th>时间</th><th>报文</th><th>含义</th></tr>
+        <tr><td>28.412039</td><td>L2CAP Information (Extended Features Supported · ERTM | FCS)</td><td>支持增强重传与帧校验</td></tr>
+        <tr><td>28.530790</td><td>L2CAP Information (Fixed Channels Supported · Signal)</td><td>支持固定信令信道</td></tr>
+      </table>
+      <p style="font-size:14px;color:var(--muted);">后续所有 <code>Connection Request</code>、<code>Configure Request</code> 都走 CID 0x0001 上的 Signaling PDU 完成，业务 SDP/HID 数据才走各自动态 CID。</p>
+    </section>
+
+    <!-- Generic lifecycle -->
+    <section class="card" id="单次-l2cap-会话的标准生命周期-四步">
+      <h2>单次 L2CAP 会话的标准生命周期 <span class="badge">四步</span></h2>
+      <div class="phase-track">
+        <div class="phase done"><strong>1. Connection</strong>指定 PSM，分配 CID<span class="t">Sig: 0x02 / 0x03</span></div>
+        <div class="phase done"><strong>2. Configure</strong>协商 MTU、Flush<span class="t">Sig: 0x04 / 0x05</span></div>
+        <div class="phase done"><strong>3. Data</strong>上层 PDU（SDP/HID）<span class="t">L2CAP I-frame</span></div>
+        <div class="phase done"><strong>4. Disconnection</strong>释放 CID<span class="t">Sig: 0x06 / 0x07</span></div>
+      </div>
+
+            <div class="seq-container" id="msc-2" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;均在 ACL CID 0x0001 上发 Signaling&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Connection Req (PSM, SrcCID)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Connection Resp (DstCID, Result=Success)&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Config Req (MTU, Flush TO…)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Config Resp (MTU…)&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;↻ 业务&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Data (SDP/HID PDU)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;L2CAP Data (Response)&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Disconnection Req&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Disconnection Resp&quot;, &quot;return&quot;: true, &quot;air&quot;: false}]}"></div>
+
+    </section>
+
+    <!-- Session 2 - full example -->
+    <section class="card" id="会话示例-1sdp-大范围查询-cid-0x0052-psm0x0001">
+      <h2>会话示例 ①：SDP 大范围查询 <span class="badge sdp">CID 0x0052 · PSM=0x0001</span></h2>
+      <p class="lead">最完整的一轮：建链 → 双向 Configure（MTU 1024）→ 发送超大 Service Search Attribute → 再查 Phonebook → 断开。</p>
+
+      <div class="session-row">
+        <div class="session-header sdp">
+          <span>31.456453</span> Connection ·
+          <span>31.460830–31.485204</span> Configure ·
+          <span>31.522704</span> Data ·
+          <span>31.605206</span> Disconnect
+        </div>
+        <div class="phase-track">
+          <div class="phase done"><strong>Connect</strong><span class="t">31.456453</span>L2CAP Connection (Src=0x0052, PSM=SDP, Dst=0x0040)</div>
+          <div class="phase done"><strong>Config</strong><span class="t">31.460830</span>Dst=0x0052, MTU=256</div>
+          <div class="phase done"><strong>Config</strong><span class="t">31.485204</span>双向 MTU=1024</div>
+          <div class="phase done"><strong>Data</strong><span class="t">31.522704</span>SDP SSA 大响应</div>
+          <div class="phase done"><strong>Disconnect</strong><span class="t">31.605206</span>Src=0x0052</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:15px;">Configure 报文解读</h3>
+      <table class="parse-table">
+        <tr><th>抓包描述</th><th>字段含义</th></tr>
+        <tr><td><code>Configure (Dst=0x0052, MTU=256 . Src=0x0040)</code></td><td>CloudPrint 配置 HONOR 刚建好的通道 0x0052，提议有效载荷 MTU=256（常见首包保守值）。</td></tr>
+        <tr><td><code>Configure (Dst=0x0040, MTU=1'024 . Src=0x0052, MTU=1'024)</code></td><td>HONOR 回配 CloudPrint 的 0x0040，双方最终按 <strong>min(1024,1024)=1024</strong> 传 SDP；大 Attribute 可一次装下更多内容。</td></tr>
+      </table>
+
+      <h3 style="font-size:15px;">业务数据：SDP Service Search Attribute（抓包 Data 列节选）</h3>
+      <div class="hex-box">
+<span class="anno">/* 请求头 — honor50_sunmi_bt_ota.csv 第 52 行 Data 起始 */</span>
+<span class="hl">07</span> <span class="hl2">00 00</span> <span class="hl3">00 02 F0</span> ...
+<span class="anno">  │      │         └── Parameter Length = 0x02F0 (752 字节参数)</span>
+<span class="anno">  │      └── Transaction ID = 0x0000</span>
+<span class="anno">  └── PDU ID = 0x07 → Service Search Attribute Request</span>
+      </div>
+      <table class="parse-table">
+        <tr><th>偏移</th><th>十六进制</th><th>说明</th></tr>
+        <tr><td>0</td><td><code>07</code></td><td>SDP 请求：按 UUID 模式搜索并直接拉取指定 Attribute 列表</td></tr>
+        <tr><td>1–2</td><td><code>00 00</code></td><td>事务 ID，用于匹配响应</td></tr>
+        <tr><td>3–4</td><td><code>00 02 F0</code></td><td>后续参数长度；内含 UUID 序列、要返回的 Attribute ID 列表等</td></tr>
+        <tr><td>…</td><td><code>19 11 24</code> 等</td><td>Data Element：UUID 0x1124（HID）、多条 SPP 0x1101、PnP 0x1200 等</td></tr>
+      </table>
+      <p style="font-size:14px;">Wireshark 解码为 “HID + 4×SPP + PnP …” 是因为响应/请求参数里带了多组服务记录属性；该 PDU 走 <strong>L2CAP CID 0x0052</strong> 的 I-frame，外层已由 ACL 加密保护。</p>
+
+      <div class="note">同一 CID 上 31.598955 还有一条较小的 SSA（Phonebook Access），仍属<strong>同一 L2CAP 会话</strong>内的第二次 SDP 事务，之后才 Disconnection。</div>
+    </section>
+
+    <!-- Session 3 PnP targeted -->
+    <section class="card" id="会话示例-2按-handle-精查-pnp-cid-0x0053">
+      <h2>会话示例 ②：按 Handle 精查 PnP <span class="badge sdp">CID 0x0053</span></h2>
+      <div class="session-header sdp" style="margin-top:12px;">
+        Connect 31.642706 → Configure → Search + Attribute → Disconnect 31.687706
+      </div>
+
+      <h3 style="font-size:15px;">Service Search（Data 列）</h3>
+      <div class="hex-box">
+<span class="hl">03</span> <span class="hl2">00 00</span> <span class="hl3">00 00 09</span> 00 01 00 01 00 01 00 08 00
+<span class="anno">  └── 0x03 = Service Search Request，长度 9</span>
+<span class="anno">  参数中含 UUID 0x1200 (PnP)，返回 Handle 列表</span>
+      </div>
+      <p style="font-size:14px;">响应侧抓包显示：<code>PnP Information: 0x00010008</code> — 得到服务记录 Handle。</p>
+
+      <h3 style="font-size:15px;">Service Attribute（Data 列）</h3>
+      <div class="hex-box">
+<span class="hl">05</span> <span class="hl2">00 01</span> <span class="hl3">00 4A</span> 00 47 35 45 09 00 00 0A 00 01 00 08 ...
+<span class="anno">  └── 0x05 = Service Attribute Request，TID=1，长度 0x004A</span>
+<span class="anno">  参数含 Handle 0x00010008 + Attribute ID 范围</span>
+      </div>
+      <p style="font-size:14px;">拉取该 Handle 下完整 PnP 记录（Vendor/Product 等）。任务结束即 <code>L2CAP Disconnection (Src=0x0053)</code>，释放 CID。</p>
+
+            <div class="seq-container" id="msc-3" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR CID 0x0053&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint CID 0x0040&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connection Req (PSM=SDP)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Connection Resp&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Config Req/Resp (MTU 1024)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP Search (UUID PnP) → Handle 0x00010008&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP Attribute (0x00010008)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;PnP record bytes&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Disconnection Req&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Disconnection Resp&quot;, &quot;return&quot;: true, &quot;air&quot;: false}]}"></div>
+
+    </section>
+
+    <!-- Session 4 HID -->
+    <section class="card" id="会话示例-3按-handle-精查-hid-cid-0x0054">
+      <h2>会话示例 ③：按 Handle 精查 HID <span class="badge sdp">CID 0x0054</span></h2>
+      <div class="hex-box">
+<span class="anno">Search 31.703956 — Data:</span>
+<span class="hl">03</span> 00 00 00 09 ... <span class="anno">→ 响应 HID: 0x00010001</span>
+
+<span class="anno">Attribute 31.708956 — Data 起始:</span>
+<span class="hl">05</span> <span class="hl2">00 01</span> <span class="hl3">01 81</span> ...
+<span class="anno">  长度 0x0181 ≈ 385 字节，含 HID Descriptor 等 0x02xx 属性</span>
+      </div>
+      <p style="font-size:14px;">解码名含 <code>"Ifx HID Device"</code>、Keyboard/Infineon 字符串及 HID report descriptor 二进制。MTU=1024 足以承载此次 Attribute 响应。31.718957 断开 0x0054。</p>
+    </section>
+
+    <!-- Session 1 brief -->
+    <section class="card" id="会话示例-4首轮-pnp-短查询-cid-0x0051">
+      <h2>会话示例 ④：首轮 PnP 短查询 <span class="badge sdp">CID 0x0051</span></h2>
+      <p class="lead">CSV 中该轮从 <strong>Configure</strong> 开始可见（Connection 可能紧挨前一事件未单独列出）。流程仍为：Config → SSA → Disconnect。</p>
+      <div class="hex-box">
+<span class="hl">07</span> <span class="hl2">00 00</span> <span class="hl3">00 4D</span> ... <span class="anno">SSA，参数长 0x4D=77 字节，仅查 PnP Information</span>
+      </div>
+      <table class="parse-table">
+        <tr><th>时间</th><th>事件</th></tr>
+        <tr><td>31.435830</td><td>Configure Dst=0x0051, MTU=256</td></tr>
+        <tr><td>31.437703</td><td>Configure 双向 MTU=1024</td></tr>
+        <tr><td>31.443953</td><td>SDP SSA (PnP only)</td></tr>
+        <tr><td>31.451453</td><td>Disconnection Src=0x0051</td></tr>
+      </table>
+    </section>
+
+    <!-- HID persistent channels -->
+    <section class="card" style="border-top:4px solid var(--hid);" id="业务通道hid-control-interrupt-建链后保持">
+      <h2>业务通道：HID Control / Interrupt <span class="badge hid">建链后保持</span></h2>
+      <p class="lead">SDP 全部断开后，HONOR 根据 SDP 中 <code>ProtocolDescriptorList</code> 的 PSM <strong>0x0011 / 0x0013</strong> 建立 HID 通道。Configure 参数与 SDP 不同：MTU 更小、Flush Timeout 为无限重传。</p>
+
+      <div class="two-col">
+        <div>
+          <div class="session-header hid">HID Control · CID 0x0055 → 0x0040</div>
+          <table class="parse-table">
+            <tr><th>时间</th><th>事件</th></tr>
+            <tr><td>31.723957</td><td>L2CAP Connection (PSM=HID Control)</td></tr>
+            <tr><td>31.732084</td><td>Configure Dst=0x0055, MTU=64, Flush T/o=∞</td></tr>
+            <tr><td>31.733957</td><td>Configure 双向 MTU=640</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="session-header hid">HID Interrupt · CID 0x0056 → 0x0041</div>
+          <table class="parse-table">
+            <tr><th>时间</th><th>事件</th></tr>
+            <tr><td>31.738957</td><td>L2CAP Connection (PSM=HID Interrupt)</td></tr>
+            <tr><td>31.742084</td><td>Configure MTU=64 → 640, Flush=∞</td></tr>
+            <tr><td>31.747083</td><td>LMP QoS（为 HID 流量调链路参数）</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <table class="parse-table" style="margin-top:14px;">
+        <tr><th>Configure 字段</th><th>SDP 会话 (0x0052)</th><th>HID 会话 (0x0055/56)</th></tr>
+        <tr><td>MTU</td><td>1024 — 适合大 SDP Attribute</td><td>640 — 适合 HID 报告/控制 PDU</td></tr>
+        <tr><td>Flush Timeout</td><td>默认（未强调）</td><td>Infinite — 不因超时丢 HID 包</td></tr>
+        <tr><td>是否断开</td><td>每轮 SDP 后 Disconnection</td><td>抓包至 186s 末仍保持，供后续 HID 业务</td></tr>
+      </table>
+
+            <div class="seq-container" id="msc-4" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;SDP 四轮短连接已全部 Disconnect&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connect PSM 0x0011 (Control)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Config MTU=640, Flush=∞&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connect PSM 0x0013 (Interrupt)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Config MTU=640, Flush=∞&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;后续 HID GET_REPORT / INPUT 等走 Data PDU&lt;br/&gt;本 CSV 片段以链路维持为主&quot;}]}"></div>
+
+    </section>
+
+    <!-- Full timeline -->
+    <section class="card" id="完整时间线为何多次建断-汇总">
+      <h2>完整时间线：为何“多次”建断 <span class="badge">汇总</span></h2>
+      <table class="parse-table">
+        <tr><th>#</th><th>CID</th><th>PSM</th><th>业务</th><th>断开</th></tr>
+        <tr><td>1</td><td>0x0051</td><td>SDP</td><td>SSA：仅 PnP</td><td>是 31.451s</td></tr>
+        <tr><td>2</td><td>0x0052</td><td>SDP</td><td>SSA：HID+SPP+PnP 枚举；Phonebook</td><td>是 31.605s</td></tr>
+        <tr><td>3</td><td>0x0053</td><td>SDP</td><td>Search + Attribute：0x00010008</td><td>是 31.688s</td></tr>
+        <tr><td>4</td><td>0x0054</td><td>SDP</td><td>Search + Attribute：0x00010001 HID</td><td>是 31.719s</td></tr>
+        <tr><td>5</td><td>0x0055</td><td>HID Control</td><td>长连接业务通道</td><td>否（本段抓包内）</td></tr>
+        <tr><td>6</td><td>0x0056</td><td>HID Interrupt</td><td>长连接业务通道</td><td>否</td></tr>
+      </table>
+
+      <div class="two-col" style="margin-top:16px;">
+        <div class="note" style="margin:0;">
+          <strong>L2CAP 层在做什么：</strong>每轮分配新 Src CID → 信令建链/配 MTU → 承载 SDP 或 HID 的 I-frame → 发 Disconnection 回收 CID（HID 除外）。
+        </div>
+        <div class="note" style="margin:0;background:#eff6ff;border-color:#2563eb;color:#1e3a5f;">
+          <strong>报文层在做什么：</strong>Configure 决定单包最大载荷；SDP 的 <code>07/03/05</code> 等 PDU 是 L2CAP 载荷；Disconnect 后同 PSM 可再次 Connect，故出现 0x0052→0x0053→0x0054 递增 CID。
+        </div>
+      </div>
+    </section>
+
+    <!-- PDU reference -->
+    <section class="card" id="对照表抓包名称-协议-pdu-速查">
+      <h2>对照表：抓包名称 ↔ 协议 PDU <span class="badge">速查</span></h2>
+      <table class="parse-table">
+        <tr><th>Wireshark / CSV 显示</th><th>L2CAP Signaling</th><th>载荷层</th></tr>
+        <tr><td>L2CAP Connection</td><td>Conn Req / Resp</td><td>—</td></tr>
+        <tr><td>L2CAP Configure</td><td>Config Req / Resp</td><td>选项：MTU、Flush Timeout、FCS…</td></tr>
+        <tr><td>SDP Service Search …</td><td>—</td><td>L2CAP Data 上 SDP PDU 0x03 + 参数</td></tr>
+        <tr><td>SDP Service Attribute …</td><td>—</td><td>L2CAP Data 上 SDP PDU 0x05 + Handle/范围</td></tr>
+        <tr><td>SDP Service Search Attribute …</td><td>—</td><td>SDP PDU 0x07</td></tr>
+        <tr><td>L2CAP Disconnection</td><td>Disc Req / Resp</td><td>—</td></tr>
+        <tr><td>L2CAP Information</td><td>Info Req / Resp</td><td>ACL 全局能力，非动态 CID</td></tr>
+      </table>
+    </section>
+  </div>
+
+  
+  <script>
+
+(function () {
+  'use strict';
+  var PALETTE = [
+    { stroke: '#1565c0', fill: '#e3f2fd' },
+    { stroke: '#2e7d32', fill: '#e8f5e9' },
+    { stroke: '#e65100', fill: '#fff3e0' },
+    { stroke: '#6a1b9a', fill: '#f3e5f5' },
+    { stroke: '#c62828', fill: '#ffebee' },
+    { stroke: '#00695c', fill: '#e0f2f1' }
+  ];
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function splitLabel(label) {
+    return label.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  }
+
+  window.btPacketMsc = {
+    render: function (container, spec) {
+      if (typeof container === 'string') {
+        container = document.getElementById(container);
+      }
+      if (!container || !spec || !spec.actors || !spec.actors.length) return;
+
+      var actors = spec.actors;
+      var items = spec.messages || [];
+      var n = actors.length;
+      var padX = 24;
+      var actorW = 118;
+      var gap = Math.max(28, (720 - padX * 2 - actorW) / Math.max(1, n - 1));
+      var width = Math.max(560, padX * 2 + actorW + gap * (n - 1));
+      var xs = actors.map(function (_, i) {
+        return padX + i * gap + actorW / 2;
+      });
+
+      var rowH = 30;
+      var noteH = 34;
+      var topH = 48;
+      var y = topH;
+      var rows = [];
+
+      items.forEach(function (it) {
+        if (it.type === 'note') {
+          rows.push({ kind: 'note', text: it.text, ids: it.actors || actors.map(function (a) { return a.id; }), y: y });
+          y += noteH;
+        } else {
+          rows.push({
+            kind: 'msg',
+            from: it.from,
+            to: it.to,
+            label: it.label || '',
+            ret: !!it.return,
+            air: !!(it.air || (it.label && /\[Air\]/i.test(it.label))),
+            y: y
+          });
+          y += rowH;
+        }
+      });
+      var height = y + 28;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      actors.forEach(function (_, i) {
+        var m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        m.setAttribute('id', 'pkt-m' + i);
+        m.setAttribute('markerWidth', '7');
+        m.setAttribute('markerHeight', '7');
+        m.setAttribute('refX', '5');
+        m.setAttribute('refY', '3.5');
+        m.setAttribute('orient', 'auto');
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0,7 3.5,0 7');
+        poly.setAttribute('fill', PALETTE[i % PALETTE.length].stroke);
+        m.appendChild(poly);
+        defs.appendChild(m);
+      });
+      svg.appendChild(defs);
+
+      var idIndex = {};
+      actors.forEach(function (a, i) {
+        idIndex[a.id] = i;
+        var p = PALETTE[i % PALETTE.length];
+        var rx = xs[i] - actorW / 2;
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(rx));
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', String(actorW));
+        rect.setAttribute('height', '32');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', p.fill);
+        rect.setAttribute('stroke', p.stroke);
+        rect.setAttribute('stroke-width', '1.5');
+        svg.appendChild(rect);
+        var lines = splitLabel(a.label);
+        lines.forEach(function (ln, li) {
+          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', String(xs[i]));
+          t.setAttribute('y', String(22 + li * 11 - (lines.length - 1) * 5));
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', lines.length > 1 ? '9' : '10');
+          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('fill', p.stroke);
+          t.textContent = ln;
+          svg.appendChild(t);
+        });
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(xs[i]));
+        line.setAttribute('y1', '42');
+        line.setAttribute('x2', String(xs[i]));
+        line.setAttribute('y2', String(height - 8));
+        line.setAttribute('stroke', p.stroke);
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '4,3');
+        line.setAttribute('opacity', '0.45');
+        svg.appendChild(line);
+      });
+
+      rows.forEach(function (row) {
+        if (row.kind === 'note') {
+          var idxs = row.ids.map(function (id) { return idIndex[id]; }).filter(function (x) { return x !== undefined; });
+          if (!idxs.length) return;
+          var x0 = xs[Math.min.apply(null, idxs)] - actorW / 2;
+          var x1 = xs[Math.max.apply(null, idxs)] + actorW / 2;
+          var nr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          nr.setAttribute('x', String(x0 + 4));
+          nr.setAttribute('y', String(row.y - 4));
+          nr.setAttribute('width', String(x1 - x0 - 8));
+          nr.setAttribute('height', '22');
+          nr.setAttribute('rx', '4');
+          nr.setAttribute('fill', '#fff8e1');
+          nr.setAttribute('stroke', '#f9a825');
+          nr.setAttribute('stroke-width', '1');
+          svg.appendChild(nr);
+          var nt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          nt.setAttribute('x', String((x0 + x1) / 2));
+          nt.setAttribute('y', String(row.y + 10));
+          nt.setAttribute('text-anchor', 'middle');
+          nt.setAttribute('font-size', '9');
+          nt.setAttribute('fill', '#6d4c00');
+          nt.setAttribute('font-weight', '600');
+          nt.textContent = row.text;
+          svg.appendChild(nt);
+          return;
+        }
+        var fi = idIndex[row.from];
+        var ti = idIndex[row.to];
+        if (fi === undefined || ti === undefined) return;
+        var x1 = xs[fi];
+        var x2 = xs[ti];
+        var color = PALETTE[fi % PALETTE.length].stroke;
+        if (row.air) color = '#e65100';
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', String(x1));
+        ln.setAttribute('y1', String(row.y));
+        ln.setAttribute('x2', String(x2));
+        ln.setAttribute('y2', String(row.y));
+        ln.setAttribute('stroke', color);
+        ln.setAttribute('stroke-width', row.air ? '2' : '1.5');
+        ln.setAttribute('marker-end', 'url(#pkt-m' + ti + ')');
+        if (row.ret || row.air) ln.setAttribute('stroke-dasharray', '6,3');
+        svg.appendChild(ln);
+        var lines = splitLabel(row.label);
+        var mid = (x1 + x2) / 2;
+        lines.forEach(function (lb, li) {
+          var lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lt.setAttribute('x', String(mid));
+          lt.setAttribute('y', String(row.y - 6 - (lines.length - 1 - li) * 10));
+          lt.setAttribute('text-anchor', 'middle');
+          lt.setAttribute('font-size', '9');
+          lt.setAttribute('fill', color);
+          lt.setAttribute('font-weight', 'bold');
+          lt.textContent = lb;
+          svg.appendChild(lt);
+        });
+      });
+
+      container.innerHTML = '';
+      container.appendChild(svg);
+    }
+  };
+
+  document.querySelectorAll('.seq-container[data-msc]').forEach(function (el) {
+    try {
+      var spec = JSON.parse(el.getAttribute('data-msc'));
+      window.btPacketMsc.render(el, spec);
+    } catch (e) {
+      console.error('btPacketMsc', e);
+    }
+  });
+})();
+
+  </script>
+</div>
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

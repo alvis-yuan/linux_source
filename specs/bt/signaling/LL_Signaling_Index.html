@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<!--
+  单文件离线版：LL Control PDU 索引，数据内联，可直接 file:// 打开。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LL (Link Layer) Control PDU 索引 (Bluetooth Core 6.0 Part B)</title>
+  <style>
+    :root {
+      --primary-color: #00A884;
+      --primary-hover: #008f6f;
+      --bg-color: #f8fafc;
+      --panel-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --border-color: #e2e8f0;
+      --highlight-border: #00A884;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%); color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; border-bottom: 2px solid var(--primary-color); }
+    .brand-title h1 { font-size: 1.4rem; font-weight: 700; }
+    .brand-title p { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+    .search-wrapper { position: relative; width: 400px; }
+    .search-input { width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border-radius: 9999px; border: 1px solid #334155; background: #1e293b; color: #fff; font-size: 0.9rem; }
+    .search-input:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 10px rgba(0,168,132,0.3); }
+    .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #64748b; pointer-events: none; }
+    .main-container { display: flex; flex: 1; overflow: hidden; }
+    .sidebar { width: 320px; border-right: 1px solid var(--border-color); background: #fff; display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar-header { padding: 1rem; background: #f1f5f9; border-bottom: 1px solid var(--border-color); font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+    .pdu-count-badge { background: #cbd5e1; color: #334155; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 9999px; }
+    .pdu-menu-list { flex: 1; overflow-y: auto; list-style: none; }
+    .pdu-menu-item { padding: 0.75rem 1rem; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
+    .pdu-menu-item:hover { background: #f1f5f9; }
+    .pdu-menu-item.active { background: rgba(0,168,132,0.08); border-left: 4px solid var(--primary-color); }
+    .pdu-menu-name { font-size: 0.8rem; font-weight: 600; }
+    .pdu-menu-op { font-size: 0.72rem; color: var(--text-sub); margin-top: 2px; }
+    .sidebar-toolbar { display: flex; gap: 0.35rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); background: #fafbfc; }
+    .sidebar-toolbar button { flex: 1; font-size: 0.7rem; padding: 0.35rem; border: 1px solid var(--border-color); border-radius: 4px; background: #fff; cursor: pointer; color: var(--text-sub); }
+    .sidebar-toolbar button:hover { border-color: var(--primary-color); color: var(--primary-color); }
+    .nav-group { border-bottom: 1px solid #e2e8f0; }
+    .nav-group-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; background: #f8fafc; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    .nav-group-chevron { width: 1rem; text-align: center; font-size: 0.65rem; transition: transform 0.2s; }
+    .nav-group.collapsed .nav-group-chevron { transform: rotate(-90deg); }
+    .nav-group.collapsed .nav-group-items, .nav-group.collapsed .nav-group-desc { display: none; }
+    .nav-group-items { list-style: none; margin: 0; padding: 0; }
+    .nav-group-count { margin-left: auto; font-size: 0.7rem; background: #e2e8f0; padding: 0.1rem 0.45rem; border-radius: 9999px; color: #64748b; }
+    .nav-group-desc { font-size: 0.7rem; color: #64748b; padding: 0.35rem 0.75rem 0.5rem 1.75rem; background: #fafbfc; border-bottom: 1px solid #f1f5f9; line-height: 1.45; }
+    .nav-group-section { font-size: 0.68rem; color: #94a3b8; }
+    .content-area { flex: 1; overflow-y: auto; padding: 2rem; scroll-behavior: smooth; }
+    .intro-section { background: #fff; border-radius: 8px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid var(--border-color); }
+    .intro-section h2 { font-size: 1.1rem; color: var(--primary-color); margin-bottom: 0.75rem; }
+    .intro-section p { font-size: 0.85rem; line-height: 1.6; color: var(--text-sub); }
+    .intro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .intro-card { background: #f8fafc; padding: 1rem; border-radius: 6px; border-left: 3px solid var(--primary-color); }
+    .intro-card h4 { font-size: 0.85rem; margin-bottom: 0.25rem; }
+    .intro-card p { font-size: 0.8rem; color: var(--text-sub); }
+    .catalog-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
+    .pdu-card { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 2rem; overflow: hidden; }
+    .pdu-card-header { padding: 1rem 1.5rem; background: #f8fafc; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+    .pdu-title-block { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .pdu-card-name { font-size: 1.05rem; font-weight: 700; }
+    .badge { font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 600; }
+    .badge-control { background: rgba(0,168,132,0.12); color: #047857; border: 1px solid rgba(0,168,132,0.25); }
+    .badge-procedure { font-size: 0.65rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 600; }
+    .pdu-card-meta { font-size: 0.8rem; color: var(--text-sub); display: flex; gap: 1rem; flex-wrap: wrap; }
+    .pdu-card-body { padding: 1.5rem; }
+    .pdu-desc { font-size: 0.85rem; line-height: 1.5; color: var(--text-sub); margin-bottom: 1rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 6px; }
+    .payload-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .payload-table th, .payload-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+    .payload-table th { background: #f1f5f9; font-weight: 600; color: var(--text-sub); }
+    .param-link { color: var(--primary-color); text-decoration: none; font-weight: 600; }
+    .param-link:hover { text-decoration: underline; }
+    .parameters-directory { margin-top: 4rem; padding-top: 2rem; border-top: 3px dashed #cbd5e1; }
+    .parameter-card { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 1.5rem; padding: 1.25rem; }
+    .parameter-card-header { display: flex; justify-content: space-between; margin-bottom: 0.75rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; }
+    .parameter-title { font-size: 1rem; font-weight: 700; color: var(--primary-color); }
+    .parameter-type { font-size: 0.75rem; background: #e2e8f0; padding: 0.15rem 0.4rem; border-radius: 4px; font-family: monospace; }
+    .parameter-desc { font-size: 0.85rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 1rem; }
+    .parameter-relations { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .relation-label { font-size: 0.75rem; font-weight: 600; color: #64748b; }
+    .relation-badge { font-size: 0.75rem; background: #f1f5f9; padding: 0.15rem 0.5rem; border-radius: 4px; text-decoration: none; color: #1e293b; border: 1px solid var(--border-color); }
+    .relation-badge:hover { background: var(--primary-color); color: #fff; }
+    .procedure-section-header { margin: 2rem 0 1rem; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color); background: linear-gradient(90deg, rgba(0,168,132,0.08) 0%, transparent 100%); }
+    .procedure-section-header h4 { font-size: 1rem; margin-bottom: 0.25rem; }
+    .procedure-section-header p { font-size: 0.8rem; color: var(--text-sub); }
+    .highlight-target { animation: flash 2.5s ease-out; border-color: var(--primary-color) !important; box-shadow: 0 0 15px rgba(0,168,132,0.25) !important; }
+    @keyframes flash { 0% { background: rgba(0,168,132,0.35); } 100% { background: transparent; } }
+    .hidden { display: none !important; }
+    .back-to-top { position: fixed; bottom: 2rem; right: 2rem; width: 40px; height: 40px; border-radius: 50%; border: none; background: #0f172a; color: #fff; cursor: pointer; opacity: 0.85; }
+    .back-to-top:hover { background: var(--primary-color); }
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="header">
+    <div class="brand-title">
+      <h1>Bluetooth LL Control PDU Directory</h1>
+      <p>低功耗链路层控制信令索引 (Core 6.0 Part B — Link Layer Specification)</p>
+    </div>
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="PDU / Opcode / §5.1 过程 (例: ENC / 0x03 / CIS)...">
+    </div>
+  </header>
+  <div class="main-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span>LL Control PDU</span>
+        <span class="pdu-count-badge" id="pduCount">0 / 0</span>
+      </div>
+      <div class="sidebar-toolbar">
+        <button type="button" id="expandAllNav">全部展开</button>
+        <button type="button" id="collapseAllNav">全部折叠</button>
+      </div>
+      <div class="pdu-menu-list" id="pduMenuList"></div>
+    </aside>
+    <main class="content-area" id="contentArea">
+      <section class="intro-section">
+        <h2>Core 6.0 Part B — 数据信道 LL Control PDU</h2>
+        <p>本索引覆盖已连接状态下 <strong>Data Physical Channel</strong> 上的 <strong>LL Control PDU</strong>（Header.LLID = <code>0b11</code>），与
+          <a href="https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core-60/out/en/low-energy-controller/link-layer-specification.html" target="_blank" rel="noopener">Link Layer Specification Part B</a>
+          中 <strong>Table 2.22</strong>（Opcode）及 <strong>§2.4.2</strong>（CtrData）对齐，共 <strong>61</strong> 条现行 Opcode（0x00–0x3C）。过程分类依据 <strong>§5.1 Link Layer ACL control procedures</strong>。</p>
+<p class="bt-spec-related" style="margin-top:0.75rem;font-size:0.82rem;color:#64748b;"><!-- bt-spec-related-links -->相关文档：<a href="../overview/ble_ll_overview.html">BLE 链路层 (Part B)</a></p>
+
+        <p style="margin-top:0.5rem;font-size:0.8rem;color:#64748b"><strong>离线：</strong>单文件自包含，浏览器直接打开即可；仅规范外链需联网。</p>
+        <div class="intro-grid">
+          <div class="intro-card">
+            <h4>PDU 结构</h4>
+            <p>Payload = <strong>Opcode (1 byte)</strong> + <strong>CtrData (固定长度)</strong>。与 LL Data PDU（LLID 0b01/0b10，承载 L2CAP）区分。</p>
+          </div>
+          <div class="intro-card" style="border-left-color:#dc2626">
+            <h4>异常应答</h4>
+            <p>不支持 Opcode → <code>LL_UNKNOWN_RSP</code>；可拒绝的过程 → <code>LL_REJECT_IND</code> / <code>LL_REJECT_EXT_IND</code>。</p>
+          </div>
+        </div>
+      </section>
+      <section>
+        <h3 class="catalog-title">📘 LL Control PDU 定义（Table 2.22 + §2.4.2）</h3>
+        <div id="pduCatalog"></div>
+      </section>
+      <section class="parameters-directory">
+        <h3 class="catalog-title" style="border-bottom-color:var(--primary-color)">📋 CtrData 参数字典</h3>
+        <div id="parametersContainer"></div>
+      </section>
+    </main>
+  </div>
+  <button class="back-to-top" onclick="scrollToTop()" title="返回顶部">▲</button>
+  <script>
+const pduData = [
+      {
+        name: "ll_connection_update_ind",
+        display: "LL_CONNECTION_UPDATE_IND",
+        opcode: 0,
+        procedure: "conn_update",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x00。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "WinSize", pos: "CtrData 0", type: "uint8", desc: "发送窗口 ×1.25ms" },
+          { name: "WinOffset", pos: "CtrData 1~2", type: "uint16", desc: "窗口偏移 ×1.25ms" },
+          { name: "Interval", pos: "CtrData 3~4", type: "uint16", desc: "连接间隔" },
+          { name: "Latency", pos: "CtrData 5~6", type: "uint16", desc: "从机延迟" },
+          { name: "Timeout", pos: "CtrData 7~8", type: "uint16", desc: "监督超时 ×10ms" },
+          { name: "Instant", pos: "CtrData 9~12", type: "uint32", desc: "§5.1.1 生效 instant" },
+        ]
+      },
+      {
+        name: "ll_channel_map_ind",
+        display: "LL_CHANNEL_MAP_IND",
+        opcode: 1,
+        procedure: "channel_map",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x01。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "ChM", pos: "CtrData 0~4", type: "uint40", desc: "信道图" },
+          { name: "Instant", pos: "CtrData 5~8", type: "uint32", desc: "§5.1.2 instant" },
+        ]
+      },
+      {
+        name: "ll_terminate_ind",
+        display: "LL_TERMINATE_IND",
+        opcode: 2,
+        procedure: "terminate",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x02。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "ErrorCode", pos: "CtrData 0", type: "uint8", desc: "断开原因码" },
+        ]
+      },
+      {
+        name: "ll_enc_req",
+        display: "LL_ENC_REQ",
+        opcode: 3,
+        procedure: "encryption",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x03。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "Rand", pos: "CtrData 0~7", type: "uint64", desc: "随机数" },
+          { name: "EDIV", pos: "CtrData 8~9", type: "uint16", desc: "加密 diversifier" },
+          { name: "SKD_C", pos: "CtrData 10~17", type: "uint64", desc: "Central SKD" },
+          { name: "IV_C", pos: "CtrData 18~21", type: "uint32", desc: "Central IV" },
+        ]
+      },
+      {
+        name: "ll_enc_rsp",
+        display: "LL_ENC_RSP",
+        opcode: 4,
+        procedure: "encryption",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x04。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "SKD_P", pos: "CtrData 0~7", type: "uint64", desc: "Peripheral SKD" },
+          { name: "IV_P", pos: "CtrData 8~11", type: "uint32", desc: "Peripheral IV" },
+        ]
+      },
+      {
+        name: "ll_start_enc_req",
+        display: "LL_START_ENC_REQ",
+        opcode: 5,
+        procedure: "encryption",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "启动加密，无 CtrData（§2.4.2.6）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_start_enc_rsp",
+        display: "LL_START_ENC_RSP",
+        opcode: 6,
+        procedure: "encryption",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "启动加密响应，无 CtrData（§2.4.2.7）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_unknown_rsp",
+        display: "LL_UNKNOWN_RSP",
+        opcode: 7,
+        procedure: "general",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x07。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "UnknownType", pos: "CtrData 0", type: "uint8", desc: "未知 Opcode" },
+        ]
+      },
+      {
+        name: "ll_feature_req",
+        display: "LL_FEATURE_REQ",
+        opcode: 8,
+        procedure: "feature",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x08。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "FeatureSet", pos: "CtrData 0~7", type: "uint64", desc: "特性集页 0" },
+        ]
+      },
+      {
+        name: "ll_feature_rsp",
+        display: "LL_FEATURE_RSP",
+        opcode: 9,
+        procedure: "feature",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x09。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "FeatureSet", pos: "CtrData 0~7", type: "uint64", desc: "特性集页 0" },
+        ]
+      },
+      {
+        name: "ll_pause_enc_req",
+        display: "LL_PAUSE_ENC_REQ",
+        opcode: 10,
+        procedure: "encryption",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "暂停加密，无 CtrData（§2.4.2.11）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_pause_enc_rsp",
+        display: "LL_PAUSE_ENC_RSP",
+        opcode: 11,
+        procedure: "encryption",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "暂停加密响应，无 CtrData（§2.4.2.12）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_version_ind",
+        display: "LL_VERSION_IND",
+        opcode: 12,
+        procedure: "version",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x0C。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "VersNr", pos: "CtrData 0", type: "uint8", desc: "版本" },
+          { name: "CompId", pos: "CtrData 1~2", type: "uint16", desc: "公司 ID" },
+          { name: "SubVersNr", pos: "CtrData 3~4", type: "uint16", desc: "子版本" },
+        ]
+      },
+      {
+        name: "ll_reject_ind",
+        display: "LL_REJECT_IND",
+        opcode: 13,
+        procedure: "general",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x0D。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "ErrorCode", pos: "CtrData 0", type: "uint8", desc: "错误码" },
+        ]
+      },
+      {
+        name: "ll_peripheral_feature_req",
+        display: "LL_PERIPHERAL_FEATURE_REQ",
+        opcode: 14,
+        procedure: "feature",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x0E。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "FeatureSet", pos: "CtrData 0~7", type: "uint64", desc: "从机特性" },
+        ]
+      },
+      {
+        name: "ll_connection_param_req",
+        display: "LL_CONNECTION_PARAM_REQ",
+        opcode: 15,
+        procedure: "conn_param",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x0F。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "Interval_Min", pos: "CtrData 0~1", type: "uint16", desc: "最小间隔" },
+          { name: "Interval_Max", pos: "CtrData 2~3", type: "uint16", desc: "最大间隔" },
+          { name: "Latency", pos: "CtrData 4~5", type: "uint16", desc: "延迟" },
+          { name: "Timeout", pos: "CtrData 6~7", type: "uint16", desc: "超时" },
+          { name: "PreferredPeriodicity", pos: "CtrData 8", type: "uint8", desc: "首选周期" },
+          { name: "ReferenceConnEventCount", pos: "CtrData 9~10", type: "uint16", desc: "参考事件计数" },
+          { name: "Offset0", pos: "CtrData 11~12", type: "uint16", desc: "偏移 0" },
+          { name: "Offset1", pos: "CtrData 13~14", type: "uint16", desc: "偏移 1" },
+          { name: "Offset2", pos: "CtrData 15~16", type: "uint16", desc: "偏移 2" },
+          { name: "Offset3", pos: "CtrData 17~18", type: "uint16", desc: "偏移 3" },
+          { name: "Offset4", pos: "CtrData 19~20", type: "uint16", desc: "偏移 4" },
+          { name: "Offset5", pos: "CtrData 21~22", type: "uint16", desc: "偏移 5" },
+        ]
+      },
+      {
+        name: "ll_connection_param_rsp",
+        display: "LL_CONNECTION_PARAM_RSP",
+        opcode: 16,
+        procedure: "conn_param",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x10。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "Interval_Min", pos: "CtrData 0~1", type: "uint16", desc: "最小间隔" },
+          { name: "Interval_Max", pos: "CtrData 2~3", type: "uint16", desc: "最大间隔" },
+          { name: "Latency", pos: "CtrData 4~5", type: "uint16", desc: "延迟" },
+          { name: "Timeout", pos: "CtrData 6~7", type: "uint16", desc: "超时" },
+          { name: "PreferredPeriodicity", pos: "CtrData 8", type: "uint8", desc: "首选周期" },
+          { name: "ReferenceConnEventCount", pos: "CtrData 9~10", type: "uint16", desc: "参考事件计数" },
+          { name: "Offset0", pos: "CtrData 11~12", type: "uint16", desc: "偏移 0" },
+          { name: "Offset1", pos: "CtrData 13~14", type: "uint16", desc: "偏移 1" },
+          { name: "Offset2", pos: "CtrData 15~16", type: "uint16", desc: "偏移 2" },
+          { name: "Offset3", pos: "CtrData 17~18", type: "uint16", desc: "偏移 3" },
+          { name: "Offset4", pos: "CtrData 19~20", type: "uint16", desc: "偏移 4" },
+          { name: "Offset5", pos: "CtrData 21~22", type: "uint16", desc: "偏移 5" },
+        ]
+      },
+      {
+        name: "ll_reject_ext_ind",
+        display: "LL_REJECT_EXT_IND",
+        opcode: 17,
+        procedure: "general",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x11。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "RejectOpcode", pos: "CtrData 0", type: "uint8", desc: "被拒 Opcode" },
+          { name: "ErrorCode", pos: "CtrData 1", type: "uint8", desc: "错误码" },
+        ]
+      },
+      {
+        name: "ll_ping_req",
+        display: "LL_PING_REQ",
+        opcode: 18,
+        procedure: "ping",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "LE Ping 请求，无 CtrData（§2.4.2.19）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_ping_rsp",
+        display: "LL_PING_RSP",
+        opcode: 19,
+        procedure: "ping",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "LE Ping 响应，无 CtrData（§2.4.2.20）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_length_req",
+        display: "LL_LENGTH_REQ",
+        opcode: 20,
+        procedure: "data_length",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x14。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "MaxRxOctets", pos: "CtrData 0~1", type: "uint16", desc: "最大 RX 字节" },
+          { name: "MaxTxOctets", pos: "CtrData 2~3", type: "uint16", desc: "最大 TX 字节" },
+          { name: "MaxRxTime", pos: "CtrData 4~5", type: "uint16", desc: "最大 RX 时间" },
+          { name: "MaxTxTime", pos: "CtrData 6~7", type: "uint16", desc: "最大 TX 时间" },
+        ]
+      },
+      {
+        name: "ll_length_rsp",
+        display: "LL_LENGTH_RSP",
+        opcode: 21,
+        procedure: "data_length",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x15。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "MaxRxOctets", pos: "CtrData 0~1", type: "uint16", desc: "最大 RX 字节" },
+          { name: "MaxTxOctets", pos: "CtrData 2~3", type: "uint16", desc: "最大 TX 字节" },
+          { name: "MaxRxTime", pos: "CtrData 4~5", type: "uint16", desc: "最大 RX 时间" },
+          { name: "MaxTxTime", pos: "CtrData 6~7", type: "uint16", desc: "最大 TX 时间" },
+        ]
+      },
+      {
+        name: "ll_phy_req",
+        display: "LL_PHY_REQ",
+        opcode: 22,
+        procedure: "phy",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x16。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "TX_PHYS", pos: "CtrData 0", type: "uint8", desc: "TX PHY 位图" },
+          { name: "RX_PHYS", pos: "CtrData 1", type: "uint8", desc: "RX PHY 位图" },
+        ]
+      },
+      {
+        name: "ll_phy_rsp",
+        display: "LL_PHY_RSP",
+        opcode: 23,
+        procedure: "phy",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x17。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "TX_PHYS", pos: "CtrData 0", type: "uint8", desc: "TX PHY 位图" },
+          { name: "RX_PHYS", pos: "CtrData 1", type: "uint8", desc: "RX PHY 位图" },
+        ]
+      },
+      {
+        name: "ll_phy_update_ind",
+        display: "LL_PHY_UPDATE_IND",
+        opcode: 24,
+        procedure: "phy",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x18。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "C_TO_P_PHY", pos: "CtrData 0", type: "uint8", desc: "C→P PHY" },
+          { name: "P_TO_C_PHY", pos: "CtrData 1", type: "uint8", desc: "P→C PHY" },
+          { name: "Instant", pos: "CtrData 2~5", type: "uint32", desc: "切换 instant" },
+        ]
+      },
+      {
+        name: "ll_min_used_channels_ind",
+        display: "LL_MIN_USED_CHANNELS_IND",
+        opcode: 25,
+        procedure: "min_channels",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x19。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "Phys", pos: "CtrData 0", type: "uint8", desc: "PHY" },
+          { name: "MinUsedChannels", pos: "CtrData 1", type: "uint8", desc: "最少信道数" },
+        ]
+      },
+      {
+        name: "ll_cte_req",
+        display: "LL_CTE_REQ",
+        opcode: 26,
+        procedure: "cte",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x1A。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "CTEType", pos: "CtrData 0", type: "uint8", desc: "CTE 类型" },
+          { name: "MinCTELen", pos: "CtrData 1", type: "uint8", desc: "最小 CTE 长度" },
+        ]
+      },
+      {
+        name: "ll_cte_rsp",
+        display: "LL_CTE_RSP",
+        opcode: 27,
+        procedure: "cte",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "CTE 响应，无 CtrData（§2.4.2.26）。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_periodic_sync_ind",
+        display: "LL_PERIODIC_SYNC_IND",
+        opcode: 28,
+        procedure: "periodic_sync",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x1C。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_clock_accuracy_req",
+        display: "LL_CLOCK_ACCURACY_REQ",
+        opcode: 29,
+        procedure: "clock_accuracy",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x1D。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "SCA", pos: "CtrData 0", type: "uint8", desc: "睡眠时钟精度" },
+        ]
+      },
+      {
+        name: "ll_clock_accuracy_rsp",
+        display: "LL_CLOCK_ACCURACY_RSP",
+        opcode: 30,
+        procedure: "clock_accuracy",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x1E。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "SCA", pos: "CtrData 0", type: "uint8", desc: "睡眠时钟精度" },
+        ]
+      },
+      {
+        name: "ll_cis_req",
+        display: "LL_CIS_REQ",
+        opcode: 31,
+        procedure: "cis_create",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x1F。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cis_rsp",
+        display: "LL_CIS_RSP",
+        opcode: 32,
+        procedure: "cis_create",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x20。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cis_ind",
+        display: "LL_CIS_IND",
+        opcode: 33,
+        procedure: "cis_create",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x21。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cis_terminate_ind",
+        display: "LL_CIS_TERMINATE_IND",
+        opcode: 34,
+        procedure: "cis_term",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x22。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_power_control_req",
+        display: "LL_POWER_CONTROL_REQ",
+        opcode: 35,
+        procedure: "power_control",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x23。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "PHY", pos: "CtrData 0", type: "uint8", desc: "PHY" },
+          { name: "Delta", pos: "CtrData 1", type: "int8", desc: "功率步进" },
+          { name: "TxPower", pos: "CtrData 2", type: "int8", desc: "发射功率" },
+        ]
+      },
+      {
+        name: "ll_power_control_rsp",
+        display: "LL_POWER_CONTROL_RSP",
+        opcode: 36,
+        procedure: "power_control",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x24。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "PHY", pos: "CtrData 0", type: "uint8", desc: "PHY" },
+          { name: "Delta", pos: "CtrData 1", type: "int8", desc: "Delta" },
+          { name: "TxPower", pos: "CtrData 2", type: "int8", desc: "TxPower" },
+          { name: "APRF", pos: "CtrData 3", type: "uint8", desc: "路径损耗标志" },
+          { name: "RSSI", pos: "CtrData 4", type: "int8", desc: "RSSI" },
+        ]
+      },
+      {
+        name: "ll_power_change_ind",
+        display: "LL_POWER_CHANGE_IND",
+        opcode: 37,
+        procedure: "power_change",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x25。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "PHY", pos: "CtrData 0", type: "uint8", desc: "PHY" },
+          { name: "Delta", pos: "CtrData 1", type: "int8", desc: "Delta" },
+          { name: "TxPower", pos: "CtrData 2", type: "int8", desc: "TxPower" },
+          { name: "APRF", pos: "CtrData 3", type: "uint8", desc: "APRF" },
+          { name: "RSSI", pos: "CtrData 4", type: "int8", desc: "RSSI" },
+        ]
+      },
+      {
+        name: "ll_subrate_req",
+        display: "LL_SUBRATE_REQ",
+        opcode: 38,
+        procedure: "subrate_req",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x26。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "SubrateFactor", pos: "CtrData 0", type: "uint8", desc: "子速率因子" },
+          { name: "SubrateBaseEvent", pos: "CtrData 1~2", type: "uint16", desc: "基准事件" },
+          { name: "Latency", pos: "CtrData 3~4", type: "uint16", desc: "延迟" },
+          { name: "ContinuationNumber", pos: "CtrData 5", type: "uint8", desc: "延续数" },
+          { name: "Timeout", pos: "CtrData 6~7", type: "uint16", desc: "超时" },
+        ]
+      },
+      {
+        name: "ll_subrate_ind",
+        display: "LL_SUBRATE_IND",
+        opcode: 39,
+        procedure: "subrate_update",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x27。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "SubrateFactor", pos: "CtrData 0", type: "uint8", desc: "子速率因子" },
+          { name: "SubrateBaseEvent", pos: "CtrData 1~2", type: "uint16", desc: "基准事件" },
+          { name: "Latency", pos: "CtrData 3~4", type: "uint16", desc: "延迟" },
+          { name: "ContinuationNumber", pos: "CtrData 5", type: "uint8", desc: "延续数" },
+          { name: "Timeout", pos: "CtrData 6~7", type: "uint16", desc: "超时" },
+          { name: "Instant", pos: "CtrData 8~11", type: "uint32", desc: "instant" },
+        ]
+      },
+      {
+        name: "ll_channel_reporting_ind",
+        display: "LL_CHANNEL_REPORTING_IND",
+        opcode: 40,
+        procedure: "ch_class_enable",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x28。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "Enable", pos: "CtrData 0", type: "uint8", desc: "0=禁用 1=启用" },
+          { name: "MinSpacing", pos: "CtrData 1", type: "uint8", desc: "最小间隔" },
+          { name: "MaxDelay", pos: "CtrData 2", type: "uint8", desc: "最大延迟" },
+        ]
+      },
+      {
+        name: "ll_channel_status_ind",
+        display: "LL_CHANNEL_STATUS_IND",
+        opcode: 41,
+        procedure: "ch_class_report",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x29。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "ChannelReporting", pos: "CtrData 0~9", type: "uint8[10]", desc: "信道状态" },
+        ]
+      },
+      {
+        name: "ll_periodic_sync_wr_ind",
+        display: "LL_PERIODIC_SYNC_WR_IND",
+        opcode: 42,
+        procedure: "periodic_sync",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x2A。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_feature_ext_req",
+        display: "LL_FEATURE_EXT_REQ",
+        opcode: 43,
+        procedure: "feature",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x2B。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "MaxPage", pos: "CtrData 0", type: "uint8", desc: "最高页" },
+          { name: "PageNumber", pos: "CtrData 1", type: "uint8", desc: "页号" },
+          { name: "FeaturePage", pos: "CtrData 2~9", type: "uint64", desc: "特性页" },
+        ]
+      },
+      {
+        name: "ll_feature_ext_rsp",
+        display: "LL_FEATURE_EXT_RSP",
+        opcode: 44,
+        procedure: "feature",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x2C。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "MaxPage", pos: "CtrData 0", type: "uint8", desc: "最高页" },
+          { name: "PageNumber", pos: "CtrData 1", type: "uint8", desc: "页号" },
+          { name: "FeaturePage", pos: "CtrData 2~9", type: "uint64", desc: "特性页" },
+        ]
+      },
+      {
+        name: "ll_cs_sec_rsp",
+        display: "LL_CS_SEC_RSP",
+        opcode: 45,
+        procedure: "cs_security",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x2D。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "CS_IV_P", pos: "CtrData 0~7", type: "uint64", desc: "Peripheral CS IV" },
+          { name: "CS_IN_P", pos: "CtrData 8~15", type: "uint64", desc: "Peripheral CS IN" },
+          { name: "CS_PV_P", pos: "CtrData 16~23", type: "uint64", desc: "Peripheral CS PV" },
+        ]
+      },
+      {
+        name: "ll_cs_capabilities_req",
+        display: "LL_CS_CAPABILITIES_REQ",
+        opcode: 46,
+        procedure: "cs_capabilities",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x2E。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_capabilities_rsp",
+        display: "LL_CS_CAPABILITIES_RSP",
+        opcode: 47,
+        procedure: "cs_capabilities",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x2F。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_config_req",
+        display: "LL_CS_CONFIG_REQ",
+        opcode: 48,
+        procedure: "cs_config",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x30。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_config_rsp",
+        display: "LL_CS_CONFIG_RSP",
+        opcode: 49,
+        procedure: "cs_config",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x31。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_req",
+        display: "LL_CS_REQ",
+        opcode: 50,
+        procedure: "cs_start",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x32。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_rsp",
+        display: "LL_CS_RSP",
+        opcode: 51,
+        procedure: "cs_start",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x33。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_ind",
+        display: "LL_CS_IND",
+        opcode: 52,
+        procedure: "cs_start",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x34。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_terminate_req",
+        display: "LL_CS_TERMINATE_REQ",
+        opcode: 53,
+        procedure: "cs_terminate",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x35。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_fae_req",
+        display: "LL_CS_FAE_REQ",
+        opcode: 54,
+        procedure: "cs_fae",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x36。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_fae_rsp",
+        display: "LL_CS_FAE_RSP",
+        opcode: 55,
+        procedure: "cs_fae",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x37。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_channel_map_ind",
+        display: "LL_CS_CHANNEL_MAP_IND",
+        opcode: 56,
+        procedure: "cs_ch_map",
+        role: "IND",
+        direction: "通知（可含 instant）",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x38。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_cs_sec_req",
+        display: "LL_CS_SEC_REQ",
+        opcode: 57,
+        procedure: "cs_security",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x39。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "CS_IV_C", pos: "CtrData 0~7", type: "uint64", desc: "Central CS IV" },
+          { name: "CS_IN_C", pos: "CtrData 8~15", type: "uint64", desc: "Central CS IN" },
+          { name: "CS_PV_C", pos: "CtrData 16~23", type: "uint64", desc: "Central CS PV" },
+        ]
+      },
+      {
+        name: "ll_cs_terminate_rsp",
+        display: "LL_CS_TERMINATE_RSP",
+        opcode: 58,
+        procedure: "cs_terminate",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "0",
+        description: "数据信道 LL Control PDU，Opcode 0x3A。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+        ]
+      },
+      {
+        name: "ll_frame_space_req",
+        display: "LL_FRAME_SPACE_REQ",
+        opcode: 59,
+        procedure: "frame_space",
+        role: "REQ",
+        direction: "请求方 → 响应方",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x3B。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "FrameSpaceMin", pos: "CtrData 0~1", type: "uint16", desc: "最小帧间隔" },
+          { name: "FrameSpaceMax", pos: "CtrData 2~3", type: "uint16", desc: "最大帧间隔" },
+          { name: "FrameSpaceType", pos: "CtrData 4", type: "uint8", desc: "类型" },
+        ]
+      },
+      {
+        name: "ll_frame_space_rsp",
+        display: "LL_FRAME_SPACE_RSP",
+        opcode: 60,
+        procedure: "frame_space",
+        role: "RSP",
+        direction: "响应",
+        ctrLength: "见 CtrData",
+        description: "数据信道 LL Control PDU，Opcode 0x3C。CtrData 布局见规范 §2.4.2 与过程 §5.1。",
+        payload: [
+          { name: "FrameSpace", pos: "CtrData 0~1", type: "uint16", desc: "帧间隔" },
+          { name: "FrameSpaceType", pos: "CtrData 2", type: "uint8", desc: "类型" },
+        ]
+      },
+    ];
+
+    const parametersData = {
+      "APRF": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "路径损耗标志（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CS_IN_C": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Central CS IN（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CS_IN_P": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Peripheral CS IN（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CS_IV_C": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Central CS IV（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CS_IV_P": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Peripheral CS IV（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CS_PV_C": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Central CS PV（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CS_PV_P": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Peripheral CS PV（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CTEType": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "CTE 类型（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "C_TO_P_PHY": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "C→P PHY（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "ChM": {
+        type: "uint40",
+        size: "uint40",
+        range: "见 §2.4.2",
+        description: "信道图（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "ChannelReporting": {
+        type: "uint8",
+        size: "uint8[10]",
+        range: "见 §2.4.2",
+        description: "信道状态（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "CompId": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "公司 ID（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "ContinuationNumber": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "延续数（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Delta": {
+        type: "int8",
+        size: "int8",
+        range: "见 §2.4.2",
+        description: "功率步进（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "EDIV": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "加密 diversifier（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Enable": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "0=禁用 1=启用（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "ErrorCode": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "断开原因码（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "FeaturePage": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "特性页（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "FeatureSet": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "特性集页 0（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "FrameSpace": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "帧间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "FrameSpaceMax": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最大帧间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "FrameSpaceMin": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最小帧间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "FrameSpaceType": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "类型（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "IV_C": {
+        type: "uint32",
+        size: "uint32",
+        range: "见 §2.4.2",
+        description: "Central IV（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "IV_P": {
+        type: "uint32",
+        size: "uint32",
+        range: "见 §2.4.2",
+        description: "Peripheral IV（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Instant": {
+        type: "uint32",
+        size: "uint32",
+        range: "见 §2.4.2",
+        description: "§5.1.1 生效 instant（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Interval": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "连接间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Interval_Max": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最大间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Interval_Min": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最小间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Latency": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "从机延迟（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MaxDelay": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "最大延迟（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MaxPage": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "最高页（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MaxRxOctets": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最大 RX 字节（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MaxRxTime": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最大 RX 时间（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MaxTxOctets": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最大 TX 字节（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MaxTxTime": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "最大 TX 时间（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MinCTELen": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "最小 CTE 长度（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MinSpacing": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "最小间隔（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "MinUsedChannels": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "最少信道数（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Offset0": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "偏移 0（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Offset1": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "偏移 1（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Offset2": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "偏移 2（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Offset3": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "偏移 3（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Offset4": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "偏移 4（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Offset5": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "偏移 5（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "PHY": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "PHY（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "P_TO_C_PHY": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "P→C PHY（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "PageNumber": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "页号（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Phys": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "PHY（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "PreferredPeriodicity": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "首选周期（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "RSSI": {
+        type: "int8",
+        size: "int8",
+        range: "见 §2.4.2",
+        description: "RSSI（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "RX_PHYS": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "RX PHY 位图（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Rand": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "随机数（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "ReferenceConnEventCount": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "参考事件计数（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "RejectOpcode": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "被拒 Opcode（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "SCA": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "睡眠时钟精度（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "SKD_C": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Central SKD（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "SKD_P": {
+        type: "uint64",
+        size: "uint64",
+        range: "见 §2.4.2",
+        description: "Peripheral SKD（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "SubVersNr": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "子版本（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "SubrateBaseEvent": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "基准事件（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "SubrateFactor": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "子速率因子（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "TX_PHYS": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "TX PHY 位图（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "Timeout": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "监督超时 ×10ms（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "TxPower": {
+        type: "int8",
+        size: "int8",
+        range: "见 §2.4.2",
+        description: "发射功率（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "UnknownType": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "未知 Opcode（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "VersNr": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "版本（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "WinOffset": {
+        type: "uint16",
+        size: "uint16",
+        range: "见 §2.4.2",
+        description: "窗口偏移 ×1.25ms（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+      "WinSize": {
+        type: "uint8",
+        size: "uint8",
+        range: "见 §2.4.2",
+        description: "发送窗口 ×1.25ms（LL Control CtrData 字段，定义见 Core 6.0 Part B §2.4.2。）"
+      },
+    };
+
+    const PROCEDURE_ORDER = [
+      'general',
+      'conn_update', 'channel_map', 'terminate', 'encryption', 'feature', 'version',
+      'conn_param', 'ping', 'data_length', 'phy', 'min_channels', 'cte', 'periodic_sync',
+      'clock_accuracy', 'cis_create', 'cis_term', 'power_control', 'power_change',
+      'subrate_req', 'subrate_update', 'ch_class_enable', 'ch_class_report', 'frame_space',
+      'cs_security', 'cs_capabilities', 'cs_config', 'cs_start', 'cs_terminate', 'cs_fae', 'cs_ch_map'
+    ];
+
+    const PROCEDURE_CATALOG = {
+      general: { section: '—', title: '通用应答/拒绝', parent: '跨 §5.1 过程', desc: 'UNKNOWN_RSP、REJECT_IND、REJECT_EXT_IND。', color: '#64748b', defaultCollapsed: false },
+      conn_update: { section: '5.1.1', title: '连接更新', parent: '5.1 ACL 控制', desc: 'CONNECTION_UPDATE_IND（含 instant）。', color: '#00A884', defaultCollapsed: false },
+      channel_map: { section: '5.1.2', title: '信道图更新', parent: '5.1 ACL 控制', desc: 'CHANNEL_MAP_IND。', color: '#00A884', defaultCollapsed: true },
+      terminate: { section: '5.1.6', title: 'ACL 终止', parent: '5.1 ACL 控制', desc: 'TERMINATE_IND。', color: '#00A884', defaultCollapsed: false },
+      encryption: { section: '5.1.3', title: '加密', parent: '5.1 ACL 控制', desc: 'ENC/START_ENC/PAUSE_ENC 系列。', color: '#dc2626', defaultCollapsed: true },
+      feature: { section: '5.1.4', title: '特性交换', parent: '5.1 ACL 控制', desc: 'FEATURE_* / PERIPHERAL_FEATURE_REQ / FEATURE_EXT_*。', color: '#059669', defaultCollapsed: true },
+      version: { section: '5.1.5', title: '版本交换', parent: '5.1 ACL 控制', desc: 'VERSION_IND。', color: '#059669', defaultCollapsed: true },
+      conn_param: { section: '5.1.7', title: '连接参数请求', parent: '5.1 ACL 控制', desc: 'CONNECTION_PARAM_REQ/RSP。', color: '#00A884', defaultCollapsed: true },
+      ping: { section: '5.1.8', title: 'LE Ping', parent: '5.1 ACL 控制', desc: 'PING_REQ/RSP。', color: '#00A884', defaultCollapsed: true },
+      data_length: { section: '5.1.9', title: '数据长度更新', parent: '5.1 ACL 控制', desc: 'LENGTH_REQ/RSP。', color: '#00A884', defaultCollapsed: true },
+      phy: { section: '5.1.10', title: 'PHY 更新', parent: '5.1 ACL 控制', desc: 'PHY_REQ/RSP、PHY_UPDATE_IND。', color: '#00A884', defaultCollapsed: true },
+      min_channels: { section: '5.1.11', title: '最少使用信道', parent: '5.1 ACL 控制', desc: 'MIN_USED_CHANNELS_IND。', color: '#00A884', defaultCollapsed: true },
+      cte: { section: '5.1.12', title: 'CTE 请求', parent: '5.1 ACL 控制', desc: 'CTE_REQ/RSP。', color: '#7c3aed', defaultCollapsed: true },
+      periodic_sync: { section: '5.1.13', title: '周期广播同步转移', parent: '5.1 ACL 控制', desc: 'PERIODIC_SYNC_IND、PERIODIC_SYNC_WR_IND。', color: '#7c3aed', defaultCollapsed: true },
+      clock_accuracy: { section: '5.1.14', title: '睡眠时钟精度', parent: '5.1 ACL 控制', desc: 'CLOCK_ACCURACY_REQ/RSP。', color: '#00A884', defaultCollapsed: true },
+      cis_create: { section: '5.1.15', title: 'CIS 建立', parent: '5.1 ACL 控制', desc: 'CIS_REQ/RSP/IND。', color: '#0891b2', defaultCollapsed: true },
+      cis_term: { section: '5.1.16', title: 'CIS 终止', parent: '5.1 ACL 控制', desc: 'CIS_TERMINATE_IND。', color: '#0891b2', defaultCollapsed: true },
+      power_control: { section: '5.1.17', title: '功率控制请求', parent: '5.1 ACL 控制', desc: 'POWER_CONTROL_REQ/RSP。', color: '#00A884', defaultCollapsed: true },
+      power_change: { section: '5.1.18', title: '功率变化指示', parent: '5.1 ACL 控制', desc: 'POWER_CHANGE_IND。', color: '#00A884', defaultCollapsed: true },
+      subrate_req: { section: '5.1.20', title: '连接子速率请求', parent: '5.1 ACL 控制', desc: 'SUBRATE_REQ。', color: '#00A884', defaultCollapsed: true },
+      subrate_update: { section: '5.1.19', title: '连接子速率更新', parent: '5.1 ACL 控制', desc: 'SUBRATE_IND。', color: '#00A884', defaultCollapsed: true },
+      ch_class_enable: { section: '5.1.21', title: '信道分类使能', parent: '5.1 ACL 控制', desc: 'CHANNEL_REPORTING_IND。', color: '#00A884', defaultCollapsed: true },
+      ch_class_report: { section: '5.1.22', title: '信道分类上报', parent: '5.1 ACL 控制', desc: 'CHANNEL_STATUS_IND。', color: '#00A884', defaultCollapsed: true },
+      frame_space: { section: '5.1.30', title: '帧间隔更新', parent: '5.1 ACL 控制', desc: 'FRAME_SPACE_REQ/RSP。', color: '#00A884', defaultCollapsed: true },
+      cs_security: { section: '5.1.23', title: '信道探测安全', parent: '5.1 ACL 控制', desc: 'CS_SEC_REQ/RSP。', color: '#b45309', defaultCollapsed: true },
+      cs_capabilities: { section: '5.1.24', title: 'CS 能力交换', parent: '5.1 ACL 控制', desc: 'CS_CAPABILITIES_REQ/RSP。', color: '#b45309', defaultCollapsed: true },
+      cs_config: { section: '5.1.25', title: 'CS 配置', parent: '5.1 ACL 控制', desc: 'CS_CONFIG_REQ/RSP。', color: '#b45309', defaultCollapsed: true },
+      cs_start: { section: '5.1.26', title: 'CS 启动', parent: '5.1 ACL 控制', desc: 'CS_REQ/RSP/IND。', color: '#b45309', defaultCollapsed: true },
+      cs_terminate: { section: '5.1.27', title: 'CS 终止', parent: '5.1 ACL 控制', desc: 'CS_TERMINATE_REQ/RSP。', color: '#b45309', defaultCollapsed: true },
+      cs_fae: { section: '5.1.29', title: 'CS Mode-0 FAE 表', parent: '5.1 ACL 控制', desc: 'CS_FAE_REQ/RSP。', color: '#b45309', defaultCollapsed: true },
+      cs_ch_map: { section: '5.1.28', title: 'CS 信道图更新', parent: '5.1 ACL 控制', desc: 'CS_CHANNEL_MAP_IND。', color: '#b45309', defaultCollapsed: true }
+    };
+
+    const paramToPdusMap = {};
+    function generateBacklinks() {
+      for (const paramKey in parametersData) paramToPdusMap[paramKey] = [];
+      pduData.forEach(pdu => {
+        (pdu.payload || []).forEach(item => {
+          if (parametersData[item.name] && !paramToPdusMap[item.name].includes(pdu.name))
+            paramToPdusMap[item.name].push(pdu.name);
+        });
+      });
+    }
+    function navigateTo(targetId) {
+      const element = document.getElementById(targetId);
+      if (!element) return;
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.remove('highlight-target');
+      void element.offsetWidth;
+      element.classList.add('highlight-target');
+      if (targetId.startsWith('pdu-')) {
+        const pduName = targetId.replace('pdu-', '');
+        document.querySelectorAll('.pdu-menu-item').forEach(item => {
+          if (item.getAttribute('data-pdu') === pduName) {
+            item.classList.add('active');
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else item.classList.remove('active');
+        });
+      }
+    }
+
+    function getProcedureMeta(pdu) {
+      return PROCEDURE_CATALOG[pdu.procedure] || { section: '?', title: pdu.procedure, parent: '', desc: '', color: '#94a3b8', defaultCollapsed: false };
+    }
+
+    function sortPdusByProcedure(pdus) {
+      return [...pdus].sort((a, b) => {
+        const ai = PROCEDURE_ORDER.indexOf(a.procedure);
+        const bi = PROCEDURE_ORDER.indexOf(b.procedure);
+        const aIdx = ai < 0 ? 999 : ai;
+        const bIdx = bi < 0 ? 999 : bi;
+        if (aIdx !== bIdx) return aIdx - bIdx;
+        if (a.opcode !== b.opcode) return a.opcode - b.opcode;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    function createPduMenuItem(pdu) {
+      const li = document.createElement('li');
+      li.className = 'pdu-menu-item';
+      li.setAttribute('data-pdu', pdu.name);
+      li.onclick = () => navigateTo(`pdu-${pdu.name}`);
+      const opHex = `0x${pdu.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+      li.innerHTML = `
+        <div class="pdu-menu-info">
+          <span class="pdu-menu-name">${pdu.display}</span>
+          <span class="pdu-menu-op">${opHex} · ${pdu.role}</span>
+        </div>
+        <span class="badge badge-control">${pdu.role}</span>
+      `;
+      return li;
+    }
+
+    function toggleNavGroup(groupId) {
+      const group = document.querySelector(`.nav-group[data-group="${groupId}"]`);
+      if (group) group.classList.toggle('collapsed');
+    }
+
+    function setAllNavGroups(collapsed) {
+      document.querySelectorAll('.nav-group').forEach(g => {
+        if (collapsed) g.classList.add('collapsed');
+        else g.classList.remove('collapsed');
+      });
+    }
+
+    function renderSidebar(filteredPdus = pduData) {
+      const listContainer = document.getElementById('pduMenuList');
+      listContainer.innerHTML = '';
+      document.getElementById('pduCount').innerText = `${filteredPdus.length} / ${pduData.length}`;
+      const isSearch = filteredPdus.length !== pduData.length;
+      PROCEDURE_ORDER.forEach(procKey => {
+        const meta = PROCEDURE_CATALOG[procKey];
+        if (!meta) return;
+        const groupPdus = sortPdusByProcedure(filteredPdus.filter(p => p.procedure === procKey));
+        if (groupPdus.length === 0) return;
+        const section = document.createElement('div');
+        section.className = 'nav-group';
+        if (!isSearch && meta.defaultCollapsed) section.classList.add('collapsed');
+        section.setAttribute('data-group', procKey);
+        const header = document.createElement('div');
+        header.className = 'nav-group-header';
+        header.style.borderLeft = `3px solid ${meta.color}`;
+        header.innerHTML = `
+          <span class="nav-group-chevron">▼</span>
+          <span class="nav-group-section">${meta.section}</span>
+          <span>${meta.title}</span>
+          <span class="nav-group-count">${groupPdus.length}</span>
+        `;
+        header.onclick = (e) => { e.stopPropagation(); toggleNavGroup(procKey); };
+        const desc = document.createElement('div');
+        desc.className = 'nav-group-desc';
+        desc.textContent = `${meta.parent} — ${meta.desc}`;
+        const items = document.createElement('ul');
+        items.className = 'nav-group-items';
+        groupPdus.forEach(pdu => items.appendChild(createPduMenuItem(pdu)));
+        section.appendChild(header);
+        section.appendChild(desc);
+        section.appendChild(items);
+        listContainer.appendChild(section);
+      });
+    }
+
+    function setupSidebarCollapse() {
+      document.getElementById('expandAllNav').addEventListener('click', () => setAllNavGroups(false));
+      document.getElementById('collapseAllNav').addEventListener('click', () => setAllNavGroups(true));
+    }
+
+    function renderPduCatalog() {
+      const catalogContainer = document.getElementById('pduCatalog');
+      catalogContainer.innerHTML = '';
+      let lastProcedure = null;
+      sortPdusByProcedure(pduData).forEach(pdu => {
+        const procMeta = getProcedureMeta(pdu);
+        if (pdu.procedure !== lastProcedure) {
+          lastProcedure = pdu.procedure;
+          const sectionHdr = document.createElement('div');
+          sectionHdr.className = 'procedure-section-header';
+          sectionHdr.id = `procedure-${pdu.procedure}`;
+          sectionHdr.style.borderLeft = `4px solid ${procMeta.color}`;
+          sectionHdr.innerHTML = `
+            <h4 style="color:${procMeta.color}">§${procMeta.section} ${procMeta.title}</h4>
+            <p><strong>${procMeta.parent}</strong> — ${procMeta.desc}</p>
+          `;
+          catalogContainer.appendChild(sectionHdr);
+        }
+        const card = document.createElement('div');
+        card.className = 'pdu-card';
+        card.id = `pdu-${pdu.name}`;
+        card.setAttribute('data-procedure', pdu.procedure);
+        const opHex = `0x${pdu.opcode.toString(16).toUpperCase().padStart(2, '0')}`;
+        const procBadge = `<span class="badge-procedure" style="background:${procMeta.color}18;color:${procMeta.color};border:1px solid ${procMeta.color}40">§${procMeta.section}</span>`;
+        let payloadHtml = '';
+        if (pdu.payload && pdu.payload.length > 0) {
+          payloadHtml = `
+            <table class="payload-table">
+              <thead><tr>
+                <th style="width:18%">CtrData 位置</th>
+                <th style="width:28%">字段 (点击查看字典)</th>
+                <th style="width:14%">类型</th>
+                <th style="width:40%">说明</th>
+              </tr></thead>
+              <tbody>
+                ${pdu.payload.map(item => `
+                  <tr>
+                    <td style="font-family:monospace">${item.pos}</td>
+                    <td>${parametersData[item.name]
+                      ? `<a href="#param-${item.name}" class="param-link" onclick="event.preventDefault(); navigateTo('param-${item.name}')">${item.name}</a>`
+                      : `<span style="font-weight:600">${item.name}</span>`}
+                    </td>
+                    <td style="font-family:monospace;color:#3b82f6">${item.type}</td>
+                    <td>${item.desc}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>`;
+        } else {
+          payloadHtml = `<div style="font-size:0.85rem;color:var(--text-sub);font-style:italic">无 CtrData 字段（仅 Opcode）；完整布局见规范 §2.4.2 图示。</div>`;
+        }
+        card.innerHTML = `
+          <div class="pdu-card-header">
+            <div class="pdu-title-block">
+              <span class="pdu-card-name">${pdu.display}</span>
+              ${procBadge}
+              <span class="badge badge-control">${pdu.role}</span>
+            </div>
+            <div class="pdu-card-meta">
+              <span><strong>方向:</strong> ${pdu.direction}</span>
+              <span><strong>CtrData:</strong> ${pdu.ctrLength}</span>
+              <span><strong>Opcode:</strong> ${opHex}</span>
+            </div>
+          </div>
+          <div class="pdu-card-body">
+            <div class="pdu-desc">${pdu.description}</div>
+            <p style="font-size:0.75rem;color:#64748b;margin-bottom:0.75rem">数据信道 PDU：Header.LLID=0b11（LL Control），Payload = Opcode(1) + CtrData(n)。</p>
+            ${payloadHtml}
+          </div>`;
+        catalogContainer.appendChild(card);
+      });
+    }
+
+    function renderParameterDirectory() {
+      const paramContainer = document.getElementById('parametersContainer');
+      paramContainer.innerHTML = '';
+      Object.keys(parametersData).sort().forEach(key => {
+        const param = parametersData[key];
+        const linkedPdus = paramToPdusMap[key] || [];
+        const card = document.createElement('div');
+        card.className = 'parameter-card';
+        card.id = `param-${key}`;
+        card.innerHTML = `
+          <div class="parameter-card-header">
+            <span class="parameter-title">${key}</span>
+            <span class="parameter-type">${param.type} (${param.size})</span>
+          </div>
+          <div class="parameter-desc">
+            <div style="margin-bottom:0.5rem"><strong>取值:</strong> <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.8rem">${param.range}</code></div>
+            <div>${param.description}</div>
+          </div>
+          <div class="parameter-relations">
+            <span class="relation-label">引用 PDU:</span>
+            ${linkedPdus.length ? linkedPdus.map(n => `<a href="#pdu-${n}" class="relation-badge" onclick="event.preventDefault(); navigateTo('pdu-${n}')">${n}</a>`).join('') : '<span style="font-size:0.75rem;color:#94a3b8">—</span>'}
+          </div>`;
+        paramContainer.appendChild(card);
+      });
+    }
+
+    function setupSearch() {
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        const query = e.target.value.trim().toLowerCase();
+        if (!query) {
+          renderSidebar(pduData);
+          document.querySelectorAll('.pdu-card, .procedure-section-header').forEach(el => el.classList.remove('hidden'));
+          return;
+        }
+        const filtered = pduData.filter(pdu => {
+          const meta = getProcedureMeta(pdu);
+          const nameMatch = pdu.name.includes(query) || pdu.display.toLowerCase().includes(query);
+          const opMatch = query.startsWith('0x') && parseInt(query, 16) === pdu.opcode
+            || (!isNaN(parseInt(query, 16)) && query.length <= 2 && pdu.opcode === parseInt(query, 16));
+          const procMatch = pdu.procedure.includes(query) || meta.title.toLowerCase().includes(query)
+            || meta.section.includes(query) || meta.desc.toLowerCase().includes(query);
+          return nameMatch || opMatch || procMatch;
+        });
+        renderSidebar(filtered);
+        const visible = filtered.map(p => p.name);
+        document.querySelectorAll('.pdu-card').forEach(card => {
+          card.classList.toggle('hidden', !visible.includes(card.id.replace('pdu-', '')));
+        });
+        document.querySelectorAll('.procedure-section-header').forEach(hdr => {
+          const pk = hdr.id.replace('procedure-', '');
+          hdr.classList.toggle('hidden', !filtered.some(p => p.procedure === pk));
+        });
+        if (filtered.length === 1) navigateTo(`pdu-${filtered[0].name}`);
+      });
+    }
+
+    function scrollToTop() {
+      document.getElementById('contentArea').scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    window.onload = function() {
+      generateBacklinks();
+      renderSidebar();
+      renderPduCatalog();
+      renderParameterDirectory();
+      setupSearch();
+      setupSidebarCollapse();
+    };
+
+  </script>
+</body>
+</html>

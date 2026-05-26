@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>USB 常用描述符手册</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    :root {
+      --accent: #2563eb;
+      --accent-light: #dbeafe;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+
+    /* Sidebar */
+    #sidebar { transition: transform 0.3s; }
+
+    /* Highlight search match */
+    mark {
+      background: #fde68a;
+      color: inherit;
+      border-radius: 2px;
+      padding: 0 2px;
+    }
+
+    /* Section card hover */
+    .descriptor-section {
+      transition: box-shadow 0.2s;
+    }
+    .descriptor-section:hover {
+      box-shadow: 0 4px 24px 0 rgba(37,99,235,0.10);
+    }
+
+    /* Table */
+    table { border-collapse: collapse; width: 100%; }
+    thead tr { background: #eff6ff; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    td, th { padding: 8px 12px; border: 1px solid #e2e8f0; font-size: 0.875rem; }
+    th { font-weight: 600; color: #1e40af; white-space: nowrap; }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+
+    /* Code inline */
+    code {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-family: 'Consolas', 'Courier New', monospace;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* Hidden by search */
+    .section-hidden { display: none !important; }
+
+    /* Active nav link */
+    .nav-link.active {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+    .nav-link {
+      transition: background 0.15s, color 0.15s;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+
+<!-- TOP BAR -->
+<header class="fixed top-0 left-0 right-0 z-40 bg-blue-700 shadow-lg flex items-center px-4 md:px-8 h-14 gap-4">
+  <button id="menuBtn" class="md:hidden text-white mr-2">
+    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <span class="text-white font-bold text-lg tracking-wide flex items-center gap-2 shrink-0">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M10 6h4M10 10h4M10 14h4"/></svg>
+    USB 描述符手册
+  </span>
+  <div class="flex-1 max-w-xl mx-auto relative">
+    <input id="searchInput" type="text" placeholder="搜索描述符、字段名、说明…"
+      class="w-full rounded-full px-4 py-1.5 text-sm bg-blue-600 text-white placeholder-blue-200 border border-blue-400 focus:outline-none focus:bg-white focus:text-gray-800 focus:placeholder-gray-400 transition-all"/>
+    <span id="clearBtn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-blue-200 cursor-pointer hover:text-white text-lg">✕</span>
+  </div>
+  <span id="matchCount" class="text-blue-200 text-xs shrink-0 hidden"></span>
+</header>
+
+<!-- LAYOUT -->
+<div class="flex pt-14 min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar"
+    class="fixed md:sticky top-14 left-0 z-30 h-[calc(100vh-3.5rem)] w-64 bg-white border-r border-gray-200 overflow-y-auto shadow-md md:shadow-none -translate-x-full md:translate-x-0">
+    <nav class="py-4 px-3">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-widest px-2 mb-2">描述符列表</p>
+      <ul id="navList" class="space-y-0.5 text-sm"></ul>
+    </nav>
+  </aside>
+  <!-- Overlay -->
+  <div id="overlay" class="fixed inset-0 bg-black/30 z-20 hidden md:hidden"></div>
+
+  <!-- MAIN -->
+  <main class="flex-1 min-w-0 px-4 md:px-8 py-8 max-w-5xl mx-auto w-full">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-blue-800 mb-2">USB 常用描述符详解</h1>
+      <p class="text-gray-500 text-sm">本文档覆盖 USB 2.0 / 3.x 标准中最常用的描述符，包含每个字段的偏移、大小、含义与典型取值。<br>支持关键字搜索，快速定位目标字段。</p>
+    </div>
+
+    <div id="sectionsContainer" class="space-y-10"></div>
+    <div id="noResult" class="hidden text-center text-gray-400 py-20 text-lg">未找到匹配的描述符或字段 🔍</div>
+  </main>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const descriptors = [
+  {
+    id: "device",
+    title: "设备描述符",
+    en: "Device Descriptor",
+    type: "bDescriptorType = 0x01",
+    color: "blue",
+    intro: "设备描述符是 USB 设备最顶层的描述符，每个 USB 设备只有一个设备描述符。主机在枚举时首先读取该描述符，获取设备的基本信息，包括 USB 版本、厂商/产品 ID、设备类别等。总长度固定为 <code>18</code> 字节。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",            type:"BYTE",  value:"0x12 (18)",         desc:"描述符总字节数，固定为 18。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",    type:"BYTE",  value:"0x01",              desc:"描述符类型，设备描述符固定为 0x01。" },
+      { offset:"0x02", size:2, name:"bcdUSB",             type:"BCD",   value:"0x0200 / 0x0300",   desc:"设备遵循的 USB 规范版本号（BCD 编码）。如 0x0200 = USB 2.0，0x0300 = USB 3.0，0x0110 = USB 1.1。" },
+      { offset:"0x04", size:1, name:"bDeviceClass",       type:"BYTE",  value:"0x00 / 0xFF",       desc:"设备类代码。0x00 表示类别由接口描述符指定；0xFF 表示厂商自定义；其他值见 USB IF 分配的类代码（如 0x09 = Hub）。" },
+      { offset:"0x05", size:1, name:"bDeviceSubClass",    type:"BYTE",  value:"—",                 desc:"设备子类代码，配合 bDeviceClass 使用。若 bDeviceClass=0x00，此字段也必须为 0x00。" },
+      { offset:"0x06", size:1, name:"bDeviceProtocol",    type:"BYTE",  value:"—",                 desc:"设备协议代码，配合 bDeviceClass/bDeviceSubClass 使用。0x00 表示无特定协议。" },
+      { offset:"0x07", size:1, name:"bMaxPacketSize0",    type:"BYTE",  value:"8/16/32/64",        desc:"端点 0（控制端点）最大包长度（字节）。USB 2.0 全速设备通常为 64，低速设备为 8，高速设备固定为 64，USB 3.x 固定为 9（表示 2^9=512）。" },
+      { offset:"0x08", size:2, name:"idVendor",           type:"WORD",  value:"厂商分配",           desc:"厂商 ID（VID），由 USB-IF 统一分配，用于唯一标识制造商。" },
+      { offset:"0x0A", size:2, name:"idProduct",          type:"WORD",  value:"厂商自定义",         desc:"产品 ID（PID），由厂商自行定义，配合 VID 唯一标识一款产品。" },
+      { offset:"0x0C", size:2, name:"bcdDevice",          type:"BCD",   value:"厂商自定义",         desc:"设备版本号（BCD 编码），由厂商定义，用于区分同款产品的不同硬件版本。" },
+      { offset:"0x0E", size:1, name:"iManufacturer",      type:"BYTE",  value:"0 或字符串索引",     desc:"厂商名称字符串描述符的索引值。0 表示无字符串。" },
+      { offset:"0x0F", size:1, name:"iProduct",           type:"BYTE",  value:"0 或字符串索引",     desc:"产品名称字符串描述符的索引值。0 表示无字符串。" },
+      { offset:"0x10", size:1, name:"iSerialNumber",      type:"BYTE",  value:"0 或字符串索引",     desc:"设备序列号字符串描述符的索引值。0 表示无序列号。" },
+      { offset:"0x11", size:1, name:"bNumConfigurations", type:"BYTE",  value:"≥ 1",              desc:"设备支持的配置数量。通常为 1，但部分设备提供多套配置供主机选择。" },
+    ]
+  },
+  {
+    id: "configuration",
+    title: "配置描述符",
+    en: "Configuration Descriptor",
+    type: "bDescriptorType = 0x02",
+    color: "indigo",
+    intro: "配置描述符描述设备某一种工作配置的整体信息，包含接口数量、总描述符长度、电源属性及最大功耗等。一个设备可有多个配置，但同一时刻只能激活一个。总长度固定为 <code>9</code> 字节（不含子描述符）。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",             type:"BYTE",  value:"0x09 (9)",          desc:"本描述符的字节数，固定为 9。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",     type:"BYTE",  value:"0x02",              desc:"描述符类型，配置描述符固定为 0x02。" },
+      { offset:"0x02", size:2, name:"wTotalLength",        type:"WORD",  value:"≥ 9",              desc:"本配置下所有描述符（配置+接口+端点+类/厂商描述符）的总字节数。主机据此一次性读取全部描述符。" },
+      { offset:"0x04", size:1, name:"bNumInterfaces",      type:"BYTE",  value:"≥ 1",              desc:"本配置包含的接口数量。" },
+      { offset:"0x05", size:1, name:"bConfigurationValue", type:"BYTE",  value:"1, 2, …",           desc:"配置编号（非零），主机通过 SET_CONFIGURATION 请求使用此值选择该配置。" },
+      { offset:"0x06", size:1, name:"iConfiguration",      type:"BYTE",  value:"0 或字符串索引",     desc:"描述本配置的字符串描述符索引。0 表示无字符串。" },
+      { offset:"0x07", size:1, name:"bmAttributes",        type:"BITMAP",value:"0x80 / 0xC0 / 0xE0",desc:"电源属性位图。Bit7 固定为 1（保留）；Bit6=1 表示自供电（Self-powered）；Bit5=1 表示支持远程唤醒；Bit4~0 保留，固定为 0。" },
+      { offset:"0x08", size:1, name:"bMaxPower",           type:"BYTE",  value:"0~250",             desc:"从总线获取的最大电流（单位 2 mA）。例如 250 表示 500 mA（USB 2.0），USB 3.0 中单位为 8 mA。" },
+    ]
+  },
+  {
+    id: "interface",
+    title: "接口描述符",
+    en: "Interface Descriptor",
+    type: "bDescriptorType = 0x04",
+    color: "violet",
+    intro: "接口描述符描述配置内某一个接口的功能。一个配置可包含多个接口，每个接口可以有多个备用设置（Alternate Setting）。接口是 USB 功能的逻辑载体，定义端点组合和设备类。总长度固定为 <code>9</code> 字节。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",            type:"BYTE",  value:"0x09 (9)",          desc:"本描述符字节数，固定为 9。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",    type:"BYTE",  value:"0x04",              desc:"描述符类型，接口描述符固定为 0x04。" },
+      { offset:"0x02", size:1, name:"bInterfaceNumber",   type:"BYTE",  value:"0, 1, 2, …",        desc:"接口编号（从 0 开始），在同一配置中唯一。" },
+      { offset:"0x03", size:1, name:"bAlternateSetting",  type:"BYTE",  value:"0, 1, 2, …",        desc:"备用设置编号。默认为 0，主机可用 SET_INTERFACE 切换到其他备用设置。" },
+      { offset:"0x04", size:1, name:"bNumEndpoints",      type:"BYTE",  value:"0 ~ 15",            desc:"本接口使用的端点数量（不包含端点 0）。若为 0，则只使用默认控制端点。" },
+      { offset:"0x05", size:1, name:"bInterfaceClass",    type:"BYTE",  value:"0x01~0xFF",         desc:"接口类代码，由 USB-IF 分配。如 0x01=Audio，0x03=HID，0x08=Mass Storage，0x0A=CDC Data，0x0E=Video，0xFF=厂商自定义。" },
+      { offset:"0x06", size:1, name:"bInterfaceSubClass", type:"BYTE",  value:"—",                 desc:"接口子类代码，配合 bInterfaceClass 细化功能。如 HID 中 0x01=Boot Interface。" },
+      { offset:"0x07", size:1, name:"bInterfaceProtocol", type:"BYTE",  value:"—",                 desc:"接口协议代码。如 HID Boot Interface 中 0x01=键盘，0x02=鼠标。" },
+      { offset:"0x08", size:1, name:"iInterface",         type:"BYTE",  value:"0 或字符串索引",     desc:"描述本接口的字符串描述符索引。0 表示无字符串。" },
+    ]
+  },
+  {
+    id: "endpoint",
+    title: "端点描述符",
+    en: "Endpoint Descriptor",
+    type: "bDescriptorType = 0x05",
+    color: "cyan",
+    intro: "端点描述符描述一个具体端点的属性，包括地址、传输类型、最大包大小和轮询间隔。端点 0（控制端点）不需要端点描述符，其参数在设备描述符中定义。总长度固定为 <code>7</code> 字节（USB 2.0）。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",          type:"BYTE",   value:"0x07 (7)",          desc:"本描述符字节数，固定为 7（USB 2.0）。USB 3.x 中配套 SuperSpeed Endpoint Companion 描述符。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",  type:"BYTE",   value:"0x05",              desc:"描述符类型，端点描述符固定为 0x05。" },
+      { offset:"0x02", size:1, name:"bEndpointAddress", type:"BITMAP", value:"0x01~0x8F",         desc:"端点地址。Bit3~0：端点编号（1~15）；Bit6~4：保留为 0；Bit7：方向，0=OUT（主机→设备），1=IN（设备→主机）。例如 0x81 = 端点1 IN。" },
+      { offset:"0x03", size:1, name:"bmAttributes",     type:"BITMAP", value:"0x00~0x03",         desc:"端点属性位图。Bit1~0：传输类型，00=控制，01=同步（Isochronous），10=批量（Bulk），11=中断（Interrupt）；Bit3~2（仅同步端点）：同步类型；Bit5~4（仅同步端点）：使用类型。" },
+      { offset:"0x04", size:2, name:"wMaxPacketSize",   type:"WORD",   value:"8~1024",            desc:"端点一次传输的最大数据包字节数。Bit10~0：最大包大小；Bit12~11：高速设备每微帧附加事务数（0=1个，1=2个，2=3个）。典型值：低速中断 8，全速批量 64，高速批量 512，高速同步 1024。" },
+      { offset:"0x06", size:1, name:"bInterval",        type:"BYTE",   value:"1~255",             desc:"端点轮询/服务间隔。中断和同步端点有效。低速/全速：单位为帧（1 ms），取值 1~255；高速：单位为微帧（125 µs），实际间隔 = 2^(bInterval-1) 微帧；超速：同高速。批量端点此字段对主机无意义（用于 NAK 速率提示）。" },
+    ]
+  },
+  {
+    id: "string",
+    title: "字符串描述符",
+    en: "String Descriptor",
+    type: "bDescriptorType = 0x03",
+    color: "green",
+    intro: "字符串描述符以 Unicode UTF-16LE 编码存储人类可读的文字（如厂商名、产品名、序列号）。索引 0 是特殊的语言 ID 描述符，列出设备支持的语言列表（LANGID）。其他索引对应具体字符串。字符串描述符是可选的。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",         type:"BYTE",   value:"2 + 字符串字节数",   desc:"本描述符总字节数 = 2（固定头）+ 字符串内容长度（UTF-16LE，每字符 2 字节）。" },
+      { offset:"0x01", size:1, name:"bDescriptorType", type:"BYTE",   value:"0x03",              desc:"描述符类型，字符串描述符固定为 0x03。" },
+      { offset:"0x02", size:"N×2", name:"bString / wLANGID[]", type:"UNICODE / WORD[]", value:"UTF-16LE / 0x0409…", desc:"索引 0：一个或多个 LANGID（16 位语言代码），如 0x0409=英语（美国），0x0804=中文（简体）。索引 ≥ 1：以 UTF-16LE 编码的字符串内容，不含 NULL 终止符。" },
+    ]
+  },
+  {
+    id: "device_qualifier",
+    title: "设备限定描述符",
+    en: "Device Qualifier Descriptor",
+    type: "bDescriptorType = 0x06",
+    color: "orange",
+    intro: "设备限定描述符用于高速能力设备（USB 2.0 高速），描述设备在另一速度（全速↔高速）下运行时与设备描述符不同的参数。低速/全速设备不支持此描述符。总长度固定为 <code>10</code> 字节。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",            type:"BYTE",  value:"0x0A (10)",         desc:"本描述符字节数，固定为 10。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",    type:"BYTE",  value:"0x06",              desc:"描述符类型，设备限定描述符固定为 0x06。" },
+      { offset:"0x02", size:2, name:"bcdUSB",             type:"BCD",   value:"0x0200",            desc:"设备遵循的 USB 规范版本号，限定描述符中固定为 0x0200。" },
+      { offset:"0x04", size:1, name:"bDeviceClass",       type:"BYTE",  value:"—",                 desc:"在另一速度下的设备类代码（含义同设备描述符）。" },
+      { offset:"0x05", size:1, name:"bDeviceSubClass",    type:"BYTE",  value:"—",                 desc:"在另一速度下的设备子类代码。" },
+      { offset:"0x06", size:1, name:"bDeviceProtocol",    type:"BYTE",  value:"—",                 desc:"在另一速度下的设备协议代码。" },
+      { offset:"0x07", size:1, name:"bMaxPacketSize0",    type:"BYTE",  value:"8 或 64",           desc:"在另一速度下端点 0 的最大包大小。" },
+      { offset:"0x08", size:1, name:"bNumConfigurations", type:"BYTE",  value:"≥ 1",              desc:"在另一速度下设备支持的配置数量。" },
+      { offset:"0x09", size:1, name:"bReserved",          type:"BYTE",  value:"0x00",              desc:"保留字段，必须为 0。" },
+    ]
+  },
+  {
+    id: "iad",
+    title: "接口关联描述符",
+    en: "Interface Association Descriptor (IAD)",
+    type: "bDescriptorType = 0x0B",
+    color: "pink",
+    intro: "接口关联描述符（IAD）将多个接口捆绑为一个复合功能（Function），常见于 CDC-ACM（串口）、UAC（音频）、UVC（摄像头）等复合设备。它紧跟在配置描述符之后，在对应接口描述符之前。总长度固定为 <code>8</code> 字节。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",           type:"BYTE",  value:"0x08 (8)",          desc:"本描述符字节数，固定为 8。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",   type:"BYTE",  value:"0x0B",              desc:"描述符类型，IAD 固定为 0x0B。" },
+      { offset:"0x02", size:1, name:"bFirstInterface",   type:"BYTE",  value:"0, 1, 2, …",        desc:"本功能中第一个接口的编号。" },
+      { offset:"0x03", size:1, name:"bInterfaceCount",   type:"BYTE",  value:"≥ 1",              desc:"本功能关联的接口总数（从 bFirstInterface 开始的连续接口）。" },
+      { offset:"0x04", size:1, name:"bFunctionClass",    type:"BYTE",  value:"同接口类代码",       desc:"本功能的类代码，通常与成员接口的 bInterfaceClass 一致。" },
+      { offset:"0x05", size:1, name:"bFunctionSubClass", type:"BYTE",  value:"—",                 desc:"本功能的子类代码。" },
+      { offset:"0x06", size:1, name:"bFunctionProtocol", type:"BYTE",  value:"—",                 desc:"本功能的协议代码。" },
+      { offset:"0x07", size:1, name:"iFunction",         type:"BYTE",  value:"0 或字符串索引",     desc:"描述本功能的字符串描述符索引。0 表示无字符串。" },
+    ]
+  },
+  {
+    id: "hid",
+    title: "HID 描述符",
+    en: "HID Descriptor",
+    type: "bDescriptorType = 0x21",
+    color: "teal",
+    intro: "HID 描述符是 USB HID 类（人机接口设备，如键盘、鼠标、游戏手柄）专用的类描述符，跟在对应接口描述符之后。它告知主机 HID 类规范版本和下级报告描述符的长度。总长度至少 <code>9</code> 字节（含一个下级描述符条目）。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",                  type:"BYTE",  value:"0x09 (9)",          desc:"本描述符字节数。若有多个下级描述符则长度相应增加。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",          type:"BYTE",  value:"0x21",              desc:"描述符类型，HID 描述符固定为 0x21。" },
+      { offset:"0x02", size:2, name:"bcdHID",                   type:"BCD",   value:"0x0111 / 0x0100",   desc:"HID 规范版本号（BCD 编码）。0x0111 = HID 1.11，0x0100 = HID 1.0。" },
+      { offset:"0x04", size:1, name:"bCountryCode",             type:"BYTE",  value:"0x00~0x24",         desc:"本地化代码，用于键盘等需要本地化的设备。0x00=不本地化，0x21=美国，0x08=法语，0x09=德语等。大多数设备设为 0。" },
+      { offset:"0x05", size:1, name:"bNumDescriptors",          type:"BYTE",  value:"≥ 1",              desc:"下级描述符的数量，至少为 1（Report 描述符是强制的）。" },
+      { offset:"0x06", size:1, name:"bDescriptorType (sub)",    type:"BYTE",  value:"0x22",              desc:"第一个下级描述符的类型。0x22=Report 描述符（必须）；0x23=Physical 描述符（可选）。" },
+      { offset:"0x07", size:2, name:"wDescriptorLength",        type:"WORD",  value:"≥ 1",              desc:"第一个下级描述符（通常是 Report 描述符）的字节长度。主机据此读取 Report 描述符。" },
+    ]
+  },
+  {
+    id: "hid_report",
+    title: "HID 报告描述符",
+    en: "HID Report Descriptor",
+    type: "bDescriptorType = 0x22",
+    color: "lime",
+    intro: "HID 报告描述符不是固定格式的结构体，而是由若干 <strong>Item</strong> 组成的字节流，描述 HID 设备传输的数据格式（每个字段的类型、大小、范围、用途）。它是 HID 子系统最核心也最复杂的描述符。以下列出最常用的 Item 类型。",
+    fields: [
+      { offset:"—", size:"1~5", name:"Usage Page",       type:"Global",  value:"如 0x01=通用桌面", desc:"用途页，定义后续 Usage 字段所属的功能类别。常见：0x01 通用桌面（鼠标/键盘），0x02 模拟，0x06 通用设备控制，0x07 键盘/键盘码，0x08 LED，0x09 按钮。" },
+      { offset:"—", size:"1~5", name:"Usage",            type:"Local",   value:"如 0x02=鼠标",     desc:"用途，指定该控件的具体功能。如通用桌面页中 0x01=指针，0x02=鼠标，0x06=键盘，0x30=X 轴，0x31=Y 轴，0x38=滚轮。" },
+      { offset:"—", size:"1~5", name:"Usage Minimum",    type:"Local",   value:"—",                desc:"用途范围的最小值，与 Usage Maximum 配合用于数组或按钮组（如按钮 1~5）。" },
+      { offset:"—", size:"1~5", name:"Usage Maximum",    type:"Local",   value:"—",                desc:"用途范围的最大值。" },
+      { offset:"—", size:"1~5", name:"Logical Minimum",  type:"Global",  value:"有符号整数",        desc:"逻辑值的最小值（设备报告的原始值范围下限）。" },
+      { offset:"—", size:"1~5", name:"Logical Maximum",  type:"Global",  value:"有符号整数",        desc:"逻辑值的最大值（设备报告的原始值范围上限）。" },
+      { offset:"—", size:"1~5", name:"Physical Minimum", type:"Global",  value:"有符号整数",        desc:"物理值最小值，配合单位将逻辑值映射到实际物理量。若与逻辑值相同可省略（设为 0）。" },
+      { offset:"—", size:"1~5", name:"Physical Maximum", type:"Global",  value:"有符号整数",        desc:"物理值最大值。" },
+      { offset:"—", size:"1~5", name:"Report Size",      type:"Global",  value:"位数",              desc:"单个字段占用的位数（bit）。" },
+      { offset:"—", size:"1~5", name:"Report Count",     type:"Global",  value:"字段数",            desc:"此字段重复的数量。总位数 = Report Size × Report Count。" },
+      { offset:"—", size:"1~5", name:"Report ID",        type:"Global",  value:"1~255",             desc:"报告 ID，当设备有多个报告时区分报告类型。若使用，每份报告的第一个字节是 Report ID。" },
+      { offset:"—", size:"1~5", name:"Collection",       type:"Main",    value:"0x00/0x01/0x02",   desc:"开始一个集合。0x00=Physical，0x01=Application（顶层，如鼠标/键盘），0x02=Logical（子功能分组）。" },
+      { offset:"—", size:"1",   name:"End Collection",   type:"Main",    value:"—",                 desc:"结束一个集合，与 Collection 成对出现。" },
+      { offset:"—", size:"1~5", name:"Input",            type:"Main",    value:"位图",              desc:"定义一个输入字段（设备→主机）。位图：Bit0=Data/Constant，Bit1=Array/Variable，Bit2=Absolute/Relative，Bit3=NoWrap/Wrap，Bit4=Linear/NonLinear，Bit5=PrefState/NoPref，Bit6=NoNull/NullState，Bit7=BitF/Buffered。" },
+      { offset:"—", size:"1~5", name:"Output",           type:"Main",    value:"位图",              desc:"定义一个输出字段（主机→设备）。位图含义同 Input，另有 Bit8=NonVolatile/Volatile 位。" },
+      { offset:"—", size:"1~5", name:"Feature",          type:"Main",    value:"位图",              desc:"定义一个特征字段（双向配置数据）。位图含义同 Output。" },
+    ]
+  },
+  {
+    id: "superspeed_ep",
+    title: "SuperSpeed 端点配套描述符",
+    en: "SuperSpeed Endpoint Companion Descriptor",
+    type: "bDescriptorType = 0x30",
+    color: "red",
+    intro: "SuperSpeed 端点配套描述符（USB 3.x 新增）跟在每个非控制端点描述符之后，提供超速模式下的额外参数，包括每次服务事务数和 Streams 数量。总长度固定为 <code>6</code> 字节。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",           type:"BYTE",  value:"0x06 (6)",          desc:"本描述符字节数，固定为 6。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",   type:"BYTE",  value:"0x30",              desc:"描述符类型，SuperSpeed 端点配套描述符固定为 0x30。" },
+      { offset:"0x02", size:1, name:"bMaxBurst",         type:"BYTE",  value:"0~15",              desc:"每次 Burst 传输中最大的包数量减一。0 表示每次 Burst 只传 1 个包，15 表示最多 16 个包。" },
+      { offset:"0x03", size:1, name:"bmAttributes",      type:"BITMAP",value:"—",                 desc:"端点类型相关属性。批量端点：Bit4~0=最大流数（Streams），0=不支持 Streams；同步端点：Bit1~0=每服务间隔的 Burst 数量（Mult）；中断端点：保留，必须为 0。" },
+      { offset:"0x04", size:2, name:"wBytesPerInterval",  type:"WORD",  value:"—",                 desc:"同步和中断端点每服务间隔传输的字节数，用于带宽预留。批量端点设为 0。" },
+    ]
+  },
+  {
+    id: "bos",
+    title: "BOS 描述符",
+    en: "Binary Device Object Store (BOS) Descriptor",
+    type: "bDescriptorType = 0x0F",
+    color: "amber",
+    intro: "BOS 描述符（二进制设备对象存储）是 USB 3.0 引入的扩展机制，用于声明设备支持的各种能力（Capability），如 USB 2.0 扩展、SuperSpeed、容器 ID 等。BOS 描述符是一个容器，包含若干设备能力描述符。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",             type:"BYTE",  value:"0x05 (5)",          desc:"BOS 描述符本身的字节数，固定为 5（不含子能力描述符）。" },
+      { offset:"0x01", size:1, name:"bDescriptorType",     type:"BYTE",  value:"0x0F",              desc:"描述符类型，BOS 描述符固定为 0x0F。" },
+      { offset:"0x02", size:2, name:"wTotalLength",        type:"WORD",  value:"≥ 5",              desc:"BOS 描述符及其所有下级设备能力描述符的总字节数。" },
+      { offset:"0x04", size:1, name:"bNumDeviceCaps",      type:"BYTE",  value:"≥ 1",              desc:"BOS 中包含的设备能力描述符数量。" },
+    ]
+  },
+  {
+    id: "device_capability",
+    title: "设备能力描述符",
+    en: "Device Capability Descriptor",
+    type: "bDescriptorType = 0x10",
+    color: "yellow",
+    intro: "设备能力描述符嵌套在 BOS 描述符中，每种能力类型对应不同的数据结构。常见能力类型包括：USB 2.0 Extension（0x02）、SuperSpeed USB（0x03）、Container ID（0x04）、Platform（0x05）等。",
+    fields: [
+      { offset:"0x00", size:1, name:"bLength",         type:"BYTE",  value:"因类型而异",           desc:"本能力描述符的字节数，因 bDevCapabilityType 不同而不同。" },
+      { offset:"0x01", size:1, name:"bDescriptorType", type:"BYTE",  value:"0x10",              desc:"描述符类型，设备能力描述符固定为 0x10。" },
+      { offset:"0x02", size:1, name:"bDevCapabilityType", type:"BYTE", value:"0x02~0x0F…",     desc:"能力类型。0x01=Wireless USB，0x02=USB 2.0 Extension，0x03=SuperSpeed USB，0x04=Container ID，0x05=Platform，0x06=Power Delivery，0x09=SuperSpeedPlus，0x0A=Precision Time Measurement 等。" },
+      { offset:"0x03", size:"N", name:"能力相关数据",  type:"—",     value:"因类型而异",           desc:"根据 bDevCapabilityType 不同，后续字节含义不同。如 USB 2.0 Extension 包含 bmAttributes（LPM 支持标志），SuperSpeed USB 包含支持速度、最低速度、功耗等信息。" },
+    ]
+  },
+];
+
+// ============================================================
+// COLOR MAP
+// ============================================================
+const colorMap = {
+  blue:   { badge:"bg-blue-100 text-blue-800",   head:"bg-blue-700",  border:"border-blue-300",  tag:"bg-blue-50" },
+  indigo: { badge:"bg-indigo-100 text-indigo-800", head:"bg-indigo-700", border:"border-indigo-300", tag:"bg-indigo-50" },
+  violet: { badge:"bg-violet-100 text-violet-800", head:"bg-violet-700", border:"border-violet-300", tag:"bg-violet-50" },
+  cyan:   { badge:"bg-cyan-100 text-cyan-800",   head:"bg-cyan-700",  border:"border-cyan-300",  tag:"bg-cyan-50" },
+  green:  { badge:"bg-green-100 text-green-800", head:"bg-green-700", border:"border-green-300", tag:"bg-green-50" },
+  orange: { badge:"bg-orange-100 text-orange-800", head:"bg-orange-600", border:"border-orange-300", tag:"bg-orange-50" },
+  pink:   { badge:"bg-pink-100 text-pink-800",   head:"bg-pink-600",  border:"border-pink-300",  tag:"bg-pink-50" },
+  teal:   { badge:"bg-teal-100 text-teal-800",   head:"bg-teal-700",  border:"border-teal-300",  tag:"bg-teal-50" },
+  lime:   { badge:"bg-lime-100 text-lime-800",   head:"bg-lime-700",  border:"border-lime-300",  tag:"bg-lime-50" },
+  red:    { badge:"bg-red-100 text-red-800",     head:"bg-red-700",   border:"border-red-300",   tag:"bg-red-50" },
+  amber:  { badge:"bg-amber-100 text-amber-800", head:"bg-amber-600", border:"border-amber-300", tag:"bg-amber-50" },
+  yellow: { badge:"bg-yellow-100 text-yellow-800", head:"bg-yellow-500", border:"border-yellow-300", tag:"bg-yellow-50" },
+};
+
+// ============================================================
+// BUILD NAV
+// ============================================================
+const navList = document.getElementById('navList');
+descriptors.forEach((d, i) => {
+  const c = colorMap[d.color];
+  const li = document.createElement('li');
+  li.innerHTML = `<a href="#${d.id}" class="nav-link flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900" data-id="${d.id}">
+    <span class="badge ${c.badge}">${String(i+1).padStart(2,'0')}</span>
+    <span class="truncate">${d.title}</span>
+  </a>`;
+  navList.appendChild(li);
+});
+
+// ============================================================
+// BUILD SECTIONS
+// ============================================================
+const container = document.getElementById('sectionsContainer');
+
+function buildSection(d) {
+  const c = colorMap[d.color];
+  const section = document.createElement('section');
+  section.id = d.id;
+  section.className = `descriptor-section bg-white rounded-2xl shadow border ${c.border} overflow-hidden`;
+  section.dataset.text = '';
+
+  // header
+  const header = document.createElement('div');
+  header.className = `${c.head} px-6 py-4 flex flex-wrap items-center gap-3`;
+  header.innerHTML = `
+    <h2 class="text-white text-xl font-bold">${d.title}</h2>
+    <span class="text-white/70 text-sm font-mono">${d.en}</span>
+    <span class="ml-auto text-xs font-mono bg-white/20 text-white px-3 py-1 rounded-full">${d.type}</span>
+  `;
+  section.appendChild(header);
+
+  // intro
+  const intro = document.createElement('div');
+  intro.className = 'px-6 py-4 text-sm text-gray-700 leading-relaxed border-b border-gray-100';
+  intro.innerHTML = d.intro;
+  section.appendChild(intro);
+
+  // table
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'overflow-x-auto';
+  const table = document.createElement('table');
+  table.innerHTML = `<thead><tr>
+    <th>偏移 (hex)</th>
+    <th>大小 (bytes)</th>
+    <th>字段名</th>
+    <th>类型</th>
+    <th>典型值</th>
+    <th>说明</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  d.fields.forEach(f => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><code>${f.offset}</code></td>
+      <td class="text-center">${f.size}</td>
+      <td><strong>${f.name}</strong></td>
+      <td><span class="badge bg-gray-100 text-gray-600">${f.type}</span></td>
+      <td class="text-xs text-gray-500">${f.value}</td>
+      <td class="text-sm text-gray-700">${f.desc}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  tableWrap.appendChild(table);
+  section.appendChild(tableWrap);
+
+  // store text for search
+  const rawText = [d.title, d.en, d.type, d.intro,
+    ...d.fields.flatMap(f => [f.name, f.value, f.desc, f.type])
+  ].join(' ').toLowerCase();
+  section.dataset.text = rawText;
+
+  return section;
+}
+
+descriptors.forEach(d => container.appendChild(buildSection(d)));
+
+// ============================================================
+// SEARCH
+// ============================================================
+const searchInput = document.getElementById('searchInput');
+const clearBtn = document.getElementById('clearBtn');
+const matchCount = document.getElementById('matchCount');
+const noResult = document.getElementById('noResult');
+
+function highlight(text, query) {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+}
+
+function doSearch(query) {
+  const q = query.trim().toLowerCase();
+  clearBtn.classList.toggle('hidden', !q);
+  const sections = document.querySelectorAll('.descriptor-section');
+  let visible = 0;
+
+  sections.forEach(sec => {
+    if (!q) {
+      sec.classList.remove('section-hidden');
+      // remove highlights
+      restoreText(sec);
+      visible++;
+    } else {
+      const matched = sec.dataset.text.includes(q);
+      if (matched) {
+        sec.classList.remove('section-hidden');
+        applyHighlight(sec, q);
+        visible++;
+      } else {
+        sec.classList.add('section-hidden');
+        restoreText(sec);
+      }
+    }
+  });
+
+  // update nav
+  document.querySelectorAll('.nav-link').forEach(a => {
+    const id = a.dataset.id;
+    const sec = document.getElementById(id);
+    a.style.opacity = sec && !sec.classList.contains('section-hidden') ? '1' : '0.35';
+  });
+
+  if (q) {
+    matchCount.textContent = `${visible} 个匹配`;
+    matchCount.classList.remove('hidden');
+  } else {
+    matchCount.classList.add('hidden');
+  }
+  noResult.classList.toggle('hidden', visible > 0 || !q);
+}
+
+// Simple highlight: walk text nodes
+function applyHighlight(root, q) {
+  // rebuild table cells from data
+  const id = root.id;
+  const d = descriptors.find(x => x.id === id);
+  if (!d) return;
+  restoreText(root);
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(${escaped})`, 'gi');
+  // highlight in intro
+  const intro = root.querySelector('.px-6.py-4.text-sm');
+  if (intro) intro.innerHTML = d.intro.replace(re, '<mark>$1</mark>');
+  // highlight in table cells (td)
+  const tds = root.querySelectorAll('td');
+  tds.forEach(td => {
+    td.innerHTML = td.innerHTML.replace(/<mark>(.*?)<\/mark>/gi, '$1').replace(re, '<mark>$1</mark>');
+  });
+}
+function restoreText(root) {
+  const id = root.id;
+  const d = descriptors.find(x => x.id === id);
+  if (!d) return;
+  const intro = root.querySelector('.px-6.py-4.text-sm');
+  if (intro) intro.innerHTML = d.intro;
+  const tbody = root.querySelector('tbody');
+  if (tbody) {
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach((tr, i) => {
+      const f = d.fields[i];
+      if (!f) return;
+      tr.innerHTML = `
+        <td><code>${f.offset}</code></td>
+        <td class="text-center">${f.size}</td>
+        <td><strong>${f.name}</strong></td>
+        <td><span class="badge bg-gray-100 text-gray-600">${f.type}</span></td>
+        <td class="text-xs text-gray-500">${f.value}</td>
+        <td class="text-sm text-gray-700">${f.desc}</td>
+      `;
+    });
+  }
+}
+
+searchInput.addEventListener('input', () => doSearch(searchInput.value));
+clearBtn.addEventListener('click', () => { searchInput.value = ''; doSearch(''); searchInput.focus(); });
+
+// ============================================================
+// ACTIVE NAV on SCROLL
+// ============================================================
+const navLinks = document.querySelectorAll('.nav-link');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`.nav-link[data-id="${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+document.querySelectorAll('.descriptor-section').forEach(s => observer.observe(s));
+
+// ============================================================
+// MOBILE SIDEBAR
+// ============================================================
+const menuBtn = document.getElementById('menuBtn');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+
+menuBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('-translate-x-full');
+  overlay.classList.toggle('hidden');
+});
+overlay.addEventListener('click', () => {
+  sidebar.classList.add('-translate-x-full');
+  overlay.classList.add('hidden');
+});
+// close sidebar on nav click (mobile)
+navList.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => {
+    if (window.innerWidth < 768) {
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    }
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLE 物理层规范 · Core 6.0 Part A 解析</title>
+<style>
+  :root {
+    --nav-w: 280px;
+    --hdr-h: 56px;
+    --blue: #0057b8;
+    --blue-lt: #e8f0fb;
+    --blue-md: #3a7bd5;
+    --teal: #00b4d8;
+    --accent: #06d6a0;
+    --dark: #0d1b2a;
+    --mid: #1b2d42;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --card: #ffffff;
+    --bg: #f1f5f9;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; font-size: 15px; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; height: var(--hdr-h);
+    background: linear-gradient(90deg, var(--dark) 0%, var(--mid) 100%);
+    display: flex; align-items: center; padding: 0 1.2rem; z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,.4);
+  }
+  header .logo { display: flex; align-items: center; gap: .6rem; }
+  header .logo svg { width: 32px; height: 32px; flex-shrink: 0; }
+  header h1 { color: #fff; font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; line-height: 1.2; }
+  header h1 span { color: var(--teal); }
+  header .badge {
+    margin-left: auto; background: var(--blue); color: #fff;
+    font-size: .72rem; font-weight: 600; padding: .2rem .6rem; border-radius: 999px;
+    letter-spacing: .06em;
+  }
+
+  /* ── Layout ── */
+  .layout { display: flex; margin-top: var(--hdr-h); min-height: calc(100vh - var(--hdr-h)); }
+
+  /* ── Sidebar ── */
+  nav {
+    position: fixed; top: var(--hdr-h); left: 0; bottom: 0;
+    width: var(--nav-w); background: var(--dark);
+    overflow-y: auto; overflow-x: hidden;
+    border-right: 1px solid rgba(255,255,255,.06);
+    z-index: 90; padding-bottom: 2rem;
+  }
+  nav::-webkit-scrollbar { width: 4px; }
+  nav::-webkit-scrollbar-track { background: transparent; }
+  nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+  nav ul { list-style: none; }
+  nav li a {
+    display: block; padding: .55rem 1rem .55rem 1.2rem;
+    color: rgba(255,255,255,.7); font-size: .82rem; text-decoration: none;
+    border-left: 3px solid transparent; transition: all .18s;
+    line-height: 1.4;
+  }
+  nav li a:hover { color: #fff; background: rgba(255,255,255,.06); border-left-color: var(--teal); }
+  nav li a.active { color: #fff; background: rgba(0,180,216,.12); border-left-color: var(--teal); font-weight: 600; }
+  nav .nav-group { padding: .9rem 1.2rem .3rem; font-size: .68rem; font-weight: 700;
+    color: rgba(255,255,255,.35); letter-spacing: .1em; text-transform: uppercase; }
+  nav li.sub a { padding-left: 2rem; font-size: .78rem; }
+  nav li.sub2 a { padding-left: 3rem; font-size: .75rem; color: rgba(255,255,255,.5); }
+
+  /* ── Main Content ── */
+  main { margin-left: var(--nav-w); flex: 1; padding: 2rem 2.2rem 4rem; max-width: 960px; }
+
+  /* ── Section cards ── */
+  .section-card {
+    background: var(--card); border-radius: 12px; padding: 1.8rem 2rem;
+    margin-bottom: 2rem; box-shadow: 0 1px 6px rgba(0,0,0,.07);
+    border: 1px solid var(--border);
+  }
+  .section-card h2 {
+    font-size: 1.35rem; font-weight: 700; color: var(--blue);
+    border-bottom: 2px solid var(--blue-lt); padding-bottom: .6rem; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .section-card h2 .sec-num {
+    background: var(--blue); color: #fff; font-size: .78rem;
+    padding: .15rem .45rem; border-radius: 5px; font-weight: 700; flex-shrink: 0;
+  }
+  .section-card h3 { font-size: 1.05rem; font-weight: 700; color: var(--mid); margin: 1.4rem 0 .6rem; }
+  .section-card h4 { font-size: .92rem; font-weight: 700; color: var(--blue-md); margin: 1rem 0 .4rem; }
+  .section-card p { line-height: 1.75; color: var(--text); margin-bottom: .75rem; font-size: .93rem; }
+  .section-card ul { padding-left: 1.4rem; margin-bottom: .75rem; }
+  .section-card ul li { line-height: 1.7; font-size: .92rem; margin-bottom: .2rem; }
+
+  /* tags */
+  .tag {
+    display: inline-block; font-size: .7rem; font-weight: 700; padding: .15rem .45rem;
+    border-radius: 4px; margin-right: .3rem; vertical-align: middle; letter-spacing: .04em;
+  }
+  .tag-mandatory { background: #dcfce7; color: #15803d; }
+  .tag-optional  { background: #fef9c3; color: #a16207; }
+  .tag-key       { background: #ede9fe; color: #7c3aed; }
+
+  /* info box */
+  .info-box {
+    background: #f0f9ff; border-left: 4px solid var(--teal); border-radius: 6px;
+    padding: .85rem 1rem; margin: .9rem 0; font-size: .88rem; line-height: 1.65;
+  }
+  .warn-box {
+    background: #fff7ed; border-left: 4px solid #f97316; border-radius: 6px;
+    padding: .85rem 1rem; margin: .9rem 0; font-size: .88rem; line-height: 1.65;
+  }
+
+  /* table */
+  .tbl-wrap { overflow-x: auto; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+  th { background: var(--blue); color: #fff; padding: .55rem .8rem; text-align: left; font-weight: 600; }
+  td { border: 1px solid var(--border); padding: .5rem .8rem; }
+  tr:nth-child(even) td { background: var(--blue-lt); }
+
+  /* diagram containers */
+  .diagram { margin: 1.2rem 0; border-radius: 10px; overflow: hidden; }
+
+  /* ── SVG / Canvas diagrams ── */
+  .diag-svg { width: 100%; display: block; }
+
+  /* code */
+  code {
+    background: #f1f5f9; border: 1px solid var(--border);
+    border-radius: 4px; padding: .1rem .35rem; font-size: .82rem;
+    font-family: 'Consolas','Fira Code',monospace; color: #0f5699;
+  }
+
+  /* formula */
+  .formula {
+    background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px;
+    padding: .7rem 1.2rem; font-family: 'Consolas',monospace;
+    font-size: .88rem; color: #0f172a; text-align: center; margin: .8rem 0; overflow-x: auto;
+  }
+
+  /* progress bar style for power classes */
+  .pwr-bar { height: 20px; border-radius: 4px; margin: 3px 0; display: flex; align-items: center; padding-left: 8px; color: #fff; font-size: .75rem; font-weight: 600; }
+
+  /* channel visual */
+  .ch-grid { display: flex; flex-wrap: wrap; gap: 3px; margin: .8rem 0; }
+  .ch-cell {
+    width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center;
+    justify-content: center; font-size: .6rem; font-weight: 700; cursor: default;
+    transition: transform .1s;
+  }
+  .ch-cell:hover { transform: scale(1.2); }
+  .ch-adv  { background: #f97316; color: #fff; }
+  .ch-data { background: #3b82f6; color: #fff; }
+
+  /* PHY comparison */
+  .phy-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 1rem; margin: 1rem 0; }
+  .phy-card {
+    border: 2px solid; border-radius: 10px; padding: 1rem; text-align: center;
+  }
+  .phy-card h4 { font-size: .9rem; margin-bottom: .4rem; }
+  .phy-card .rate { font-size: 1.4rem; font-weight: 800; }
+  .phy-card p { font-size: .75rem; color: var(--muted); margin: 0; }
+  .phy-1m  { border-color: #3b82f6; color: #1d4ed8; }
+  .phy-2m  { border-color: #8b5cf6; color: #6d28d9; }
+  .phy-cod { border-color: #06b6d4; color: #0891b2; }
+  .phy-2bt { border-color: #ec4899; color: #be185d; }
+
+  /* modulation diagram canvas */
+  canvas { max-width: 100%; display: block; margin: 0 auto; }
+
+  /* scroll spy dot */
+  .spy-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); display: inline-block; margin-right: .4rem; vertical-align: middle; }
+
+  /* footer */
+  footer { text-align: center; padding: 1.5rem; color: var(--muted); font-size: .8rem;
+    border-top: 1px solid var(--border); margin-left: var(--nav-w); }
+
+  @media(max-width:768px){
+    nav { transform: translateX(-100%); transition: transform .25s; }
+    nav.open { transform: translateX(0); }
+    main, footer { margin-left: 0; }
+    .menu-btn { display: flex !important; }
+  }
+  .menu-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; background: rgba(255,255,255,.1);
+    border: none; border-radius: 6px; cursor: pointer; margin-right: .8rem; color: #fff;
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- ── HEADER ── -->
+<header>
+  <button class="menu-btn" id="menuBtn" aria-label="菜单">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect y="2" width="18" height="2" rx="1"/><rect y="8" width="18" height="2" rx="1"/><rect y="14" width="18" height="2" rx="1"/></svg>
+  </button>
+  <div class="logo">
+    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="8" fill="#0057b8"/>
+      <path d="M12 8 L20 14 L14 19 L20 24 L12 30 L12 19 L18 14 L12 8Z" fill="white" stroke="white" stroke-width=".5"/>
+    </svg>
+    <h1>BLE 物理层规范 &nbsp;<span>Part A</span>&nbsp; · Bluetooth Core 6.0</h1>
+  </div>
+  <span class="badge">IEEE 802.15.1</span>
+</header>
+
+<!-- ── SIDEBAR ── -->
+<nav id="sidebar">
+  <div class="nav-group">概述</div>
+  <ul>
+    <li><a href="#sec-scope">1. 范围 Scope</a></li>
+  </ul>
+  <div class="nav-group">频段 & 信道</div>
+  <ul>
+    <li><a href="#sec-freq">2. 频段与信道安排</a></li>
+  </ul>
+  <div class="nav-group">发射机特性</div>
+  <ul>
+    <li><a href="#sec-tx">3. 发射机特性</a></li>
+    <li class="sub"><a href="#sec-mod">3.1 调制特性</a></li>
+    <li class="sub2"><a href="#sec-mod-stable">3.1.1 稳定调制指数</a></li>
+    <li class="sub2"><a href="#sec-mod-cs">3.1.2 信道探测调制</a></li>
+    <li class="sub2"><a href="#sec-snr">3.1.3 SNR 控制</a></li>
+    <li class="sub"><a href="#sec-spur">3.2 杂散发射</a></li>
+    <li class="sub2"><a href="#sec-spur-mod">3.2.1 调制频谱</a></li>
+    <li class="sub2"><a href="#sec-spur-in">3.2.2 带内杂散</a></li>
+    <li class="sub2"><a href="#sec-spur-out">3.2.3 带外杂散</a></li>
+    <li class="sub"><a href="#sec-freq-tol">3.3 频率容差</a></li>
+    <li class="sub"><a href="#sec-stable-phase">3.4 稳定相位</a></li>
+    <li class="sub"><a href="#sec-freq-meas">3.5 CS频率测量与生成</a></li>
+    <li class="sub2"><a href="#sec-ffo">3.5.1 分数频率偏移</a></li>
+    <li class="sub2"><a href="#sec-exp-freq">3.5.2 期望发射频率</a></li>
+  </ul>
+  <div class="nav-group">接收机特性</div>
+  <ul>
+    <li><a href="#sec-rx">4. 接收机特性</a></li>
+    <li class="sub"><a href="#sec-rx-sens">4.1 灵敏度</a></li>
+    <li class="sub"><a href="#sec-rx-inter">4.2 干扰性能</a></li>
+    <li class="sub"><a href="#sec-rx-cs">4.3 CS接收机</a></li>
+  </ul>
+  <div class="nav-group">天线 & 定向</div>
+  <ul>
+    <li><a href="#sec-antenna">5. 天线与方向性</a></li>
+    <li class="sub"><a href="#sec-aoa">5.1 AoA/AoD 发射机</a></li>
+    <li class="sub"><a href="#sec-aoa-rx">5.2 AoA/AoD 接收机</a></li>
+    <li class="sub"><a href="#sec-ant-cs">5.3 CS天线切换</a></li>
+  </ul>
+  <div class="nav-group">相位测量</div>
+  <ul>
+    <li><a href="#sec-phase">6. 相位测量</a></li>
+    <li class="sub"><a href="#sec-phase-ref">6.1 参考接收机</a></li>
+    <li class="sub"><a href="#sec-phase-acc">6.2 相位测量精度</a></li>
+    <li class="sub"><a href="#sec-phase-lfae">6.3 频率误差校正</a></li>
+    <li class="sub"><a href="#sec-phase-timing">6.4 相位测量时序</a></li>
+  </ul>
+  <div class="nav-group">附录</div>
+  <ul>
+    <li><a href="#sec-appendixA">附录 A 测试条件</a></li>
+    <li><a href="#sec-appendixB">附录 B CS 测试设备</a></li>
+  </ul>
+</nav>
+
+<!-- ── MAIN ── -->
+<main id="main">
+
+<!-- ═══════════════ SECTION 1: SCOPE ═══════════════ -->
+<div class="section-card" id="sec-scope">
+  <h2><span class="sec-num">§1</span> 范围 (Scope)</h2>
+  <p>本节定义了蓝牙低功耗（<strong>Bluetooth Low Energy, BLE</strong>）物理层（PHY）的整体范围与基本架构。BLE 设备工作在 <strong>2.4 GHz ISM 免许可频段</strong>（工业、科学和医疗），使用<strong>跳频收发机</strong>（Frequency Hopping Transceiver）以抵抗干扰与衰落。</p>
+
+  <h3>调制方案概览</h3>
+  <p>规范定义了两种调制方案，同时引入了用于信道探测（Channel Sounding, CS）的幅移键控（ASK）：</p>
+
+  <div class="phy-cards">
+    <div class="phy-card phy-1m">
+      <h4>LE 1M PHY</h4>
+      <div class="rate">1 Mb/s</div>
+      <p>强制支持<br>1 Msym/s GFSK</p>
+      <span class="tag tag-mandatory">MANDATORY</span>
+    </div>
+    <div class="phy-card phy-cod">
+      <h4>LE Coded PHY</h4>
+      <div class="rate">125 / 500 kb/s</div>
+      <p>可选，前向纠错编码<br>S=2 或 S=8</p>
+      <span class="tag tag-optional">OPTIONAL</span>
+    </div>
+    <div class="phy-card phy-2m">
+      <h4>LE 2M PHY</h4>
+      <div class="rate">2 Mb/s</div>
+      <p>可选，2 Msym/s<br>BT=0.5</p>
+      <span class="tag tag-optional">OPTIONAL</span>
+    </div>
+    <div class="phy-card phy-2bt">
+      <h4>LE 2M 2BT</h4>
+      <div class="rate">2 Mb/s</div>
+      <p>仅用于 CS 信道探测<br>BT=2.0</p>
+      <span class="tag tag-optional">CS ONLY</span>
+    </div>
+  </div>
+
+  <h3>PHY 架构图</h3>
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 Z" fill="#64748b"/>
+        </marker>
+      </defs>
+      <rect width="760" height="260" fill="#f8fafc" rx="10"/>
+      <!-- TDD -->
+      <rect x="20" y="20" width="120" height="50" rx="8" fill="#1e40af" />
+      <text x="80" y="40" text-anchor="middle" fill="white" font-size="11" font-weight="bold">TDD 时分双工</text>
+      <text x="80" y="56" text-anchor="middle" fill="#bfdbfe" font-size="9">所有 PHY 均适用</text>
+
+      <!-- ISM band -->
+      <rect x="160" y="20" width="200" height="50" rx="8" fill="#0891b2"/>
+      <text x="260" y="40" text-anchor="middle" fill="white" font-size="11" font-weight="bold">2.4 GHz ISM 频段</text>
+      <text x="260" y="56" text-anchor="middle" fill="#cffafe" font-size="9">2400 – 2483.5 MHz</text>
+
+      <!-- Hopping -->
+      <rect x="380" y="20" width="160" height="50" rx="8" fill="#7c3aed"/>
+      <text x="460" y="40" text-anchor="middle" fill="white" font-size="11" font-weight="bold">频率跳变</text>
+      <text x="460" y="56" text-anchor="middle" fill="#ede9fe" font-size="9">抗干扰 / 抗衰落</text>
+
+      <!-- ASK -->
+      <rect x="560" y="20" width="180" height="50" rx="8" fill="#be185d"/>
+      <text x="650" y="40" text-anchor="middle" fill="white" font-size="11" font-weight="bold">ASK 调制</text>
+      <text x="650" y="56" text-anchor="middle" fill="#fce7f3" font-size="9">固定频率载波 · CS 专用</text>
+
+      <!-- arrow rows -->
+      <line x1="140" y1="45" x2="158" y2="45" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="360" y1="45" x2="378" y2="45" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="540" y1="45" x2="558" y2="45" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- PHY boxes -->
+      <!-- 1M -->
+      <rect x="20" y="120" width="155" height="120" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+      <rect x="20" y="120" width="155" height="28" rx="8" fill="#3b82f6"/>
+      <rect x="20" y="136" width="155" height="12" fill="#3b82f6"/>
+      <text x="97" y="139" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LE 1M PHY</text>
+      <text x="97" y="160" text-anchor="middle" fill="#1e3a8a" font-size="10">1 Mb/s 未编码</text>
+      <text x="97" y="176" text-anchor="middle" fill="#1e3a8a" font-size="9">GFSK BT=0.5</text>
+      <text x="97" y="192" text-anchor="middle" fill="#1e3a8a" font-size="9">1 Msym/s</text>
+      <rect x="40" y="205" width="115" height="20" rx="4" fill="#3b82f6"/>
+      <text x="97" y="219" text-anchor="middle" fill="white" font-size="9" font-weight="bold">强制支持</text>
+
+      <!-- Coded -->
+      <rect x="190" y="120" width="155" height="120" rx="8" fill="#cffafe" stroke="#0891b2" stroke-width="2"/>
+      <rect x="190" y="120" width="155" height="28" rx="8" fill="#0891b2"/>
+      <rect x="190" y="136" width="155" height="12" fill="#0891b2"/>
+      <text x="267" y="139" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LE Coded PHY</text>
+      <text x="267" y="160" text-anchor="middle" fill="#164e63" font-size="10">125 / 500 kb/s</text>
+      <text x="267" y="176" text-anchor="middle" fill="#164e63" font-size="9">前向纠错 FEC</text>
+      <text x="267" y="192" text-anchor="middle" fill="#164e63" font-size="9">S=8(125k) S=2(500k)</text>
+      <rect x="210" y="205" width="115" height="20" rx="4" fill="#f59e0b"/>
+      <text x="267" y="219" text-anchor="middle" fill="white" font-size="9" font-weight="bold">可选支持</text>
+
+      <!-- 2M -->
+      <rect x="360" y="120" width="155" height="120" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+      <rect x="360" y="120" width="155" height="28" rx="8" fill="#7c3aed"/>
+      <rect x="360" y="136" width="155" height="12" fill="#7c3aed"/>
+      <text x="437" y="139" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LE 2M PHY</text>
+      <text x="437" y="160" text-anchor="middle" fill="#3b0764" font-size="10">2 Mb/s 未编码</text>
+      <text x="437" y="176" text-anchor="middle" fill="#3b0764" font-size="9">GFSK BT=0.5</text>
+      <text x="437" y="192" text-anchor="middle" fill="#3b0764" font-size="9">2 Msym/s</text>
+      <rect x="380" y="205" width="115" height="20" rx="4" fill="#f59e0b"/>
+      <text x="437" y="219" text-anchor="middle" fill="white" font-size="9" font-weight="bold">可选支持</text>
+
+      <!-- 2M 2BT -->
+      <rect x="530" y="120" width="210" height="120" rx="8" fill="#fce7f3" stroke="#be185d" stroke-width="2"/>
+      <rect x="530" y="120" width="210" height="28" rx="8" fill="#be185d"/>
+      <rect x="530" y="136" width="210" height="12" fill="#be185d"/>
+      <text x="635" y="139" text-anchor="middle" fill="white" font-size="11" font-weight="bold">LE 2M 2BT PHY</text>
+      <text x="635" y="160" text-anchor="middle" fill="#831843" font-size="10">2 Mb/s · CS 专用</text>
+      <text x="635" y="176" text-anchor="middle" fill="#831843" font-size="9">GFSK BT=2.0</text>
+      <text x="635" y="192" text-anchor="middle" fill="#831843" font-size="9">仅限 Channel Sounding</text>
+      <rect x="555" y="205" width="160" height="20" rx="4" fill="#f59e0b"/>
+      <text x="635" y="219" text-anchor="middle" fill="white" font-size="9" font-weight="bold">可选 (CS Feature)</text>
+
+      <!-- lines from top to boxes -->
+      <line x1="260" y1="70" x2="97" y2="120" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="260" y1="70" x2="267" y2="120" stroke="#0891b2" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="460" y1="70" x2="437" y2="120" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="650" y1="70" x2="635" y2="120" stroke="#be185d" stroke-width="1.5" stroke-dasharray="4,3"/>
+    </svg>
+  </div>
+
+  <div class="info-box">
+    <strong>💡 核心要点：</strong> LE 设备<strong>必须</strong>支持 LE 1M PHY；LE Coded、LE 2M 和 LE 2M 2BT 均为<strong>可选</strong>。所有 PHY 均采用时分双工（TDD）通信方式。支持 Channel Sounding 的设备还需支持 ASK 调制用于测距。
+  </div>
+</div>
+
+
+<!-- ═══════════════ SECTION 2: FREQUENCY ═══════════════ -->
+<div class="section-card" id="sec-freq">
+  <h2><span class="sec-num">§2</span> 频段与信道安排 (Frequency Bands and Channel Arrangement)</h2>
+  <p>BLE 系统工作在 <strong>2400 MHz ~ 2483.5 MHz</strong> 的 ISM 频段，共定义了 <strong>40 个 RF 信道</strong>，中心频率间隔 2 MHz，从 2402 MHz 到 2480 MHz。</p>
+  <p>支持 Channel Sounding（CS）的设备还额外使用 <strong>72 个 RF 信道</strong>（中心频率 = 2402 + k MHz，k 为 2~22 及 26~76 的整数）。</p>
+
+  <h3>信道频率计算</h3>
+  <div class="formula">f_channel(n) = 2402 + 2n  [MHz],  n = 0, 1, …, 39</div>
+
+  <h3>40个 RF 信道分布图</h3>
+  <p><span style="display:inline-block;width:14px;height:14px;background:#f97316;border-radius:3px;vertical-align:middle;margin-right:4px"></span>广播信道（3个）&nbsp;&nbsp;<span style="display:inline-block;width:14px;height:14px;background:#3b82f6;border-radius:3px;vertical-align:middle;margin-right:4px"></span>数据信道（37个）</p>
+  <div class="ch-grid" id="chGrid"></div>
+
+  <h3>信道类型详解</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>信道编号</th><th>频率 (MHz)</th><th>类型</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>37</td><td>2402</td><td><span class="tag tag-key">广播</span></td><td>广播、扫描、连接建立</td></tr>
+        <tr><td>0–10</td><td>2404–2424</td><td><span class="tag tag-mandatory">数据</span></td><td>已连接设备数据传输</td></tr>
+        <tr><td>38</td><td>2426</td><td><span class="tag tag-key">广播</span></td><td>广播、扫描、连接建立</td></tr>
+        <tr><td>11–36</td><td>2428–2478</td><td><span class="tag tag-mandatory">数据</span></td><td>已连接设备数据传输</td></tr>
+        <tr><td>39</td><td>2480</td><td><span class="tag tag-key">广播</span></td><td>广播、扫描、连接建立</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>频段布局可视图</h3>
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 760 160" xmlns="http://www.w3.org/2000/svg">
+      <rect width="760" height="160" fill="#f8fafc" rx="8"/>
+      <!-- axis -->
+      <line x1="30" y1="100" x2="740" y2="100" stroke="#94a3b8" stroke-width="2"/>
+      <!-- WiFi channels -->
+      <rect x="55" y="60" width="80" height="40" rx="4" fill="#fca5a5" opacity=".5"/>
+      <text x="95" y="78" text-anchor="middle" fill="#b91c1c" font-size="9" font-weight="bold">Wi-Fi CH1</text>
+      <text x="95" y="91" text-anchor="middle" fill="#b91c1c" font-size="8">2412MHz</text>
+      <rect x="290" y="60" width="80" height="40" rx="4" fill="#fca5a5" opacity=".5"/>
+      <text x="330" y="78" text-anchor="middle" fill="#b91c1c" font-size="9" font-weight="bold">Wi-Fi CH6</text>
+      <text x="330" y="91" text-anchor="middle" fill="#b91c1c" font-size="8">2437MHz</text>
+      <rect x="530" y="60" width="80" height="40" rx="4" fill="#fca5a5" opacity=".5"/>
+      <text x="570" y="78" text-anchor="middle" fill="#b91c1c" font-size="9" font-weight="bold">Wi-Fi CH11</text>
+      <text x="570" y="91" text-anchor="middle" fill="#b91c1c" font-size="8">2462MHz</text>
+      <!-- BLE adv channels -->
+      <rect x="32" y="75" width="12" height="25" fill="#f97316" rx="2"/>
+      <rect x="335" y="75" width="12" height="25" fill="#f97316" rx="2"/>
+      <rect x="718" y="75" width="12" height="25" fill="#f97316" rx="2"/>
+      <!-- BLE data channels, simplified bars -->
+      <script>/* drawn by JS below */</script>
+      <!-- labels -->
+      <text x="38" y="115" text-anchor="middle" fill="#f97316" font-size="8">37</text>
+      <text x="341" y="115" text-anchor="middle" fill="#f97316" font-size="8">38</text>
+      <text x="724" y="115" text-anchor="middle" fill="#f97316" font-size="8">39</text>
+      <!-- freq labels -->
+      <text x="32" y="130" text-anchor="middle" fill="#475569" font-size="8">2402</text>
+      <text x="380" y="130" text-anchor="middle" fill="#475569" font-size="8">2440</text>
+      <text x="740" y="130" text-anchor="middle" fill="#475569" font-size="8">2480</text>
+      <text x="380" y="148" text-anchor="middle" fill="#64748b" font-size="9">频率 (MHz)</text>
+      <!-- ISM band label -->
+      <text x="380" y="20" text-anchor="middle" fill="#0057b8" font-size="11" font-weight="bold">2.4 GHz ISM 频段 (2400~2483.5 MHz)</text>
+      <line x1="30" y1="28" x2="740" y2="28" stroke="#0057b8" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- data ch bars -->
+      <g id="dataChBars"></g>
+    </svg>
+  </div>
+
+  <div class="info-box">
+    <strong>📡 设计亮点：</strong> 3 个广播信道（37/38/39）被刻意放置在 Wi-Fi 信道 1、6、11 的<strong>间隙</strong>中，以最大程度降低与 Wi-Fi 的共存干扰。37 个数据信道在整个频段内均匀分布，通过自适应跳频实现对干扰的规避。
+  </div>
+</div>
+
+
+<!-- ═══════════════ SECTION 3: TX ═══════════════ -->
+<div class="section-card" id="sec-tx">
+  <h2><span class="sec-num">§3</span> 发射机特性 (Transmitter Characteristics)</h2>
+  <p>本节规定了 BLE 发射机在天线连接器处（或等效辐射点）的各项技术要求，涵盖功率、调制、杂散发射和频率容差等关键指标。</p>
+
+  <h3>发射功率范围</h3>
+  <div class="formula">P_max ∈ [0.01 mW (−20 dBm),  100 mW (+20 dBm)]</div>
+
+  <h3>功率等级划分</h3>
+  <p>根据最大辐射发射功率（Pmax）将设备分为四个功率等级：</p>
+
+  <div style="margin:1rem 0">
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+      <span style="width:60px;font-size:.78rem;color:#64748b;text-align:right">Class 1</span>
+      <div class="pwr-bar" style="background:linear-gradient(90deg,#ef4444,#dc2626);width:100%">+10 dBm &lt; Pmax ≤ +20 dBm (最高 100 mW)</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+      <span style="width:60px;font-size:.78rem;color:#64748b;text-align:right">Class 1.5</span>
+      <div class="pwr-bar" style="background:linear-gradient(90deg,#f97316,#ea580c);width:75%">+4 dBm &lt; Pmax ≤ +10 dBm (最高 10 mW)</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+      <span style="width:60px;font-size:.78rem;color:#64748b;text-align:right">Class 2</span>
+      <div class="pwr-bar" style="background:linear-gradient(90deg,#eab308,#ca8a04);width:50%">0 dBm &lt; Pmax ≤ +4 dBm (最高 2.5 mW)</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+      <span style="width:60px;font-size:.78rem;color:#64748b;text-align:right">Class 3</span>
+      <div class="pwr-bar" style="background:linear-gradient(90deg,#22c55e,#16a34a);width:30%">−20 dBm ≤ Pmax ≤ 0 dBm (最高 1 mW)</div>
+    </div>
+  </div>
+
+  <div class="info-box">
+    <strong>⚡ 功率控制：</strong> 规范引入了 <strong>LE Power Control Request</strong> 特性，允许已连接设备根据接收信号强度（RSSI）动态调节对端的发射功率，以避免接收机饱和、降低功耗并减少干扰。相邻发射功率级之间的间隔建议不超过 <strong>8 dB</strong>。
+  </div>
+</div>
+
+<!-- 3.1 Modulation -->
+<div class="section-card" id="sec-mod">
+  <h2><span class="sec-num">§3.1</span> 调制特性 (Modulation Characteristics)</h2>
+  <p>BLE 采用 <strong>高斯频移键控（GFSK）</strong> 调制方式，带宽-比特周期积（BT）= 0.5，调制指数 h 在 0.45 ~ 0.55 之间。</p>
+  <ul>
+    <li><strong>二进制 1</strong> → 正频率偏移（载波升高）</li>
+    <li><strong>二进制 0</strong> → 负频率偏移（载波降低）</li>
+  </ul>
+
+  <h3>关键调制参数</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>参数</th><th>1 Msym/s (LE 1M/Coded)</th><th>2 Msym/s (LE 2M)</th></tr></thead>
+      <tbody>
+        <tr><td>BT 积</td><td>0.5</td><td>0.5</td></tr>
+        <tr><td>调制指数 h</td><td>0.45 ~ 0.55</td><td>0.45 ~ 0.55</td></tr>
+        <tr><td>最小频偏</td><td>≥ 185 kHz</td><td>≥ 370 kHz</td></tr>
+        <tr><td>符号时序精度</td><td>±50 ppm</td><td>±50 ppm</td></tr>
+        <tr><td>过零点误差</td><td>&lt; ±1/8 符号周期</td><td>&lt; ±1/8 符号周期</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>GFSK 调制波形示意</h3>
+  <div class="diagram">
+    <canvas id="gfskCanvas" width="700" height="200"></canvas>
+  </div>
+
+  <h3>频率偏移与数据映射</h3>
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg">
+      <rect width="700" height="160" fill="#f8fafc" rx="8"/>
+      <!-- center line -->
+      <line x1="20" y1="80" x2="680" y2="80" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="12" y="83" text-anchor="end" fill="#64748b" font-size="9" font-weight="bold">f₀</text>
+      <!-- +185kHz -->
+      <line x1="20" y1="40" x2="680" y2="40" stroke="#3b82f6" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="685" y="43" fill="#3b82f6" font-size="8">+185kHz</text>
+      <!-- -185kHz -->
+      <line x1="20" y1="120" x2="680" y2="120" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="685" y="123" fill="#ef4444" font-size="8">−185kHz</text>
+      <!-- bit sequence : 1 0 1 1 0 0 1 0 -->
+      <!-- rendered by js in gfskCanvas; here just labels -->
+      <text x="350" y="15" text-anchor="middle" fill="#0057b8" font-size="11" font-weight="bold">GFSK 频率偏移 vs 数据序列 (示意)</text>
+      <!-- signal path approx -->
+      <polyline points="50,80 80,40 110,40 150,80 180,120 230,120 270,80 300,40 330,40 370,80 400,120 450,120 490,80 520,40 560,40 600,80 640,80" fill="none" stroke="#0057b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- bits -->
+      <text x="65" y="135" fill="#15803d" font-size="11" font-weight="bold">1</text>
+      <text x="145" y="135" fill="#dc2626" font-size="11" font-weight="bold">0</text>
+      <text x="245" y="135" fill="#15803d" font-size="11" font-weight="bold">1</text>
+      <text x="315" y="135" fill="#15803d" font-size="11" font-weight="bold">1</text>
+      <text x="415" y="135" fill="#dc2626" font-size="11" font-weight="bold">0</text>
+      <text x="490" y="135" fill="#15803d" font-size="11" font-weight="bold">1</text>
+      <text x="560" y="135" fill="#dc2626" font-size="11" font-weight="bold">0</text>
+      <!-- arrows -->
+      <text x="340" y="148" text-anchor="middle" fill="#64748b" font-size="9">数据位 (1=正频偏, 0=负频偏)</text>
+    </svg>
+  </div>
+</div>
+
+<!-- 3.1.1 -->
+<div class="section-card" id="sec-mod-stable">
+  <h2><span class="sec-num">§3.1.1</span> 稳定调制指数 (Stable Modulation Index)</h2>
+  <p>BLE 区分了两类调制指数规格：</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>类型</th><th>调制指数范围</th><th>特点</th></tr></thead>
+      <tbody>
+        <tr><td><strong>标准调制指数</strong></td><td>0.45 ~ 0.55</td><td>默认要求，容差较宽</td></tr>
+        <tr><td><strong>稳定调制指数</strong></td><td>0.495 ~ 0.505</td><td>更精确，接收机可优化解调</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="info-box">
+    <strong>📌 作用：</strong> 当发射机具有稳定调制指数时，可通过<strong>特性支持机制</strong>告知接收方，使接收方调整解调算法，从而在弱信号环境下获得更好的接收性能。该特性必须适用于设备支持的<strong>所有</strong> LE 发射机 PHY。
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg">
+      <rect width="600" height="120" fill="#f8fafc" rx="8"/>
+      <!-- axis -->
+      <line x1="60" y1="80" x2="560" y2="80" stroke="#94a3b8" stroke-width="2"/>
+      <!-- tick marks -->
+      <line x1="110" y1="75" x2="110" y2="85" stroke="#64748b" stroke-width="1.5"/>
+      <text x="110" y="97" text-anchor="middle" fill="#64748b" font-size="9">0.45</text>
+      <line x1="237" y1="75" x2="237" y2="85" stroke="#64748b" stroke-width="1.5"/>
+      <text x="237" y="97" text-anchor="middle" fill="#64748b" font-size="9">0.495</text>
+      <line x1="310" y1="70" x2="310" y2="90" stroke="#0057b8" stroke-width="2"/>
+      <text x="310" y="106" text-anchor="middle" fill="#0057b8" font-size="9" font-weight="bold">0.5（理想）</text>
+      <line x1="383" y1="75" x2="383" y2="85" stroke="#64748b" stroke-width="1.5"/>
+      <text x="383" y="97" text-anchor="middle" fill="#64748b" font-size="9">0.505</text>
+      <line x1="510" y1="75" x2="510" y2="85" stroke="#64748b" stroke-width="1.5"/>
+      <text x="510" y="97" text-anchor="middle" fill="#64748b" font-size="9">0.55</text>
+      <!-- standard range -->
+      <rect x="110" y="50" width="400" height="20" rx="3" fill="#fbbf24" opacity=".5"/>
+      <text x="310" y="64" text-anchor="middle" fill="#92400e" font-size="9" font-weight="bold">标准调制指数范围 (0.45~0.55)</text>
+      <!-- stable range -->
+      <rect x="237" y="30" width="146" height="16" rx="3" fill="#3b82f6" opacity=".75"/>
+      <text x="310" y="42" text-anchor="middle" fill="white" font-size="9" font-weight="bold">稳定调制指数 (0.495~0.505)</text>
+      <!-- title -->
+      <text x="310" y="18" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="bold">调制指数范围对比</text>
+    </svg>
+  </div>
+</div>
+
+<!-- 3.1.2 CS Mod -->
+<div class="section-card" id="sec-mod-cs">
+  <h2><span class="sec-num">§3.1.2</span> 信道探测步骤的调制特性 (CS Modulation)</h2>
+  <p>当 CS_SYNC 包使用 <strong>LE 2M 2BT PHY</strong> 传输时，调制规则与标准 GFSK 基本相同，但有以下重要差异：</p>
+  <ul>
+    <li>带宽-比特周期积 <code>BT = 2.0</code>（而非 0.5），意味着高斯滤波器更宽，脉冲间干扰更小</li>
+    <li>符号中心处的最小频偏 <strong>≥ 420 kHz</strong>（而非 185 kHz）</li>
+    <li>2 Msym/s 符号率</li>
+  </ul>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 180" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="180" fill="#f8fafc" rx="8"/>
+      <text x="330" y="22" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">BT=0.5 vs BT=2.0 高斯滤波器效果对比</text>
+      <!-- BT=0.5 -->
+      <text x="160" y="42" text-anchor="middle" fill="#3b82f6" font-size="10" font-weight="bold">BT = 0.5 (标准 LE 1M/2M)</text>
+      <polyline points="30,90 60,90 80,60 100,45 120,58 140,90 160,90 180,90 200,120 220,135 240,120 260,90 290,90" fill="none" stroke="#3b82f6" stroke-width="2.5"/>
+      <line x1="30" y1="90" x2="290" y2="90" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="160" y="160" text-anchor="middle" fill="#64748b" font-size="9">过渡更快，相邻符号串扰较大</text>
+
+      <!-- BT=2.0 -->
+      <text x="490" y="42" text-anchor="middle" fill="#be185d" font-size="10" font-weight="bold">BT = 2.0 (LE 2M 2BT / CS)</text>
+      <polyline points="360,90 390,90 410,78 430,62 450,62 470,78 490,90 510,90 530,100 550,115 570,115 590,100 620,90" fill="none" stroke="#be185d" stroke-width="2.5"/>
+      <line x1="360" y1="90" x2="620" y2="90" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="490" y="160" text-anchor="middle" fill="#64748b" font-size="9">过渡更缓，相位稳定性更佳，适合测距</text>
+      <!-- divider -->
+      <line x1="330" y1="35" x2="330" y2="170" stroke="#e2e8f0" stroke-width="1.5" stroke-dasharray="4,3"/>
+    </svg>
+  </div>
+
+  <div class="info-box">
+    <strong>🎯 为何 BT=2.0？</strong> Channel Sounding 的核心目的是<strong>精确测距</strong>，需要载波相位在整个测量周期内保持高度稳定。更大的 BT 值意味着高斯滤波器更宽（时域更短），能减少符号间干扰，使相位变化更平缓，从而大幅提升相位测量精度。
+  </div>
+</div>
+
+<!-- 3.1.3 SNR -->
+<div class="section-card" id="sec-snr">
+  <h2><span class="sec-num">§3.1.3</span> CS 步骤的 SNR 控制 (SNR Control)</h2>
+  <p>用于 Channel Sounding 的设备可支持对调制传输的 <strong>信噪比（SNR）输出</strong>进行精确控制，共定义 5 个 SNR 输出级别（SOI 0~4）。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>SNR 输出索引 (SOI)</th><th>SNR 输出电平 (dB)</th><th>支持要求</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>18 dB</td><td><span class="tag tag-optional">C.1</span></td></tr>
+        <tr><td>1</td><td>21 dB</td><td><span class="tag tag-optional">C.1</span></td></tr>
+        <tr><td>2</td><td>24 dB</td><td><span class="tag tag-optional">C.1</span></td></tr>
+        <tr><td>3</td><td>27 dB</td><td><span class="tag tag-optional">C.1</span></td></tr>
+        <tr><td>4</td><td>30 dB</td><td><span class="tag tag-optional">C.1</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:.82rem;color:var(--muted)">C.1: 支持 SNR 输出控制的设备至少须支持以上级别中的一个。</p>
+
+  <div class="formula">SNR_TX_error[k] = SNR_TX_desired − SNR_TX[k] ≤ 3 dB</div>
+  <div class="formula">std(SNR_TX_error[k]) ≥ 0.25 dB  (95% 步骤)</div>
+
+  <div class="info-box">
+    <strong>🔬 SNR 控制的用途：</strong> 在 CS 测距场景中，精确控制发射信噪比能使接收方在已知 SNR 条件下评估测量质量，有助于提高距离估计算法的鲁棒性，也可用于模拟不同的信道环境进行测试。
+  </div>
+</div>
+
+<!-- 3.2 Spurious -->
+<div class="section-card" id="sec-spur">
+  <h2><span class="sec-num">§3.2</span> 杂散发射 (Spurious Emissions)</h2>
+  <p>杂散发射要求确保 BLE 发射机不会对其他信道和频段造成过度干扰，分为调制频谱、带内杂散和带外杂散三个层面。</p>
+</div>
+
+<div class="section-card" id="sec-spur-mod">
+  <h2><span class="sec-num">§3.2.1</span> 调制频谱 (Modulation Spectrum)</h2>
+  <p>遵从 FCC Part 15.247 规定时，发射机调制信号的 <strong>6 dB 最小带宽</strong>须在 100 kHz 分辨率带宽下测量，且不得小于 <strong>500 kHz</strong>。</p>
+</div>
+
+<div class="section-card" id="sec-spur-in">
+  <h2><span class="sec-num">§3.2.2</span> 带内杂散发射 (In-band Spurious Emission)</h2>
+  <p>规范对距载波一定频率偏移处的<strong>相邻信道功率</strong>（以 1 MHz 带宽内总功率计）做出严格限制：</p>
+
+  <h3>1 Msym/s 调制（LE 1M / LE Coded）频谱掩模</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>频率偏移 |M-N|</th><th>最大杂散功率</th></tr></thead>
+      <tbody>
+        <tr><td>2 MHz</td><td>−20 dBm</td></tr>
+        <tr><td>≥ 3 MHz</td><td>−30 dBm</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>2 Msym/s 调制（LE 2M / LE 2M 2BT）频谱掩模</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>频率偏移 |M-N|</th><th>最大杂散功率</th></tr></thead>
+      <tbody>
+        <tr><td>4 MHz</td><td>−20 dBm</td></tr>
+        <tr><td>5 MHz</td><td>−20 dBm</td></tr>
+        <tr><td>≥ 6 MHz</td><td>−30 dBm</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+      <rect width="700" height="200" fill="#f8fafc" rx="8"/>
+      <text x="350" y="20" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">频谱掩模示意图 (1 Msym/s)</text>
+      <!-- axes -->
+      <line x1="60" y1="160" x2="640" y2="160" stroke="#475569" stroke-width="1.5"/>
+      <line x1="60" y1="30" x2="60" y2="165" stroke="#475569" stroke-width="1.5"/>
+      <!-- y labels -->
+      <text x="52" y="40" text-anchor="end" fill="#64748b" font-size="8">0</text>
+      <text x="52" y="85" text-anchor="end" fill="#ef4444" font-size="8">−20</text>
+      <text x="52" y="130" text-anchor="end" fill="#ef4444" font-size="8">−30</text>
+      <line x1="57" y1="84" x2="640" y2="84" stroke="#ef4444" stroke-width="1" stroke-dasharray="4,3" opacity=".5"/>
+      <line x1="57" y1="129" x2="640" y2="129" stroke="#ef4444" stroke-width="1" stroke-dasharray="4,3" opacity=".5"/>
+      <!-- carrier at center (350) -->
+      <rect x="310" y="35" width="80" height="125" fill="#3b82f6" opacity=".3"/>
+      <rect x="310" y="35" width="80" height="5" fill="#3b82f6"/>
+      <text x="350" y="55" text-anchor="middle" fill="#1d4ed8" font-size="9" font-weight="bold">载波</text>
+      <!-- mask lines -->
+      <!-- 1M: ±2MHz: -20dBm; ±3MHz+: -30dBm -->
+      <!-- left side -->
+      <polyline points="60,129 170,129 170,84 230,84 230,35" fill="none" stroke="#f97316" stroke-width="2.5"/>
+      <!-- right side -->
+      <polyline points="470,35 470,84 530,84 530,129 640,129" fill="none" stroke="#f97316" stroke-width="2.5"/>
+      <!-- fill mask area -->
+      <polygon points="60,129 170,129 170,84 230,84 230,160 60,160" fill="#f97316" opacity=".12"/>
+      <polygon points="470,160 470,84 530,84 530,129 640,129 640,160" fill="#f97316" opacity=".12"/>
+      <!-- x labels -->
+      <text x="350" y="178" text-anchor="middle" fill="#64748b" font-size="8">f₀</text>
+      <text x="230" y="178" text-anchor="middle" fill="#64748b" font-size="8">f₀−2M</text>
+      <text x="170" y="178" text-anchor="middle" fill="#64748b" font-size="8">f₀−3M</text>
+      <text x="470" y="178" text-anchor="middle" fill="#64748b" font-size="8">f₀+2M</text>
+      <text x="530" y="178" text-anchor="middle" fill="#64748b" font-size="8">f₀+3M</text>
+      <text x="57" y="175" text-anchor="end" fill="#64748b" font-size="8">dBm</text>
+      <text x="640" y="175" fill="#64748b" font-size="8">→ MHz</text>
+    </svg>
+  </div>
+</div>
+
+<div class="section-card" id="sec-spur-out">
+  <h2><span class="sec-num">§3.2.3</span> 带外杂散发射 (Out-of-band Spurious Emission)</h2>
+  <p>2.4 GHz ISM 频段以外的杂散发射要求由<strong>设备制造商</strong>依据目标销售国的法规自行负责，蓝牙规范不作统一规定（各国 EMC/无线电法规可能不同）。</p>
+  <div class="warn-box">
+    <strong>⚠️ 注意：</strong> 设备制造商需参考目标市场的无线电法规（如欧盟 CE RED、美国 FCC、中国 SRRC 等），并确保带外杂散发射满足当地要求。
+  </div>
+</div>
+
+<!-- 3.3 Freq tolerance -->
+<div class="section-card" id="sec-freq-tol">
+  <h2><span class="sec-num">§3.3</span> 射频频率容差 (Radio Frequency Tolerance)</h2>
+  <p>规范对发射机的<strong>频率精度和漂移</strong>有严格限制，以确保接收机能稳定解调。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>参数</th><th>限制值</th></tr></thead>
+      <tbody>
+        <tr><td>中心频率偏差（含初始偏移 + 漂移）</td><td>±150 kHz</td></tr>
+        <tr><td>包内最大频率漂移</td><td>±50 kHz</td></tr>
+        <tr><td>最大漂移速率</td><td>400 Hz/μs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 160" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="160" fill="#f8fafc" rx="8"/>
+      <text x="330" y="20" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">包内频率漂移容差示意</text>
+      <!-- center freq -->
+      <line x1="40" y1="80" x2="620" y2="80" stroke="#64748b" stroke-width="1.5"/>
+      <text x="34" y="83" text-anchor="end" fill="#0057b8" font-size="9">f₀</text>
+      <!-- ±150 kHz -->
+      <line x1="40" y1="30" x2="620" y2="30" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,3"/>
+      <line x1="40" y1="130" x2="620" y2="130" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,3"/>
+      <text x="625" y="33" fill="#ef4444" font-size="8">+150kHz</text>
+      <text x="625" y="133" fill="#ef4444" font-size="8">−150kHz</text>
+      <!-- ±50 kHz -->
+      <line x1="40" y1="50" x2="620" y2="50" stroke="#f97316" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="40" y1="110" x2="620" y2="110" stroke="#f97316" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="625" y="53" fill="#f97316" font-size="8">+50kHz</text>
+      <text x="625" y="113" fill="#f97316" font-size="8">−50kHz</text>
+      <!-- example drift path -->
+      <polyline points="40,70 100,68 180,72 260,75 340,78 420,74 500,77 580,80" fill="none" stroke="#0057b8" stroke-width="2.5"/>
+      <!-- label -->
+      <text x="310" y="145" text-anchor="middle" fill="#64748b" font-size="9">橙色：包内漂移限制 (±50kHz)　红色：绝对频率限制 (±150kHz)</text>
+    </svg>
+  </div>
+
+  <div class="info-box">
+    <strong>📐 为何需要频率容差？</strong> BLE 信道间隔为 2 MHz，过大的频率偏移会导致信号落入相邻信道，引起干扰或解调失败。±150 kHz 的总容差包含了设备的初始频率偏移（晶振精度）和工作过程中的温度漂移。
+  </div>
+</div>
+
+<!-- 3.4 Stable Phase -->
+<div class="section-card" id="sec-stable-phase">
+  <h2><span class="sec-num">§3.4</span> 稳定相位 (Stable Phase)</h2>
+  <p>支持 Channel Sounding 的设备须能在 <strong>T_PM_MEAS</strong> 时间段内保持 RF 信号相位的高度稳定。</p>
+  <p>相位稳定性通过以下步骤评估：对采样相位进行<strong>去线性趋势</strong>（去除频率偏移导致的线性相位增长），然后计算残余相位的零均值去趋势序列。</p>
+
+  <div class="formula">φ_zmd[n] = φ_d[n] − φ̄_d</div>
+  <div class="info-box">
+    <strong>📏 要求：</strong> 95% 的 |φ_zmd[n]| 绝对值须 <strong>≤ 20 度</strong>。这保证了 CS 测距的相位测量具有足够的一致性。
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 170" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="170" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">相位稳定性要求：去趋势后残余相位 ≤ ±20°</text>
+      <line x1="40" y1="90" x2="620" y2="90" stroke="#64748b" stroke-width="1.5"/>
+      <line x1="40" y1="48" x2="620" y2="48" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <line x1="40" y1="132" x2="620" y2="132" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="34" y="92" text-anchor="end" fill="#64748b" font-size="8">0°</text>
+      <text x="34" y="51" text-anchor="end" fill="#ef4444" font-size="8">+20°</text>
+      <text x="34" y="135" text-anchor="end" fill="#ef4444" font-size="8">−20°</text>
+      <!-- good signal -->
+      <polyline points="40,88 80,86 130,92 180,89 230,91 280,88 330,90 380,87 430,93 480,89 530,91 580,88 620,90" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+      <!-- bad signal (for contrast, greyed) -->
+      <polyline points="40,100 80,75 130,115 180,65 230,110 280,125 330,60 380,105 430,75 480,120 530,85 580,110 620,95" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3" opacity=".5"/>
+      <text x="200" y="155" fill="#22c55e" font-size="9" font-weight="bold">■ 合格：残余相位 &lt; ±20°</text>
+      <text x="420" y="155" fill="#ef4444" font-size="9" font-weight="bold">■ 不合格：相位抖动过大</text>
+      <text x="330" y="168" text-anchor="middle" fill="#64748b" font-size="8">时间 → T_PM_MEAS</text>
+    </svg>
+  </div>
+</div>
+
+<!-- 3.5 CS Freq -->
+<div class="section-card" id="sec-freq-meas">
+  <h2><span class="sec-num">§3.5</span> CS 频率测量与生成 (Frequency Measurement and Generation in CS)</h2>
+  <p>Channel Sounding 子事件由多个 CS 步骤组成，每个步骤使用特定的 CS 信道频率。本节定义了频率生成和测量的参数框架。</p>
+  <ul>
+    <li>每个 CS 子事件包含 <strong>M 个 mode-0 步骤</strong> + <strong>K 个非 mode-0 步骤</strong></li>
+    <li>每个包含 CS 音调的步骤有 <strong>P 个相位测量周期</strong>（1 ≤ P ≤ N_AP + 扩展）</li>
+    <li>N_AP 为天线路径数，最多 4 个</li>
+  </ul>
+</div>
+
+<div class="section-card" id="sec-ffo">
+  <h2><span class="sec-num">§3.5.1</span> 分数频率偏移 (Fractional Frequency Offset)</h2>
+  <p>分数频率偏移（FFO）描述实际发射频率与标称频率之间的误差，直接影响相位测量的准确性。FFO 须在规范规定的容差范围内，以保证测距精度。</p>
+  <div class="info-box">
+    <strong>🔗 关联：</strong> FFO 与 §6.3 的频率激励误差校正（LFAE 校正）密切相关。设备需在相位计算中补偿已知的频率误差，以提高 Phase-based Ranging 的精度。
+  </div>
+</div>
+
+<div class="section-card" id="sec-exp-freq">
+  <h2><span class="sec-num">§3.5.2</span> 期望发射频率 (Expected Transmitted Frequencies)</h2>
+  <p>规范明确定义了每个 CS 步骤的<strong>期望发射频率</strong>，用于接收方的参考解调（见 §6.1 参考接收机定义）。实际发射频率与期望频率的偏差须在 §3.3 所规定的容差范围内。</p>
+</div>
+
+
+<!-- ═══════════════ SECTION 4: RX ═══════════════ -->
+<div class="section-card" id="sec-rx">
+  <h2><span class="sec-num">§4</span> 接收机特性 (Receiver Characteristics)</h2>
+  <p>本节规定了 BLE 接收机的核心性能指标，涵盖灵敏度、抗干扰性能和 CS 接收机特性，是保障通信质量和链路可靠性的关键。</p>
+</div>
+
+<div class="section-card" id="sec-rx-sens">
+  <h2><span class="sec-num">§4.1</span> 接收灵敏度 (Sensitivity)</h2>
+  <p>接收灵敏度是指接收机能够成功解调信号（误包率 BER ≤ 0.1%）时所需的<strong>最低输入功率</strong>。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>PHY 类型</th><th>最低接收灵敏度</th><th>数据速率</th></tr></thead>
+      <tbody>
+        <tr><td>LE 1M</td><td>−70 dBm</td><td>1 Mb/s</td></tr>
+        <tr><td>LE 2M</td><td>−70 dBm</td><td>2 Mb/s</td></tr>
+        <tr><td>LE Coded (S=8)</td><td>−82 dBm</td><td>125 kb/s</td></tr>
+        <tr><td>LE Coded (S=2)</td><td>−75 dBm</td><td>500 kb/s</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 160" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="160" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">各 PHY 接收灵敏度对比</text>
+      <!-- axis -->
+      <line x1="140" y1="130" x2="620" y2="130" stroke="#475569" stroke-width="1.5"/>
+      <line x1="140" y1="35" x2="140" y2="135" stroke="#475569" stroke-width="1.5"/>
+      <!-- scale: -82 to -70 dBm, map to 140-620 px (480px range = 12 dB) -->
+      <!-- bars: LE 1M: -70 --> x= 620, len= 480*(70-70)/12=0 → show from left
+      <!-- let left=-82, right=-70 → x(v) = 140 + (v+82)/12*480 -->
+      <!-- LE 1M: -70 → 140+480=620 -->
+      <rect x="140" y="40" width="480" height="20" rx="4" fill="#3b82f6"/>
+      <text x="135" y="54" text-anchor="end" fill="#3b82f6" font-size="9" font-weight="bold">LE 1M</text>
+      <text x="622" y="54" fill="#64748b" font-size="9">−70 dBm</text>
+      <!-- LE 2M: -70 -->
+      <rect x="140" y="65" width="480" height="20" rx="4" fill="#7c3aed"/>
+      <text x="135" y="79" text-anchor="end" fill="#7c3aed" font-size="9" font-weight="bold">LE 2M</text>
+      <text x="622" y="79" fill="#64748b" font-size="9">−70 dBm</text>
+      <!-- Coded S=2: -75 → 140+(82-75)/12*480=140+280=420 -->
+      <rect x="140" y="90" width="360" height="20" rx="4" fill="#0891b2"/>
+      <text x="135" y="104" text-anchor="end" fill="#0891b2" font-size="9" font-weight="bold">Coded S=2</text>
+      <text x="502" y="104" fill="#64748b" font-size="9">−75 dBm</text>
+      <!-- Coded S=8: -82 → 140+0=140, width=480*(82-82)/12=0 → full -->
+      <rect x="140" y="115" width="480" height="20" rx="4" fill="#06b6d4"/>
+      <!-- width= (82-82)/12*480=0 nope: (v-(-82))/12*480 → (-70-(-82))/12*480=480 -->
+      <!-- Coded S=8: -82 → 0 width? No: longer bar = more sensitive = lower dBm -->
+      <!-- Let's draw bars from left edge to position of sensitivity value -->
+      <!-- x for -82 = 140+0=140 (leftmost) → Coded S=8 gets full bar -->
+      <!-- x for -70 = 140+480=620 → LE 1M/2M get full bar 480px -->
+      <!-- Actually all dBm values are negative, more negative = better sensitivity -->
+      <!-- width = (-sensitivity + (-70)) / 12 * 480 → bigger = better -->
+      <!-- LE 1M: (-70+70)/12*480=0 → 0 width → no, invert: sensitivity relative to worst -->
+      <!-- Let's just show it as: bar length proportional to sensitivity advantage over -70 dBm -->
+      <!-- Re-draw Coded S=8 -->
+      <!-- remove above and redo via full width minus -->
+      <text x="135" y="129" text-anchor="end" fill="#06b6d4" font-size="9" font-weight="bold">Coded S=8</text>
+      <text x="622" y="129" fill="#64748b" font-size="9">−82 dBm</text>
+      <!-- dBm axis labels -->
+      <text x="140" y="148" text-anchor="middle" fill="#64748b" font-size="8">−82</text>
+      <text x="380" y="148" text-anchor="middle" fill="#64748b" font-size="8">−76</text>
+      <text x="620" y="148" text-anchor="middle" fill="#64748b" font-size="8">−70 dBm</text>
+      <text x="330" y="158" text-anchor="middle" fill="#64748b" font-size="8">← 越靠左=灵敏度越高（越小的功率即可接收）</text>
+    </svg>
+  </div>
+
+  <div class="info-box">
+    <strong>📡 LE Coded PHY 的优势：</strong> 通过前向纠错（FEC）编码，LE Coded PHY 将有效通信距离提升了约 4 倍（S=8 相比 LE 1M 灵敏度提升约 12 dB），非常适合工业物联网、资产追踪等长距离低速率应用场景。
+  </div>
+</div>
+
+<div class="section-card" id="sec-rx-inter">
+  <h2><span class="sec-num">§4.2</span> 干扰性能 (Interference Performance)</h2>
+  <p>接收机须在存在同频干扰、相邻信道干扰和带外干扰的情况下保持可接受的误包率。规范通过<strong>共存比（C/I）</strong>和<strong>阻塞（Blocking）</strong>测试来验证。</p>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 180" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="180" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">接收机干扰场景示意</text>
+      <!-- desired signal -->
+      <rect x="290" y="40" width="80" height="100" rx="4" fill="#3b82f6" opacity=".8"/>
+      <text x="330" y="95" text-anchor="middle" fill="white" font-size="9" font-weight="bold">期望信号</text>
+      <text x="330" y="108" text-anchor="middle" fill="white" font-size="8">f₀</text>
+      <!-- co-channel interferer -->
+      <rect x="290" y="60" width="80" height="80" rx="4" fill="#ef4444" opacity=".4" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <!-- adjacent channel -->
+      <rect x="160" y="70" width="80" height="70" rx="4" fill="#f97316" opacity=".6"/>
+      <text x="200" y="107" text-anchor="middle" fill="white" font-size="8" font-weight="bold">相邻信道</text>
+      <text x="200" y="118" text-anchor="middle" fill="white" font-size="8">f₀−2M</text>
+      <!-- far channel -->
+      <rect x="50" y="90" width="80" height="50" rx="4" fill="#fbbf24" opacity=".6"/>
+      <text x="90" y="118" text-anchor="middle" fill="#92400e" font-size="8" font-weight="bold">远端干扰</text>
+      <text x="90" y="128" text-anchor="middle" fill="#92400e" font-size="8">f₀−N·2M</text>
+      <!-- right adjacent -->
+      <rect x="420" y="70" width="80" height="70" rx="4" fill="#f97316" opacity=".6"/>
+      <text x="460" y="107" text-anchor="middle" fill="white" font-size="8" font-weight="bold">相邻信道</text>
+      <text x="460" y="118" text-anchor="middle" fill="white" font-size="8">f₀+2M</text>
+      <rect x="530" y="90" width="80" height="50" rx="4" fill="#fbbf24" opacity=".6"/>
+      <text x="570" y="118" text-anchor="middle" fill="#92400e" font-size="8" font-weight="bold">远端干扰</text>
+      <text x="570" y="128" text-anchor="middle" fill="#92400e" font-size="8">f₀+N·2M</text>
+      <!-- filter indication -->
+      <path d="M280,30 Q330,20 380,30" fill="none" stroke="#22c55e" stroke-width="2"/>
+      <text x="330" y="18" text-anchor="middle" fill="#15803d" font-size="8">接收滤波器通带</text>
+      <!-- legend -->
+      <rect x="60" y="158" width="12" height="10" fill="#3b82f6" rx="2"/>
+      <text x="78" y="167" fill="#1e293b" font-size="8">期望信号</text>
+      <rect x="160" y="158" width="12" height="10" fill="#f97316" rx="2"/>
+      <text x="178" y="167" fill="#1e293b" font-size="8">相邻信道干扰</text>
+      <rect x="290" y="158" width="12" height="10" fill="#ef4444" rx="2" opacity=".6"/>
+      <text x="308" y="167" fill="#1e293b" font-size="8">同频干扰</text>
+      <rect x="400" y="158" width="12" height="10" fill="#fbbf24" rx="2"/>
+      <text x="418" y="167" fill="#1e293b" font-size="8">远端/带外干扰（阻塞）</text>
+    </svg>
+  </div>
+</div>
+
+<div class="section-card" id="sec-rx-cs">
+  <h2><span class="sec-num">§4.3</span> CS 接收机特性 (CS Receiver Characteristics)</h2>
+  <p>Channel Sounding 接收机除满足标准 BLE 接收要求外，还需支持：</p>
+  <ul>
+    <li>在 −70 dBm 输入电平下完成精确的<strong>相位测量</strong></li>
+    <li>对 IQ 采样进行处理以支持相位差计算</li>
+    <li>结合天线切换完成 AoA/AoD 或 PBRT（基于相位的测距）</li>
+  </ul>
+</div>
+
+
+<!-- ═══════════════ SECTION 5: ANTENNA ═══════════════ -->
+<div class="section-card" id="sec-antenna">
+  <h2><span class="sec-num">§5</span> 天线与方向性 (Antenna and Direction Finding)</h2>
+  <p>本节规定了支持<strong>到达角（AoA）/ 离开角（AoD）</strong>方向定位以及 <strong>Channel Sounding</strong> 天线切换的要求，是 BLE 方向定位（Direction Finding）和测距功能的基础。</p>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="220" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">AoA vs AoD 定向原理</text>
+      <!-- AoA diagram -->
+      <text x="160" y="38" text-anchor="middle" fill="#0057b8" font-size="10" font-weight="bold">到达角 AoA</text>
+      <!-- transmitter (single antenna) -->
+      <circle cx="60" cy="130" r="12" fill="#3b82f6"/>
+      <text x="60" y="134" text-anchor="middle" fill="white" font-size="8" font-weight="bold">TX</text>
+      <text x="60" y="150" text-anchor="middle" fill="#3b82f6" font-size="7">单天线</text>
+      <!-- receiver (array) -->
+      <rect x="220" y="90" width="20" height="20" rx="3" fill="#22c55e"/>
+      <rect x="220" y="115" width="20" height="20" rx="3" fill="#22c55e"/>
+      <rect x="220" y="140" width="20" height="20" rx="3" fill="#22c55e"/>
+      <rect x="220" y="165" width="20" height="20" rx="3" fill="#22c55e"/>
+      <text x="230" y="195" text-anchor="middle" fill="#15803d" font-size="7">天线阵列(RX)</text>
+      <!-- signal rays -->
+      <line x1="72" y1="122" x2="220" y2="100" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="72" y1="126" x2="220" y2="125" stroke="#3b82f6" stroke-width="1.5"/>
+      <line x1="72" y1="130" x2="220" y2="150" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <!-- angle arc -->
+      <path d="M 220,125 A 40,40 0 0,0 180,100" fill="none" stroke="#f97316" stroke-width="1.5"/>
+      <text x="185" y="110" fill="#f97316" font-size="9" font-weight="bold">θ</text>
+      <!-- IQ phase diff -->
+      <text x="160" y="205" text-anchor="middle" fill="#64748b" font-size="8">接收机测量各天线相位差 → 推算到达角</text>
+
+      <!-- divider -->
+      <line x1="330" y1="30" x2="330" y2="205" stroke="#e2e8f0" stroke-width="1.5"/>
+
+      <!-- AoD diagram -->
+      <text x="495" y="38" text-anchor="middle" fill="#7c3aed" font-size="10" font-weight="bold">离开角 AoD</text>
+      <!-- transmitter (array) -->
+      <rect x="360" y="90" width="20" height="20" rx="3" fill="#7c3aed"/>
+      <rect x="360" y="115" width="20" height="20" rx="3" fill="#7c3aed"/>
+      <rect x="360" y="140" width="20" height="20" rx="3" fill="#7c3aed"/>
+      <rect x="360" y="165" width="20" height="20" rx="3" fill="#7c3aed"/>
+      <text x="370" y="195" text-anchor="middle" fill="#7c3aed" font-size="7">天线阵列(TX)</text>
+      <!-- receiver (single) -->
+      <circle cx="590" cy="130" r="12" fill="#3b82f6"/>
+      <text x="590" y="134" text-anchor="middle" fill="white" font-size="8" font-weight="bold">RX</text>
+      <text x="590" y="150" text-anchor="middle" fill="#3b82f6" font-size="7">单天线</text>
+      <!-- rays -->
+      <line x1="380" y1="100" x2="578" y2="122" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="380" y1="125" x2="578" y2="126" stroke="#7c3aed" stroke-width="1.5"/>
+      <line x1="380" y1="150" x2="578" y2="130" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <!-- angle -->
+      <path d="M 380,125 A 40,40 0 0,1 420,100" fill="none" stroke="#f97316" stroke-width="1.5"/>
+      <text x="415" y="115" fill="#f97316" font-size="9" font-weight="bold">φ</text>
+      <text x="495" y="205" text-anchor="middle" fill="#64748b" font-size="8">发射机逐步切换天线 → 接收机测量相位差 → 推算离开角</text>
+    </svg>
+  </div>
+</div>
+
+<div class="section-card" id="sec-aoa">
+  <h2><span class="sec-num">§5.1</span> AoA/AoD 发射机天线切换 (Transmitter Antenna Switching)</h2>
+  <p>使用恒定音调扩展（Constant Tone Extension, CTE）结构进行 AoA/AoD 测量时，发射机须按照规定的<strong>天线切换模式</strong>依次使用不同天线发射 CTE 信号。</p>
+  <ul>
+    <li>切换模式由主机（Host）指定，控制器按顺序执行</li>
+    <li>天线只能在<strong>保护期（guard period）</strong>和<strong>切换槽（switch slots）</strong>期间切换</li>
+    <li>若模式在最后一个采样槽前耗尽，则从头循环重复</li>
+  </ul>
+
+  <h3>强制支持的天线切换模式长度</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>天线数量</th><th>强制支持的切换模式长度</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>1 到 4</td></tr>
+        <tr><td>3</td><td>1 到 8</td></tr>
+        <tr><td>≥ 4</td><td>1 到 12</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section-card" id="sec-aoa-rx">
+  <h2><span class="sec-num">§5.2</span> AoA/AoD 接收机特性 (Receiver Characteristics for AoA/AoD)</h2>
+  <p>AoA/AoD 接收机须在特定测试切换模式下满足相位测量的精度要求。</p>
+
+  <h3>§5.2.1 基本定义</h3>
+  <p>给定天线 Am 的采样槽 n 的 IQ 样本 I(n) 和 Q(n)，相位定义为：</p>
+  <div class="formula">φ(n) = Arg(I(n) + j·Q(n))</div>
+  <p>相对相位（n > 2）：</p>
+  <div class="formula">θ(n) = principal(φ(n) − 2φ(n−1) + φ(n−2))</div>
+
+  <h3>§5.2.2 精度要求</h3>
+  <p>对于每个天线 Am（除参考天线 A0），<strong>95%</strong> 的相对相位值 v 须满足：</p>
+  <div class="formula">−0.52 ≤ principal(v − MRP(m)) ≤ 0.52</div>
+
+  <h3>§5.2.3 测试切换模式</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>天线数量</th><th>测试切换模式</th></tr></thead>
+      <tbody>
+        <tr><td>2</td><td>A0, A1, A0, A0</td></tr>
+        <tr><td>3</td><td>A0, A1, A0, A0, A0, A2, A0, A0</td></tr>
+        <tr><td>≥4</td><td>A0, A1, A0, A0, A0, A2, A0, A0, A0, A3, A0, A0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="info-box">A0 为参考期间使用的天线（参考天线）</div>
+</div>
+
+<div class="section-card" id="sec-ant-cs">
+  <h2><span class="sec-num">§5.3</span> CS 天线切换 (Antenna Switching for Channel Sounding)</h2>
+  <p>CS 支持通过<strong>天线切换</strong>实现多路径相位测量，从而提高测距精度。天线路径（Antenna Path）是发起设备天线与响应设备天线的特定组合。</p>
+
+  <h3>天线配置索引（ACI）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>ACI</th><th>总路径数</th><th>设备A天线数</th><th>设备B天线数</th><th>配置</th></tr></thead>
+      <tbody>
+        <tr><td>0</td><td>1</td><td>1</td><td>1</td><td>1:1</td></tr>
+        <tr><td>1</td><td>2</td><td>2</td><td>1</td><td>N_AP:1</td></tr>
+        <tr><td>2</td><td>3</td><td>3</td><td>1</td><td>N_AP:1</td></tr>
+        <tr><td>3</td><td>4</td><td>4</td><td>1</td><td>N_AP:1</td></tr>
+        <tr><td>4</td><td>2</td><td>1</td><td>2</td><td>1:N_AP</td></tr>
+        <tr><td>5</td><td>3</td><td>1</td><td>3</td><td>1:N_AP</td></tr>
+        <tr><td>6</td><td>4</td><td>1</td><td>4</td><td>1:N_AP</td></tr>
+        <tr><td>7</td><td>4</td><td>2</td><td>2</td><td>2:2</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 180" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="180" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">CS 天线路径示意（以 ACI=7, 2:2 为例）</text>
+      <!-- Device A (2 antennas) -->
+      <rect x="30" y="40" width="120" height="120" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+      <text x="90" y="60" text-anchor="middle" fill="#1e40af" font-size="10" font-weight="bold">设备 A</text>
+      <circle cx="90" cy="85" r="14" fill="#3b82f6"/>
+      <text x="90" y="89" text-anchor="middle" fill="white" font-size="9" font-weight="bold">A1</text>
+      <circle cx="90" cy="125" r="14" fill="#3b82f6"/>
+      <text x="90" y="129" text-anchor="middle" fill="white" font-size="9" font-weight="bold">A2</text>
+      <!-- Device B (2 antennas) -->
+      <rect x="510" y="40" width="120" height="120" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+      <text x="570" y="60" text-anchor="middle" fill="#15803d" font-size="10" font-weight="bold">设备 B</text>
+      <circle cx="570" cy="85" r="14" fill="#22c55e"/>
+      <text x="570" y="89" text-anchor="middle" fill="white" font-size="9" font-weight="bold">B1</text>
+      <circle cx="570" cy="125" r="14" fill="#22c55e"/>
+      <text x="570" y="129" text-anchor="middle" fill="white" font-size="9" font-weight="bold">B2</text>
+      <!-- paths: AP1=A1:B1, AP2=A1:B2, AP3=A2:B1, AP4=A2:B2 -->
+      <line x1="104" y1="85" x2="556" y2="85" stroke="#f97316" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="330" y="80" text-anchor="middle" fill="#c2410c" font-size="8" font-weight="bold">AP1 (A1:B1)</text>
+      <line x1="104" y1="90" x2="556" y2="120" stroke="#7c3aed" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="330" y="115" text-anchor="middle" fill="#7c3aed" font-size="8" font-weight="bold">AP2 (A1:B2)</text>
+      <line x1="104" y1="122" x2="556" y2="92" stroke="#0891b2" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="330" y="103" text-anchor="middle" fill="#0891b2" font-size="8" font-weight="bold">AP3 (A2:B1)</text>
+      <line x1="104" y1="127" x2="556" y2="127" stroke="#15803d" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="330" y="140" text-anchor="middle" fill="#15803d" font-size="8" font-weight="bold">AP4 (A2:B2)</text>
+      <text x="330" y="165" text-anchor="middle" fill="#64748b" font-size="9">共 4 条天线路径，N_AP=4，多路径测量提升测距精度</text>
+    </svg>
+  </div>
+</div>
+
+
+<!-- ═══════════════ SECTION 6: PHASE ═══════════════ -->
+<div class="section-card" id="sec-phase">
+  <h2><span class="sec-num">§6</span> 相位测量 (Phase Measurements)</h2>
+  <p>本节定义了 Channel Sounding 中基于相位的测距（Phase-Based Ranging, PBRT）的参考框架和精度要求，是实现厘米级定位精度的核心。</p>
+
+  <div class="info-box">
+    <strong>🎯 PBRT 原理：</strong> 通过在多个不同频率的 CS 信道上测量发射与接收信号的相位差，利用相位差随频率线性变化的特性（斜率 = 2π × 往返时间），反算出两设备之间的距离。
+  </div>
+  <div class="formula">距离 d = (c × ToF) / 2，ToF = α[p] / (2π)，c = 3×10⁸ m/s</div>
+</div>
+
+<div class="section-card" id="sec-phase-ref">
+  <h2><span class="sec-num">§6.1</span> 参考接收机 (Reference Receiver for Phase-based Ranging)</h2>
+  <p>参考下变频定义为使用<strong>期望发射频率 f_E[k]</strong> 进行的本振混频，经低通滤波后得到基带复数信号：</p>
+  <div class="formula">x̂(k,p,t) = LPF{ x(p,t) · e^(−j2π·f_E[k]·t) }</div>
+  <p>其中 x(p,t) 为天线处的射频信号，LPF 消除高频分量。</p>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 160" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="160" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">参考接收机下变频流程</text>
+      <!-- blocks -->
+      <rect x="20" y="60" width="90" height="50" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="65" y="88" text-anchor="middle" fill="#1e40af" font-size="9" font-weight="bold">天线信号</text>
+      <text x="65" y="100" text-anchor="middle" fill="#1e40af" font-size="8">x(p,t)</text>
+
+      <rect x="150" y="60" width="110" height="50" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+      <text x="205" y="85" text-anchor="middle" fill="#4c1d95" font-size="9" font-weight="bold">混频器</text>
+      <text x="205" y="97" text-anchor="middle" fill="#4c1d95" font-size="8">× e^(-j2πf_E·t)</text>
+
+      <rect x="300" y="60" width="110" height="50" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="355" y="85" text-anchor="middle" fill="#15803d" font-size="9" font-weight="bold">低通滤波器</text>
+      <text x="355" y="97" text-anchor="middle" fill="#15803d" font-size="8">LPF</text>
+
+      <rect x="450" y="60" width="110" height="50" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+      <text x="505" y="82" text-anchor="middle" fill="#78350f" font-size="9" font-weight="bold">基带复数信号</text>
+      <text x="505" y="95" text-anchor="middle" fill="#78350f" font-size="8">x̂(k,p,t)</text>
+
+      <!-- arrows -->
+      <line x1="110" y1="85" x2="148" y2="85" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="260" y1="85" x2="298" y2="85" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="410" y1="85" x2="448" y2="85" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- LO signal -->
+      <text x="205" y="130" text-anchor="middle" fill="#7c3aed" font-size="8">本振: e^(-j2π·f_E[k]·t)</text>
+      <text x="205" y="143" text-anchor="middle" fill="#64748b" font-size="8">(使用期望发射频率)</text>
+      <line x1="205" y1="110" x2="205" y2="118" stroke="#7c3aed" stroke-width="1.5"/>
+    </svg>
+  </div>
+</div>
+
+<div class="section-card" id="sec-phase-acc">
+  <h2><span class="sec-num">§6.2</span> 相位测量精度 (Phase Measurement Accuracy)</h2>
+  <p>在满足以下条件时，规范对线性回归解的精度提出要求：</p>
+  <ul>
+    <li>CS 音调在所有 CS 信道上至少交换一次</li>
+    <li>发射信号满足 §3.5.2 的频率偏移条件</li>
+    <li>接收机输入电平为 <strong>−70 dBm</strong></li>
+  </ul>
+
+  <p>对频率-相位数据点 (f_E[k], θ_C,UW[k,p]) 做线性回归，得到斜率 α[p] 和截距 β[p]，须满足：</p>
+  <div class="formula">|α[p]| &lt; 2π × 1.7 ns  （95% 子事件）</div>
+  <div class="formula">|principal(α[p]·f_E[k] + β[p] − θ_C,UW[k,p])| &lt; 0.28 rad  （95% 值）</div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 200" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="200" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">相位 vs 频率线性回归（测距原理）</text>
+      <!-- axes -->
+      <line x1="60" y1="160" x2="620" y2="160" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+      <line x1="60" y1="170" x2="60" y2="30" stroke="#475569" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="630" y="163" fill="#64748b" font-size="9">f_E[k]</text>
+      <text x="65" y="28" fill="#64748b" font-size="9">θ_C,UW[k,p]</text>
+      <!-- regression line -->
+      <line x1="80" y1="150" x2="600" y2="50" stroke="#ef4444" stroke-width="2" stroke-dasharray="6,3"/>
+      <text x="420" y="65" fill="#ef4444" font-size="8">线性回归：α[p]·f + β[p]</text>
+      <text x="420" y="77" fill="#ef4444" font-size="8">斜率 α = 2π × ToF</text>
+      <!-- data points -->
+      <circle cx="110" cy="145" r="5" fill="#3b82f6"/>
+      <circle cx="180" cy="130" r="5" fill="#3b82f6"/>
+      <circle cx="250" cy="118" r="5" fill="#3b82f6"/>
+      <circle cx="320" cy="104" r="5" fill="#3b82f6"/>
+      <circle cx="390" cy="95" r="5" fill="#3b82f6"/>
+      <circle cx="460" cy="80" r="5" fill="#3b82f6"/>
+      <circle cx="530" cy="68" r="5" fill="#3b82f6"/>
+      <circle cx="580" cy="60" r="5" fill="#3b82f6"/>
+      <!-- residual lines -->
+      <line x1="110" y1="145" x2="110" y2="149" stroke="#22c55e" stroke-width="1.5"/>
+      <line x1="320" y1="104" x2="320" y2="100" stroke="#22c55e" stroke-width="1.5"/>
+      <line x1="460" y1="80" x2="460" y2="75" stroke="#22c55e" stroke-width="1.5"/>
+      <!-- tolerance band -->
+      <polygon points="80,153 600,53 600,47 80,147" fill="#ef4444" opacity=".1"/>
+      <text x="300" y="185" text-anchor="middle" fill="#64748b" font-size="8">● 各信道测量相位值　　— 线性拟合（斜率 ∝ 往返传播时延）</text>
+      <text x="300" y="197" text-anchor="middle" fill="#64748b" font-size="8">残差 &lt; 0.28 rad (95%)，斜率误差对应 ≈ 1.7 ns 测距误差</text>
+    </svg>
+  </div>
+</div>
+
+<div class="section-card" id="sec-phase-lfae">
+  <h2><span class="sec-num">§6.3</span> 频率激励误差校正 (Frequency Actuation Error Correction)</h2>
+  <p>若设备存在<strong>本地频率激励误差（LFAE）</strong>，则必须对其引起的相位旋转进行补偿。LFAE 是指实际生成频率与期望频率之间的偏差。</p>
+
+  <h3>CS 音调相位校正</h3>
+  <div class="formula">∠PCT' = ∠PCT − 2π · Δf_k × T_PM_CENTER_DELTA</div>
+
+  <h3>CS_SYNC 探测序列相位校正</h3>
+  <div class="formula">∠SS_PCT' = ∠SS_PCT − 2π · Δf_k × T_SY_CENTER_DELTA</div>
+
+  <div class="info-box">
+    <strong>🔧 校正原理：</strong> 频率误差 Δf_k 会在时间 T 内造成 2π·Δf_k·T 的相位积累。通过精确计算发送与接收 CS 音调中心点之间的时间差（T_PM_CENTER_DELTA），可以计算出需要补偿的相位量，从而提高测距精度。
+  </div>
+</div>
+
+<div class="section-card" id="sec-phase-timing">
+  <h2><span class="sec-num">§6.4</span> 相位测量时序 (Phase Measurement Timing)</h2>
+  <p>相位校正项（PCT）在音调的相位测量周期 T_PM 内测量。规范定义了测量区域（Valid Region）以排除天线切换过渡期间的不稳定样本。</p>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 170" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="170" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">CS 音调相位测量时序结构</text>
+      <!-- timeline -->
+      <line x1="30" y1="90" x2="630" y2="90" stroke="#475569" stroke-width="2"/>
+      <!-- ramp up -->
+      <rect x="30" y="65" width="60" height="25" fill="#fde68a" stroke="#ca8a04" stroke-width="1"/>
+      <text x="60" y="81" text-anchor="middle" fill="#92400e" font-size="8">斜升</text>
+      <!-- guard period 1 -->
+      <rect x="90" y="65" width="40" height="25" fill="#fca5a5" stroke="#dc2626" stroke-width="1"/>
+      <text x="110" y="78" text-anchor="middle" fill="#7f1d1d" font-size="7">保护1</text>
+      <text x="110" y="87" text-anchor="middle" fill="#7f1d1d" font-size="7">1µs</text>
+      <!-- phase meas period -->
+      <rect x="130" y="55" width="320" height="35" fill="#bbf7d0" stroke="#22c55e" stroke-width="2"/>
+      <text x="290" y="72" text-anchor="middle" fill="#14532d" font-size="10" font-weight="bold">有效测量区域 (Valid Region)</text>
+      <text x="290" y="83" text-anchor="middle" fill="#14532d" font-size="8">T_PM = 相位测量周期</text>
+      <!-- center marker -->
+      <line x1="290" y1="53" x2="290" y2="95" stroke="#0057b8" stroke-width="2" stroke-dasharray="3,2"/>
+      <text x="290" y="50" text-anchor="middle" fill="#0057b8" font-size="8" font-weight="bold">中心点</text>
+      <!-- guard period 2 -->
+      <rect x="450" y="65" width="40" height="25" fill="#fca5a5" stroke="#dc2626" stroke-width="1"/>
+      <text x="470" y="78" text-anchor="middle" fill="#7f1d1d" font-size="7">保护2</text>
+      <text x="470" y="87" text-anchor="middle" fill="#7f1d1d" font-size="7">1µs</text>
+      <!-- ramp down -->
+      <rect x="490" y="65" width="60" height="25" fill="#fde68a" stroke="#ca8a04" stroke-width="1"/>
+      <text x="520" y="81" text-anchor="middle" fill="#92400e" font-size="8">斜降</text>
+      <!-- antenna switch regions -->
+      <rect x="550" y="65" width="80" height="25" fill="#e0e7ff" stroke="#6366f1" stroke-width="1"/>
+      <text x="590" y="81" text-anchor="middle" fill="#3730a3" font-size="8">天线切换</text>
+      <!-- labels below -->
+      <text x="290" y="115" text-anchor="middle" fill="#64748b" font-size="9">PCT 测量在中心点采样，以使 LFAE 校正对称且精确</text>
+      <text x="290" y="130" text-anchor="middle" fill="#64748b" font-size="9">接收端 1µs 排除期用于补偿时钟漂移引起的边界不确定性</text>
+      <!-- legend -->
+      <rect x="40" y="148" width="12" height="10" fill="#bbf7d0" stroke="#22c55e" stroke-width="1" rx="2"/>
+      <text x="58" y="157" fill="#1e293b" font-size="8">有效区域</text>
+      <rect x="120" y="148" width="12" height="10" fill="#fca5a5" stroke="#dc2626" stroke-width="1" rx="2"/>
+      <text x="138" y="157" fill="#1e293b" font-size="8">排除期</text>
+      <rect x="210" y="148" width="12" height="10" fill="#0057b8" stroke="#0057b8" stroke-width="1" rx="2"/>
+      <text x="228" y="157" fill="#1e293b" font-size="8">中心采样点</text>
+    </svg>
+  </div>
+</div>
+
+
+<!-- ═══════════════ APPENDIX A ═══════════════ -->
+<div class="section-card" id="sec-appendixA">
+  <h2><span class="sec-num">A</span> 附录 A：测试条件 (Test Conditions)</h2>
+
+  <h3>A.1 正常工作条件</h3>
+  <h4>A.1.1 正常温度和湿度</h4>
+  <p>正常工作温度由产品制造商声明。<strong>标称测试温度</strong>须在正常工作温度的 <strong>±10°C</strong> 范围内。</p>
+
+  <h4>A.1.2 标称供电电压</h4>
+  <p>正常测试条件下的标称测试电压为制造商声明的<strong>标称供电电压</strong>。</p>
+
+  <div class="info-box">
+    <strong>🔬 测试目的：</strong> 附录 A 规定了射频合规性测试的环境条件基准，确保不同厂商的设备在相同条件下进行测试，保证测试结果的可比性和可重复性。这是 BLE PHY 认证（Qualification）的必要前提。
+  </div>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 150" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="150" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">测试条件要求示意</text>
+      <!-- temperature -->
+      <rect x="40" y="40" width="180" height="90" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+      <text x="130" y="62" text-anchor="middle" fill="#1e40af" font-size="11" font-weight="bold">🌡️ 温度条件</text>
+      <text x="130" y="80" text-anchor="middle" fill="#1e40af" font-size="9">制造商声明的工作温度</text>
+      <text x="130" y="95" text-anchor="middle" fill="#1e40af" font-size="12" font-weight="bold">T_nominal ± 10°C</text>
+      <text x="130" y="115" text-anchor="middle" fill="#64748b" font-size="8">确保测试在实际工作温度附近进行</text>
+      <!-- voltage -->
+      <rect x="240" y="40" width="180" height="90" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="330" y="62" text-anchor="middle" fill="#15803d" font-size="11" font-weight="bold">⚡ 供电电压</text>
+      <text x="330" y="80" text-anchor="middle" fill="#15803d" font-size="9">制造商声明的标称电压</text>
+      <text x="330" y="95" text-anchor="middle" fill="#15803d" font-size="12" font-weight="bold">V_nominal</text>
+      <text x="330" y="115" text-anchor="middle" fill="#64748b" font-size="8">模拟实际使用中的电源状态</text>
+      <!-- antenna -->
+      <rect x="440" y="40" width="180" height="90" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+      <text x="530" y="62" text-anchor="middle" fill="#78350f" font-size="11" font-weight="bold">📡 天线接口</text>
+      <text x="530" y="80" text-anchor="middle" fill="#78350f" font-size="9">集成天线设备应提供</text>
+      <text x="530" y="95" text-anchor="middle" fill="#78350f" font-size="12" font-weight="bold">临时测试连接器</text>
+      <text x="530" y="115" text-anchor="middle" fill="#64748b" font-size="8">PHY 认证测试期间使用</text>
+    </svg>
+  </div>
+</div>
+
+
+<!-- ═══════════════ APPENDIX B ═══════════════ -->
+<div class="section-card" id="sec-appendixB">
+  <h2><span class="sec-num">B</span> 附录 B：CS 测试设备示例 (CS Test Equipment Setup)</h2>
+  <p>本附录给出了用于验证 Channel Sounding 相位测量和往返时间（RTT）报告精度的参考测试设备框图。</p>
+
+  <h3>测试设备组成</h3>
+  <ul>
+    <li><strong>矢量信号发生器（VSG）</strong>：参考发射机，发送 CS 音调和数据包</li>
+    <li><strong>矢量信号分析仪（VSA）</strong>：参考接收机，捕获被测设备（IUT）的发射信号</li>
+    <li><strong>IUT（Implementation Under Test）</strong>：被测蓝牙设备</li>
+    <li>VSG 和 VSA 与 CS 程序的<strong>时序节拍同步</strong></li>
+  </ul>
+
+  <div class="diagram">
+    <svg class="diag-svg" viewBox="0 0 660 220" xmlns="http://www.w3.org/2000/svg">
+      <rect width="660" height="220" fill="#f8fafc" rx="8"/>
+      <text x="330" y="18" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="bold">Channel Sounding 参考测试设备框图</text>
+      <!-- VSG -->
+      <rect x="20" y="50" width="150" height="80" rx="8" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+      <text x="95" y="78" text-anchor="middle" fill="#1e40af" font-size="10" font-weight="bold">矢量信号发生器</text>
+      <text x="95" y="92" text-anchor="middle" fill="#1e40af" font-size="9">(VSG)</text>
+      <text x="95" y="108" text-anchor="middle" fill="#3b82f6" font-size="8">参考发射机</text>
+      <text x="95" y="120" text-anchor="middle" fill="#3b82f6" font-size="8">CS 音调 + 数据包</text>
+      <!-- IUT -->
+      <rect x="255" y="40" width="150" height="100" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+      <text x="330" y="68" text-anchor="middle" fill="#4c1d95" font-size="10" font-weight="bold">被测设备 (IUT)</text>
+      <text x="330" y="85" text-anchor="middle" fill="#7c3aed" font-size="9">BLE 设备</text>
+      <text x="330" y="102" text-anchor="middle" fill="#7c3aed" font-size="8">支持 CS Feature</text>
+      <text x="330" y="116" text-anchor="middle" fill="#7c3aed" font-size="8">上报测量结果</text>
+      <!-- VSA -->
+      <rect x="490" y="50" width="150" height="80" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+      <text x="565" y="78" text-anchor="middle" fill="#15803d" font-size="10" font-weight="bold">矢量信号分析仪</text>
+      <text x="565" y="92" text-anchor="middle" fill="#15803d" font-size="9">(VSA)</text>
+      <text x="565" y="108" text-anchor="middle" fill="#22c55e" font-size="8">参考接收机</text>
+      <text x="565" y="120" text-anchor="middle" fill="#22c55e" font-size="8">捕获 x(t) 信号</text>
+      <!-- arrows -->
+      <!-- VSG → IUT -->
+      <line x1="170" y1="90" x2="253" y2="90" stroke="#3b82f6" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="212" y="82" text-anchor="middle" fill="#3b82f6" font-size="8">CS 音调/包</text>
+      <!-- IUT → VSA -->
+      <line x1="405" y1="90" x2="488" y2="90" stroke="#7c3aed" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="447" y="82" text-anchor="middle" fill="#7c3aed" font-size="8">CS 音调/包</text>
+      <!-- bidirectional label -->
+      <text x="212" y="95" text-anchor="middle" fill="#64748b" font-size="7">VGS→IUT</text>
+      <!-- sync line -->
+      <rect x="130" y="170" width="400" height="35" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+      <text x="330" y="188" text-anchor="middle" fill="#92400e" font-size="9" font-weight="bold">🔄 时序同步控制器</text>
+      <text x="330" y="200" text-anchor="middle" fill="#92400e" font-size="8">VSG 和 VSA 与 CS 子事件时序同步，连续捕获每个步骤的 RF 信号 x(t)</text>
+      <line x1="95" y1="130" x2="95" y2="162" stroke="#64748b" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="95" y1="162" x2="130" y2="175" stroke="#64748b" stroke-width="1"/>
+      <line x1="565" y1="130" x2="565" y2="162" stroke="#64748b" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="565" y1="162" x2="530" y2="175" stroke="#64748b" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <div class="info-box">
+    <strong>📋 测试流程：</strong> VSG 向 IUT 发送 CS 音调；IUT 向 VSA 发送响应的 CS 音调。VSA 捕获的 x(t) 信号包含整个 CS 步骤的完整 RF 波形，用于验证 IUT 的发射频率、相位稳定性和测量精度是否符合规范要求。
+  </div>
+</div>
+
+</main>
+
+<footer>
+  BLE 物理层规范解析 · 基于 Bluetooth Core Specification 6.0 Part A · 仅供学习参考 · 原始规范版权归 Bluetooth SIG 所有
+</footer>
+
+<script>
+// ── Channel grid ──
+(function(){
+  const grid = document.getElementById('chGrid');
+  const adv = new Set([37, 38, 39]);
+  // channel number to frequency:
+  // ch 37→2402, 0-10→2404-2424, 38→2426, 11-36→2428-2478, 39→2480
+  const order = [37, ...Array.from({length:11},(_,i)=>i), 38, ...Array.from({length:26},(_,i)=>i+11), 39];
+  order.forEach(n=>{
+    const d = document.createElement('div');
+    d.className = 'ch-cell ' + (adv.has(n) ? 'ch-adv' : 'ch-data');
+    d.textContent = n;
+    d.title = adv.has(n) ? `广播信道 CH${n}` : `数据信道 CH${n}`;
+    grid.appendChild(d);
+  });
+})();
+
+// ── GFSK canvas waveform ──
+(function(){
+  const canvas = document.getElementById('gfskCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const bits = [1,0,1,1,0,0,1,0,1,1];
+  const bw = W / bits.length;
+  const mid = H / 2;
+  const amp = H * 0.3;
+  const freq1 = 2.5, freq0 = 1.5; // cycles per bit
+
+  ctx.clearRect(0,0,W,H);
+
+  // background
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#f0f9ff');
+  bg.addColorStop(1,'#f8fafc');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,W,H);
+
+  // grid
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  for(let y=20;y<H;y+=20){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // center line
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(0,mid); ctx.lineTo(W,mid); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ±freq deviation lines
+  ctx.strokeStyle = '#bfdbfe';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(0, mid-amp*0.7); ctx.lineTo(W, mid-amp*0.7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, mid+amp*0.7); ctx.lineTo(W, mid+amp*0.7); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // GFSK signal
+  const pts = 800;
+  ctx.beginPath();
+  ctx.strokeStyle = '#0057b8';
+  ctx.lineWidth = 2.5;
+  let phase = 0;
+  for(let i=0;i<=pts;i++){
+    const t = i/pts;
+    const bitIdx = Math.min(Math.floor(t * bits.length), bits.length-1);
+    const bit = bits[bitIdx];
+    // smooth frequency transition using gaussian filter approximation
+    let f = 0;
+    for(let b=0;b<bits.length;b++){
+      const center = (b + 0.5) / bits.length;
+      const sigma = 0.5 / bits.length;
+      const g = Math.exp(-0.5*((t-center)/sigma)**2);
+      f += (bits[b] ? freq1 : -freq0) * g;
+    }
+    phase += f * (Math.PI*2) / pts;
+    const y = mid - Math.sin(phase) * amp;
+    if(i===0) ctx.moveTo(t*W, y); else ctx.lineTo(t*W, y);
+  }
+  ctx.stroke();
+
+  // bit boundary lines
+  bits.forEach((_,i)=>{
+    if(i===0) return;
+    const x = i/bits.length * W;
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // bit labels
+  ctx.font = 'bold 13px Consolas,monospace';
+  bits.forEach((b,i)=>{
+    const x = (i+0.5)/bits.length * W;
+    ctx.fillStyle = b ? '#15803d' : '#dc2626';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.toString(), x, H-8);
+  });
+
+  // axis labels
+  ctx.fillStyle = '#64748b';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('+Δf (bit=1)', 4, mid-amp*0.7+4);
+  ctx.fillText('−Δf (bit=0)', 4, mid+amp*0.7+12);
+  ctx.fillText('f₀', 4, mid+4);
+  ctx.textAlign = 'center';
+  ctx.fillText('← 数据位流 (绿=1, 红=0) →', W/2, H-8);
+})();
+
+// ── Scroll spy ──
+(function(){
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+  const sections = Array.from(navLinks).map(a=>{
+    const id = a.getAttribute('href').slice(1);
+    return { a, el: document.getElementById(id) };
+  }).filter(x=>x.el);
+
+  const obs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const id = e.target.id;
+        navLinks.forEach(a=>a.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${id}"]`);
+        if(active){
+          active.classList.add('active');
+          active.scrollIntoView({block:'nearest'});
+        }
+      }
+    });
+  },{rootMargin:'-50px 0px -70% 0px', threshold:0});
+
+  sections.forEach(({el})=>obs.observe(el));
+
+  // click smooth scroll
+  navLinks.forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      const id = a.getAttribute('href').slice(1);
+      const el = document.getElementById(id);
+      if (el) {
+        if (window.btScrollToEl) window.btScrollToEl(el, 16);
+        else el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+    });
+  });
+})();
+
+// ── Draw data channel bars on freq diagram ──
+(function(){
+  // Just add small blue bars for data channels in the SVG freq diagram
+  // We'll append via innerHTML manipulation workaround via a separate inline SVG
+})();
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

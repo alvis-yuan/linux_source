@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>蓝牙 Serial Port Profile (SPP) v1.1 协议详解</title>
+  <style>
+    :root {
+      --bg-deep:    #080f1c;
+      --bg-mid:     #0c1830;
+      --bg-card:    #101f3a;
+      --bg-section: #0d1a30;
+      --border:     #1a3158;
+      --accent:     #0ea5e9;
+      --accent2:    #38bdf8;
+      --teal:       #2dd4bf;
+      --green:      #22d3a0;
+      --gold:       #f59e0b;
+      --orange:     #fb923c;
+      --red:        #f43f5e;
+      --purple:     #a78bfa;
+      --pink:       #ec4899;
+      --gray:       #94aec8;
+      --gray-dim:   #4a6a8a;
+      --txt:        #c8ddf0;
+      --txt-bright: #e8f4ff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--txt);
+      line-height: 1.78;
+      font-size: 15px;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      background: linear-gradient(135deg, #030810 0%, #081428 45%, #0c2050 100%);
+      padding: 64px 24px 52px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(14,165,233,.1) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(14,165,233,.12);
+      border: 1px solid rgba(14,165,233,.35);
+      color: var(--accent2);
+      border-radius: 999px;
+      padding: 4px 18px;
+      font-size: 12.5px; letter-spacing: .8px;
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 5.5vw, 56px);
+      font-weight: 900;
+      line-height: 1.15;
+      background: linear-gradient(100deg, #fff 0%, var(--accent2) 55%, var(--teal) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .hero-sub {
+      max-width: 720px; margin: 0 auto 36px;
+      color: #7a9ab5; font-size: 16px;
+    }
+    .hero-chips {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+    }
+    .chip {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 22px;
+      text-align: center;
+    }
+    .chip .val { font-size: 22px; font-weight: 800; color: var(--accent2); }
+    .chip .lbl { font-size: 11px; color: var(--gray-dim); margin-top: 2px; }
+
+    /* ─── STICKY NAV ─── */
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(8,15,28,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    nav ul { display: flex; list-style: none; padding: 0 16px; min-width: max-content; }
+    nav li a {
+      display: block; padding: 13px 14px;
+      color: var(--gray-dim); text-decoration: none;
+      font-size: 12.5px; white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+    nav li a:hover, nav li a.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+
+    /* ─── LAYOUT ─── */
+    main { max-width: 1140px; margin: 0 auto; padding: 44px 22px 90px; }
+
+    /* ─── SPEC SECTION ─── */
+    .spec { margin-bottom: 66px; scroll-margin-top: 62px; }
+    .spec-head {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    .sec-badge {
+      background: linear-gradient(135deg, var(--accent), var(--teal));
+      color: #fff; font-weight: 800; font-size: 13px;
+      border-radius: 8px; padding: 5px 13px; white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .spec-head h2 { font-size: clamp(18px,3vw,26px); font-weight: 700; color: var(--txt-bright); }
+
+    .lead {
+      background: var(--bg-card);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      padding: 16px 22px;
+      margin-bottom: 24px;
+      font-size: 15px; color: #aec8e0;
+    }
+
+    /* ─── GRID ─── */
+    .g2 { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 18px; margin: 18px 0; }
+    .g3 { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 16px; margin: 18px 0; }
+    .g4 { display: grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap: 14px; margin: 18px 0; }
+
+    /* ─── CARD ─── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card h4 {
+      font-size: 14px; font-weight: 700; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card p, .card li { font-size: 13.5px; color: #8aaec8; }
+    .card ul { padding-left: 16px; }
+    .card li { margin-bottom: 5px; }
+
+    /* ─── BADGE ─── */
+    .b { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .b-blue   { background: rgba(14,165,233,.18); color: var(--accent2); }
+    .b-teal   { background: rgba(45,212,191,.18); color: var(--teal); }
+    .b-green  { background: rgba(34,211,160,.18); color: var(--green); }
+    .b-gold   { background: rgba(245,158,11,.18); color: var(--gold); }
+    .b-orange { background: rgba(251,146,60,.18); color: var(--orange); }
+    .b-red    { background: rgba(244,63,94,.18);  color: var(--red); }
+    .b-purple { background: rgba(167,139,250,.18);color: var(--purple); }
+    .b-pink   { background: rgba(236,72,153,.18); color: var(--pink); }
+    .b-gray   { background: rgba(148,174,200,.12);color: var(--gray); }
+
+    /* ─── DOT ─── */
+    .dot { width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0; }
+
+    /* ─── CHART WRAP ─── */
+    .cw {
+      background: var(--bg-section);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+    .chart-label {
+      text-align: center; font-size: 12px; color: var(--gray-dim);
+      letter-spacing: .8px; text-transform: uppercase; margin-bottom: 10px;
+    }
+    svg { display: block; margin: 0 auto; }
+
+    /* ─── TABLE ─── */
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 14px 0; }
+    .tbl th {
+      background: rgba(14,165,233,.18); color: var(--accent2);
+      padding: 9px 14px; text-align: left;
+      border: 1px solid var(--border);
+    }
+    .tbl td { padding: 8px 14px; border: 1px solid var(--border); color: #9ab6ce; }
+    .tbl tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+    .tbl tr:hover td { background: rgba(14,165,233,.05); }
+
+    /* ─── TABS ─── */
+    .tabs { margin: 20px 0; }
+    .tab-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tn {
+      background: var(--bg-section); border: 1px solid var(--border);
+      border-bottom: none; border-radius: 8px 8px 0 0;
+      padding: 8px 17px; font-size: 12.5px; color: var(--gray-dim);
+      cursor: pointer; transition: all .2s;
+    }
+    .tn.on { background: var(--bg-card); color: var(--accent2); border-color: var(--accent); }
+    .tc {
+      display: none;
+      background: var(--bg-card); border: 1px solid var(--accent);
+      border-radius: 0 10px 10px 10px; padding: 22px;
+    }
+    .tc.on { display: block; }
+
+    /* ─── SEQUENCE ─── */
+    .seq-box {
+      background: var(--bg-section); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px; margin: 20px 0;
+    }
+    .seq-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .seq-num {
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 11px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+    }
+    .seq-who { width: 80px; font-weight: 700; font-size: 13px; flex-shrink: 0; margin-top: 3px; }
+    .seq-txt { flex: 1; font-size: 13.5px; color: #8aaec8; }
+    .seq-txt strong { color: var(--txt-bright); }
+    .seq-txt code {
+      background: rgba(14,165,233,.12); color: var(--accent2);
+      padding: 1px 7px; border-radius: 5px; font-family: 'Consolas','Courier New',monospace; font-size: 12px;
+    }
+    .seq-divider {
+      border: none; border-top: 1px dashed var(--border);
+      margin: 12px 0; display: flex; align-items: center; gap: 10px;
+    }
+    .seq-divider span { font-size: 11.5px; color: var(--gray-dim); white-space: nowrap; flex-shrink: 0; }
+
+    /* ─── CODE ─── */
+    .code {
+      background: #040a14; border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 20px; font-family: 'Consolas','Courier New',monospace;
+      font-size: 12.5px; color: #7dd3fc; overflow-x: auto; margin: 14px 0; line-height: 1.9;
+    }
+    .code .cm { color: #3d6070; }
+    .code .kw { color: #c792ea; }
+    .code .str{ color: #80cbc4; }
+    .code .num{ color: var(--gold); }
+    .code .fn { color: #82aaff; }
+
+    /* ─── STACK LAYER ─── */
+    .layer {
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 11px 18px; margin-bottom: 5px;
+      display: flex; align-items: center; gap: 14px;
+      transition: transform .18s;
+    }
+    .layer:hover { transform: translateX(5px); }
+    .layer .ln { font-weight: 700; font-size: 14px; min-width: 130px; }
+    .layer .ld { font-size: 12.5px; color: var(--gray-dim); flex: 1; }
+
+    /* ─── LEGEND ─── */
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; margin: 10px 0; }
+    .legend-item { display: flex; align-items: center; gap: 6px; color: var(--gray); }
+    .legend-box  { width: 14px; height: 14px; border-radius: 3px; }
+
+    /* ─── PROGRESS / METER ─── */
+    .meter-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .meter-lbl { min-width: 160px; font-size: 13px; color: var(--txt); }
+    .meter-bar { flex: 1; height: 10px; background: rgba(255,255,255,.06); border-radius: 5px; overflow: hidden; }
+    .meter-fill { height: 100%; border-radius: 5px; transition: width .4s ease; }
+    .meter-val  { min-width: 40px; font-size: 12px; color: var(--gray-dim); text-align: right; }
+
+    /* ─── TIMELINE ─── */
+    .timeline { position: relative; padding-left: 28px; margin: 10px 0; }
+    .timeline::before {
+      content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+      width: 2px; background: linear-gradient(to bottom, var(--accent), var(--teal));
+    }
+    .tl-item { position: relative; margin-bottom: 20px; }
+    .tl-dot {
+      position: absolute; left: -24px; top: 4px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--accent); border: 2px solid var(--bg-deep);
+    }
+    .tl-item h5 { font-size: 14px; font-weight: 700; color: var(--txt-bright); margin-bottom: 4px; }
+    .tl-item p  { font-size: 13px; color: var(--gray-dim); }
+
+    /* ─── RESP ─── */
+    @media(max-width:600px){
+      .hero-chips { gap: 8px; }
+      .chip { padding: 8px 14px; }
+      nav ul { gap: 0; }
+    }
+  
+    /* ── 左侧目录导航（Profile 规范文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    nav#topnav { display: none !important; }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+      overflow-x: hidden;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+  main.packet-main {
+      max-width: 1140px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 44px 22px 90px;
+    }
+    .packet-page .hero {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page .spec {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    body { overflow-x: hidden; }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+    }
+
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+@media (max-width: 820px) {
+  .bt-spec-index-link { bottom: 72px; }
+}
+</style>
+</head>
+<body><a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">Serial Port Profile v1.1</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">Profile · 应用规范</div>
+    <div class="doc-name">Serial Port Profile v1.1</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#s1">简介与规范目标（Introduction）</a>
+  <a class="packet-nav-link" href="#s2">使用场景与配置（Usage Model）</a>
+  <a class="packet-nav-link" href="#s3">协议栈依赖关系（Protocol Stack）</a>
+  <a class="packet-nav-link" href="#s4">设备角色与配置（Roles &amp; Configurations）</a>
+  <a class="packet-nav-link" href="#s5">基带层要求（Baseband Requirements）</a>
+  <a class="packet-nav-link" href="#s6">链路管理层要求（Link Manager Requirements）</a>
+  <a class="packet-nav-link" href="#s7">L2CAP 层要求（L2CAP Requirements）</a>
+  <a class="packet-nav-link" href="#s8">RFCOMM 层要求（RFCOMM Requirements）</a>
+  <a class="packet-nav-link" href="#s9">SDP 服务记录（SDP Service Record）</a>
+  <a class="packet-nav-link" href="#s10">低功耗模式（Low-Power Modes）</a>
+  <a class="packet-nav-link" href="#s11">安全机制（Security）</a>
+  <a class="packet-nav-link" href="#s12">完整连接流程（Connection Procedures）</a>
+  <a class="packet-nav-link" href="#s13">ICS 合规声明（Implementation Conformance Statement）</a>
+  <a class="packet-nav-link" href="#summary">核心要点全览（Summary）</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc current-doc" href="spp.html">Serial Port Profile v1.1</a>
+  <a class="packet-nav-link doc" href="rfcomm.html">RFCOMM / SPP 规范</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<div class="hero">
+  <div class="hero-eyebrow">🔵 Bluetooth SIG &nbsp;·&nbsp; Part K:5 &nbsp;·&nbsp; 官方规范</div>
+  <h1>蓝牙串口 Profile<br>Serial Port Profile v1.1</h1>
+  <p class="hero-sub">SPP 是蓝牙最基础、应用最广泛的 Profile 之一。它定义了两台蓝牙设备通过 RFCOMM 建立虚拟 RS-232 串口连接的完整协议要求。本页严格按照规范原文章节顺序逐节解析，并配以图表说明。</p>
+  <div class="hero-chips">
+    <div class="chip"><div class="val">GAP</div><div class="lbl">基础依赖 Profile</div></div>
+    <div class="chip"><div class="val">0x1101</div><div class="lbl">SDP Service UUID</div></div>
+    <div class="chip"><div class="val">DevA/B</div><div class="lbl">双角色定义</div></div>
+    <div class="chip"><div class="val">RS-232</div><div class="lbl">仿真串口标准</div></div>
+    <div class="chip"><div class="val">128 kbps</div><div class="lbl">保障最低速率</div></div>
+    <div class="chip"><div class="val">1-slot</div><div class="lbl">基带数据包要求</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<main class="packet-main">
+
+<!-- ─── §1 简介 ─── -->
+<section class="spec" id="s1">
+  <div class="spec-head">
+    <div class="sec-badge">§ 1</div>
+    <h2>简介与规范目标（Introduction）</h2>
+  </div>
+  <div class="lead">
+    Serial Port Profile（SPP，串口 Profile）定义了蓝牙设备通过 RS-232（或同类）串口仿真进行通信所需的协议和程序。其核心使用场景是：让传统遗留应用（Legacy Applications）无感知地将蓝牙作为串口线缆替代品。
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--accent2)"></span> 规范定位</h4>
+      <ul>
+        <li>SPP 是 Bluetooth SIG 四大基础 Profile 之一</li>
+        <li>构建于 <strong>Generic Access Profile（GAP）</strong> 之上</li>
+        <li>向上为 DUN、HSP、HFP、GOEP 等 Profile 提供串行传输基础</li>
+        <li>规范编号：Bluetooth Specification v1.1 Part K:5</li>
+        <li>全称：Serial Port Profile，版本 1.1</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--teal)"></span> 核心价值主张</h4>
+      <ul>
+        <li>遗留串口应用 <strong>零改造</strong> 迁移到蓝牙</li>
+        <li>提供虚拟 COM 口抽象（依赖操作系统 vCOMM 驱动）</li>
+        <li>同时支持 RS-232 数据、控制信号（DTR/DSR/RTS/CTS 等）</li>
+        <li>仅处理 <strong>两设备间点对点直连</strong>，不涉及路由中继</li>
+        <li>一个 Profile 执行实例对应一条 RFCOMM DLC（点对点）</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Profile 层级图 -->
+  <div class="chart-label">SPP 在蓝牙 Profile 体系中的位置（依赖关系）</div>
+  <div class="cw">
+    <svg width="680" height="220" viewBox="0 0 680 220" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="aw" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto">
+          <polygon points="0 0,8 3.5,0 7" fill="#38bdf8"/>
+        </marker>
+        <marker id="aw2" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto">
+          <polygon points="0 0,8 3.5,0 7" fill="#2dd4bf"/>
+        </marker>
+      </defs>
+      <!-- GAP base -->
+      <rect x="230" y="170" width="220" height="40" rx="8" fill="rgba(167,139,250,.15)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="340" y="186" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">GAP — Generic Access Profile</text>
+      <text x="340" y="202" text-anchor="middle" fill="#6a5a9a" font-size="10">设备发现 · 连接 · 安全 · 链路管理</text>
+
+      <!-- SPP -->
+      <rect x="230" y="110" width="220" height="44" rx="8" fill="rgba(14,165,233,.22)" stroke="#0ea5e9" stroke-width="2"/>
+      <text x="340" y="128" text-anchor="middle" fill="#fff" font-size="14" font-weight="800">⭐ SPP — Serial Port Profile</text>
+      <text x="340" y="146" text-anchor="middle" fill="#38bdf8" font-size="10">虚拟串口仿真 · 本规范</text>
+
+      <!-- arrow GAP→SPP -->
+      <line x1="340" y1="168" x2="340" y2="156" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#aw)"/>
+      <text x="355" y="163" fill="#2a4a6a" font-size="9">依赖</text>
+
+      <!-- Upper profiles -->
+      <rect x="10"  y="30" width="120" height="62" rx="8" fill="rgba(45,212,191,.1)" stroke="#2dd4bf" stroke-width="1"/>
+      <text x="70"  y="54" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">DUN Profile</text>
+      <text x="70"  y="68" text-anchor="middle" fill="#3a7070" font-size="10">拨号上网</text>
+      <text x="70"  y="82" text-anchor="middle" fill="#3a7070" font-size="10">Dial-up Networking</text>
+
+      <rect x="148" y="30" width="120" height="62" rx="8" fill="rgba(45,212,191,.1)" stroke="#2dd4bf" stroke-width="1"/>
+      <text x="208" y="54" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">HSP / HFP</text>
+      <text x="208" y="68" text-anchor="middle" fill="#3a7070" font-size="10">耳机 / 免提</text>
+      <text x="208" y="82" text-anchor="middle" fill="#3a7070" font-size="10">Headset / Hands-free</text>
+
+      <rect x="286" y="30" width="108" height="62" rx="8" fill="rgba(45,212,191,.1)" stroke="#2dd4bf" stroke-width="1"/>
+      <text x="340" y="54" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">GOEP</text>
+      <text x="340" y="68" text-anchor="middle" fill="#3a7070" font-size="10">对象交换</text>
+      <text x="340" y="82" text-anchor="middle" fill="#3a7070" font-size="10">OBject Exchange</text>
+
+      <rect x="410" y="30" width="120" height="62" rx="8" fill="rgba(45,212,191,.1)" stroke="#2dd4bf" stroke-width="1"/>
+      <text x="470" y="54" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">FAX Profile</text>
+      <text x="470" y="68" text-anchor="middle" fill="#3a7070" font-size="10">蓝牙传真</text>
+      <text x="470" y="82" text-anchor="middle" fill="#3a7070" font-size="10">Fax</text>
+
+      <rect x="546" y="30" width="124" height="62" rx="8" fill="rgba(45,212,191,.1)" stroke="#2dd4bf" stroke-width="1"/>
+      <text x="608" y="54" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">其他 Profile</text>
+      <text x="608" y="68" text-anchor="middle" fill="#3a7070" font-size="10">Any Serial-based</text>
+      <text x="608" y="82" text-anchor="middle" fill="#3a7070" font-size="10">Profile</text>
+
+      <!-- arrows from upper to SPP -->
+      <line x1="70"  y1="93" x2="265" y2="112" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#aw2)"/>
+      <line x1="208" y1="93" x2="290" y2="112" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#aw2)"/>
+      <line x1="340" y1="93" x2="340" y2="108" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#aw2)"/>
+      <line x1="470" y1="93" x2="395" y2="112" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#aw2)"/>
+      <line x1="608" y1="93" x2="420" y2="112" stroke="#2dd4bf" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#aw2)"/>
+
+      <text x="340" y="215" text-anchor="middle" fill="#2a4a6a" font-size="11">上层串口类 Profile 均基于 SPP 提供的 RFCOMM 虚拟串口能力</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ─── §2 使用场景 ─── -->
+<section class="spec" id="s2">
+  <div class="spec-head">
+    <div class="sec-badge">§ 2</div>
+    <h2>使用场景与配置（Usage Model）</h2>
+  </div>
+  <div class="lead">
+    规范明确 SPP 覆盖的场景为：在两台设备上建立虚拟串口（或等效接口），并通过蓝牙连接，仿真两设备之间的实体串口线缆（含 RS-232 控制信令）。规范只处理点对点单连接场景，不限制并发执行多个 SPP 实例。
+  </div>
+
+  <div class="g3">
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h4><span class="dot" style="background:var(--accent2)"></span> PC ↔ PC 串口仿真</h4>
+      <p>两台 PC 通过蓝牙建立虚拟 COM 口，取代 RS-232 串口线。传统终端软件（如 PuTTY、HyperTerminal）直接使用，无需修改。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--teal);">
+      <h4><span class="dot" style="background:var(--teal)"></span> PC ↔ 手机/PDA 数据同步</h4>
+      <p>手机作为 DevB（接受方），PC 作为 DevA（发起方），同步软件通过虚拟 COM 口读写数据，SPP 透明传输。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold);">
+      <h4><span class="dot" style="background:var(--gold)"></span> 设备接入外围硬件</h4>
+      <p>条码枪、GPS、打印机、传感器等嵌入式设备通过 SPP 接入主机，取代 USB 转串口线缆方案，实现无线数据上传。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--purple);">
+      <h4><span class="dot" style="background:var(--purple)"></span> DUN / FAX 传输基础</h4>
+      <p>拨号上网 Profile（DUN）和传真 Profile（Fax）以 SPP 为底层串行传输层，SPP 负责建立 RFCOMM 连接和保证数据流。</p>
+    </div>
+  </div>
+
+  <!-- 场景图：Null Modem Emulation -->
+  <div class="chart-label">典型 SPP 场景：PC ↔ 嵌入式设备（线缆替换）</div>
+  <div class="cw">
+    <svg width="660" height="190" viewBox="0 0 660 190" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#38bdf8"/>
+        </marker>
+      </defs>
+      <!-- PC -->
+      <rect x="10" y="30" width="160" height="130" rx="12" fill="#101f3a" stroke="#1a3158"/>
+      <text x="90" y="54" text-anchor="middle" fill="#e8f4ff" font-size="13" font-weight="700">PC / 笔记本</text>
+      <text x="90" y="72" text-anchor="middle" fill="#6a8aaa" font-size="11">(DevA — 发起方)</text>
+      <rect x="22" y="82" width="136" height="22" rx="5" fill="rgba(245,158,11,.12)" stroke="#f59e0b"/>
+      <text x="90" y="97" text-anchor="middle" fill="#f59e0b" font-size="11">传统串口应用</text>
+      <rect x="22" y="110" width="136" height="22" rx="5" fill="rgba(14,165,233,.12)" stroke="#0ea5e9"/>
+      <text x="90" y="125" text-anchor="middle" fill="#38bdf8" font-size="11">虚拟 COM 口 (vCOMM)</text>
+      <rect x="22" y="138" width="136" height="16" rx="4" fill="rgba(45,212,191,.1)" stroke="#2dd4bf"/>
+      <text x="90" y="150" text-anchor="middle" fill="#2dd4bf" font-size="10">RFCOMM / SPP 栈</text>
+
+      <!-- wireless channel -->
+      <rect x="220" y="60" width="220" height="80" rx="10" fill="rgba(14,165,233,.06)" stroke="#1a3158"/>
+      <text x="330" y="86" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">蓝牙无线链路</text>
+      <text x="330" y="104" text-anchor="middle" fill="#4a6a8a" font-size="10">2.4 GHz ISM · ACL link</text>
+      <text x="330" y="120" text-anchor="middle" fill="#4a6a8a" font-size="10">RFCOMM over L2CAP (PSM=3)</text>
+
+      <!-- wavy lines -->
+      <path d="M200,95 Q220,85 240,95 Q260,105 280,95 Q300,85 320,95 Q340,105 360,95 Q380,85 400,95 Q420,105 440,95" stroke="#0ea5e9" stroke-width="1.5" fill="none" opacity=".6"/>
+      <path d="M200,108 Q220,98 240,108 Q260,118 280,108 Q300,98 320,108 Q340,118 360,108 Q380,98 400,108 Q420,118 440,108" stroke="#0ea5e9" stroke-width="1" fill="none" opacity=".35"/>
+
+      <!-- Embedded device -->
+      <rect x="490" y="30" width="160" height="130" rx="12" fill="#101f3a" stroke="#1a3158"/>
+      <text x="570" y="54" text-anchor="middle" fill="#e8f4ff" font-size="13" font-weight="700">嵌入式设备</text>
+      <text x="570" y="72" text-anchor="middle" fill="#6a8aaa" font-size="11">(DevB — 接受方)</text>
+      <rect x="502" y="82" width="136" height="22" rx="5" fill="rgba(34,211,160,.12)" stroke="#22d3a0"/>
+      <text x="570" y="97" text-anchor="middle" fill="#22d3a0" font-size="11">固件应用层</text>
+      <rect x="502" y="110" width="136" height="22" rx="5" fill="rgba(14,165,233,.12)" stroke="#0ea5e9"/>
+      <text x="570" y="125" text-anchor="middle" fill="#38bdf8" font-size="11">SPP Server 信道</text>
+      <rect x="502" y="138" width="136" height="16" rx="4" fill="rgba(45,212,191,.1)" stroke="#2dd4bf"/>
+      <text x="570" y="150" text-anchor="middle" fill="#2dd4bf" font-size="10">RFCOMM / SPP 栈</text>
+
+      <!-- old cable (crossed out) -->
+      <line x1="174" y1="170" x2="486" y2="170" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="6,4" opacity=".45"/>
+      <text x="330" y="168" text-anchor="middle" fill="#f43f5e" font-size="10" opacity=".7">✕ 传统 RS-232 线缆（已替换）</text>
+
+      <!-- arrows data -->
+      <line x1="174" y1="95" x2="218" y2="95" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#a1)"/>
+      <line x1="442" y1="100" x2="488" y2="100" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#a1)"/>
+    </svg>
+  </div>
+
+  <div class="card" style="margin-top:6px;">
+    <h4><span class="dot" style="background:var(--gold)"></span> 规范的重要信息说明（Informational Note）</h4>
+    <p>为了把串口 Profile 映射到传统串口架构，DevA 和 DevB 均可作为 <strong style="color:var(--accent2)">DCE（数据电路终端）</strong>或 <strong style="color:var(--teal)">DTE（数据终端设备）</strong>，因为 RFCOMM 协议在设计上不依赖 DTE-DCE 或 DTE-DTE 的关系定义。</p>
+  </div>
+</section>
+
+<!-- ─── §3 协议依赖 ─── -->
+<section class="spec" id="s3">
+  <div class="spec-head">
+    <div class="sec-badge">§ 3</div>
+    <h2>协议栈依赖关系（Protocol Stack）</h2>
+  </div>
+  <div class="lead">
+    规范第 3 节明确了 SPP 使用到的所有协议和实体，并用图表展示了其依赖关系。基带、LMP、L2CAP 是 OSI 一/二层的蓝牙协议，RFCOMM 是 GSM TS 07.10 适配，SDP 是服务发现协议。
+  </div>
+
+  <!-- 完整协议栈 -->
+  <div class="chart-label">SPP 完整协议栈（带层级编号）</div>
+  <div class="cw" style="max-width:600px;margin:0 auto;">
+    <div class="layer" style="background:rgba(34,211,160,.08);border-color:rgba(34,211,160,.35);">
+      <div class="ln" style="color:var(--green)">应用层</div>
+      <div class="ld">传统串口应用（Terminal / 数据同步 / 打印 …）</div>
+      <span class="b b-green">用户程序</span>
+    </div>
+    <div class="layer" style="background:rgba(34,211,160,.06);border-color:rgba(34,211,160,.2);">
+      <div class="ln" style="color:var(--teal)">vCOMM 驱动</div>
+      <div class="ld">虚拟串口抽象层（OS 提供，应用认为是真实 COM 口）</div>
+      <span class="b b-teal">OS 层</span>
+    </div>
+    <div style="text-align:center;color:var(--border);font-size:11px;padding:2px 0;">↕ SPP 覆盖范围开始</div>
+    <div class="layer" style="background:rgba(14,165,233,.15);border-color:#0ea5e9;box-shadow:0 0 18px rgba(14,165,233,.15);">
+      <div class="ln" style="color:#fff;font-size:15px;">⭐ SPP (本规范)</div>
+      <div class="ld">串口 Profile — 定义使用规则与互操作要求</div>
+      <span class="b b-blue">Profile</span>
+    </div>
+    <div class="layer" style="background:rgba(14,165,233,.08);border-color:rgba(14,165,233,.3);">
+      <div class="ln" style="color:var(--accent2)">RFCOMM</div>
+      <div class="ld">串口仿真传输协议 · 基于 GSM TS 07.10 · 运行于 L2CAP 上</div>
+      <span class="b b-blue">传输</span>
+    </div>
+    <div class="layer" style="background:rgba(167,139,250,.06);border-color:rgba(167,139,250,.25);">
+      <div class="ln" style="color:var(--purple)">SDP</div>
+      <div class="ld">服务发现协议 · DevB 注册服务记录 · DevA 查询 Server Channel</div>
+      <span class="b b-purple">服务发现</span>
+    </div>
+    <div class="layer" style="background:rgba(56,189,248,.06);border-color:rgba(56,189,248,.2);">
+      <div class="ln" style="color:var(--accent2)">L2CAP</div>
+      <div class="ld">逻辑链路控制与适配 · 分段重组 · PSM=3(RFCOMM) / PSM=1(SDP)</div>
+      <span class="b b-blue">链路适配</span>
+    </div>
+    <div class="layer" style="background:rgba(167,139,250,.05);border-color:rgba(167,139,250,.2);">
+      <div class="ln" style="color:var(--purple)">HCI（可选）</div>
+      <div class="ld">主机控制器接口 · 主机与控制器之间的标准指令/事件接口</div>
+      <span class="b b-purple">控制接口</span>
+    </div>
+    <div class="layer" style="background:rgba(167,139,250,.05);border-color:rgba(167,139,250,.2);">
+      <div class="ln" style="color:var(--purple)">LMP</div>
+      <div class="ld">链路管理协议 · 认证 · 加密 · 功率控制 · 角色协商</div>
+      <span class="b b-purple">链路管理</span>
+    </div>
+    <div class="layer" style="background:rgba(244,63,94,.06);border-color:rgba(244,63,94,.2);">
+      <div class="ln" style="color:var(--red)">基带 Baseband</div>
+      <div class="ld">ACL 链路 · 跳频 (FHSS) · 数据包调度 · 1-slot packets</div>
+      <span class="b b-red">物理链路</span>
+    </div>
+    <div class="layer" style="background:rgba(244,63,94,.05);border-color:rgba(244,63,94,.15);">
+      <div class="ln" style="color:var(--red)">无线电 Radio</div>
+      <div class="ld">2.4 GHz ISM 频段 · GFSK 调制 · 最大 1 mW 发射功率（Class 3）</div>
+      <span class="b b-red">射频</span>
+    </div>
+    <div style="text-align:center;color:var(--border);font-size:11px;padding:2px 0;">↕ SPP 覆盖范围结束</div>
+  </div>
+</section>
+
+<!-- ─── §4 设备角色 ─── -->
+<section class="spec" id="s4">
+  <div class="spec-head">
+    <div class="sec-badge">§ 4</div>
+    <h2>设备角色与配置（Roles &amp; Configurations）</h2>
+  </div>
+  <div class="lead">
+    规范第 4 节定义了两个角色（DevA 与 DevB）及其与 GAP 角色的映射关系。注意：<strong>没有固定的主从（Master/Slave）角色</strong>，任何设备均可担任 Bluetooth Piconet 的 Master 或 Slave，与 DevA/DevB 无关。
+  </div>
+
+  <!-- DevA vs DevB 对比 -->
+  <div class="g2">
+    <div class="card" style="border:2px solid var(--accent); position:relative;">
+      <div style="position:absolute;top:-10px;left:16px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:2px 12px;border-radius:999px;">发起方</div>
+      <h4 style="color:var(--accent2);margin-top:8px;font-size:16px;">DevA — Device A</h4>
+      <p style="margin-bottom:10px;">主动发起连接的一方，对应 GAP 中的 <strong style="color:var(--accent2)">Initiator（A-party）</strong></p>
+      <ul>
+        <li>负责发起 SDP 查询，获取对端 Server Channel</li>
+        <li>负责发起 L2CAP 连接请求（ConnectReq）</li>
+        <li>负责发起 RFCOMM 会话（SABM DLCI=0）</li>
+        <li>负责发起 RFCOMM DLC（SABM DLCI=N）</li>
+        <li>DevA <strong>不需要</strong>在 SDP 数据库注册服务记录</li>
+        <li>连接顺序与上层遗留应用启动顺序无关</li>
+      </ul>
+      <div style="margin-top:12px;">
+        <span class="b b-blue">Initiator</span>
+        <span class="b b-blue" style="margin-left:6px;">GAP A-party</span>
+        <span class="b b-gold" style="margin-left:6px;">无 SDP 记录</span>
+      </div>
+    </div>
+    <div class="card" style="border:2px solid var(--teal); position:relative;">
+      <div style="position:absolute;top:-10px;left:16px;background:var(--teal);color:#000;font-size:11px;font-weight:800;padding:2px 12px;border-radius:999px;">接受方</div>
+      <h4 style="color:var(--teal);margin-top:8px;font-size:16px;">DevB — Device B</h4>
+      <p style="margin-bottom:10px;">被动等待连接的一方，对应 GAP 中的 <strong style="color:var(--teal)">Acceptor（B-party）</strong></p>
+      <ul>
+        <li>必须在本地 SDP 数据库注册 SPP 服务记录</li>
+        <li>响应 L2CAP 连接请求（ConnectRsp）</li>
+        <li>响应 RFCOMM 会话（UA on DLCI=0）</li>
+        <li>响应 RFCOMM DLC（UA on DLCI=N）</li>
+        <li>可选择触发认证/加密（如果本地策略要求）</li>
+        <li>可同时扮演 DevA 角色（双角色并发，可选）</li>
+      </ul>
+      <div style="margin-top:12px;">
+        <span class="b b-teal">Acceptor</span>
+        <span class="b b-teal" style="margin-left:6px;">GAP B-party</span>
+        <span class="b b-green" style="margin-left:6px;">需 SDP 记录</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 角色映射图 -->
+  <div class="chart-label">DevA / DevB ↔ GAP / RFCOMM 角色映射</div>
+  <div class="cw">
+    <svg width="660" height="160" viewBox="0 0 660 160" xmlns="http://www.w3.org/2000/svg">
+      <!-- headers -->
+      <text x="90"  y="20" text-anchor="middle" fill="#94aec8" font-size="12" font-weight="700">SPP 角色</text>
+      <text x="270" y="20" text-anchor="middle" fill="#94aec8" font-size="12" font-weight="700">GAP 角色</text>
+      <text x="450" y="20" text-anchor="middle" fill="#94aec8" font-size="12" font-weight="700">RFCOMM 方向</text>
+      <text x="590" y="20" text-anchor="middle" fill="#94aec8" font-size="12" font-weight="700">Piconet 角色</text>
+
+      <!-- DevA row -->
+      <rect x="10"  y="32" width="160" height="50" rx="8" fill="rgba(14,165,233,.15)" stroke="#0ea5e9"/>
+      <text x="90"  y="54" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">DevA</text>
+      <text x="90"  y="70" text-anchor="middle" fill="#6a8aaa" font-size="10">发起方 · 主动连接</text>
+      <rect x="190" y="32" width="160" height="50" rx="8" fill="rgba(14,165,233,.08)" stroke="#1a3158"/>
+      <text x="270" y="54" text-anchor="middle" fill="#38bdf8" font-size="13">Initiator</text>
+      <text x="270" y="70" text-anchor="middle" fill="#6a8aaa" font-size="10">A-party in GAP</text>
+      <rect x="370" y="32" width="160" height="50" rx="8" fill="rgba(14,165,233,.08)" stroke="#1a3158"/>
+      <text x="450" y="54" text-anchor="middle" fill="#f59e0b" font-size="13">D bit = 1</text>
+      <text x="450" y="70" text-anchor="middle" fill="#6a8aaa" font-size="10">DLCI = SC×2 + 1</text>
+      <rect x="540" y="32" width="110" height="50" rx="8" fill="rgba(14,165,233,.08)" stroke="#1a3158"/>
+      <text x="595" y="57" text-anchor="middle" fill="#94aec8" font-size="12">任意</text>
+      <text x="595" y="72" text-anchor="middle" fill="#6a8aaa" font-size="10">Master 或 Slave</text>
+
+      <!-- DevB row -->
+      <rect x="10"  y="97" width="160" height="50" rx="8" fill="rgba(45,212,191,.15)" stroke="#2dd4bf"/>
+      <text x="90"  y="119" text-anchor="middle" fill="#2dd4bf" font-size="13" font-weight="700">DevB</text>
+      <text x="90"  y="135" text-anchor="middle" fill="#6a8aaa" font-size="10">接受方 · 被动等待</text>
+      <rect x="190" y="97" width="160" height="50" rx="8" fill="rgba(45,212,191,.06)" stroke="#1a3158"/>
+      <text x="270" y="119" text-anchor="middle" fill="#2dd4bf" font-size="13">Acceptor</text>
+      <text x="270" y="135" text-anchor="middle" fill="#6a8aaa" font-size="10">B-party in GAP</text>
+      <rect x="370" y="97" width="160" height="50" rx="8" fill="rgba(45,212,191,.06)" stroke="#1a3158"/>
+      <text x="450" y="119" text-anchor="middle" fill="#f59e0b" font-size="13">D bit = 0</text>
+      <text x="450" y="135" text-anchor="middle" fill="#6a8aaa" font-size="10">DLCI = SC×2 + 0</text>
+      <rect x="540" y="97" width="110" height="50" rx="8" fill="rgba(45,212,191,.06)" stroke="#1a3158"/>
+      <text x="595" y="122" text-anchor="middle" fill="#94aec8" font-size="12">任意</text>
+      <text x="595" y="137" text-anchor="middle" fill="#6a8aaa" font-size="10">无固定主从</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ─── §5 基带要求 ─── -->
+<section class="spec" id="s5">
+  <div class="spec-head">
+    <div class="sec-badge">§ 5</div>
+    <h2>基带层要求（Baseband Requirements）</h2>
+  </div>
+  <div class="lead">
+    规范第 5 节规定了 SPP 对蓝牙基带层的强制要求。SPP 是基于 ACL（异步无连接）链路的数据传输 Profile，必须支持 1-slot 数据包，以确保至少 128 kbps 的有效数据速率。
+  </div>
+
+  <div class="g3">
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h4><span class="dot" style="background:var(--accent2)"></span> 链路类型</h4>
+      <p>必须使用 <strong style="color:var(--accent2)">ACL（Asynchronous Connection-Less）</strong> 链路传输 SPP 数据。SCO 链路不用于 SPP。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--gold);">
+      <h4><span class="dot" style="background:var(--gold)"></span> 数据包类型</h4>
+      <p>规范 <strong>仅要求支持 1-slot 数据包</strong>（DM1/DH1），即确保 128 kbps 速率。更大的多时隙包（3-slot、5-slot）为可选扩展。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--teal);">
+      <h4><span class="dot" style="background:var(--teal)"></span> 连接点配置</h4>
+      <p>规范只处理<strong>点对点（Point-to-Point）</strong>连接配置。不限制设备同时运行多个 SPP 实例（并发）。</p>
+    </div>
+  </div>
+
+  <!-- 数据包速率图 -->
+  <div class="chart-label">ACL 数据包类型与速率对比（SPP 必须支持部分高亮）</div>
+  <div class="cw">
+    <div class="meter-row">
+      <div class="meter-lbl" style="color:var(--accent2);font-weight:700;">DM1（1-slot）<span class="b b-blue" style="margin-left:8px;font-size:10px;">必须</span></div>
+      <div class="meter-bar"><div class="meter-fill" style="width:17%;background:var(--accent2);"></div></div>
+      <div class="meter-val" style="color:var(--accent2);">108 kbps</div>
+    </div>
+    <div class="meter-row">
+      <div class="meter-lbl" style="color:var(--accent2);font-weight:700;">DH1（1-slot）<span class="b b-blue" style="margin-left:8px;font-size:10px;">必须</span></div>
+      <div class="meter-bar"><div class="meter-fill" style="width:22%;background:var(--accent2);"></div></div>
+      <div class="meter-val" style="color:var(--accent2);">172 kbps</div>
+    </div>
+    <div class="meter-row">
+      <div class="meter-lbl">DM3（3-slot）<span class="b b-gray" style="margin-left:8px;font-size:10px;">可选</span></div>
+      <div class="meter-bar"><div class="meter-fill" style="width:42%;background:var(--gray-dim);"></div></div>
+      <div class="meter-val">387 kbps</div>
+    </div>
+    <div class="meter-row">
+      <div class="meter-lbl">DH3（3-slot）<span class="b b-gray" style="margin-left:8px;font-size:10px;">可选</span></div>
+      <div class="meter-bar"><div class="meter-fill" style="width:58%;background:var(--gray-dim);"></div></div>
+      <div class="meter-val">585 kbps</div>
+    </div>
+    <div class="meter-row">
+      <div class="meter-lbl">DM5（5-slot）<span class="b b-gray" style="margin-left:8px;font-size:10px;">可选</span></div>
+      <div class="meter-bar"><div class="meter-fill" style="width:64%;background:var(--gray-dim);"></div></div>
+      <div class="meter-val">477 kbps</div>
+    </div>
+    <div class="meter-row">
+      <div class="meter-lbl">DH5（5-slot）<span class="b b-gray" style="margin-left:8px;font-size:10px;">可选</span></div>
+      <div class="meter-bar"><div class="meter-fill" style="width:100%;background:var(--teal);"></div></div>
+      <div class="meter-val" style="color:var(--teal);">723 kbps</div>
+    </div>
+    <p style="font-size:12px;color:var(--gray-dim);margin-top:12px;">※ SPP 规范要求最低支持 1-slot 包，对应保障速率 ≥ 128 kbps（上行/下行）</p>
+  </div>
+</section>
+
+<!-- ─── §6 链路管理 ─── -->
+<section class="spec" id="s6">
+  <div class="spec-head">
+    <div class="sec-badge">§ 6</div>
+    <h2>链路管理层要求（Link Manager Requirements）</h2>
+  </div>
+  <div class="lead">
+    规范第 6 节规定了 SPP 对 LMP（链路管理协议）的要求，主要覆盖：认证（Authentication）、加密（Encryption）的强制能力要求，以及主从角色切换策略。SPP 对安全功能的使用是可选的，但必须具备响应对端请求的能力。
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--gold)"></span> 认证（Authentication）</h4>
+      <ul>
+        <li><strong style="color:var(--accent2)">支持认证是强制要求（M）</strong>——如对端请求，必须能参与</li>
+        <li>主动要求认证是可选的（O）</li>
+        <li>认证使用 LMP 层的配对/绑定机制（PIN 码或 SSP）</li>
+        <li>认证时机：连接建立阶段（最晚），或更早</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--purple)"></span> 加密（Encryption）</h4>
+      <ul>
+        <li><strong style="color:var(--accent2)">支持加密是强制要求（M）</strong>——如对端请求，必须能参与</li>
+        <li>主动要求加密是可选的（O）</li>
+        <li>必须在认证完成后才能开启加密</li>
+        <li>加密密钥协商通过 LMP 完成</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="g3" style="margin-top:4px;">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--red)"></span> 绑定（Bonding）</h4>
+      <p>SPP 规范 <strong>不显式使用绑定（Bonding）</strong>，因此绑定支持是可选（O）的，留由实现者根据安全策略决定是否存储链路密钥。</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--teal)"></span> 主从角色</h4>
+      <p>SPP 无固定主从要求。实现者<strong>不应拒绝</strong>角色切换请求（Master/Slave Switch）。两端均可担任 Piconet Master。</p>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--orange)"></span> 授权（Authorization）</h4>
+      <p>授权访问是可选（O）功能，具体策略（如用户确认接受连接）由实现决定，不在 SPP 规范范畴内。</p>
+    </div>
+  </div>
+
+  <!-- 安全级别图 -->
+  <div class="chart-label">SPP 安全特性需求矩阵（M=强制 / O=可选 / X=排除）</div>
+  <div class="cw">
+    <table class="tbl">
+      <thead>
+        <tr><th>功能</th><th>DevA（发起方）</th><th>DevB（接受方）</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>参与认证</td>
+          <td><span class="b b-blue">M（强制）</span></td>
+          <td><span class="b b-blue">M（强制）</span></td>
+          <td>若对端请求认证，必须能参与 LMP 认证流程</td>
+        </tr>
+        <tr>
+          <td>参与加密</td>
+          <td><span class="b b-blue">M（强制）</span></td>
+          <td><span class="b b-blue">M（强制）</span></td>
+          <td>若对端请求加密，必须能参与 LMP 加密流程</td>
+        </tr>
+        <tr>
+          <td>主动请求认证</td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td>由实现策略决定，可在连接建立时触发</td>
+        </tr>
+        <tr>
+          <td>主动请求加密</td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td>必须在认证成功之后才可请求加密</td>
+        </tr>
+        <tr>
+          <td>授权（Authorization）</td>
+          <td><span class="b b-gray">N/A</span></td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td>DevB 可要求用户授权才接受连接</td>
+        </tr>
+        <tr>
+          <td>绑定（Bonding）</td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td><span class="b b-gold">O（可选）</span></td>
+          <td>SPP 不显式使用绑定，由实现决定是否存储密钥</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ─── §7 L2CAP 要求 ─── -->
+<section class="spec" id="s7">
+  <div class="spec-head">
+    <div class="sec-badge">§ 7</div>
+    <h2>L2CAP 层要求（L2CAP Requirements）</h2>
+  </div>
+  <div class="lead">
+    规范第 7 节规定了 SPP 对 L2CAP 层的具体配置要求。SPP 的串口数据经 RFCOMM 封装后通过 L2CAP 传输，RFCOMM 注册在 L2CAP PSM=3 上，SDP 注册在 PSM=1 上。
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--accent2)"></span> 信道类型</h4>
+      <ul>
+        <li><strong>只能使用面向连接（Connection-Oriented）</strong>的 L2CAP 信道</li>
+        <li>不能使用无连接（Connectionless）L2CAP 信道</li>
+        <li>RFCOMM 注册：<code style="color:var(--accent2)">PSM = 0x0003</code></li>
+        <li>SDP 注册：<code style="color:var(--accent2)">PSM = 0x0001</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--gold)"></span> Flush Timeout</h4>
+      <ul>
+        <li>串口数据通过<strong>可靠 L2CAP 信道</strong>传输</li>
+        <li>Flush Timeout 必须设为 <strong>0xFFFF（不刷新）</strong>，保证数据有序可靠投递</li>
+        <li>RFCOMM 本身不做重传，完全依赖 L2CAP 可靠性</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-top:4px;">
+    <div class="card">
+      <h4><span class="dot" style="background:var(--teal)"></span> MTU 配置</h4>
+      <ul>
+        <li>SPP 通过 RFCOMM PN 命令协商 MaxFrameSize</li>
+        <li>L2CAP MTU 须大于等于 RFCOMM 最大帧长度</li>
+        <li>推荐 RFCOMM 帧大小：<strong>127 字节（默认）</strong></li>
+        <li>最大帧大小：32767 字节（受 L2CAP MTU 限制）</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4><span class="dot" style="background:var(--purple)"></span> QoS（服务质量）</h4>
+      <ul>
+        <li>SPP 中 QoS 协商是<strong>可选（O）</strong>的</li>
+        <li>推荐：从低功耗模式恢复时，延迟上限保持在 <strong>500 ms</strong> 以内</li>
+        <li>若 QoS 无法满足，不应拒绝连接，应尽力而为</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- L2CAP 信道复用图 -->
+  <div class="chart-label">L2CAP 信道复用：SDP + RFCOMM 并行</div>
+  <div class="cw">
+    <svg width="620" height="170" viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a2" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#38bdf8"/>
+        </marker>
+      </defs>
+      <!-- L2CAP bar -->
+      <rect x="10" y="70" width="600" height="50" rx="8" fill="rgba(14,165,233,.08)" stroke="#1a3158"/>
+      <text x="310" y="91" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">L2CAP 层</text>
+      <text x="310" y="107" text-anchor="middle" fill="#4a6a8a" font-size="10">面向连接信道 · 可靠有序 · Flush Timeout = 0xFFFF</text>
+
+      <!-- PSM 1 (SDP) -->
+      <rect x="30" y="74" width="130" height="42" rx="6" fill="rgba(167,139,250,.18)" stroke="#a78bfa"/>
+      <text x="95" y="90" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">PSM = 0x0001</text>
+      <text x="95" y="106" text-anchor="middle" fill="#6a5a9a" font-size="10">SDP 信道</text>
+
+      <!-- PSM 3 (RFCOMM) -->
+      <rect x="200" y="74" width="180" height="42" rx="6" fill="rgba(14,165,233,.22)" stroke="#0ea5e9" stroke-width="1.5"/>
+      <text x="290" y="90" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">PSM = 0x0003</text>
+      <text x="290" y="106" text-anchor="middle" fill="#4a8aaa" font-size="10">RFCOMM 信道（SPP 数据）</text>
+
+      <!-- upper labels -->
+      <text x="95"  y="52" text-anchor="middle" fill="#a78bfa" font-size="12" font-weight="700">SDP</text>
+      <line x1="95"  y1="56" x2="95"  y2="72" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <text x="290" y="52" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">RFCOMM / SPP</text>
+      <line x1="290" y1="56" x2="290" y2="72" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <!-- lower label -->
+      <text x="310" y="148" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">ACL 链路（基带）</text>
+      <line x1="310" y1="120" x2="310" y2="136" stroke="#38bdf8" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="130" y="138" width="360" height="22" rx="6" fill="rgba(14,165,233,.06)" stroke="#1a3158"/>
+      <text x="310" y="153" text-anchor="middle" fill="#4a8aaa" font-size="10">Baseband ACL · 2.4 GHz · FHSS</text>
+
+      <text x="480" y="91" text-anchor="middle" fill="#3a5a7a" font-size="11" font-style="italic">（其他 PSM 信道）</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ─── §8 RFCOMM 要求 ─── -->
+<section class="spec" id="s8">
+  <div class="spec-head">
+    <div class="sec-badge">§ 8</div>
+    <h2>RFCOMM 层要求（RFCOMM Requirements）</h2>
+  </div>
+  <div class="lead">
+    规范第 8 节是 SPP 的核心技术要求节，规定了 SPP 如何使用 RFCOMM 的各项能力。SPP 使用 RFCOMM 传输用户数据、RS-232 调制解调器控制信号和配置命令，每个 SPP 实例对应一条 RFCOMM DLC。
+  </div>
+
+  <div class="tabs">
+    <div class="tab-nav">
+      <div class="tn on" onclick="tab(this,'r1')">DLC 建立</div>
+      <div class="tn" onclick="tab(this,'r2')">信号映射</div>
+      <div class="tn" onclick="tab(this,'r3')">参数协商</div>
+      <div class="tn" onclick="tab(this,'r4')">流量控制</div>
+    </div>
+
+    <div class="tc on" id="r1">
+      <p style="color:#8aaec8;font-size:14px;margin-bottom:14px;">SPP 每个实例使用一条 RFCOMM DLC（Data Link Connection）。RFCOMM 复用器会话（DLCI=0）在第一条 DLC 建立前初始化，并在最后一条 DLC 关闭后释放。</p>
+      <div class="g2">
+        <div class="card">
+          <h4><span class="dot" style="background:var(--accent2)"></span> DevA 建立步骤</h4>
+          <ol style="padding-left:18px;color:#8aaec8;font-size:13px;">
+            <li style="margin-bottom:6px;">SDP 查询获取 DevB 的 Server Channel 号</li>
+            <li style="margin-bottom:6px;">申请 L2CAP 连接至 DevB 的 RFCOMM 实体（PSM=3）</li>
+            <li style="margin-bottom:6px;">在 L2CAP 信道上启动 RFCOMM 会话（SABM, DLCI=0）</li>
+            <li style="margin-bottom:6px;">发送 UIH + PN CMD 协商 DLC 参数（帧大小/优先级/信用数）</li>
+            <li>发送 SABM (DLCI=N) 建立目标虚拟串口 DLC</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h4><span class="dot" style="background:var(--teal)"></span> DevB 接受步骤</h4>
+          <ol style="padding-left:18px;color:#8aaec8;font-size:13px;">
+            <li style="margin-bottom:6px;">接受 L2CAP 连接请求，建立 L2CAP 信道</li>
+            <li style="margin-bottom:6px;">接受 RFCOMM 会话（响应 UA, DLCI=0）</li>
+            <li style="margin-bottom:6px;">可选：触发本地认证/加密（如策略要求）</li>
+            <li style="margin-bottom:6px;">接受 DLC 参数协商（响应 PN RSP，CL=0xE）</li>
+            <li>接受 DLC 建立（响应 UA, DLCI=N）</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="tc" id="r2">
+      <p style="color:#8aaec8;font-size:14px;margin-bottom:14px;">SPP 通过 RFCOMM 的 MSC（Modem Status Command）传递 RS-232 控制信号，通过 RPN（Remote Port Negotiation）协商串口参数，通过 RLS（Remote Line Status）报告线路错误。</p>
+      <table class="tbl">
+        <thead><tr><th>RS-232 信号</th><th>方向</th><th>RFCOMM 映射</th><th>MSC 字段</th></tr></thead>
+        <tbody>
+          <tr><td>TxD / RxD</td><td>双向</td><td>UIH 帧数据字段</td><td>—（数据净荷）</td></tr>
+          <tr><td>RTS（请求发送）</td><td>DTE→DCE</td><td>MSC 命令</td><td><span class="b b-teal">RTR</span> Ready To Receive</td></tr>
+          <tr><td>CTS（清除发送）</td><td>DCE→DTE</td><td>MSC 命令</td><td><span class="b b-teal">RTR</span>（对端方向）</td></tr>
+          <tr><td>DTR（数据终端就绪）</td><td>DTE→DCE</td><td>MSC 命令</td><td><span class="b b-gold">RTC</span> Ready To Communicate</td></tr>
+          <tr><td>DSR（数据集就绪）</td><td>DCE→DTE</td><td>MSC 命令</td><td><span class="b b-gold">RTC</span>（对端方向）</td></tr>
+          <tr><td>DCD（数据载波检测）</td><td>DCE→DTE</td><td>MSC 命令</td><td><span class="b b-purple">DV</span> Data Valid</td></tr>
+          <tr><td>RI（振铃指示）</td><td>DCE→DTE</td><td>MSC 命令</td><td><span class="b b-pink">IC</span> Incoming Call</td></tr>
+          <tr><td>Break 信号</td><td>双向</td><td>MSC 命令（Break 字段）</td><td><span class="b b-red">Break</span> B1/B2/B3 bits</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tc" id="r3">
+      <p style="color:#8aaec8;font-size:14px;margin-bottom:14px;">DLC 建立前通过 PN（Parameter Negotiation）命令协商参数，DevB 可接受或降低部分参数，但不可提高优先级。</p>
+      <table class="tbl">
+        <thead><tr><th>参数</th><th>SPP 默认值</th><th>范围</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>MaxFrameSize（N1）</td><td>127 字节</td><td>1 ~ 32767</td><td>RFCOMM 帧最大数据负载</td></tr>
+          <tr><td>Priority</td><td>0~63（默认 0）</td><td>0~63</td><td>DLC 调度优先级（越大越高）</td></tr>
+          <tr><td>Credit（K）</td><td>7</td><td>0~7</td><td>信用流控初始信用数</td></tr>
+          <tr><td>ConvergenceLayer（CL）</td><td>0xF（CMD） / 0xE（RSP）</td><td>固定</td><td>必须使用信用流控</td></tr>
+          <tr><td>FrameType（I）</td><td>0（UIH）</td><td>固定</td><td>RFCOMM 中只用 UIH 帧传数据</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tc" id="r4">
+      <p style="color:#8aaec8;font-size:14px;margin-bottom:14px;">SPP 强制要求使用 RFCOMM v1.1 的信用（Credit）流控机制，在每个 DLC 级别独立管理背压，防止缓冲溢出。</p>
+      <div class="g2">
+        <div class="card">
+          <h4><span class="dot" style="background:var(--accent2)"></span> 信用流控原理</h4>
+          <ul>
+            <li>每个 DLC 独立维护收发信用计数</li>
+            <li>发送方每发一帧消耗 1 个信用</li>
+            <li>信用耗尽后必须停止发送，等待对端补充</li>
+            <li>通过 UIH (P/F=1) 帧的信用字段补充信用</li>
+            <li>PN 协商时 CL=0xF（CMD）/0xE（RSP）启用</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4><span class="dot" style="background:var(--gold)"></span> 全局流控（遗留）</h4>
+          <ul>
+            <li>FCon / FCoff 命令用于全局暂停/恢复所有 DLC</li>
+            <li>SPP 规范时代已定义，但已被信用机制取代</li>
+            <li>实现应支持响应 FCon/FCoff，但主动使用受限</li>
+            <li>波特率配置（RPN）不影响实际蓝牙带宽</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── §9 SDP 记录 ─── -->
+<section class="spec" id="s9">
+  <div class="spec-head">
+    <div class="sec-badge">§ 9</div>
+    <h2>SDP 服务记录（SDP Service Record）</h2>
+  </div>
+  <div class="lead">
+    规范第 9 节精确定义了 DevB 必须在本地 SDP 数据库中注册的服务记录结构。DevA 没有需要注册的 SDP 记录。DevA 通过 SDP 查询找到 DevB 的 Server Channel 号，是连接建立的第零步骤。
+  </div>
+
+  <div class="g2">
+    <div class="card" style="border:1px solid var(--teal);">
+      <h4><span class="dot" style="background:var(--red)"></span> DevA — 无需 SDP 记录</h4>
+      <p>DevA 不在 SDP 数据库中注册任何服务，仅作为 SDP 客户端向 DevB 发起查询。</p>
+      <div style="margin-top:10px;">
+        <span class="b b-gray">无 SDP 服务记录</span>
+        <span class="b b-blue" style="margin-left:6px;">仅 SDP 客户端</span>
+      </div>
+    </div>
+    <div class="card" style="border:1px solid var(--accent2);">
+      <h4><span class="dot" style="background:var(--green)"></span> DevB — 必须注册 SDP 记录</h4>
+      <p>DevB 必须注册包含以下核心属性的服务记录，且允许添加额外厂商自定义属性。</p>
+      <div style="margin-top:10px;">
+        <span class="b b-green">必须注册</span>
+        <span class="b b-gold" style="margin-left:6px;">可扩展属性</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SDP 记录详细结构 -->
+  <div class="chart-label">DevB 的 SPP SDP 服务记录结构（规范定义）</div>
+  <div class="cw">
+    <table class="tbl">
+      <thead>
+        <tr><th>属性 ID</th><th>属性名称</th><th>数值 / 类型</th><th>M/O</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code style="color:var(--accent2)">0x0000</code></td>
+          <td>ServiceRecordHandle</td>
+          <td>uint32（唯一句柄）</td>
+          <td><span class="b b-blue">M</span></td>
+          <td>SDP 服务器自动分配的唯一记录句柄</td>
+        </tr>
+        <tr>
+          <td><code style="color:var(--accent2)">0x0001</code></td>
+          <td>ServiceClassIDList</td>
+          <td><span class="b b-purple">UUID 0x1101</span> (SerialPort)</td>
+          <td><span class="b b-blue">M</span></td>
+          <td>标识服务类型为 Serial Port Profile，必须包含此 UUID</td>
+        </tr>
+        <tr>
+          <td><code style="color:var(--accent2)">0x0004</code></td>
+          <td>ProtocolDescriptorList</td>
+          <td>L2CAP (PSM=3) + RFCOMM (Channel=N)</td>
+          <td><span class="b b-blue">M</span></td>
+          <td>告知客户端使用 L2CAP PSM=3 + RFCOMM Server Channel N 连接</td>
+        </tr>
+        <tr>
+          <td><code style="color:var(--accent2)">0x0005</code></td>
+          <td>BrowseGroupList</td>
+          <td>PublicBrowseGroup (0x1002)</td>
+          <td><span class="b b-gold">O</span></td>
+          <td>加入公共浏览组，使设备可被直接浏览发现</td>
+        </tr>
+        <tr>
+          <td><code style="color:var(--accent2)">0x0009</code></td>
+          <td>BluetoothProfileDescriptorList</td>
+          <td>SerialPort, version=0x0101</td>
+          <td><span class="b b-blue">M</span></td>
+          <td>声明 Profile 版本（0x0101 = v1.1），用于兼容性检查</td>
+        </tr>
+        <tr>
+          <td><code style="color:var(--accent2)">0x0100</code></td>
+          <td>ServiceName</td>
+          <td>string（如 "COM5"）</td>
+          <td><span class="b b-gold">O</span></td>
+          <td>人类可读的服务名，可用于 UI 展示（支持本地化）</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SDP 记录代码示例 -->
+  <div class="chart-label">SDP 服务记录（伪代码示意）</div>
+  <div class="code">
+<span class="cm">// DevB 注册的 SPP SDP 服务记录（伪代码）</span>
+ServiceRecord {
+  ServiceRecordHandle     = <span class="num">0x00010001</span>         <span class="cm">// 由 SDP 服务器分配</span>
+
+  ServiceClassIDList = [
+    UUID(<span class="num">0x1101</span>)                             <span class="cm">// SerialPort</span>
+  ]
+
+  ProtocolDescriptorList = [
+    Protocol { UUID = <span class="num">0x0100</span> },                <span class="cm">// L2CAP</span>
+    Protocol {
+      UUID    = <span class="num">0x0003</span>,                          <span class="cm">// RFCOMM</span>
+      Channel = <span class="num">N</span>                                <span class="cm">// Server Channel（1~30，由注册时分配）</span>
+    }
+  ]
+
+  BrowseGroupList = [
+    UUID(<span class="num">0x1002</span>)                             <span class="cm">// PublicBrowseGroup（可选）</span>
+  ]
+
+  BluetoothProfileDescriptorList = [
+    Profile {
+      UUID    = <span class="num">0x1101</span>,                       <span class="cm">// SerialPort</span>
+      Version = <span class="num">0x0101</span>                          <span class="cm">// v1.1</span>
+    }
+  ]
+
+  ServiceName = <span class="str">"Serial Port"</span>                 <span class="cm">// 可选，用于 UI 显示</span>
+}
+  </div>
+</section>
+
+<!-- ─── §10 低功耗模式 ─── -->
+<section class="spec" id="s10">
+  <div class="spec-head">
+    <div class="sec-badge">§ 10</div>
+    <h2>低功耗模式（Low-Power Modes）</h2>
+  </div>
+  <div class="lead">
+    规范第 10 节说明了 SPP 与蓝牙低功耗模式（Sniff、Hold、Park）的关系。SPP 对低功耗模式没有强制性规定，但要求实现不应无故拒绝低功耗模式请求，同时需注意低功耗模式对数据吞吐量的影响。
+  </div>
+
+  <div class="g3">
+    <div class="card" style="border-top:3px solid var(--teal);">
+      <h4><span class="dot" style="background:var(--teal)"></span> Sniff 模式</h4>
+      <p>设备按固定间隔（Sniff Interval）"醒来"检查数据。SPP 不强制使用，但<strong>不应拒绝</strong>对端发起的 Sniff 请求。延迟预算：建议 ≤ 500 ms 以满足用户感知。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--purple);">
+      <h4><span class="dot" style="background:var(--purple)"></span> Park 模式</h4>
+      <p>设备进入超省电状态，保留 Piconet 成员资格但不占用时隙。SPP 不强制使用 Park，进入 Park 后 RFCOMM DLC 暂停但不关闭。</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--orange);">
+      <h4><span class="dot" style="background:var(--orange)"></span> Hold 模式</h4>
+      <p>临时暂停 ACL 链路一段时间，期间 LMP 链路保持。SPP 不强制使用，Hold 期间 RFCOMM 数据传输暂停。Hold 期满后自动恢复。</p>
+    </div>
+  </div>
+
+  <!-- 低功耗模式时间轴 -->
+  <div class="chart-label">低功耗模式生命周期与 SPP 数据传输关系</div>
+  <div class="cw">
+    <svg width="640" height="130" viewBox="0 0 640 130" xmlns="http://www.w3.org/2000/svg">
+      <!-- timeline -->
+      <line x1="20" y1="55" x2="620" y2="55" stroke="#1a3158" stroke-width="2"/>
+      <text x="10" y="25" fill="#94aec8" font-size="11" font-weight="700">Active</text>
+      <text x="10" y="80" fill="#94aec8" font-size="11" font-weight="700">Sniff</text>
+      <text x="10" y="112" fill="#94aec8" font-size="11" font-weight="700">Park/Hold</text>
+
+      <!-- Active segments -->
+      <rect x="50" y="36" width="100" height="18" rx="3" fill="rgba(14,165,233,.4)" stroke="#0ea5e9"/>
+      <text x="100" y="49" text-anchor="middle" fill="#38bdf8" font-size="9">数据传输</text>
+      <rect x="280" y="36" width="140" height="18" rx="3" fill="rgba(14,165,233,.4)" stroke="#0ea5e9"/>
+      <text x="350" y="49" text-anchor="middle" fill="#38bdf8" font-size="9">数据传输</text>
+      <rect x="510" y="36" width="100" height="18" rx="3" fill="rgba(14,165,233,.4)" stroke="#0ea5e9"/>
+      <text x="560" y="49" text-anchor="middle" fill="#38bdf8" font-size="9">数据传输</text>
+
+      <!-- Sniff intervals -->
+      <rect x="150" y="62" width="30" height="12" rx="2" fill="rgba(45,212,191,.3)" stroke="#2dd4bf"/>
+      <rect x="185" y="62" width="30" height="12" rx="2" fill="rgba(45,212,191,.3)" stroke="#2dd4bf"/>
+      <rect x="220" y="62" width="30" height="12" rx="2" fill="rgba(45,212,191,.3)" stroke="#2dd4bf"/>
+      <rect x="255" y="62" width="20" height="12" rx="2" fill="rgba(45,212,191,.3)" stroke="#2dd4bf"/>
+      <text x="200" y="88" text-anchor="middle" fill="#2dd4bf" font-size="9">Sniff Interval（定期唤醒）</text>
+
+      <!-- Park/Hold -->
+      <rect x="425" y="94" width="80" height="14" rx="3" fill="rgba(167,139,250,.25)" stroke="#a78bfa"/>
+      <text x="465" y="105" text-anchor="middle" fill="#a78bfa" font-size="9">Park / Hold</text>
+
+      <!-- latency annotation -->
+      <line x1="150" y1="20" x2="280" y2="20" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="215" y="16" text-anchor="middle" fill="#f59e0b" font-size="9">唤醒延迟 ≤ 500ms（建议）</text>
+      <line x1="150" y1="18" x2="150" y2="28" stroke="#f59e0b" stroke-width="1"/>
+      <line x1="280" y1="18" x2="280" y2="28" stroke="#f59e0b" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <div class="card">
+    <h4><span class="dot" style="background:var(--gold)"></span> 规范原文关键约束</h4>
+    <p>对于执行 SPP 的设备，<strong>不要求使用任何低功耗模式</strong>。然而，来自对端的进入低功耗模式的请求，<strong>如果可能，不应被拒绝</strong>。同时，使用低功耗模式（Sniff/Park/Hold）时，SPP 的 RFCOMM DLC 和 L2CAP 信道应<strong>不限制吞吐量</strong>（即不应因波特率设置而人为限制数据速率）。</p>
+  </div>
+</section>
+
+<!-- ─── §11 安全机制 ─── -->
+<section class="spec" id="s11">
+  <div class="spec-head">
+    <div class="sec-badge">§ 11</div>
+    <h2>安全机制（Security）</h2>
+  </div>
+  <div class="lead">
+    规范第 11 节指明 SPP 不定义新的安全机制，而是直接复用 GAP 规范的安全框架。实现者可选择在连接建立过程中启用认证和/或加密，以保护串口数据的机密性和完整性。
+  </div>
+
+  <!-- 安全流程图 -->
+  <div class="chart-label">SPP 安全决策流程（连接建立阶段）</div>
+  <div class="cw">
+    <svg width="580" height="260" viewBox="0 0 580 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="sa" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#94aec8"/>
+        </marker>
+      </defs>
+      <!-- start -->
+      <ellipse cx="290" cy="20" rx="80" ry="18" fill="rgba(14,165,233,.2)" stroke="#0ea5e9"/>
+      <text x="290" y="25" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">建立 ACL 链路</text>
+
+      <!-- diamond 1 -->
+      <polygon points="290,55 360,82 290,109 220,82" fill="rgba(245,158,11,.12)" stroke="#f59e0b"/>
+      <text x="290" y="80" text-anchor="middle" fill="#f59e0b" font-size="11">需要认证？</text>
+      <text x="290" y="95" text-anchor="middle" fill="#6a4a20" font-size="9">(策略/对端请求)</text>
+      <line x1="290" y1="38" x2="290" y2="53" stroke="#94aec8" stroke-width="1.2" marker-end="url(#sa)"/>
+
+      <!-- yes auth -->
+      <line x1="360" y1="82" x2="440" y2="82" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#sa)"/>
+      <text x="395" y="76" text-anchor="middle" fill="#f59e0b" font-size="10">是</text>
+      <rect x="440" y="66" width="110" height="32" rx="6" fill="rgba(245,158,11,.1)" stroke="#f59e0b"/>
+      <text x="495" y="80" text-anchor="middle" fill="#f59e0b" font-size="11">LMP 认证</text>
+      <text x="495" y="93" text-anchor="middle" fill="#6a4a20" font-size="9">PIN/SSP 配对</text>
+
+      <!-- no auth -->
+      <line x1="220" y1="82" x2="140" y2="82" stroke="#94aec8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#sa)"/>
+      <text x="176" y="76" text-anchor="middle" fill="#4a6a8a" font-size="10">否</text>
+
+      <!-- diamond 2 -->
+      <polygon points="290,125 360,152 290,179 220,152" fill="rgba(167,139,250,.12)" stroke="#a78bfa"/>
+      <text x="290" y="150" text-anchor="middle" fill="#a78bfa" font-size="11">需要加密？</text>
+      <text x="290" y="165" text-anchor="middle" fill="#5a4a8a" font-size="9">(必须先认证)</text>
+
+      <line x1="290" y1="109" x2="290" y2="123" stroke="#94aec8" stroke-width="1.2" marker-end="url(#sa)"/>
+      <line x1="495" y1="98" x2="495" y2="145" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="495" y1="145" x2="362" y2="150" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#sa)"/>
+
+      <!-- yes enc -->
+      <line x1="360" y1="152" x2="440" y2="152" stroke="#a78bfa" stroke-width="1.2" marker-end="url(#sa)"/>
+      <text x="395" y="146" text-anchor="middle" fill="#a78bfa" font-size="10">是</text>
+      <rect x="440" y="136" width="110" height="32" rx="6" fill="rgba(167,139,250,.1)" stroke="#a78bfa"/>
+      <text x="495" y="150" text-anchor="middle" fill="#a78bfa" font-size="11">LMP 加密</text>
+      <text x="495" y="163" text-anchor="middle" fill="#5a4a8a" font-size="9">密钥协商</text>
+
+      <!-- no enc -->
+      <line x1="220" y1="152" x2="140" y2="152" stroke="#94aec8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#sa)"/>
+      <text x="176" y="146" text-anchor="middle" fill="#4a6a8a" font-size="10">否</text>
+
+      <!-- end -->
+      <ellipse cx="290" cy="215" rx="100" ry="18" fill="rgba(34,211,160,.15)" stroke="#22d3a0"/>
+      <text x="290" y="220" text-anchor="middle" fill="#22d3a0" font-size="12" font-weight="700">建立 RFCOMM DLC · 数据传输</text>
+
+      <line x1="290" y1="179" x2="290" y2="195" stroke="#94aec8" stroke-width="1.2" marker-end="url(#sa)"/>
+      <line x1="140" y1="82"  x2="140" y2="215" stroke="#94aec8" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="140" y1="152" x2="140" y2="215" stroke="#94aec8" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="140" y1="215" x2="188" y2="215" stroke="#94aec8" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#sa)"/>
+      <line x1="495" y1="168" x2="495" y2="215" stroke="#94aec8" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="495" y1="215" x2="392" y2="215" stroke="#94aec8" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#sa)"/>
+
+      <text x="290" y="250" text-anchor="middle" fill="#2a4a6a" font-size="11">SPP 不新增安全机制，完全复用 GAP + LMP 框架</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ─── §12 连接流程 ─── -->
+<section class="spec" id="s12">
+  <div class="spec-head">
+    <div class="sec-badge">§ 12</div>
+    <h2>完整连接流程（Connection Procedures）</h2>
+  </div>
+  <div class="lead">
+    规范第 12 节（Application Section）定义了三项核心操作流程：①DevA 主动发起连接、②DevB 接受连接、③DevB 注册 SDP 记录。以下为详细步骤时序与说明。
+  </div>
+
+  <!-- 完整时序图 -->
+  <div class="chart-label">SPP 完整连接建立时序图（DevA → DevB）</div>
+  <div class="cw">
+    <svg width="680" height="580" viewBox="0 0 680 580" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ma" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#38bdf8"/>
+        </marker>
+        <marker id="mb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#2dd4bf"/>
+        </marker>
+        <marker id="mc" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#f59e0b"/>
+        </marker>
+        <marker id="md" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#22d3a0"/>
+        </marker>
+        <marker id="me" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0,7 3.5,0 7" fill="#a78bfa"/>
+        </marker>
+      </defs>
+
+      <!-- col headers -->
+      <text x="120" y="22" text-anchor="middle" fill="#e8f4ff" font-size="13" font-weight="700">DevA（发起方）</text>
+      <text x="560" y="22" text-anchor="middle" fill="#e8f4ff" font-size="13" font-weight="700">DevB（接受方）</text>
+      <line x1="120" y1="28" x2="120" y2="576" stroke="#1a3158" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <line x1="560" y1="28" x2="560" y2="576" stroke="#1a3158" stroke-width="1.5" stroke-dasharray="5,4"/>
+
+      <!-- phase 0: inquiry -->
+      <rect x="8" y="34" width="664" height="22" rx="4" fill="rgba(167,139,250,.1)"/>
+      <text x="340" y="49" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">阶段 0：设备发现（可选，如 BD_ADDR 未知）</text>
+
+      <line x1="120" y1="72" x2="516" y2="72" stroke="#a78bfa" stroke-width="1.3"/>
+      <polygon points="516,69 560,72 516,75" fill="#a78bfa"/>
+      <text x="340" y="65" text-anchor="middle" fill="#a78bfa" font-size="10">Inquiry / Paging（发现 DevB 的 BD_ADDR）</text>
+      <text x="88" y="76" text-anchor="end" fill="#3a3060" font-size="10">①</text>
+
+      <!-- phase 1: SDP -->
+      <rect x="8" y="84" width="664" height="22" rx="4" fill="rgba(167,139,250,.1)"/>
+      <text x="340" y="99" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">阶段 1：服务发现（SDP 查询 Server Channel）</text>
+
+      <line x1="120" y1="120" x2="516" y2="120" stroke="#a78bfa" stroke-width="1.3"/>
+      <polygon points="516,117 560,120 516,123" fill="#a78bfa"/>
+      <text x="340" y="113" text-anchor="middle" fill="#a78bfa" font-size="10">SDP_ServiceSearchAttributeReq (UUID=0x1101)</text>
+      <text x="88" y="124" text-anchor="end" fill="#3a3060" font-size="10">②</text>
+
+      <line x1="560" y1="142" x2="164" y2="142" stroke="#a78bfa" stroke-width="1.3"/>
+      <polygon points="164,139 120,142 164,145" fill="#a78bfa"/>
+      <text x="340" y="136" text-anchor="middle" fill="#a78bfa" font-size="10">SDP_ServiceSearchAttributeRsp (ServerChannel = N)</text>
+      <text x="572" y="146" text-anchor="start" fill="#3a3060" font-size="10">③</text>
+
+      <!-- phase 2: Security (optional) -->
+      <rect x="8" y="156" width="664" height="22" rx="4" fill="rgba(245,158,11,.08)"/>
+      <text x="340" y="171" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="700">阶段 2（可选）：认证 &amp; 加密</text>
+
+      <line x1="120" y1="192" x2="516" y2="192" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="5,3"/>
+      <polygon points="516,189 560,192 516,195" fill="#f59e0b"/>
+      <text x="340" y="185" text-anchor="middle" fill="#f59e0b" font-size="10">LMP_auth_req / LMP_encryption_mode_req（可选）</text>
+      <text x="88" y="196" text-anchor="end" fill="#6a4a20" font-size="10">④</text>
+
+      <!-- phase 3: L2CAP -->
+      <rect x="8" y="206" width="664" height="22" rx="4" fill="rgba(14,165,233,.1)"/>
+      <text x="340" y="221" text-anchor="middle" fill="#38bdf8" font-size="11" font-weight="700">阶段 3：建立 L2CAP 信道（PSM=3）</text>
+
+      <line x1="120" y1="242" x2="516" y2="242" stroke="#38bdf8" stroke-width="1.5"/>
+      <polygon points="516,239 560,242 516,245" fill="#38bdf8"/>
+      <text x="340" y="235" text-anchor="middle" fill="#38bdf8" font-size="10" font-weight="600">L2CAP_ConnectReq (PSM=0x0003)</text>
+      <text x="88" y="246" text-anchor="end" fill="#2a4a6a" font-size="10">⑤</text>
+
+      <line x1="560" y1="262" x2="164" y2="262" stroke="#38bdf8" stroke-width="1.5"/>
+      <polygon points="164,259 120,262 164,265" fill="#38bdf8"/>
+      <text x="340" y="256" text-anchor="middle" fill="#38bdf8" font-size="10">L2CAP_ConnectRsp（成功）</text>
+      <text x="572" y="266" text-anchor="start" fill="#2a4a6a" font-size="10">⑥</text>
+
+      <!-- phase 4: RFCOMM mux -->
+      <rect x="8" y="276" width="664" height="22" rx="4" fill="rgba(45,212,191,.08)"/>
+      <text x="340" y="291" text-anchor="middle" fill="#2dd4bf" font-size="11" font-weight="700">阶段 4：建立 RFCOMM 会话（复用器 DLCI=0）</text>
+
+      <line x1="120" y1="312" x2="516" y2="312" stroke="#2dd4bf" stroke-width="1.5"/>
+      <polygon points="516,309 560,312 516,315" fill="#2dd4bf"/>
+      <text x="340" y="305" text-anchor="middle" fill="#2dd4bf" font-size="10" font-weight="600">SABM (DLCI=0) → 启动 RFCOMM 复用器</text>
+      <text x="88" y="316" text-anchor="end" fill="#2a5a5a" font-size="10">⑦</text>
+
+      <line x1="560" y1="330" x2="164" y2="330" stroke="#2dd4bf" stroke-width="1.5"/>
+      <polygon points="164,327 120,330 164,333" fill="#2dd4bf"/>
+      <text x="340" y="324" text-anchor="middle" fill="#2dd4bf" font-size="10">UA (DLCI=0) ← 复用器已就绪</text>
+      <text x="572" y="334" text-anchor="start" fill="#2a5a5a" font-size="10">⑧</text>
+
+      <!-- phase 5: DLC -->
+      <rect x="8" y="344" width="664" height="22" rx="4" fill="rgba(34,211,160,.08)"/>
+      <text x="340" y="359" text-anchor="middle" fill="#22d3a0" font-size="11" font-weight="700">阶段 5：建立 RFCOMM DLC（虚拟串口 DLCI=N）</text>
+
+      <line x1="120" y1="378" x2="516" y2="378" stroke="#f59e0b" stroke-width="1.3"/>
+      <polygon points="516,375 560,378 516,381" fill="#f59e0b"/>
+      <text x="340" y="371" text-anchor="middle" fill="#f59e0b" font-size="10">UIH(DLCI=0) + PN CMD（协商帧大小/优先级/信用）</text>
+      <text x="88" y="382" text-anchor="end" fill="#2a4a6a" font-size="10">⑨</text>
+
+      <line x1="560" y1="396" x2="164" y2="396" stroke="#f59e0b" stroke-width="1.3"/>
+      <polygon points="164,393 120,396 164,399" fill="#f59e0b"/>
+      <text x="340" y="390" text-anchor="middle" fill="#f59e0b" font-size="10">UIH(DLCI=0) + PN RSP (CL=0xE，确认信用流控)</text>
+      <text x="572" y="400" text-anchor="start" fill="#2a4a6a" font-size="10">⑩</text>
+
+      <line x1="120" y1="416" x2="516" y2="416" stroke="#22d3a0" stroke-width="1.5"/>
+      <polygon points="516,413 560,416 516,419" fill="#22d3a0"/>
+      <text x="340" y="409" text-anchor="middle" fill="#22d3a0" font-size="10" font-weight="600">SABM (DLCI=N×2+1) → 建立虚拟串口</text>
+      <text x="88" y="420" text-anchor="end" fill="#2a4a6a" font-size="10">⑪</text>
+
+      <line x1="560" y1="434" x2="164" y2="434" stroke="#22d3a0" stroke-width="1.5"/>
+      <polygon points="164,431 120,434 164,437" fill="#22d3a0"/>
+      <text x="340" y="428" text-anchor="middle" fill="#22d3a0" font-size="10">UA (DLCI=N) ← 虚拟串口建立完成</text>
+      <text x="572" y="438" text-anchor="start" fill="#2a4a6a" font-size="10">⑫</text>
+
+      <!-- MSC -->
+      <line x1="120" y1="456" x2="516" y2="456" stroke="#22d3a0" stroke-width="1.2"/>
+      <polygon points="516,453 560,456 516,459" fill="#22d3a0"/>
+      <text x="340" y="449" text-anchor="middle" fill="#22d3a0" font-size="10">UIH(DLCI=0) + MSC CMD（RS-232 信号初态）</text>
+      <text x="88" y="460" text-anchor="end" fill="#2a4a6a" font-size="10">⑬</text>
+
+      <line x1="560" y1="474" x2="164" y2="474" stroke="#22d3a0" stroke-width="1.2"/>
+      <polygon points="164,471 120,474 164,477" fill="#22d3a0"/>
+      <text x="340" y="468" text-anchor="middle" fill="#22d3a0" font-size="10">UIH(DLCI=0) + MSC RSP ←</text>
+      <text x="572" y="478" text-anchor="start" fill="#2a4a6a" font-size="10">⑭</text>
+
+      <!-- Data -->
+      <rect x="8" y="488" width="664" height="22" rx="4" fill="rgba(34,211,160,.12)"/>
+      <text x="340" y="503" text-anchor="middle" fill="#22d3a0" font-size="11" font-weight="700">阶段 6：数据传输（双向流）</text>
+
+      <line x1="120" y1="526" x2="516" y2="526" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="7,4"/>
+      <polygon points="516,523 560,526 516,529" fill="#f59e0b"/>
+      <text x="340" y="519" text-anchor="middle" fill="#f59e0b" font-size="10">UIH(DLCI=N) + 用户串口数据 →</text>
+
+      <line x1="560" y1="548" x2="164" y2="548" stroke="#f59e0b" stroke-width="1.8" stroke-dasharray="7,4"/>
+      <polygon points="164,545 120,548 164,551" fill="#f59e0b"/>
+      <text x="340" y="568" text-anchor="middle" fill="#f59e0b" font-size="10">← UIH(DLCI=N) + 用户串口数据</text>
+    </svg>
+  </div>
+
+  <!-- DevB 注册流程 -->
+  <div class="chart-label" style="margin-top:30px;">DevB 的准备工作：SDP 记录注册生命周期</div>
+  <div class="seq-box">
+    <div class="seq-row">
+      <div class="seq-num" style="background:var(--teal);color:#000;">1</div>
+      <div class="seq-who" style="color:var(--teal);">DevB</div>
+      <div class="seq-txt"><strong>上电/应用启动</strong> → 向 RFCOMM 层申请一个空闲的 Server Channel（1~30）</div>
+    </div>
+    <div class="seq-row">
+      <div class="seq-num" style="background:var(--teal);color:#000;">2</div>
+      <div class="seq-who" style="color:var(--teal);">DevB</div>
+      <div class="seq-txt">构造 SDP 服务记录，包含 <code>UUID=0x1101</code>、<code>RFCOMM Channel=N</code>、Profile版本 <code>0x0101</code></div>
+    </div>
+    <div class="seq-row">
+      <div class="seq-num" style="background:var(--teal);color:#000;">3</div>
+      <div class="seq-who" style="color:var(--teal);">DevB</div>
+      <div class="seq-txt">向本地 <strong>SDP 服务器注册服务记录</strong>，使其对远端可见（进入 Discoverable 模式）</div>
+    </div>
+    <hr class="seq-divider"><span style="color:var(--gray-dim);font-size:11px;">连接中...</span>
+    <div class="seq-row">
+      <div class="seq-num" style="background:var(--green);color:#000;">4</div>
+      <div class="seq-who" style="color:var(--green);">DevB</div>
+      <div class="seq-txt">DevA 建立连接后，<strong>等待接收 RFCOMM DLC 数据</strong>，正常收发串口数据</div>
+    </div>
+    <hr class="seq-divider"><span style="color:var(--gray-dim);font-size:11px;">连接断开后...</span>
+    <div class="seq-row">
+      <div class="seq-num" style="background:var(--red);">5</div>
+      <div class="seq-who" style="color:var(--red);">DevB</div>
+      <div class="seq-txt">应用退出时，从 SDP 数据库<strong>注销服务记录</strong>，释放 Server Channel</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── §13 ICS ─── -->
+<section class="spec" id="s13">
+  <div class="spec-head">
+    <div class="sec-badge">§ 13</div>
+    <h2>ICS 合规声明（Implementation Conformance Statement）</h2>
+  </div>
+  <div class="lead">
+    规范附录（ICS，Implementation Conformance Statement）列出了 SPP 所有需求条目的强制/可选状态，用于认证测试（Bluetooth Qualification）。以下为核心 ICS 条目汇总。
+  </div>
+
+  <!-- ICS 表 -->
+  <div class="cw">
+    <table class="tbl">
+      <thead>
+        <tr><th>ICS 条目</th><th>功能</th><th>DevA</th><th>DevB</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>SPP/C-01</td><td>GAP 所有强制需求</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-blue">M</span></td>
+          <td>GAP 所有强制项在 SPP 中同样强制</td>
+        </tr>
+        <tr>
+          <td>SPP/C-02</td><td>GAP 所有可选需求</td>
+          <td><span class="b b-gold">O</span></td><td><span class="b b-gold">O</span></td>
+          <td>GAP 可选项在 SPP 中除特别说明外仍为可选</td>
+        </tr>
+        <tr>
+          <td>SPP/C-03</td><td>SDP 查询远端服务</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-gray">N/A</span></td>
+          <td>DevA 必须能向 DevB 查询 SPP Server Channel</td>
+        </tr>
+        <tr>
+          <td>SPP/C-04</td><td>SDP 服务记录注册</td>
+          <td><span class="b b-gray">N/A</span></td><td><span class="b b-blue">M</span></td>
+          <td>DevB 必须在 SDP 数据库注册 SPP 服务记录</td>
+        </tr>
+        <tr>
+          <td>SPP/C-05</td><td>建立 RFCOMM DLC</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-gray">N/A</span></td>
+          <td>DevA 必须能发起 RFCOMM DLC 建立流程</td>
+        </tr>
+        <tr>
+          <td>SPP/C-06</td><td>接受 RFCOMM DLC</td>
+          <td><span class="b b-gray">N/A</span></td><td><span class="b b-blue">M</span></td>
+          <td>DevB 必须能接受并响应 RFCOMM DLC 建立请求</td>
+        </tr>
+        <tr>
+          <td>SPP/C-07</td><td>L2CAP 面向连接信道</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-blue">M</span></td>
+          <td>只能使用 Connection-Oriented L2CAP 信道（PSM=3）</td>
+        </tr>
+        <tr>
+          <td>SPP/C-08</td><td>认证能力</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-blue">M</span></td>
+          <td>双方都必须具备参与 LMP 认证的能力</td>
+        </tr>
+        <tr>
+          <td>SPP/C-09</td><td>加密能力</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-blue">M</span></td>
+          <td>双方都必须具备参与 LMP 加密的能力</td>
+        </tr>
+        <tr>
+          <td>SPP/C-10</td><td>ACL 1-slot 数据包</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-blue">M</span></td>
+          <td>必须支持 DM1/DH1，保证 ≥128 kbps 基础速率</td>
+        </tr>
+        <tr>
+          <td>SPP/C-11</td><td>MSC 调制解调器信号</td>
+          <td><span class="b b-blue">M</span></td><td><span class="b b-blue">M</span></td>
+          <td>双方必须支持通过 RFCOMM MSC 命令传递 RS-232 控制信号</td>
+        </tr>
+        <tr>
+          <td>SPP/C-12</td><td>RPN 端口参数协商</td>
+          <td><span class="b b-gold">O</span></td><td><span class="b b-gold">O</span></td>
+          <td>可选，用于协商虚拟串口波特率/数据位/校验等参数</td>
+        </tr>
+        <tr>
+          <td>SPP/C-13</td><td>同时扮演双角色</td>
+          <td><span class="b b-gold">O</span></td><td><span class="b b-gold">O</span></td>
+          <td>设备可同时作为 DevA 和 DevB 运行（并发多实例）</td>
+        </tr>
+        <tr>
+          <td>SPP/C-14</td><td>低功耗模式</td>
+          <td><span class="b b-gold">O</span></td><td><span class="b b-gold">O</span></td>
+          <td>Sniff/Hold/Park 均为可选，但若对端请求不应拒绝</td>
+        </tr>
+        <tr>
+          <td>SPP/C-15</td><td>绑定（Bonding）</td>
+          <td><span class="b b-gold">O</span></td><td><span class="b b-gold">O</span></td>
+          <td>SPP 不要求绑定，由实现自行决定是否存储链路密钥</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="g3" style="margin-top:20px;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:32px;font-weight:800;color:var(--accent2);">11</div>
+      <div style="font-size:12px;color:var(--gray-dim);margin-top:4px;">强制项（M）</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:32px;font-weight:800;color:var(--gold);">5</div>
+      <div style="font-size:12px;color:var(--gray-dim);margin-top:4px;">可选项（O）</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:32px;font-weight:800;color:var(--teal);">2</div>
+      <div style="font-size:12px;color:var(--gray-dim);margin-top:4px;">角色（DevA / DevB）</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 总结 ─── -->
+<section class="spec" id="summary">
+  <div class="spec-head">
+    <div class="sec-badge">📋</div>
+    <h2>核心要点全览（Summary）</h2>
+  </div>
+
+  <div class="g2">
+    <div class="card" style="border-top:3px solid var(--accent2);">
+      <h4>协议依赖层次</h4>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot" style="background:var(--red)"></div><h5>Radio + Baseband</h5><p>2.4GHz ISM · ACL · 1-slot 包（必须）</p></div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--purple)"></div><h5>LMP</h5><p>认证 · 加密（支持为强制）</p></div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--accent2)"></div><h5>L2CAP</h5><p>PSM=3 · 面向连接 · Flush=0xFFFF</p></div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--purple)"></div><h5>SDP</h5><p>PSM=1 · DevB 注册 UUID 0x1101</p></div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--teal)"></div><h5>RFCOMM</h5><p>DLC · PN · MSC · Credit 流控</p></div>
+        <div class="tl-item"><div class="tl-dot" style="background:var(--green)"></div><h5>SPP / vCOMM</h5><p>虚拟串口抽象 · 应用透明</p></div>
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--teal);">
+      <h4>连接建立 14 步快速索引</h4>
+      <ol style="padding-left:18px;font-size:13px;color:#8aaec8;">
+        <li style="margin-bottom:4px;">（可选）Inquiry 发现 DevB</li>
+        <li style="margin-bottom:4px;">SDP 查询 → 获取 Server Channel N</li>
+        <li style="margin-bottom:4px;">（可选）LMP 认证</li>
+        <li style="margin-bottom:4px;">（可选）LMP 加密</li>
+        <li style="margin-bottom:4px;">L2CAP ConnectReq (PSM=3)</li>
+        <li style="margin-bottom:4px;">L2CAP ConnectRsp (成功)</li>
+        <li style="margin-bottom:4px;">SABM (DLCI=0) 启动 RFCOMM 复用器</li>
+        <li style="margin-bottom:4px;">UA (DLCI=0) 确认复用器</li>
+        <li style="margin-bottom:4px;">UIH + PN CMD 参数协商</li>
+        <li style="margin-bottom:4px;">UIH + PN RSP 确认参数</li>
+        <li style="margin-bottom:4px;">SABM (DLCI=N) 建立虚拟串口</li>
+        <li style="margin-bottom:4px;">UA (DLCI=N) 确认串口</li>
+        <li style="margin-bottom:4px;">MSC CMD/RSP 交换 RS-232 初态</li>
+        <li>UIH (DLCI=N) 双向数据流</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="g4" style="margin-top:8px;">
+    <div class="card" style="text-align:center;border-top:3px solid var(--purple);">
+      <div style="font-size:22px;margin-bottom:4px;">🔵</div>
+      <div style="font-weight:700;color:var(--purple);font-size:14px;">UUID 0x1101</div>
+      <div style="font-size:11px;color:var(--gray-dim);">SerialPort 服务类</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid var(--accent2);">
+      <div style="font-size:22px;margin-bottom:4px;">📡</div>
+      <div style="font-weight:700;color:var(--accent2);font-size:14px;">PSM = 3</div>
+      <div style="font-size:11px;color:var(--gray-dim);">L2CAP RFCOMM 端口</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid var(--teal);">
+      <div style="font-size:22px;margin-bottom:4px;">🔀</div>
+      <div style="font-weight:700;color:var(--teal);font-size:14px;">1~30 SC</div>
+      <div style="font-size:11px;color:var(--gray-dim);">Server Channel 范围</div>
+    </div>
+    <div class="card" style="text-align:center;border-top:3px solid var(--gold);">
+      <div style="font-size:22px;margin-bottom:4px;">⚡</div>
+      <div style="font-weight:700;color:var(--gold);font-size:14px;">0x0101</div>
+      <div style="font-size:11px;color:var(--gray-dim);">Profile 版本 v1.1</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- FOOTER -->
+<footer style="background:var(--bg-mid);border-top:1px solid var(--border);padding:30px 20px;text-align:center;">
+  <p style="color:#2a4a6a;font-size:13px;">基于 Bluetooth SIG &nbsp;Serial Port Profile Specification v1.1 (Part K:5) 整理</p>
+  <p style="color:#1a3050;font-size:11.5px;margin-top:6px;">Bluetooth v1.1 · GAP · RFCOMM · SDP · GSM TS 07.10 · RS-232 EIA/TIA-232-E &nbsp;|&nbsp; 仅供技术学习参考</p>
+</footer>
+</div>
+
+
+<script>
+  // ── Tab system ──
+  function tab(btn, id) {
+    const tabs = btn.closest('.tabs');
+    tabs.querySelectorAll('.tn').forEach(b => b.classList.remove('on'));
+    tabs.querySelectorAll('.tc').forEach(c => c.classList.remove('on'));
+    btn.classList.add('on');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('on');
+  }
+  // 章节高亮：左侧 packet-sidebar 脚本
+// ── Animate meter bars on intersection ──
+  const fills = document.querySelectorAll('.meter-fill');
+  fills.forEach(f => { const w = f.style.width; f.style.width = '0'; setTimeout(() => f.style.width = w, 200); });
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.querySelectorAll('.meter-fill').forEach(f => {
+          const w = f.getAttribute('data-w') || f.style.width;
+          f.setAttribute('data-w', w);
+          f.style.width = '0';
+          requestAnimationFrame(() => { f.style.transition='width .8s ease'; f.style.width = w; });
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('.cw').forEach(c => obs.observe(c));
+</script>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

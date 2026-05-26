@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup Complete → IO Capability</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --card: #fff;
+      --text: #1a2332;
+      --muted: #5c6b7a;
+      --border: #e2e8f0;
+      --accent: #7c3aed;
+      --accent-soft: #f5f3ff;
+      --lmp: #7c3aed;
+      --lmp-soft: #f5f3ff;
+      --l2cap: #2563eb;
+      --l2cap-soft: #eff6ff;
+      --warn: #ea580c;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.7 "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+    .hero {
+      background: linear-gradient(155deg, #4c1d95 0%, #7c3aed 45%, #0d9488 100%);
+      color: #fff;
+      padding: 48px 24px 36px;
+      text-align: center;
+    }
+    .hero h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 34px); }
+    .hero p { margin: 0 auto; max-width: 840px; opacity: 0.92; font-size: 15px; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .badge.lmp { background: var(--lmp-soft); color: var(--lmp); }
+    .badge.l2cap { background: var(--l2cap-soft); color: var(--l2cap); }
+    .badge.csv { background: #f1f5f9; color: #475569; font-family: ui-monospace, monospace; }
+    .lead { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+    .flow-rail {
+      position: relative;
+      padding-left: 28px;
+      margin: 16px 0;
+    }
+    .flow-rail::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent), #0d9488);
+      border-radius: 2px;
+    }
+    .sig-card {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      background: #fafbfc;
+    }
+    .sig-card::before {
+      content: "";
+      position: absolute;
+      left: -22px;
+      top: 20px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .sig-card.l2cap::before { background: var(--l2cap); box-shadow: 0 0 0 4px var(--l2cap-soft); }
+    .sig-card h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .sig-meta {
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .why {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #fff;
+      border-left: 4px solid var(--accent);
+      font-size: 14px;
+    }
+    .why strong { color: #5b21b6; }
+    .optional {
+      border-left-color: var(--warn);
+      background: #fffbeb;
+    }
+    .optional strong { color: #c2410c; }
+    .hex {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .hex .a { color: #94a3b8; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+    th, td { border: 1px solid var(--border); padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    .note {
+      border-left: 4px solid var(--warn);
+      background: #fff7ed;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      margin: 14px 0;
+      color: #7c2d12;
+    }
+    nav.links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    nav.links a {
+      color: rgba(255,255,255,0.95);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 4px 12px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px;
+    }
+    .group-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 24px 0 8px;
+      padding-left: 28px;
+    }
+  
+    .seq-container {
+      background: #f8faff;
+      border: 1px solid #dde3ee;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+    .seq-container svg { display: block; max-width: 100%; height: auto; }
+
+  
+    /* ── 左侧目录导航（packet 抓包文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar) {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">Setup Complete → IO Capability</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">抓包流程 · Packet Flow</div>
+    <div class="doc-name">Setup Complete → IO Capability</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#scope">范围说明</a>
+  <a class="packet-nav-link" href="#seq">信令序列（对照 CSV）</a>
+  <a class="packet-nav-link" href="#summary">必要性汇总</a>
+  <a class="packet-nav-link" href="#next">IO Capability 之后（衔接）</a>
+  <a class="packet-nav-link" href="#相关文档">相关文档</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+  <a class="packet-nav-link doc" href="paging_to_setup_complete_packet_flow.html">Paging → Setup Complete</a>
+  <a class="packet-nav-link doc current-doc" href="setup_complete_to_io_capability_packet_flow.html">Setup → IO Capability</a>
+  <a class="packet-nav-link doc" href="bt_secure_pairing_packet_flow.html">SSP 安全配对</a>
+  <a class="packet-nav-link doc" href="sdp_packet_flow.html">SDP 服务发现</a>
+  <a class="packet-nav-link doc" href="l2cap_session_packet_flow.html">L2CAP 多会话</a>
+  <a class="packet-nav-link doc" href="hid_connection_packet_flow.html">HID 连接</a>
+  <a class="packet-nav-link doc" href="ble_first_connection_packet_flow.html">BLE 首次连接</a>
+  <a class="packet-nav-link doc" href="ble_second_connection_packet_flow.html">BLE 第二次连接</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<header class="hero">
+    <h1>从 LMP Setup Complete 到 IO Capability</h1>
+    <p>
+      <code>honor50_sunmi_bt_ota.csv</code> 第二次建链 · <strong>28.404s → 28.524s</strong>（约 120 ms）：
+      建链建立阶段已结束，进入<strong>已连接态链路参数协商</strong>，为随后 SSP 配对（IO Capability）准备稳定、可用的 ACL。
+    </p>
+    <nav class="links">
+      <a href="#scope">范围</a>
+      <a href="#seq">信令序列</a>
+      <a href="#summary">汇总表</a>
+      <a href="#next">IO 之后</a>
+    </nav>
+  </header>
+
+  <div class="packet-main container">
+    <section class="card" id="scope">
+      <h2>范围说明</h2>
+      <p class="lead">
+        <strong>起点：</strong>CSV 第 12 行 <code>LMP Setup Complete</code>（28.403912）— LMP 连接建立子状态结束。<br>
+        <strong>终点：</strong>第 27 行 <code>LMP IO Capability Transaction</code>（28.523913）— 安全配对阶段开始。<br>
+        中间共 <strong>14 条</strong> 信令（13 条 LMP + 1 条 L2CAP），不含 IO Capability 本身。
+      </p>
+      <table>
+        <tr><th>阶段属性</th><th>说明</th></tr>
+        <tr><td>连接状态</td><td>ACL 已连接，<strong>尚未加密</strong>（加密在 IO Capability 之后约 31.4s）</td></tr>
+        <tr><td>主要目的</td><td>吞吐（Slot/速率）、抗干扰（AFH）、时钟/超时、L2CAP 能力发现</td></tr>
+        <tr><td>与建链阶段的区别</td><td>Setup Complete 前完成 Version/Features/Host Connection；本段为<strong>运行参数</strong>与<strong>对称补充交换</strong></td></tr>
+      </table>
+      <div class="note">
+        28.491s、28.520s 再次出现 Version / Features，是已连接态下的<strong>双向对齐</strong>，不是第二次 paging，也不要与 Setup Complete 前那一次混为同一「建链子阶段」。
+      </div>
+    </section>
+
+    <section class="card" id="seq">
+      <h2>信令序列（对照 CSV）</h2>
+
+            <div class="seq-container" id="msc-1" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;28.403912 Setup Complete 已完成&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Max Slot Request (5 slots)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Information (ERTM|FCS)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Set AFH&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Channel Classification Request&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Timing Accuracy&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Max Slot / Auto Rate&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Version / Features (再次)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Preferred Rate&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Clock Offset&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Supervision Timeout (5s)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;28.523913 IO Capability — 配对开始&quot;}]}"></div>
+
+
+      <p class="group-title">A · 吞吐与包格式</p>
+      <div class="flow-rail">
+        <div class="sig-card">
+          <h3>① LMP Max Slot Request <span class="badge csv">28.409539 · Accepted</span></h3>
+          <div class="sig-meta">CSV 第 13 行 · 5 slots = 3.125 ms</div>
+          <p>请求允许使用最多 5-slot ACL 包（单包占用时隙更长，利于提高净荷占比）。</p>
+          <div class="why">
+            <strong>必要性：</strong>Setup Complete 时仅协商了 Packet Type（含 EDR），未固定 slot 上限。Max Slot 决定能否发大包；对后续 SDP 大属性、OTA 类业务影响明显。Accepted 表示 CloudPrint 同意在监督超时内使用 5-slot。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>② LMP Max Slot <span class="badge csv">28.488913</span></h3>
+          <div class="sig-meta">CSV 第 18 行 · 5 slots · 无 “Request” 字样</div>
+          <p>一方声明或确认当前 Max Slot 为 5（可能与 ① 或 ⑥ 的 Request 配合）。</p>
+          <div class="why optional">
+            <strong>必要性：</strong>与 Max Slot Request 配合，确保<strong>双方对当前 slot 上限一致</strong>。若仅 Request 而无确认，部分栈仍可能停留在 1-slot。属链路参数同步，非配对必需，但对吞吐<strong>强烈建议</strong>。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>③ LMP Max Slot Request <span class="badge csv">28.492664 · Accepted</span></h3>
+          <div class="sig-meta">CSV 第 21 行 · 再次 5 slots</div>
+          <p>在 Version 再交换之后又一次 Max Slot Request。</p>
+          <div class="why optional">
+            <strong>必要性：</strong>对称/重复协商——Peripheral 或 Central 在参数刷新后再次确认 5-slot。协议允许；重复本身不必须，但体现双端栈在「参数齐套」前的保守确认。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>④ LMP Auto Rate <span class="badge csv">28.490163</span></h3>
+          <div class="sig-meta">CSV 第 19 行 · Data: <code>46</code></div>
+          <p>启用自动速率适配（在 BR/EDR、FEC、包类型之间按链路质量选择）。</p>
+          <div class="why">
+            <strong>必要性：</strong>在 Preferred Rate 定基调之前或与之配合，允许控制器根据误码/功率动态调速。省略可能导致固定低速或固定高速而不适应射频环境。对本抓包后续功率控制、AFH 更新有间接意义。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>⑤ LMP Preferred Rate <span class="badge csv">28.518913</span></h3>
+          <div class="sig-meta">CSV 第 22 行</div>
+          <div class="hex">
+<span class="a">Data:</span> <span style="color:#fbbf24">48 6A</span>
+<span class="a">  BR=FEC, 1-slot · EDR=2 Mbps, 5-slot（解码摘要）</span>
+          </div>
+          <p>明确偏好：Basic Rate 用 FEC + 1-slot；EDR 用 2 Mbps + 5-slot。</p>
+          <div class="why">
+            <strong>必要性：</strong>在 Auto Rate 之上给出<strong>默认/上限偏好</strong>，减少双方速率策略冲突。没有 Preferred Rate，可能长期停留在保守 1 Mbps BR。配对前定好速率策略，可避免加密启动后大量重传。
+          </div>
+        </div>
+      </div>
+
+      <p class="group-title">B · L2CAP 能力（信令通道）</p>
+      <div class="flow-rail">
+        <div class="sig-card l2cap">
+          <h3>⑥ L2CAP Information <span class="badge l2cap">28.412039</span></h3>
+          <div class="sig-meta">CSV 第 14 行 · Extended Features Supported · ERTM | FCS</div>
+          <p>在 CID 0x0001 上交换 L2CAP 扩展特性：增强重传（ERTM）、帧校验（FCS）。</p>
+          <div class="why">
+            <strong>必要性：</strong>配对尚未开始，但上层很快要做 SDP（L2CAP PSM 0x0001）。提前发现 ERTM/FCS 能力，决定后续 Configure 是否启用增强模式。对 LMP 建链非必需，对<strong>即将进行的 L2CAP/SDP</strong>必需。本段仅 1 次；28.526s 会再交换一次（IO 之后）。
+          </div>
+        </div>
+      </div>
+
+      <p class="group-title">C · 抗干扰（AFH）</p>
+      <div class="flow-rail">
+        <div class="sig-card">
+          <h3>⑦ LMP Set AFH <span class="badge csv">28.446412</span></h3>
+          <div class="sig-meta">CSV 第 15 行 · Ch=76 · AFH enabled</div>
+          <div class="hex">
+<span class="a">Data:</span> 78 14 BE 19 00 01 FE FF FF FE FF FF FF FF FF 3F
+<span class="a">  0x78 = Set AFH · 随后为 instant、AFH mode、79 信道位图等</span>
+          </div>
+          <p>启用自适应跳频，并下发首套可用信道图（instant 对齐主时钟）。</p>
+          <div class="why">
+            <strong>必要性：</strong>2.4 GHz 环境（Wi-Fi、干扰）下维持链路质量。Features 已声明 AFH 能力后，Set AFH 是<strong>实际启用</strong>。无 AFH 仍可连接，但易掉线；配对/SDP 长事务期间尤其需要稳定跳频。抓包后期有大量 Set AFH 更新属正常维护。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>⑧ LMP Channel Classification Request <span class="badge csv">28.447663</span></h3>
+          <div class="sig-meta">CSV 第 16 行 · AFH Reporting Enabled</div>
+          <div class="hex">
+<span class="a">Data:</span> FE 10 01 40 06 40 1F
+          </div>
+          <p>请求对端参与信道分类/上报（本端解码为 AFH Reporting Enabled）。</p>
+          <div class="why">
+            <strong>必要性：</strong>与 ⑦ 配套。Central 常通过 Channel Classification 收集 Peripheral 侧感知，优化 AFH map。单独 Set AFH 可用固定图；开启 Reporting 后 map 更准。属<strong>链路质量优化</strong>，非配对硬门槛。
+          </div>
+        </div>
+      </div>
+
+      <p class="group-title">D · 时钟与链路监督</p>
+      <div class="flow-rail">
+        <div class="sig-card">
+          <h3>⑨ LMP Timing Accuracy <span class="badge csv">28.448913</span></h3>
+          <div class="sig-meta">CSV 第 17 行 · 151 ppm, Jitter=10 µs</div>
+          <p>交换时钟精度与抖动，用于休眠/嗅探等定时计算。</p>
+          <div class="why optional">
+            <strong>必要性：</strong>规范建议交换，便于 Sniff/Sniff Subrating（抓包后期可见）。配对前交换可减少后续模式切换误差。省略通常仍可配对，但定时模式可能保守。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>⑩ LMP Timing Accuracy <span class="badge csv">28.519539</span></h3>
+          <div class="sig-meta">CSV 第 23 行 · 45 ppm, Jitter=10 µs</div>
+          <p>对端回传己方 Timing Accuracy（数值与 ⑨ 不同，属正常）。</p>
+          <div class="why optional">
+            <strong>必要性：</strong>双向对称交换。双方各知对方时钟质量，用于协商 Sniff 参数。第二条为响应/反向，与 ⑨ 成对。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>⑪ LMP Clock Offset <span class="badge csv">28.521413</span></h3>
+          <div class="sig-meta">CSV 第 25 行 · 0x126B</div>
+          <p>Peripheral 向 Central 报告时钟偏移（相对主时钟），单位 slot，用于分页/重连对齐。</p>
+          <div class="why">
+            <strong>必要性：</strong>slave 必须让 master 知晓 clock offset，否则 master 难以在后续 master-slave switch 或重连时快速同步。存储 offset 后下次连接可更快 page。配对本身不依赖，但<strong>绑定后重连</strong>依赖此信息。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>⑫ LMP Supervision Timeout <span class="badge csv">28.522663</span></h3>
+          <div class="sig-meta">CSV 第 26 行 · 8000 slots = 5.000 s</div>
+          <div class="hex">
+<span class="a">Data:</span> 6E 40 1F
+<span class="a">  监督超时：链路无有效通信超过 5s 可断开</span>
+          </div>
+          <p>协商 ACL 监督超时时间。</p>
+          <div class="why">
+            <strong>必要性：</strong>防止静默死链占用资源。SSP 配对（公钥、Confirm）可能耗时数秒，需超时足够长；5s 对本抓包 28.5→31.4s 的配对间隔合理。未协商则可能用默认值，与长配对冲突导致意外断链。
+          </div>
+        </div>
+      </div>
+
+      <p class="group-title">E · 对称补充交换</p>
+      <div class="flow-rail">
+        <div class="sig-card">
+          <h3>⑬ LMP Version Exchange <span class="badge csv">28.491413</span></h3>
+          <div class="sig-meta">CSV 第 20 行 · Central 5.2 · Peripheral 6.0（与 28.372 相同）</div>
+          <p>已连接态下再次交换 LMP 版本。</p>
+          <div class="why optional">
+            <strong>必要性：</strong>部分栈在 Setup Complete 后由另一端发起对称交换，或刷新缓存。内容可与第一次相同。非规范强制第二次，但<strong>常见</strong>；跳过若双方已缓存则可能无影响。
+          </div>
+        </div>
+
+        <div class="sig-card">
+          <h3>⑭ LMP Features Exchange <span class="badge csv">28.520163</span></h3>
+          <div class="sig-meta">CSV 第 24 行 · 46 Features · 51 Features</div>
+          <p>再次交换基础特性位图。</p>
+          <div class="why optional">
+            <strong>必要性：</strong>与 ⑬ 类似，保证双向均持有最新 Features。为后续 IO Capability 中的能力判断提供一致前提。重复交换本身非必须，属实现策略。
+          </div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:20px;">
+        <strong>下一阶段起点（本页不展开）：</strong>
+        <code>28.523913 LMP IO Capability</code> — 进入 SSP 配对；详见
+        <a href="bt_secure_pairing_packet_flow.html">安全配对抓包分析</a>。
+      </div>
+    </section>
+
+    <section class="card" id="summary">
+      <h2>必要性汇总</h2>
+      <table>
+        <tr>
+          <th>序</th><th>时间</th><th>信令</th><th>CSV 行</th><th>类别</th><th>必需程度</th><th>若省略的主要风险</th>
+        </tr>
+        <tr><td>1</td><td>28.409</td><td>Max Slot Request</td><td>13</td><td>吞吐</td><td>高</td><td>长期 1-slot，吞吐低</td></tr>
+        <tr><td>2</td><td>28.412</td><td>L2CAP Information</td><td>14</td><td>L2CAP</td><td>对 SDP 高</td><td>不知 ERTM/FCS</td></tr>
+        <tr><td>3</td><td>28.446</td><td>Set AFH</td><td>15</td><td>射频</td><td>高</td><td>干扰下易断/误码</td></tr>
+        <tr><td>4</td><td>28.448</td><td>Channel Classification</td><td>16</td><td>射频</td><td>中</td><td>AFH 图不够准</td></tr>
+        <tr><td>5</td><td>28.449</td><td>Timing Accuracy</td><td>17</td><td>时钟</td><td>低～中</td><td>Sniff 定时保守</td></tr>
+        <tr><td>6</td><td>28.489</td><td>Max Slot</td><td>18</td><td>吞吐</td><td>中</td><td>slot 不同步</td></tr>
+        <tr><td>7</td><td>28.490</td><td>Auto Rate</td><td>19</td><td>速率</td><td>中</td><td>不能自适应调速</td></tr>
+        <tr><td>8</td><td>28.491</td><td>Version Exchange</td><td>20</td><td>对称</td><td>低</td><td>栈状态不一致（少见）</td></tr>
+        <tr><td>9</td><td>28.493</td><td>Max Slot Request</td><td>21</td><td>吞吐</td><td>低～中</td><td>重复确认 slot</td></tr>
+        <tr><td>10</td><td>28.519</td><td>Preferred Rate</td><td>22</td><td>速率</td><td>高</td><td>速率策略不一致</td></tr>
+        <tr><td>11</td><td>28.520</td><td>Timing Accuracy</td><td>23</td><td>时钟</td><td>低～中</td><td>缺双向精度</td></tr>
+        <tr><td>12</td><td>28.520</td><td>Features Exchange</td><td>24</td><td>对称</td><td>低</td><td>特性缓存不一致</td></tr>
+        <tr><td>13</td><td>28.521</td><td>Clock Offset</td><td>25</td><td>时钟</td><td>高（重连）</td><td>重连/page 变慢</td></tr>
+        <tr><td>14</td><td>28.523</td><td>Supervision Timeout</td><td>26</td><td>链路管理</td><td>高</td><td>配对中途超时断链</td></tr>
+      </table>
+    </section>
+
+    <section class="card" id="next">
+      <h2>IO Capability 之后（衔接）</h2>
+      <p class="lead">28.523913 起进入安全配对，本段链路参数协商即告段落。IO 之后 CSV 还有：</p>
+      <table>
+        <tr><th>时间</th><th>报文</th><th>说明</th></tr>
+        <tr><td>28.526414</td><td>L2CAP Information (ERTM|FCS)</td><td>IO 后再次 L2CAP 能力交换</td></tr>
+        <tr><td>28.527663</td><td>Extended Features (SSP/SC)</td><td>配对前再次确认 SC 能力</td></tr>
+        <tr><td>28.530790</td><td>L2CAP Fixed Channels (Signal)</td><td>固定信道支持</td></tr>
+        <tr><td>28.523913+</td><td>公钥 / Confirm / Number …</td><td>见 <a href="bt_secure_pairing_packet_flow.html">BR/EDR 安全配对抓包分析</a></td></tr>
+      </table>
+    </section>
+
+    <section class="card" id="相关文档">
+      <h2>相关文档</h2>
+      <p class="lead" style="margin:0;">
+        <a href="paging_to_setup_complete_packet_flow.html">← Paging 到 Setup Complete</a> ·
+        <a href="bt_secure_pairing_packet_flow.html">IO Capability 起安全配对 →</a> ·
+        <a href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+      </p>
+    </section>
+  </div>
+
+  
+  <script>
+
+(function () {
+  'use strict';
+  var PALETTE = [
+    { stroke: '#1565c0', fill: '#e3f2fd' },
+    { stroke: '#2e7d32', fill: '#e8f5e9' },
+    { stroke: '#e65100', fill: '#fff3e0' },
+    { stroke: '#6a1b9a', fill: '#f3e5f5' },
+    { stroke: '#c62828', fill: '#ffebee' },
+    { stroke: '#00695c', fill: '#e0f2f1' }
+  ];
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function splitLabel(label) {
+    return label.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  }
+
+  window.btPacketMsc = {
+    render: function (container, spec) {
+      if (typeof container === 'string') {
+        container = document.getElementById(container);
+      }
+      if (!container || !spec || !spec.actors || !spec.actors.length) return;
+
+      var actors = spec.actors;
+      var items = spec.messages || [];
+      var n = actors.length;
+      var padX = 24;
+      var actorW = 118;
+      var gap = Math.max(28, (720 - padX * 2 - actorW) / Math.max(1, n - 1));
+      var width = Math.max(560, padX * 2 + actorW + gap * (n - 1));
+      var xs = actors.map(function (_, i) {
+        return padX + i * gap + actorW / 2;
+      });
+
+      var rowH = 30;
+      var noteH = 34;
+      var topH = 48;
+      var y = topH;
+      var rows = [];
+
+      items.forEach(function (it) {
+        if (it.type === 'note') {
+          rows.push({ kind: 'note', text: it.text, ids: it.actors || actors.map(function (a) { return a.id; }), y: y });
+          y += noteH;
+        } else {
+          rows.push({
+            kind: 'msg',
+            from: it.from,
+            to: it.to,
+            label: it.label || '',
+            ret: !!it.return,
+            air: !!(it.air || (it.label && /\[Air\]/i.test(it.label))),
+            y: y
+          });
+          y += rowH;
+        }
+      });
+      var height = y + 28;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      actors.forEach(function (_, i) {
+        var m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        m.setAttribute('id', 'pkt-m' + i);
+        m.setAttribute('markerWidth', '7');
+        m.setAttribute('markerHeight', '7');
+        m.setAttribute('refX', '5');
+        m.setAttribute('refY', '3.5');
+        m.setAttribute('orient', 'auto');
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0,7 3.5,0 7');
+        poly.setAttribute('fill', PALETTE[i % PALETTE.length].stroke);
+        m.appendChild(poly);
+        defs.appendChild(m);
+      });
+      svg.appendChild(defs);
+
+      var idIndex = {};
+      actors.forEach(function (a, i) {
+        idIndex[a.id] = i;
+        var p = PALETTE[i % PALETTE.length];
+        var rx = xs[i] - actorW / 2;
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(rx));
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', String(actorW));
+        rect.setAttribute('height', '32');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', p.fill);
+        rect.setAttribute('stroke', p.stroke);
+        rect.setAttribute('stroke-width', '1.5');
+        svg.appendChild(rect);
+        var lines = splitLabel(a.label);
+        lines.forEach(function (ln, li) {
+          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', String(xs[i]));
+          t.setAttribute('y', String(22 + li * 11 - (lines.length - 1) * 5));
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', lines.length > 1 ? '9' : '10');
+          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('fill', p.stroke);
+          t.textContent = ln;
+          svg.appendChild(t);
+        });
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(xs[i]));
+        line.setAttribute('y1', '42');
+        line.setAttribute('x2', String(xs[i]));
+        line.setAttribute('y2', String(height - 8));
+        line.setAttribute('stroke', p.stroke);
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '4,3');
+        line.setAttribute('opacity', '0.45');
+        svg.appendChild(line);
+      });
+
+      rows.forEach(function (row) {
+        if (row.kind === 'note') {
+          var idxs = row.ids.map(function (id) { return idIndex[id]; }).filter(function (x) { return x !== undefined; });
+          if (!idxs.length) return;
+          var x0 = xs[Math.min.apply(null, idxs)] - actorW / 2;
+          var x1 = xs[Math.max.apply(null, idxs)] + actorW / 2;
+          var nr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          nr.setAttribute('x', String(x0 + 4));
+          nr.setAttribute('y', String(row.y - 4));
+          nr.setAttribute('width', String(x1 - x0 - 8));
+          nr.setAttribute('height', '22');
+          nr.setAttribute('rx', '4');
+          nr.setAttribute('fill', '#fff8e1');
+          nr.setAttribute('stroke', '#f9a825');
+          nr.setAttribute('stroke-width', '1');
+          svg.appendChild(nr);
+          var nt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          nt.setAttribute('x', String((x0 + x1) / 2));
+          nt.setAttribute('y', String(row.y + 10));
+          nt.setAttribute('text-anchor', 'middle');
+          nt.setAttribute('font-size', '9');
+          nt.setAttribute('fill', '#6d4c00');
+          nt.setAttribute('font-weight', '600');
+          nt.textContent = row.text;
+          svg.appendChild(nt);
+          return;
+        }
+        var fi = idIndex[row.from];
+        var ti = idIndex[row.to];
+        if (fi === undefined || ti === undefined) return;
+        var x1 = xs[fi];
+        var x2 = xs[ti];
+        var color = PALETTE[fi % PALETTE.length].stroke;
+        if (row.air) color = '#e65100';
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', String(x1));
+        ln.setAttribute('y1', String(row.y));
+        ln.setAttribute('x2', String(x2));
+        ln.setAttribute('y2', String(row.y));
+        ln.setAttribute('stroke', color);
+        ln.setAttribute('stroke-width', row.air ? '2' : '1.5');
+        ln.setAttribute('marker-end', 'url(#pkt-m' + ti + ')');
+        if (row.ret || row.air) ln.setAttribute('stroke-dasharray', '6,3');
+        svg.appendChild(ln);
+        var lines = splitLabel(row.label);
+        var mid = (x1 + x2) / 2;
+        lines.forEach(function (lb, li) {
+          var lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lt.setAttribute('x', String(mid));
+          lt.setAttribute('y', String(row.y - 6 - (lines.length - 1 - li) * 10));
+          lt.setAttribute('text-anchor', 'middle');
+          lt.setAttribute('font-size', '9');
+          lt.setAttribute('fill', color);
+          lt.setAttribute('font-weight', 'bold');
+          lt.textContent = lb;
+          svg.appendChild(lt);
+        });
+      });
+
+      container.innerHTML = '';
+      container.appendChild(svg);
+    }
+  };
+
+  document.querySelectorAll('.seq-container[data-msc]').forEach(function (el) {
+    try {
+      var spec = JSON.parse(el.getAttribute('data-msc'));
+      window.btPacketMsc.render(el, spec);
+    } catch (e) {
+      console.error('btPacketMsc', e);
+    }
+  });
+})();
+
+  </script>
+</div>
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

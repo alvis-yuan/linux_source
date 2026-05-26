@@ -1,0 +1,2169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙 L2CAP 协议详解 - Bluetooth Core 6.0</title>
+<style>
+  :root {
+    --blue: #0057b8;
+    --blue-dark: #003d82;
+    --blue-light: #e8f0fb;
+    --accent: #00aaff;
+    --accent2: #ff6b35;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --gray: #64748b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text2: #475569;
+    --nav-w: 280px;
+    --hdr-h: 60px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--hdr-h);
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 100%);
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+  .hdr-logo { font-size: 22px; }
+  .hdr-title { color: #fff; font-size: 17px; font-weight: 700; letter-spacing: .3px; }
+  .hdr-sub { color: rgba(255,255,255,.65); font-size: 12px; margin-left: auto; }
+  .menu-btn {
+    display: none; background: none; border: none; cursor: pointer;
+    color: #fff; font-size: 22px; margin-left: auto;
+  }
+
+  /* ===== LAYOUT ===== */
+  .layout {
+    display: flex;
+    padding-top: var(--hdr-h);
+    min-height: 100vh;
+  }
+
+  /* ===== SIDEBAR ===== */
+  aside {
+    width: var(--nav-w);
+    flex-shrink: 0;
+    position: fixed;
+    top: var(--hdr-h);
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid var(--border);
+    padding: 12px 0 24px;
+    z-index: 90;
+  }
+  aside::-webkit-scrollbar { width: 4px; }
+  aside::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+  .nav-section-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    color: var(--gray); text-transform: uppercase;
+    padding: 10px 18px 4px;
+  }
+  .nav-item {
+    display: block; padding: 7px 18px 7px 22px;
+    color: var(--text2); font-size: 13px; text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all .18s;
+    cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nav-item:hover { background: var(--blue-light); color: var(--blue); }
+  .nav-item.active { border-left-color: var(--blue); background: var(--blue-light); color: var(--blue); font-weight: 600; }
+  .nav-item.sub { padding-left: 32px; font-size: 12px; }
+  .nav-item.sub2 { padding-left: 42px; font-size: 11.5px; }
+  .nav-divider { height: 1px; background: var(--border); margin: 8px 12px; }
+
+  /* ===== MAIN ===== */
+  main {
+    margin-left: var(--nav-w);
+    flex: 1;
+    padding: 36px 40px 80px;
+    max-width: calc(100% - var(--nav-w));
+  }
+
+  /* ===== SECTION ===== */
+  .section {
+    margin-bottom: 60px;
+    scroll-margin-top: calc(var(--hdr-h) + 20px);
+  }
+  .section-badge {
+    display: inline-block; background: var(--blue); color: #fff;
+    font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 20px;
+    margin-bottom: 8px; letter-spacing: .5px;
+  }
+  h1 { font-size: 28px; color: var(--blue-dark); margin-bottom: 6px; }
+  h2 { font-size: 22px; color: var(--blue-dark); margin-bottom: 10px;
+       padding-bottom: 8px; border-bottom: 2px solid var(--blue-light); }
+  h3 { font-size: 17px; color: var(--blue); margin: 20px 0 8px; }
+  h4 { font-size: 14px; color: var(--text); margin: 16px 0 6px; font-weight: 700; }
+  p { color: var(--text2); margin-bottom: 10px; font-size: 14.5px; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin: 16px 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  }
+  .card-title {
+    font-size: 13px; font-weight: 700; color: var(--blue);
+    text-transform: uppercase; letter-spacing: .8px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::before {
+    content: ''; display: block; width: 4px; height: 16px;
+    background: var(--blue); border-radius: 2px;
+  }
+
+  /* ===== INFO BOX ===== */
+  .info-box {
+    border-radius: 10px; padding: 14px 18px; margin: 14px 0;
+    font-size: 13.5px; display: flex; gap: 12px;
+  }
+  .info-box.blue { background: #e8f0fb; border-left: 4px solid var(--blue); color: #1a3a6e; }
+  .info-box.yellow { background: #fffbeb; border-left: 4px solid var(--yellow); color: #7c5a00; }
+  .info-box.green { background: #f0fdf4; border-left: 4px solid var(--green); color: #166534; }
+  .info-box.red { background: #fef2f2; border-left: 4px solid var(--red); color: #991b1b; }
+  .info-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ===== SVG DIAGRAMS ===== */
+  .diagram-wrap {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    margin: 18px 0; overflow-x: auto;
+  }
+  .diagram-title {
+    text-align: center; font-size: 13px; font-weight: 600; color: var(--gray);
+    margin-bottom: 14px;
+  }
+  svg { display: block; margin: 0 auto; }
+
+  /* ===== TABLE ===== */
+  .tbl-wrap { overflow-x: auto; margin: 14px 0; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--blue); color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  tr:hover td { background: var(--blue-light); }
+
+  /* ===== TAG LIST ===== */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .tag {
+    padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    background: var(--blue-light); color: var(--blue);
+  }
+  .tag.green { background: #f0fdf4; color: #166534; }
+  .tag.orange { background: #fff7ed; color: #9a3412; }
+  .tag.gray { background: #f1f5f9; color: var(--gray); }
+
+  /* ===== GRID ===== */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 14px 0; }
+  .mini-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .mini-card h4 { color: var(--blue); font-size: 13px; margin: 0 0 6px; }
+  .mini-card p { font-size: 12.5px; margin: 0; }
+
+  /* ===== CODE ===== */
+  code {
+    background: #f1f5f9; color: #0f172a; font-family: 'Cascadia Code','Fira Code',monospace;
+    font-size: 12px; padding: 2px 6px; border-radius: 4px;
+  }
+  pre {
+    background: #0f172a; color: #e2e8f0; border-radius: 10px;
+    padding: 18px; font-size: 12px; overflow-x: auto; margin: 12px 0;
+    font-family: 'Cascadia Code','Fira Code',monospace; line-height: 1.6;
+  }
+
+  /* ===== TIMELINE / STEPS ===== */
+  .steps { margin: 14px 0; }
+  .step {
+    display: flex; gap: 16px; margin-bottom: 14px;
+  }
+  .step-num {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    background: var(--blue); color: #fff; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 2px;
+  }
+  .step-body h4 { margin: 0 0 4px; font-size: 14px; }
+  .step-body p { margin: 0; font-size: 13px; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 900px) {
+    :root { --nav-w: 0px; }
+    aside { transform: translateX(-280px); transition: transform .25s; width: 280px; }
+    aside.open { transform: translateX(0); }
+    main { margin-left: 0; max-width: 100%; padding: 24px 18px 60px; }
+    .menu-btn { display: block; }
+    .hdr-sub { display: none; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 500px) {
+    h1 { font-size: 22px; }
+    h2 { font-size: 18px; }
+    main { padding: 16px 12px 60px; }
+  }
+
+  /* scroll indicator */
+  #progress-bar {
+    position: fixed; top: var(--hdr-h); left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transform-origin: left; transform: scaleX(0);
+    z-index: 200; transition: transform .1s;
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<div id="progress-bar"></div>
+
+<header>
+  <span class="hdr-logo">🔵</span>
+  <div>
+    <div class="hdr-title">蓝牙 L2CAP 协议详解</div>
+  </div>
+  <span class="hdr-sub">Bluetooth Core Spec 6.0 · Part A</span>
+  <button type="button" class="menu-btn" aria-label="菜单">☰</button>
+</header>
+
+<div class="layout">
+<aside id="sidebar">
+  <div class="nav-section-title">概览</div>
+  <a class="nav-item" onclick="nav('s0')">📋 协议概述</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第1章 · 介绍</div>
+  <a class="nav-item" onclick="nav('s1')">1. 介绍</a>
+  <a class="nav-item sub" onclick="nav('s1-1')">1.1 L2CAP 功能特性</a>
+  <a class="nav-item sub" onclick="nav('s1-2')">1.2 协议假设</a>
+  <a class="nav-item sub" onclick="nav('s1-3')">1.3 范围</a>
+  <a class="nav-item sub" onclick="nav('s1-4')">1.4 术语定义</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第2章 · 信道标识符</div>
+  <a class="nav-item" onclick="nav('s2')">2. 信道标识符 (CID)</a>
+  <a class="nav-item sub" onclick="nav('s2-1')">2.1 空标识符</a>
+  <a class="nav-item sub" onclick="nav('s2-2')">2.2 固定信道</a>
+  <a class="nav-item sub" onclick="nav('s2-3')">2.3 动态分配信道</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第3章 · 操作模式</div>
+  <a class="nav-item" onclick="nav('s3')">3. 操作模式</a>
+  <a class="nav-item sub" onclick="nav('s3-1')">3.1 基本 L2CAP 模式</a>
+  <a class="nav-item sub" onclick="nav('s3-2')">3.2 无连接数据信道</a>
+  <a class="nav-item sub" onclick="nav('s3-3')">3.3 流量控制模式</a>
+  <a class="nav-item sub" onclick="nav('s3-4')">3.4 重传模式</a>
+  <a class="nav-item sub" onclick="nav('s3-5')">3.5 增强重传模式</a>
+  <a class="nav-item sub" onclick="nav('s3-6')">3.6 流媒体模式</a>
+  <a class="nav-item sub" onclick="nav('s3-7')">3.7 LE 信用流控模式</a>
+  <a class="nav-item sub" onclick="nav('s3-8')">3.8 增强信用流控模式</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第4章 · 信令包格式</div>
+  <a class="nav-item" onclick="nav('s4')">4. 信令包格式</a>
+  <a class="nav-item sub" onclick="nav('s4-1')">4.1 命令拒绝</a>
+  <a class="nav-item sub" onclick="nav('s4-2')">4.2 连接请求/响应</a>
+  <a class="nav-item sub" onclick="nav('s4-3')">4.3 配置请求/响应</a>
+  <a class="nav-item sub" onclick="nav('s4-4')">4.4 断连请求/响应</a>
+  <a class="nav-item sub" onclick="nav('s4-5')">4.5 信息请求/响应</a>
+  <a class="nav-item sub" onclick="nav('s4-6')">4.6 LE 信用连接请求</a>
+  <a class="nav-item sub" onclick="nav('s4-7')">4.7 流量控制信用指示</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第5章 · 配置参数</div>
+  <a class="nav-item" onclick="nav('s5')">5. 配置参数选项</a>
+  <a class="nav-item sub" onclick="nav('s5-1')">5.1 MTU 选项</a>
+  <a class="nav-item sub" onclick="nav('s5-2')">5.2 刷新超时选项</a>
+  <a class="nav-item sub" onclick="nav('s5-3')">5.3 服务质量 (QoS)</a>
+  <a class="nav-item sub" onclick="nav('s5-4')">5.4 重传与流控选项</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第6章 · 状态机</div>
+  <a class="nav-item" onclick="nav('s6')">6. 状态机</a>
+  <a class="nav-item sub" onclick="nav('s6-1')">6.1 信道状态</a>
+  <a class="nav-item sub" onclick="nav('s6-2')">6.2 状态转换</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第7章 · PDU 格式</div>
+  <a class="nav-item" onclick="nav('s7')">7. PDU 格式规范</a>
+  <a class="nav-item sub" onclick="nav('s7-1')">7.1 B-frame 格式</a>
+  <a class="nav-item sub" onclick="nav('s7-2')">7.2 I-frame 格式</a>
+  <a class="nav-item sub" onclick="nav('s7-3')">7.3 S-frame 格式</a>
+  <a class="nav-item sub" onclick="nav('s7-4')">7.4 K-frame 格式</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第8章 · 增强重传</div>
+  <a class="nav-item" onclick="nav('s8')">8. 增强重传与流控</a>
+  <a class="nav-item sub" onclick="nav('s8-1')">8.1 发送 I-frame</a>
+  <a class="nav-item sub" onclick="nav('s8-2')">8.2 接收 I-frame</a>
+  <a class="nav-item sub" onclick="nav('s8-3')">8.3 确认机制</a>
+  <a class="nav-item sub" onclick="nav('s8-4')">8.4 SREJ 状态</a>
+  <a class="nav-item sub" onclick="nav('s8-5')">8.5 流媒体模式细节</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">第10章 · 信用流控</div>
+  <a class="nav-item" onclick="nav('s10')">10. 信用流控过程</a>
+  <a class="nav-item sub" onclick="nav('s10-1')">10.1 LE 信用流控</a>
+  <a class="nav-item sub" onclick="nav('s10-2')">10.2 增强信用流控</a>
+  <div class="nav-divider"></div>
+
+  <div class="nav-section-title">附录</div>
+  <a class="nav-item" onclick="nav('sA')">附录 A · 配置 MSC 示例</a>
+  <a class="nav-item" onclick="nav('sB')">附录 B · 信令包名称变更</a>
+</aside>
+
+<main>
+
+<!-- ===== OVERVIEW ===== -->
+<section class="section" id="s0">
+  <div class="section-badge">OVERVIEW</div>
+  <h1>蓝牙 L2CAP 协议完全指南</h1>
+  <p style="font-size:15px;color:var(--text2);">
+    L2CAP（逻辑链路控制与适配协议）是蓝牙协议栈中的核心层，位于 HCI 之上、应用/高层协议之下。
+    本文档严格按照蓝牙核心规范 6.0 的章节顺序，逐节解读 L2CAP 的设计目标、数据结构与状态机行为，并配以可视化图表辅助理解。
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">图0-1：蓝牙协议栈总览与 L2CAP 位置</div>
+    <svg width="700" height="320" viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0057b8"/>
+          <stop offset="100%" stop-color="#003d82"/>
+        </linearGradient>
+        <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#22c55e"/>
+          <stop offset="100%" stop-color="#16a34a"/>
+        </linearGradient>
+        <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+        <linearGradient id="g4" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8b5cf6"/>
+          <stop offset="100%" stop-color="#7c3aed"/>
+        </linearGradient>
+      </defs>
+      <!-- Upper layers -->
+      <rect x="40" y="10" width="620" height="50" rx="8" fill="url(#g2)"/>
+      <text x="350" y="31" text-anchor="middle" fill="white" font-size="13" font-weight="bold">应用层 / 高层协议</text>
+      <text x="350" y="48" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="11">RFCOMM · SDP · AVDTP · ATT · SMP</text>
+
+      <!-- L2CAP -->
+      <rect x="40" y="80" width="620" height="70" rx="8" fill="url(#g1)"/>
+      <text x="350" y="102" text-anchor="middle" fill="white" font-size="15" font-weight="bold">L2CAP（逻辑链路控制与适配协议）★</text>
+      <text x="350" y="120" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="11">协议复用 · 分段重组 · 流量控制 · 错误控制 · QoS · 信道管理</text>
+      <text x="350" y="138" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="10">Channel Manager · Retransmission &amp; Flow Control · Resource Manager</text>
+
+      <!-- HCI -->
+      <rect x="40" y="170" width="620" height="44" rx="8" fill="url(#g3)"/>
+      <text x="350" y="189" text-anchor="middle" fill="white" font-size="13" font-weight="bold">HCI（主机控制接口）</text>
+      <text x="350" y="206" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="11">USB / UART / SDIO / SPI</text>
+
+      <!-- Controller -->
+      <rect x="40" y="234" width="195" height="70" rx="8" fill="url(#g4)"/>
+      <text x="137" y="263" text-anchor="middle" fill="white" font-size="12" font-weight="bold">BR/EDR 控制器</text>
+      <text x="137" y="280" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">LMP · Baseband</text>
+      <text x="137" y="296" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="10">ACL-U / SCO-S</text>
+
+      <rect x="253" y="234" width="195" height="70" rx="8" fill="url(#g4)"/>
+      <text x="350" y="263" text-anchor="middle" fill="white" font-size="12" font-weight="bold">BR/EDR/LE 控制器</text>
+      <text x="350" y="280" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">LMP · LL · Baseband</text>
+      <text x="350" y="296" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="10">ACL-U / LE-U</text>
+
+      <rect x="466" y="234" width="195" height="70" rx="8" fill="url(#g4)"/>
+      <text x="563" y="263" text-anchor="middle" fill="white" font-size="12" font-weight="bold">LE 控制器</text>
+      <text x="563" y="280" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">Link Layer</text>
+      <text x="563" y="296" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="10">LE-U</text>
+
+      <!-- Arrows -->
+      <line x1="350" y1="60" x2="350" y2="80" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="350" y1="150" x2="350" y2="170" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+      <line x1="350" y1="214" x2="350" y2="234" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"/>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 z" fill="#94a3b8"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="grid-3">
+    <div class="mini-card">
+      <h4>🔗 连接复用</h4>
+      <p>在同一 ACL 逻辑链路上，通过 CID 标识多个独立的 L2CAP 信道，实现多协议共存。</p>
+    </div>
+    <div class="mini-card">
+      <h4>✂️ 分段与重组</h4>
+      <p>将上层大数据包（SDU，最大 64KB）切分为适合 Controller 传输的小帧（PDU）并在接收端重组。</p>
+    </div>
+    <div class="mini-card">
+      <h4>🚦 流量与错误控制</h4>
+      <p>提供基于窗口的流控机制和 PDU 重传，确保高可靠性数据传输。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 1 ===== -->
+<section class="section" id="s1">
+  <div class="section-badge">SECTION 1</div>
+  <h2>1. 介绍（Introduction）</h2>
+  <p>
+    L2CAP 是蓝牙主机协议栈中的核心层，为高层协议和应用提供 <strong>面向连接</strong> 和 <strong>无连接</strong> 的数据服务，
+    并具备 <strong>协议复用</strong>、<strong>分段重组（SAR）</strong> 能力，允许传输最大 64KB 的 SDU。
+    L2CAP 位于一个或多个 Controller 逻辑链路之上，提供 L2CAP 信道（逻辑信道），并被高层协议（如 RFCOMM、SDP、ATT）所使用。
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">图1-1：L2CAP 架构模块（L2CAP Architectural Blocks）</div>
+    <svg width="680" height="270" viewBox="0 0 680 270" xmlns="http://www.w3.org/2000/svg">
+      <!-- Upper Layer -->
+      <rect x="20" y="10" width="640" height="40" rx="6" fill="#e8f0fb" stroke="#0057b8" stroke-width="1.5"/>
+      <text x="340" y="35" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">上层协议 / 应用（Upper Layer Protocols &amp; Applications）</text>
+
+      <!-- L2CAP box -->
+      <rect x="20" y="65" width="640" height="150" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+      <text x="340" y="58" text-anchor="middle" fill="#64748b" font-size="11">L2CAP 层内部结构</text>
+
+      <!-- Channel Manager -->
+      <rect x="40" y="80" width="180" height="120" rx="6" fill="#0057b8" stroke="none"/>
+      <text x="130" y="108" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Channel Manager</text>
+      <text x="130" y="126" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="10">信道管理器</text>
+      <text x="130" y="144" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 控制平面功能</text>
+      <text x="130" y="158" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 内部/对等信令</text>
+      <text x="130" y="172" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 状态机管理</text>
+      <text x="130" y="186" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 信道建立/释放</text>
+
+      <!-- Retransmission & Flow Control -->
+      <rect x="250" y="80" width="200" height="120" rx="6" fill="#7c3aed" stroke="none"/>
+      <text x="350" y="104" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Retransmission &amp;</text>
+      <text x="350" y="120" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Flow Control</text>
+      <text x="350" y="138" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="10">重传与流控模块</text>
+      <text x="350" y="154" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 每信道流控</text>
+      <text x="350" y="168" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 错误恢复/重传</text>
+      <text x="350" y="182" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• ERTM / FM / SM</text>
+
+      <!-- Resource Manager -->
+      <rect x="480" y="80" width="160" height="120" rx="6" fill="#d97706" stroke="none"/>
+      <text x="560" y="108" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Resource Manager</text>
+      <text x="560" y="126" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="10">资源管理器</text>
+      <text x="560" y="144" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 帧中继服务</text>
+      <text x="560" y="160" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 收发协调</text>
+      <text x="560" y="176" text-anchor="middle" fill="rgba(255,255,255,.75)" font-size="10">• 多信道复用</text>
+
+      <!-- Lower Layer -->
+      <rect x="20" y="230" width="640" height="35" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+      <text x="340" y="252" text-anchor="middle" fill="#92400e" font-size="13" font-weight="bold">下层接口（HCI / Controller · ACL / LE 逻辑链路）</text>
+
+      <!-- Arrows up -->
+      <line x1="340" y1="50" x2="340" y2="65" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="340" y1="215" x2="340" y2="230" stroke="#d97706" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <defs>
+        <marker id="arr2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 z" fill="#94a3b8"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+</section>
+
+<!-- 1.1 -->
+<section class="section" id="s1-1">
+  <h3>1.1 L2CAP 功能特性（L2CAP Features）</h3>
+  <p>L2CAP 的功能需求覆盖以下七大核心特性，缺一不可：</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🔀 协议/信道复用</div>
+      <p>在同一 Controller 之上，通过协议复用将连接路由到正确的上层协议（如 RFCOMM、ATT 等），通过逻辑信道复用区分多个上层实体。</p>
+      <div class="info-box blue"><span class="info-icon">ℹ️</span><span>L2CAP 信道只能在一个 Controller 上运行，不能在 Controller 之间迁移。</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">✂️ 分段与重组（SAR）</div>
+      <p>Resource Manager 允许应用控制传输帧长度，L2CAP 控制 PDU 长度带来以下好处：</p>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><p>交错传输不同应用数据以满足时延需求</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><p>更容易进行内存和缓冲区管理</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><p>提升重传效率，减少损失数据量</p></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚦 每信道流控</div>
+      <p>当多个数据流共享同一 Controller 时，每个 L2CAP 信道需要独立流控。L2CAP 提供 <strong>基于窗口（Window-based）</strong> 的流控方案。</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔁 错误控制与重传</div>
+      <p>L2CAP 提供 PDU 级别的错误检测和重传，保护传输免受 Controller 伪接收错误和刷新丢包的影响。</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🎵 流媒体支持</div>
+      <p>音频等流媒体应用以固定速率传输数据，不需要流控干预。通过刷新超时（Flush Timeout）和流媒体模式（Streaming Mode）绕过流控机制。</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🧩 分片与重组合</div>
+      <p>低层（HCI、Controller）可能进一步分片 L2CAP PDU，接收方 L2CAP 层将所有分片重组为原始 PDU。</p>
+      <div class="info-box yellow"><span class="info-icon">⚠️</span><span>不同层次、不同设备的分片大小可能不同，但最终 PDU 保持完整。</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 服务质量（QoS）</div>
+    <p>L2CAP 连接建立过程允许两端交换 QoS 期望信息。通过设置 HCI ACL 数据包的 <code>Packet_Boundary_Flag</code>，可同时支持：</p>
+    <div class="grid-2">
+      <div class="mini-card">
+        <h4>等时（Guaranteed）</h4>
+        <p>可自动刷新的 L2CAP 包，按照 ACL 链路的自动刷新超时进行刷新，适用于实时流媒体。</p>
+      </div>
+      <div class="mini-card">
+        <h4>异步（Best Effort）</h4>
+        <p>不可自动刷新的 L2CAP 包，不受自动刷新超时影响，可用 HCI_Flush 命令手动刷新。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 1.2 -->
+<section class="section" id="s1-2">
+  <h3>1.2 协议假设（Assumptions）</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>有序交付</h4>
+        <p>Controller 提供有序数据包交付，允许单包损坏或重复。BR/EDR/LE 设备间任意两设备间最多只有一条 ACL-U 和一条 LE-U 逻辑链路。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>全双工信道</h4>
+        <p>Controller 始终提供全双工通信的表象。单向流量不要求双向信道，但接口始终具备双向能力。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>有限可靠性</h4>
+        <p>L2CAP 提供一定程度的可靠性，通过分段、错误检测和重传增强。某些 Controller 会在超时后丢弃数据（flush）。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>四种流控/错控模式</h4>
+        <p>增强重传模式、重传模式、流控模式、流媒体模式——涵盖从高可靠到低延时的各种需求。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 1.3 -->
+<section class="section" id="s1-3">
+  <h3>1.3 范围（Scope）</h3>
+  <div class="info-box red">
+    <span class="info-icon">🚫</span>
+    <div>
+      <strong>L2CAP 不处理以下内容：</strong><br>
+      • 不传输用于 SCO 或 eSCO 逻辑传输的同步数据（语音/实时音频由 Baseband 直接处理）<br>
+      • 不支持可靠广播信道（Connectionless Data Channel 不提供可靠广播）
+    </div>
+  </div>
+</section>
+
+<!-- 1.4 -->
+<section class="section" id="s1-4">
+  <h3>1.4 术语定义（Terminology）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>术语</th><th>英文</th><th>定义说明</th></tr>
+      <tr><td><strong>上层</strong></td><td>Upper Layer</td><td>L2CAP 之上的系统层，以 SDU 形式与 L2CAP 交换数据（如 RFCOMM、ATT 等应用或协议实体）</td></tr>
+      <tr><td><strong>下层</strong></td><td>Lower Layer</td><td>L2CAP 之下的系统层，以 PDU 或 PDU 分片形式交换数据（Controller 或 HCI Host 驱动）</td></tr>
+      <tr><td><strong>L2CAP 信道</strong></td><td>L2CAP Channel</td><td>两个对等设备端点之间的逻辑连接，由 CID 标识，复用于一条基于 Controller 的逻辑链路</td></tr>
+      <tr><td><strong>SDU</strong></td><td>Service Data Unit</td><td>L2CAP 与上层交换的数据包，最大 64KB，不含 L2CAP 协议信息</td></tr>
+      <tr><td><strong>段</strong></td><td>Segment / SDU Segment</td><td>SDU 经分段程序切分后的部分（仅用于 ERTM、FM、SM 等模式，非 Basic Mode）</td></tr>
+      <tr><td><strong>分段</strong></td><td>Segmentation</td><td>将 SDU 切分为一个或多个更小单元（段）以便在 L2CAP 信道上传输</td></tr>
+      <tr><td><strong>重组</strong></td><td>Reassembly</td><td>与分段相反，将收到的段重组为完整 SDU 供上层使用</td></tr>
+      <tr><td><strong>PDU</strong></td><td>Protocol Data Unit</td><td>包含 L2CAP 协议信息的数据包，以 Basic L2CAP Header 开头，类型有 B-frame、I-frame、S-frame、C-frame、G-frame、K-frame</td></tr>
+      <tr><td><strong>Basic L2CAP Header</strong></td><td>—</td><td>每个 PDU 开头必备的最小协议信息：PDU 长度字段 + CID 字段</td></tr>
+      <tr><td><strong>PSM</strong></td><td>Protocol/Service Multiplexer</td><td>标识使用 L2CAP 信道的上层协议或服务</td></tr>
+      <tr><td><strong>CID</strong></td><td>Channel Identifier</td><td>16位无符号整数，标识 L2CAP 信道端点，用于复用</td></tr>
+      <tr><td><strong>MTU</strong></td><td>Maximum Transmission Unit</td><td>信道允许接收的最大 SDU 字节数</td></tr>
+      <tr><td><strong>MPS</strong></td><td>Maximum PDU Payload Size</td><td>信道允许接收的最大 PDU 负载字节数</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ===== SECTION 2 ===== -->
+<section class="section" id="s2">
+  <div class="section-badge">SECTION 2</div>
+  <h2>2. 信道标识符（Channel Identifiers, CID）</h2>
+  <p>
+    CID 是 16 位无符号整数，用于在对等设备的 L2CAP 层之间标识一个逻辑信道端点。
+    CID 是本地端点标识符，两端的 CID 可以不同（在动态分配信道中几乎总是不同）。
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">图2-1：CID 空间分布</div>
+    <svg width="660" height="180" viewBox="0 0 660 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background -->
+      <rect x="10" y="60" width="640" height="60" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1"/>
+
+      <!-- Null -->
+      <rect x="10" y="60" width="55" height="60" rx="6" fill="#ef4444"/>
+      <text x="37" y="86" text-anchor="middle" fill="white" font-size="11" font-weight="bold">NULL</text>
+      <text x="37" y="101" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="9">0x0000</text>
+      <text x="37" y="40" text-anchor="middle" fill="#ef4444" font-size="10">空标识符</text>
+
+      <!-- Fixed BR/EDR -->
+      <rect x="70" y="60" width="145" height="60" rx="6" fill="#0057b8"/>
+      <text x="142" y="82" text-anchor="middle" fill="white" font-size="11" font-weight="bold">固定信道</text>
+      <text x="142" y="97" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="10">BR/EDR</text>
+      <text x="142" y="110" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">0x0001–0x003F</text>
+      <text x="142" y="40" text-anchor="middle" fill="#0057b8" font-size="10">BR/EDR 固定信道</text>
+
+      <!-- Dynamic BR/EDR -->
+      <rect x="220" y="60" width="180" height="60" rx="6" fill="#22c55e"/>
+      <text x="310" y="82" text-anchor="middle" fill="white" font-size="11" font-weight="bold">动态分配</text>
+      <text x="310" y="97" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="10">BR/EDR</text>
+      <text x="310" y="110" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">0x0040–0xFFFF</text>
+      <text x="310" y="40" text-anchor="middle" fill="#22c55e" font-size="10">BR/EDR 动态信道</text>
+
+      <!-- Fixed LE -->
+      <rect x="407" y="60" width="120" height="60" rx="6" fill="#7c3aed"/>
+      <text x="467" y="82" text-anchor="middle" fill="white" font-size="11" font-weight="bold">固定信道</text>
+      <text x="467" y="97" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="10">LE</text>
+      <text x="467" y="110" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">0x0001–0x003F</text>
+      <text x="467" y="40" text-anchor="middle" fill="#7c3aed" font-size="10">LE 固定信道</text>
+
+      <!-- Dynamic LE -->
+      <rect x="532" y="60" width="118" height="60" rx="6" fill="#f59e0b"/>
+      <text x="591" y="82" text-anchor="middle" fill="white" font-size="11" font-weight="bold">动态分配</text>
+      <text x="591" y="97" text-anchor="middle" fill="rgba(255,255,255,.9)" font-size="10">LE</text>
+      <text x="591" y="110" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">0x0040–0x007F</text>
+      <text x="591" y="40" text-anchor="middle" fill="#f59e0b" font-size="10">LE 动态信道</text>
+
+      <!-- Ruler -->
+      <text x="10" y="150" fill="#64748b" font-size="10">0x0000</text>
+      <text x="640" y="150" text-anchor="end" fill="#64748b" font-size="10">0xFFFF</text>
+      <text x="325" y="165" text-anchor="middle" fill="#94a3b8" font-size="10">CID 取值范围（16位）</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s2-1">
+  <h3>2.1 空标识符（Null Identifier, 0x0000）</h3>
+  <div class="info-box red">
+    <span class="info-icon">🚫</span>
+    <span>CID 0x0000 为空标识符（Null Identifier），不可用于任何 L2CAP 连接。任何包含此 CID 的包均为非法包，应丢弃。</span>
+  </div>
+</section>
+
+<section class="section" id="s2-2">
+  <h3>2.2 固定信道（Fixed Channels）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>CID</th><th>描述</th><th>适用于</th></tr>
+      <tr><td><code>0x0001</code></td><td>L2CAP 信令信道（L2CAP Signaling Channel）</td><td>BR/EDR</td></tr>
+      <tr><td><code>0x0002</code></td><td>无连接数据信道（Connectionless Data Channel）</td><td>BR/EDR</td></tr>
+      <tr><td><code>0x0003</code></td><td>AMP 管理协议（AMP Manager Protocol）</td><td>BR/EDR</td></tr>
+      <tr><td><code>0x0004</code></td><td>属性协议（ATT）信道</td><td>LE</td></tr>
+      <tr><td><code>0x0005</code></td><td>LE L2CAP 信令信道</td><td>LE</td></tr>
+      <tr><td><code>0x0006</code></td><td>安全管理协议（SMP）信道</td><td>LE</td></tr>
+      <tr><td><code>0x0007</code></td><td>安全管理协议（SMP）信道（BR/EDR）</td><td>BR/EDR</td></tr>
+      <tr><td><code>0x0008–0x003E</code></td><td>保留</td><td>—</td></tr>
+      <tr><td><code>0x003F</code></td><td>AMP 测试管理器</td><td>BR/EDR</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="s2-3">
+  <h3>2.3 动态分配信道（Dynamically Allocated Channels）</h3>
+  <p>
+    动态信道在连接建立时按需分配，连接释放后 CID 归还。<strong>BR/EDR</strong> 的动态范围是 <code>0x0040–0xFFFF</code>，
+    <strong>LE</strong> 的动态范围是 <code>0x0040–0x007F</code>。动态信道需要通过信令包（L2CAP_CONNECTION_REQ / RSP）建立。
+  </p>
+  <div class="info-box blue">
+    <span class="info-icon">ℹ️</span>
+    <span>发起方和响应方各自独立分配本地 CID，通过信令包将对方的 CID（Destination CID）告知本地，形成双向信道映射。</span>
+  </div>
+</section>
+
+<!-- ===== SECTION 3 ===== -->
+<section class="section" id="s3">
+  <div class="section-badge">SECTION 3</div>
+  <h2>3. 操作模式（Operational Modes）</h2>
+  <p>
+    L2CAP 支持多种操作模式，每种模式具有不同的流控、错误控制和分段能力，适用于不同场景。
+    模式在信道配置阶段通过协商确定。
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">图3-1：L2CAP 操作模式对比</div>
+    <svg width="680" height="240" viewBox="0 0 680 240" xmlns="http://www.w3.org/2000/svg">
+      <!-- Header -->
+      <rect x="10" y="10" width="660" height="30" rx="4" fill="#0057b8"/>
+      <text x="95" y="30" text-anchor="middle" fill="white" font-size="12" font-weight="bold">模式</text>
+      <text x="250" y="30" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SAR</text>
+      <text x="370" y="30" text-anchor="middle" fill="white" font-size="12" font-weight="bold">流控</text>
+      <text x="480" y="30" text-anchor="middle" fill="white" font-size="12" font-weight="bold">错误控制/重传</text>
+      <text x="610" y="30" text-anchor="middle" fill="white" font-size="12" font-weight="bold">适用</text>
+
+      <!-- Rows -->
+      <rect x="10" y="40" width="660" height="28" rx="0" fill="#f8fafc"/>
+      <text x="95" y="59" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">Basic L2CAP Mode</text>
+      <text x="250" y="59" text-anchor="middle" fill="#64748b" font-size="12">✗</text>
+      <text x="370" y="59" text-anchor="middle" fill="#64748b" font-size="12">✗</text>
+      <text x="480" y="59" text-anchor="middle" fill="#64748b" font-size="12">✗</text>
+      <text x="610" y="59" text-anchor="middle" fill="#64748b" font-size="11">BR/EDR</text>
+
+      <rect x="10" y="68" width="660" height="28" rx="0" fill="#fff"/>
+      <text x="95" y="87" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">Flow Control Mode</text>
+      <text x="250" y="87" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="370" y="87" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="480" y="87" text-anchor="middle" fill="#64748b" font-size="12">✗</text>
+      <text x="610" y="87" text-anchor="middle" fill="#64748b" font-size="11">BR/EDR</text>
+
+      <rect x="10" y="96" width="660" height="28" rx="0" fill="#f8fafc"/>
+      <text x="95" y="115" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">Retransmission Mode</text>
+      <text x="250" y="115" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="370" y="115" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="480" y="115" text-anchor="middle" fill="#22c55e" font-size="12">✓（基本）</text>
+      <text x="610" y="115" text-anchor="middle" fill="#64748b" font-size="11">BR/EDR</text>
+
+      <rect x="10" y="124" width="660" height="28" rx="0" fill="#fff"/>
+      <text x="95" y="143" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">Enhanced Retransmission</text>
+      <text x="250" y="143" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="370" y="143" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="480" y="143" text-anchor="middle" fill="#22c55e" font-size="12">✓（SREJ/REJ）</text>
+      <text x="610" y="143" text-anchor="middle" fill="#64748b" font-size="11">BR/EDR</text>
+
+      <rect x="10" y="152" width="660" height="28" rx="0" fill="#f8fafc"/>
+      <text x="95" y="171" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">Streaming Mode</text>
+      <text x="250" y="171" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="370" y="171" text-anchor="middle" fill="#64748b" font-size="12">✗</text>
+      <text x="480" y="171" text-anchor="middle" fill="#64748b" font-size="12">✗（丢包不重传）</text>
+      <text x="610" y="171" text-anchor="middle" fill="#64748b" font-size="11">BR/EDR</text>
+
+      <rect x="10" y="180" width="660" height="28" rx="0" fill="#fff"/>
+      <text x="95" y="199" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">LE Credit-Based FC</text>
+      <text x="250" y="199" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="370" y="199" text-anchor="middle" fill="#22c55e" font-size="12">✓（信用）</text>
+      <text x="480" y="199" text-anchor="middle" fill="#64748b" font-size="12">无重传</text>
+      <text x="610" y="199" text-anchor="middle" fill="#64748b" font-size="11">LE</text>
+
+      <rect x="10" y="208" width="660" height="28" rx="0" fill="#f8fafc"/>
+      <text x="95" y="227" text-anchor="middle" fill="#0057b8" font-size="12" font-weight="600">Enhanced Credit-Based FC</text>
+      <text x="250" y="227" text-anchor="middle" fill="#22c55e" font-size="12">✓</text>
+      <text x="370" y="227" text-anchor="middle" fill="#22c55e" font-size="12">✓（信用）</text>
+      <text x="480" y="227" text-anchor="middle" fill="#64748b" font-size="12">无重传</text>
+      <text x="610" y="227" text-anchor="middle" fill="#64748b" font-size="11">BR/EDR+LE</text>
+
+      <line x1="10" y1="40" x2="670" y2="40" stroke="#e2e8f0" stroke-width="1"/>
+      <line x1="170" y1="10" x2="170" y2="236" stroke="#e2e8f0" stroke-width="1"/>
+      <line x1="310" y1="10" x2="310" y2="236" stroke="#e2e8f0" stroke-width="1"/>
+      <line x1="430" y1="10" x2="430" y2="236" stroke="#e2e8f0" stroke-width="1"/>
+      <line x1="560" y1="10" x2="560" y2="236" stroke="#e2e8f0" stroke-width="1"/>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s3-1">
+  <h3>3.1 基本 L2CAP 模式（Basic L2CAP Mode）</h3>
+  <p>
+    最简单的操作模式，无分段、无流控、无错误控制。PDU 直接以 B-frame 格式发送，
+    数据可靠性完全依赖 Controller 层。所有 BR/EDR 设备必须支持此模式作为默认模式。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图3-2：Basic L2CAP Mode — B-frame 结构</div>
+    <svg width="480" height="80" viewBox="0 0 480 80" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="20" width="80" height="40" rx="4" fill="#0057b8"/>
+      <text x="50" y="36" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Length</text>
+      <text x="50" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">2 octets</text>
+      <rect x="95" y="20" width="80" height="40" rx="4" fill="#7c3aed"/>
+      <text x="135" y="36" text-anchor="middle" fill="white" font-size="11" font-weight="bold">CID</text>
+      <text x="135" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">2 octets</text>
+      <rect x="180" y="20" width="290" height="40" rx="4" fill="#22c55e"/>
+      <text x="325" y="36" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Information Payload (SDU)</text>
+      <text x="325" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">0–65535 octets</text>
+      <text x="50" y="75" text-anchor="middle" fill="#64748b" font-size="9">Basic L2CAP Header</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s3-2">
+  <h3>3.2 无连接数据信道（Connectionless Data Channel）</h3>
+  <p>
+    使用固定 CID <code>0x0002</code>，支持从一对多的广播传输（BR/EDR）。
+    无连接数据信道不提供可靠传输保证，数据包头包含 PSM 字段用于上层协议标识。
+  </p>
+  <div class="info-box yellow">
+    <span class="info-icon">⚠️</span>
+    <span>L2CAP 不支持可靠广播信道。无连接信道中的广播是不可靠的。</span>
+  </div>
+</section>
+
+<section class="section" id="s3-3">
+  <h3>3.3 流量控制模式（Flow Control Mode）</h3>
+  <p>
+    在基本模式基础上增加了分段和流控功能，使用 I-frame 发送数据，接收方通过 RR/RNR 帧控制数据流。
+    <strong>不提供重传</strong>：如果包丢失或损坏，信道将关闭。
+  </p>
+</section>
+
+<section class="section" id="s3-4">
+  <h3>3.4 重传模式（Retransmission Mode）</h3>
+  <p>
+    在流量控制模式基础上增加了 PDU 重传能力。使用滑动窗口和 REJ（拒绝）机制请求重传。
+    适用于需要可靠传输但不要求高效率的场景（已被增强重传模式取代）。
+  </p>
+</section>
+
+<section class="section" id="s3-5">
+  <h3>3.5 增强重传模式（Enhanced Retransmission Mode, ERTM）</h3>
+  <p>
+    最完整的可靠传输模式，支持 REJ（Go-Back-N）和 SREJ（选择性拒绝）两种重传策略，
+    可更精确地只重传丢失的帧。配合监控定时器（MonitorTimer）和重传定时器（RetransmissionTimer）使用。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图3-3：增强重传模式 — SREJ 选择性重传示意</div>
+    <svg width="580" height="200" viewBox="0 0 580 200" xmlns="http://www.w3.org/2000/svg">
+      <text x="80" y="20" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">发送方</text>
+      <text x="500" y="20" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">接收方</text>
+      <line x1="80" y1="28" x2="80" y2="190" stroke="#0057b8" stroke-width="2"/>
+      <line x1="500" y1="28" x2="500" y2="190" stroke="#7c3aed" stroke-width="2"/>
+
+      <!-- I-frame 0 -->
+      <line x1="80" y1="50" x2="500" y2="70" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="280" y="56" text-anchor="middle" fill="#22c55e" font-size="11">I-frame[0] ✓</text>
+      <!-- I-frame 1 lost -->
+      <line x1="80" y1="80" x2="320" y2="95" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="200" y="84" text-anchor="middle" fill="#ef4444" font-size="11">I-frame[1] ✗丢失</text>
+      <text x="340" y="99" fill="#ef4444" font-size="11">✗</text>
+      <!-- I-frame 2 -->
+      <line x1="80" y1="110" x2="500" y2="130" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="280" y="116" text-anchor="middle" fill="#22c55e" font-size="11">I-frame[2] ✓</text>
+      <!-- SREJ -->
+      <line x1="500" y1="135" x2="80" y2="150" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="280" y="140" text-anchor="middle" fill="#f59e0b" font-size="11">SREJ[1]（请求重传帧1）</text>
+      <!-- Retransmit 1 -->
+      <line x1="80" y1="158" x2="500" y2="175" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="280" y="163" text-anchor="middle" fill="#0057b8" font-size="11">I-frame[1] 重传 ✓</text>
+      <defs>
+        <marker id="arrc" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+          <path d="M0,0 L0,7 L7,3.5 z" fill="#94a3b8"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s3-6">
+  <h3>3.6 流媒体模式（Streaming Mode）</h3>
+  <p>
+    专为音频等流媒体应用设计，发送方持续发送 I-frame，接收方不发送 RR/RNR/REJ/SREJ，
+    不进行重传。丢失的帧被标记为丢失后报告给重组函数。
+    必须为发送方设置有限的 Flush Timeout。
+  </p>
+  <div class="info-box green">
+    <span class="info-icon">🎵</span>
+    <span>流媒体模式保持数据流的稳定性，即使有丢包也不中断，适合对时延敏感而对可靠性要求相对低的场景（如音频流）。</span>
+  </div>
+</section>
+
+<section class="section" id="s3-7">
+  <h3>3.7 LE 信用流控模式（LE Credit Based Flow Control Mode）</h3>
+  <p>
+    专为 LE 设计的连接导向信道模式，使用<strong>信用（Credit）机制</strong>控制数据流。
+    发送方每发送一个 K-frame 消耗一个信用，接收方通过 <code>L2CAP_FLOW_CONTROL_CREDIT_IND</code> 归还信用。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图3-4：信用流控机制示意</div>
+    <svg width="560" height="200" viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- Device A -->
+      <rect x="10" y="10" width="130" height="180" rx="8" fill="#e8f0fb" stroke="#0057b8" stroke-width="1.5"/>
+      <text x="75" y="35" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A</text>
+      <text x="75" y="55" text-anchor="middle" fill="#0057b8" font-size="11">Credit: 5→4→3</text>
+      <rect x="25" y="65" width="100" height="24" rx="4" fill="#0057b8"/>
+      <text x="75" y="82" text-anchor="middle" fill="white" font-size="11">发送 K-frame</text>
+      <rect x="25" y="95" width="100" height="24" rx="4" fill="#0057b8" opacity=".7"/>
+      <text x="75" y="112" text-anchor="middle" fill="white" font-size="11">发送 K-frame</text>
+      <rect x="25" y="125" width="100" height="24" rx="4" fill="#0057b8" opacity=".4"/>
+      <text x="75" y="142" text-anchor="middle" fill="white" font-size="11">发送 K-frame</text>
+      <text x="75" y="175" text-anchor="middle" fill="#ef4444" font-size="10">Credit=0, 等待...</text>
+
+      <!-- Device B -->
+      <rect x="420" y="10" width="130" height="180" rx="8" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="485" y="35" text-anchor="middle" fill="#166534" font-size="13" font-weight="bold">设备 B</text>
+      <text x="485" y="55" text-anchor="middle" fill="#166534" font-size="11">接收 K-frame</text>
+      <rect x="435" y="65" width="100" height="24" rx="4" fill="#22c55e"/>
+      <text x="485" y="82" text-anchor="middle" fill="white" font-size="11">收到 K-frame</text>
+      <rect x="435" y="95" width="100" height="24" rx="4" fill="#22c55e" opacity=".7"/>
+      <text x="485" y="112" text-anchor="middle" fill="white" font-size="11">收到 K-frame</text>
+      <rect x="435" y="140" width="100" height="24" rx="4" fill="#f59e0b"/>
+      <text x="485" y="157" text-anchor="middle" fill="white" font-size="11">归还信用 +3</text>
+
+      <!-- Arrows -->
+      <line x1="140" y1="77" x2="420" y2="77" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <line x1="140" y1="107" x2="420" y2="107" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <line x1="140" y1="137" x2="420" y2="137" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <line x1="420" y1="152" x2="140" y2="172" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrc)"/>
+      <text x="280" y="148" text-anchor="middle" fill="#f59e0b" font-size="11">FLOW_CONTROL_CREDIT_IND</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s3-8">
+  <h3>3.8 增强信用流控模式（Enhanced Credit Based Flow Control Mode）</h3>
+  <p>
+    扩展了 LE 信用流控模式，支持在 LE 和 BR/EDR 上使用，并允许<strong>单次请求建立最多 5 个信道</strong>（通过
+    <code>L2CAP_CREDIT_BASED_CONNECTION_REQ</code>）。ACL 逻辑传输必须设置无限自动刷新超时。
+  </p>
+  <div class="grid-2">
+    <div class="mini-card">
+      <h4>vs LE 信用流控</h4>
+      <p>支持 BR/EDR + LE；单次可建立多个信道；CID 范围相同（0x0040–0x007F for LE）。</p>
+    </div>
+    <div class="mini-card">
+      <h4>安全要求</h4>
+      <p>在 LE 传输上收到连接请求时，需验证认证、授权和加密密钥长度，否则拒绝连接。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 4 ===== -->
+<section class="section" id="s4">
+  <div class="section-badge">SECTION 4</div>
+  <h2>4. 信令包格式（Signaling Packet Formats）</h2>
+  <p>
+    信令包在固定信道 <code>0x0001</code>（BR/EDR）或 <code>0x0005</code>（LE）上传输，
+    用于信道管理操作。每个信令包由一个或多个命令组成，每个命令包含 Code、Identifier、Length 字段。
+  </p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">图4-1：信令命令通用格式</div>
+    <svg width="560" height="80" viewBox="0 0 560 80" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="20" width="80" height="40" rx="4" fill="#ef4444"/>
+      <text x="50" y="36" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Code</text>
+      <text x="50" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">1 octet</text>
+      <rect x="95" y="20" width="80" height="40" rx="4" fill="#f59e0b"/>
+      <text x="135" y="36" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Identifier</text>
+      <text x="135" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">1 octet</text>
+      <rect x="180" y="20" width="80" height="40" rx="4" fill="#0057b8"/>
+      <text x="220" y="36" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Length</text>
+      <text x="220" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">2 octets</text>
+      <rect x="265" y="20" width="285" height="40" rx="4" fill="#22c55e"/>
+      <text x="407" y="36" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Data (可变)</text>
+      <text x="407" y="52" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">Length 字段指定的字节数</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s4-1">
+  <h3>4.1 命令拒绝（L2CAP_COMMAND_REJECT_RSP, Code 0x01）</h3>
+  <p>当收到无法理解或无法处理的信令命令时，发送此响应。包含拒绝原因（Reason）和可选数据。</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Reason 值</th><th>含义</th></tr>
+      <tr><td>0x0000</td><td>不支持的命令（Command not understood）</td></tr>
+      <tr><td>0x0001</td><td>信令 MTU 超出（Signaling MTU exceeded）</td></tr>
+      <tr><td>0x0002</td><td>无效的 CID（Invalid CID in request）</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="s4-2">
+  <h3>4.2 连接请求/响应（L2CAP_CONNECTION_REQ / RSP）</h3>
+  <p>用于在两个 BR/EDR 设备之间建立 L2CAP 动态信道。</p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图4-2：L2CAP 连接建立信令流程</div>
+    <svg width="560" height="230" viewBox="0 0 560 230" xmlns="http://www.w3.org/2000/svg">
+      <text x="100" y="20" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A（发起方）</text>
+      <text x="460" y="20" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">设备 B（响应方）</text>
+      <line x1="100" y1="28" x2="100" y2="220" stroke="#0057b8" stroke-width="2"/>
+      <line x1="460" y1="28" x2="460" y2="220" stroke="#7c3aed" stroke-width="2"/>
+
+      <!-- CONNECTION_REQ -->
+      <line x1="100" y1="55" x2="460" y2="75" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="170" y="43" width="220" height="20" rx="3" fill="#e8f0fb"/>
+      <text x="280" y="57" text-anchor="middle" fill="#0057b8" font-size="11">L2CAP_CONNECTION_REQ (PSM, SCID)</text>
+
+      <!-- CONNECTION_RSP pending -->
+      <line x1="460" y1="90" x2="100" y2="110" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="160" y="90" width="240" height="20" rx="3" fill="#fffbeb"/>
+      <text x="280" y="104" text-anchor="middle" fill="#b45309" font-size="11">L2CAP_CONNECTION_RSP (Result=Pending)</text>
+
+      <!-- CONNECTION_RSP success -->
+      <line x1="460" y1="130" x2="100" y2="150" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="160" y="130" width="240" height="20" rx="3" fill="#f0fdf4"/>
+      <text x="280" y="144" text-anchor="middle" fill="#166534" font-size="11">L2CAP_CONNECTION_RSP (DCID, Result=Success)</text>
+
+      <!-- CONFIGURATION_REQ A-->
+      <line x1="100" y1="165" x2="460" y2="180" stroke="#0057b8" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrc)"/>
+      <text x="280" y="172" text-anchor="middle" fill="#64748b" font-size="10">L2CAP_CONFIGURATION_REQ →</text>
+
+      <!-- CONFIGURATION_RSP A-->
+      <line x1="460" y1="190" x2="100" y2="205" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrc)"/>
+      <text x="280" y="200" text-anchor="middle" fill="#64748b" font-size="10">← L2CAP_CONFIGURATION_RSP</text>
+
+      <text x="280" y="225" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="bold">✓ 信道建立完成，可开始数据传输</text>
+    </svg>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>Result 值</th><th>含义</th></tr>
+      <tr><td>0x0000</td><td>连接成功（Connection successful）</td></tr>
+      <tr><td>0x0001</td><td>连接待定（Connection pending）</td></tr>
+      <tr><td>0x0002</td><td>PSM 不支持（Connection refused – PSM not supported）</td></tr>
+      <tr><td>0x0003</td><td>安全块（Connection refused – security block）</td></tr>
+      <tr><td>0x0004</td><td>无资源可用（Connection refused – no resources available）</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="s4-3">
+  <h3>4.3 配置请求/响应（L2CAP_CONFIGURATION_REQ / RSP）</h3>
+  <p>
+    连接建立后，双方通过配置命令协商信道参数（MTU、刷新超时、QoS、重传/流控模式等）。
+    配置过程是双向的：双方各自发起配置请求，独立协商本端的接收参数。
+  </p>
+  <div class="info-box blue">
+    <span class="info-icon">ℹ️</span>
+    <span>配置响应的 Result 为 0x0001（Failure - unacceptable parameters）时，响应中包含对方可接受的参数值，发起方应重新发送配置请求。</span>
+  </div>
+</section>
+
+<section class="section" id="s4-4">
+  <h3>4.4 断开连接请求/响应（L2CAP_DISCONNECTION_REQ / RSP）</h3>
+  <p>
+    用于释放一条已建立的 L2CAP 动态信道。任意一方均可发起断连请求，
+    收到断连请求的一方必须响应 <code>L2CAP_DISCONNECTION_RSP</code>。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图4-3：L2CAP 断连流程</div>
+    <svg width="480" height="130" viewBox="0 0 480 130" xmlns="http://www.w3.org/2000/svg">
+      <text x="80" y="20" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A</text>
+      <text x="400" y="20" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">设备 B</text>
+      <line x1="80" y1="28" x2="80" y2="120" stroke="#0057b8" stroke-width="2"/>
+      <line x1="400" y1="28" x2="400" y2="120" stroke="#7c3aed" stroke-width="2"/>
+      <line x1="80" y1="60" x2="400" y2="78" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="140" y="50" width="200" height="18" rx="3" fill="#fef2f2"/>
+      <text x="240" y="63" text-anchor="middle" fill="#ef4444" font-size="11">L2CAP_DISCONNECTION_REQ</text>
+      <line x1="400" y1="90" x2="80" y2="108" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="140" y="89" width="200" height="18" rx="3" fill="#f0fdf4"/>
+      <text x="240" y="102" text-anchor="middle" fill="#22c55e" font-size="11">L2CAP_DISCONNECTION_RSP</text>
+      <text x="240" y="125" text-anchor="middle" fill="#64748b" font-size="11">信道已释放，CID 归还</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s4-5">
+  <h3>4.5 信息请求/响应（L2CAP_INFORMATION_REQ / RSP）</h3>
+  <p>用于查询对端 L2CAP 的扩展功能支持情况，如：</p>
+  <div class="tag-list">
+    <span class="tag">扩展功能掩码（Extended Features Mask）</span>
+    <span class="tag">固定信道支持（Fixed Channels Supported）</span>
+    <span class="tag">无连接 MTU</span>
+  </div>
+</section>
+
+<section class="section" id="s4-6">
+  <h3>4.6 LE 信用连接请求（L2CAP_LE_CREDIT_BASED_CONNECTION_REQ / RSP）</h3>
+  <p>
+    用于在 LE 设备间建立信用流控信道，包含 PSM、SCID、MTU、MPS 和初始信用（Credits）字段。
+    响应方分配 DCID 并返回自身的 MTU、MPS 和初始信用。
+  </p>
+</section>
+
+<section class="section" id="s4-7">
+  <h3>4.7 流量控制信用指示（L2CAP_FLOW_CONTROL_CREDIT_IND）</h3>
+  <p>
+    在信用流控模式中，接收方处理完 K-frame 后归还信用，告知对端可继续发送更多 K-frame。
+    Credit 字段值为本次归还的信用数量，累积信用不得超过 65535，否则断开信道。
+  </p>
+</section>
+
+<!-- ===== SECTION 5 ===== -->
+<section class="section" id="s5">
+  <div class="section-badge">SECTION 5</div>
+  <h2>5. 配置参数选项（Configuration Parameter Options）</h2>
+  <p>
+    配置参数在 <code>L2CAP_CONFIGURATION_REQ/RSP</code> 中以 TLV（Type-Length-Value）格式携带，
+    双方协商信道的工作参数。
+  </p>
+</section>
+
+<section class="section" id="s5-1">
+  <h3>5.1 MTU 选项（Maximum Transmission Unit）</h3>
+  <p>
+    MTU 指定了信道可接收的最大 SDU 字节数。若对方发送的 L2CAP PDU 超过本端 MTU，
+    行为未定义（由实现决定是否拒绝或截断）。<strong>默认 MTU 为 48 字节（BR/EDR）</strong>。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图5-1：MTU 与 MPS 的关系</div>
+    <svg width="560" height="160" viewBox="0 0 560 160" xmlns="http://www.w3.org/2000/svg">
+      <!-- SDU -->
+      <rect x="20" y="20" width="520" height="40" rx="6" fill="#0057b8"/>
+      <text x="280" y="44" text-anchor="middle" fill="white" font-size="13" font-weight="bold">SDU（上层数据，最大 = MTU，默认 48B BR/EDR，23B LE）</text>
+      <line x1="20" y1="15" x2="20" y2="65" stroke="#0057b8" stroke-width="1.5"/>
+      <line x1="540" y1="15" x2="540" y2="65" stroke="#0057b8" stroke-width="1.5"/>
+      <line x1="20" y1="15" x2="540" y2="15" stroke="#0057b8" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="280" y="12" text-anchor="middle" fill="#0057b8" font-size="10">← MTU（SDU 最大尺寸）→</text>
+
+      <!-- Segment 1 -->
+      <rect x="20" y="90" width="160" height="40" rx="5" fill="#7c3aed"/>
+      <text x="100" y="110" text-anchor="middle" fill="white" font-size="11" font-weight="bold">PDU 段 1</text>
+      <text x="100" y="124" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">≤ MPS</text>
+      <!-- Segment 2 -->
+      <rect x="192" y="90" width="160" height="40" rx="5" fill="#7c3aed" opacity=".8"/>
+      <text x="272" y="110" text-anchor="middle" fill="white" font-size="11" font-weight="bold">PDU 段 2</text>
+      <text x="272" y="124" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">≤ MPS</text>
+      <!-- Segment 3 -->
+      <rect x="364" y="90" width="130" height="40" rx="5" fill="#7c3aed" opacity=".6"/>
+      <text x="429" y="110" text-anchor="middle" fill="white" font-size="11" font-weight="bold">PDU 段 3</text>
+      <text x="429" y="124" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">≤ MPS</text>
+
+      <line x1="20" y1="85" x2="192" y2="85" stroke="#7c3aed" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="106" y="82" text-anchor="middle" fill="#7c3aed" font-size="10">← MPS（PDU 最大负载）→</text>
+
+      <!-- Arrow -->
+      <line x1="280" y1="60" x2="280" y2="88" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="295" y="77" fill="#94a3b8" font-size="10">分段</text>
+
+      <text x="280" y="155" text-anchor="middle" fill="#64748b" font-size="11">SDU 按 MPS 切分为多个 PDU 段，接收方重组为完整 SDU</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s5-2">
+  <h3>5.2 刷新超时选项（Flush Timeout Option）</h3>
+  <p>
+    配置自动刷新超时（Automatic Flush Timeout），单位为毫秒（0.625ms 粒度）。
+    超时后，Controller 自动丢弃未成功发送的 PDU。
+  </p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>值</th><th>含义</th></tr>
+      <tr><td>0x0000</td><td>不可刷新（Non-flushable，不受超时影响）</td></tr>
+      <tr><td>0x0001–0xFFFE</td><td>具体超时值（单位：0.625ms 粒度）</td></tr>
+      <tr><td>0xFFFF</td><td>无限超时（Infinite flush timeout，等价于不刷新）</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="s5-3">
+  <h3>5.3 服务质量（Quality of Service, QoS）</h3>
+  <p>QoS 选项定义了信道对资源的需求，包含以下关键参数：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>参数</th><th>含义</th></tr>
+      <tr><td>Service Type</td><td>No Traffic / Best Effort / Guaranteed</td></tr>
+      <tr><td>Token Rate</td><td>令牌桶填充速率（bytes/sec）</td></tr>
+      <tr><td>Token Bucket Size</td><td>令牌桶大小（bytes）</td></tr>
+      <tr><td>Peak Bandwidth</td><td>峰值带宽（bytes/sec）</td></tr>
+      <tr><td>Latency</td><td>最大时延（μs）</td></tr>
+      <tr><td>Delay Variation</td><td>最大时延抖动（μs）</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="s5-4">
+  <h3>5.4 重传与流控选项（Retransmission and Flow Control Option）</h3>
+  <p>指定信道的工作模式及相关参数：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>参数</th><th>含义</th></tr>
+      <tr><td>Mode</td><td>Basic / Retransmission / Flow Control / ERTM / Streaming</td></tr>
+      <tr><td>TxWindow Size</td><td>发送窗口大小（帧数），1–63（ERTM 标准），1–16383（扩展窗口）</td></tr>
+      <tr><td>MaxTransmit</td><td>最大重传次数</td></tr>
+      <tr><td>Retransmission Timeout</td><td>重传超时（ms）</td></tr>
+      <tr><td>Monitor Timeout</td><td>监控超时（ms），P-bit 响应等待</td></tr>
+      <tr><td>MPS</td><td>最大 PDU 负载大小（octets）</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ===== SECTION 6 ===== -->
+<section class="section" id="s6">
+  <div class="section-badge">SECTION 6</div>
+  <h2>6. 状态机（State Machine）</h2>
+  <p>
+    L2CAP 为每个动态信道维护一个状态机，定义了信道从创建到关闭的完整生命周期。
+    每个状态下，只有特定的事件会触发状态转移或执行动作。
+  </p>
+</section>
+
+<section class="section" id="s6-1">
+  <h3>6.1 信道状态（Channel States）</h3>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图6-1：L2CAP 信道状态机（BR/EDR）</div>
+    <svg width="660" height="380" viewBox="0 0 660 380" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrs" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+          <path d="M0,0 L0,8 L8,4 z" fill="#64748b"/>
+        </marker>
+      </defs>
+      <!-- CLOSED -->
+      <ellipse cx="330" cy="40" rx="80" ry="24" fill="#ef4444"/>
+      <text x="330" y="46" text-anchor="middle" fill="white" font-size="13" font-weight="bold">CLOSED</text>
+
+      <!-- W4_L2CAP_CONNECT_RSP -->
+      <ellipse cx="120" cy="140" rx="100" ry="24" fill="#0057b8"/>
+      <text x="120" y="136" text-anchor="middle" fill="white" font-size="10" font-weight="bold">W4_L2CAP</text>
+      <text x="120" y="150" text-anchor="middle" fill="white" font-size="10" font-weight="bold">_CONNECT_RSP</text>
+
+      <!-- W4_L2CA_CONNECT_RSP -->
+      <ellipse cx="540" cy="140" rx="100" ry="24" fill="#7c3aed"/>
+      <text x="540" y="136" text-anchor="middle" fill="white" font-size="10" font-weight="bold">W4_L2CA</text>
+      <text x="540" y="150" text-anchor="middle" fill="white" font-size="10" font-weight="bold">_CONNECT_RSP</text>
+
+      <!-- CONFIG -->
+      <ellipse cx="330" cy="220" rx="80" ry="24" fill="#f59e0b"/>
+      <text x="330" y="226" text-anchor="middle" fill="white" font-size="13" font-weight="bold">CONFIG</text>
+
+      <!-- OPEN -->
+      <ellipse cx="330" cy="310" rx="80" ry="24" fill="#22c55e"/>
+      <text x="330" y="316" text-anchor="middle" fill="white" font-size="14" font-weight="bold">OPEN</text>
+
+      <!-- W4_L2CAP_DISCONNECT_RSP -->
+      <ellipse cx="140" cy="310" rx="90" ry="24" fill="#6b7280"/>
+      <text x="140" y="306" text-anchor="middle" fill="white" font-size="10" font-weight="bold">W4_L2CAP</text>
+      <text x="140" y="320" text-anchor="middle" fill="white" font-size="10" font-weight="bold">_DISC_RSP</text>
+
+      <!-- W4_L2CA_DISCONNECT_RSP -->
+      <ellipse cx="520" cy="310" rx="90" ry="24" fill="#475569"/>
+      <text x="520" y="306" text-anchor="middle" fill="white" font-size="10" font-weight="bold">W4_L2CA</text>
+      <text x="520" y="320" text-anchor="middle" fill="white" font-size="10" font-weight="bold">_DISC_RSP</text>
+
+      <!-- Arrows -->
+      <!-- CLOSED -> W4_L2CAP_CONNECT_RSP (send CONNECTION_REQ) -->
+      <line x1="260" y1="52" x2="200" y2="120" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="200" y="82" fill="#64748b" font-size="10">发起连接请求</text>
+
+      <!-- CLOSED -> W4_L2CA_CONNECT_RSP (recv CONNECTION_REQ) -->
+      <line x1="400" y1="52" x2="460" y2="120" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="390" y="82" fill="#64748b" font-size="10">收到连接请求</text>
+
+      <!-- W4_L2CAP -> CONFIG -->
+      <line x1="200" y1="152" x2="255" y2="208" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="195" y="185" fill="#64748b" font-size="10">收到连接响应</text>
+
+      <!-- W4_L2CA -> CONFIG -->
+      <line x1="460" y1="152" x2="405" y2="208" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="420" y="185" fill="#64748b" font-size="10">发送连接响应</text>
+
+      <!-- CONFIG -> OPEN -->
+      <line x1="330" y1="244" x2="330" y2="286" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="335" y="268" fill="#64748b" font-size="10">配置完成</text>
+
+      <!-- OPEN -> W4_L2CAP_DISCONNECT_RSP -->
+      <line x1="250" y1="315" x2="230" y2="315" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="200" y="350" fill="#64748b" font-size="10">发起断连</text>
+
+      <!-- OPEN -> W4_L2CA_DISCONNECT_RSP -->
+      <line x1="410" y1="315" x2="430" y2="315" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrs)"/>
+      <text x="410" y="350" fill="#64748b" font-size="10">收到断连请求</text>
+
+      <!-- W4_L2CAP_DISCONNECT_RSP -> CLOSED -->
+      <path d="M80,296 Q20,200 260,46" stroke="#64748b" stroke-width="1.2" fill="none" stroke-dasharray="4,2" marker-end="url(#arrs)"/>
+      <text x="30" y="200" fill="#64748b" font-size="10">收到断连响应</text>
+
+      <!-- W4_L2CA -> CLOSED -->
+      <path d="M600,296 Q660,200 400,46" stroke="#64748b" stroke-width="1.2" fill="none" stroke-dasharray="4,2" marker-end="url(#arrs)"/>
+      <text x="610" y="200" fill="#64748b" font-size="10">发送断连响应</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s6-2">
+  <h3>6.2 状态说明与转换条件</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>状态</th><th>描述</th><th>进入条件</th></tr>
+      <tr><td><strong>CLOSED</strong></td><td>信道未建立，初始状态</td><td>初始 / 断连完成</td></tr>
+      <tr><td><strong>W4_L2CAP_CONNECT_RSP</strong></td><td>已发送连接请求，等待对端响应</td><td>上层发起连接请求</td></tr>
+      <tr><td><strong>W4_L2CA_CONNECT_RSP</strong></td><td>收到对端连接请求，等待上层确认</td><td>收到 CONNECTION_REQ</td></tr>
+      <tr><td><strong>CONFIG</strong></td><td>连接已建立，正在协商配置参数</td><td>连接响应成功</td></tr>
+      <tr><td><strong>OPEN</strong></td><td>信道已完全建立，可以传输数据</td><td>配置协商完成</td></tr>
+      <tr><td><strong>W4_L2CAP_DISCONNECT_RSP</strong></td><td>已发送断连请求，等待响应</td><td>上层发起断连</td></tr>
+      <tr><td><strong>W4_L2CA_DISCONNECT_RSP</strong></td><td>已响应断连请求，等待上层确认</td><td>收到 DISCONNECTION_REQ</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ===== SECTION 7 ===== -->
+<section class="section" id="s7">
+  <div class="section-badge">SECTION 7</div>
+  <h2>7. PDU 格式规范（PDU Format Specifications）</h2>
+  <p>
+    L2CAP 定义了多种 PDU 类型，每种类型服务于不同的操作模式。所有 PDU 均以 Basic L2CAP Header（4字节）开头。
+  </p>
+</section>
+
+<section class="section" id="s7-1">
+  <h3>7.1 B-frame（Basic Information Frame）</h3>
+  <p>用于基本 L2CAP 模式和无连接数据信道的数据帧格式，结构最简单。</p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图7-1：B-frame 格式</div>
+    <svg width="560" height="90" viewBox="0 0 560 90" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="15" width="80" height="45" rx="4" fill="#0057b8"/>
+      <text x="50" y="34" text-anchor="middle" fill="white" font-size="11" font-weight="bold">Length</text>
+      <text x="50" y="50" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">2 octets</text>
+      <text x="50" y="72" text-anchor="middle" fill="#64748b" font-size="9">PDU总字节数</text>
+
+      <rect x="95" y="15" width="80" height="45" rx="4" fill="#7c3aed"/>
+      <text x="135" y="34" text-anchor="middle" fill="white" font-size="11" font-weight="bold">CID</text>
+      <text x="135" y="50" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">2 octets</text>
+      <text x="135" y="72" text-anchor="middle" fill="#64748b" font-size="9">目标信道ID</text>
+
+      <rect x="180" y="15" width="370" height="45" rx="4" fill="#22c55e"/>
+      <text x="365" y="34" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Information Payload</text>
+      <text x="365" y="50" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="10">0 ~ 65535 octets（SDU 数据）</text>
+      <text x="365" y="72" text-anchor="middle" fill="#64748b" font-size="9">上层数据，不含任何控制字段</text>
+
+      <rect x="10" y="13" width="250" height="49" rx="4" fill="none" stroke="#0057b8" stroke-width="1.5" stroke-dasharray="3,2"/>
+      <text x="130" y="10" text-anchor="middle" fill="#0057b8" font-size="9">Basic L2CAP Header (4B)</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s7-2">
+  <h3>7.2 I-frame（Information Frame）</h3>
+  <p>用于增强重传模式和流媒体模式的数据帧，携带控制字段（Control Field）。标准控制字段 2 字节，扩展控制字段 4 字节。</p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图7-2：I-frame 格式（增强重传模式，标准控制）</div>
+    <svg width="660" height="100" viewBox="0 0 660 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="20" width="60" height="45" rx="3" fill="#0057b8"/>
+      <text x="40" y="40" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Length</text>
+      <text x="40" y="55" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">2B</text>
+      <rect x="74" y="20" width="55" height="45" rx="3" fill="#7c3aed"/>
+      <text x="101" y="40" text-anchor="middle" fill="white" font-size="10" font-weight="bold">CID</text>
+      <text x="101" y="55" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">2B</text>
+      <rect x="133" y="20" width="80" height="45" rx="3" fill="#ef4444"/>
+      <text x="173" y="37" text-anchor="middle" fill="white" font-size="9" font-weight="bold">Control</text>
+      <text x="173" y="50" text-anchor="middle" fill="white" font-size="9">F=0, TxSeq</text>
+      <text x="173" y="62" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">ReqSeq</text>
+      <rect x="217" y="20" width="70" height="45" rx="3" fill="#f59e0b"/>
+      <text x="252" y="40" text-anchor="middle" fill="white" font-size="10" font-weight="bold">SDU Len</text>
+      <text x="252" y="55" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">2B（首段）</text>
+      <rect x="291" y="20" width="359" height="45" rx="3" fill="#22c55e"/>
+      <text x="470" y="40" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SDU Data / Continuation</text>
+      <text x="470" y="57" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="10">按 MPS 切分的段数据</text>
+
+      <!-- Control field detail -->
+      <text x="335" y="88" text-anchor="middle" fill="#64748b" font-size="10">Control Field: [F][TxSeq 6bit][R][SAR 2bit][ReqSeq 6bit] — 0=I-frame（bit0=0）</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s7-3">
+  <h3>7.3 S-frame（Supervisory Frame）</h3>
+  <p>
+    监督帧，用于增强重传模式中的流控和错误控制信令（确认、流控、错误请求），不携带数据。
+    S-frame 类型由 Control Field 中的 Supervisory 字段（2 bit）决定。
+  </p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>S 值</th><th>类型</th><th>作用</th></tr>
+      <tr><td>0b00</td><td><strong>RR</strong>（Receiver Ready）</td><td>确认接收，告知对方可继续发送</td></tr>
+      <tr><td>0b01</td><td><strong>REJ</strong>（Reject）</td><td>Go-Back-N 重传请求：从 ReqSeq 开始重传所有帧</td></tr>
+      <tr><td>0b10</td><td><strong>RNR</strong>（Receiver Not Ready）</td><td>告知对方本端缓冲已满，暂停发送</td></tr>
+      <tr><td>0b11</td><td><strong>SREJ</strong>（Selective Reject）</td><td>选择性重传请求：只重传指定的 ReqSeq 帧</td></tr>
+    </table>
+  </div>
+</section>
+
+<section class="section" id="s7-4">
+  <h3>7.4 K-frame（Credit-Based Frame）</h3>
+  <p>
+    用于 LE 信用流控模式和增强信用流控模式的数据帧。
+    K-frame 包含 SDU Length 字段（仅首段）和 SDU 数据，每发送一个 K-frame 消耗一个信用。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图7-3：K-frame 格式</div>
+    <svg width="540" height="80" viewBox="0 0 540 80" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="15" width="70" height="40" rx="3" fill="#0057b8"/>
+      <text x="45" y="33" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Length</text>
+      <text x="45" y="48" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">2B</text>
+      <rect x="84" y="15" width="60" height="40" rx="3" fill="#7c3aed"/>
+      <text x="114" y="33" text-anchor="middle" fill="white" font-size="10" font-weight="bold">CID</text>
+      <text x="114" y="48" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">2B</text>
+      <rect x="148" y="15" width="80" height="40" rx="3" fill="#f59e0b"/>
+      <text x="188" y="33" text-anchor="middle" fill="white" font-size="10" font-weight="bold">SDU Length</text>
+      <text x="188" y="48" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="9">2B（首段有）</text>
+      <rect x="232" y="15" width="298" height="40" rx="3" fill="#22c55e"/>
+      <text x="381" y="33" text-anchor="middle" fill="white" font-size="12" font-weight="bold">SDU Data</text>
+      <text x="381" y="48" text-anchor="middle" fill="rgba(255,255,255,.85)" font-size="10">按 MPS 切分的信用数据</text>
+      <text x="114" y="72" text-anchor="middle" fill="#64748b" font-size="9">Basic L2CAP Header</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ===== SECTION 8 ===== -->
+<section class="section" id="s8">
+  <div class="section-badge">SECTION 8</div>
+  <h2>8. 增强重传与流控细节（Enhanced Retransmission Details）</h2>
+  <p>
+    增强重传模式（ERTM）是 L2CAP 最复杂也最可靠的传输模式，
+    使用滑动窗口 + 选择性重传（SREJ）+ 监控/重传定时器实现高效可靠的双向数据传输。
+  </p>
+</section>
+
+<section class="section" id="s8-1">
+  <h3>8.1 发送 I-frame</h3>
+  <p>
+    发送方维护以下关键变量：
+  </p>
+  <div class="grid-2">
+    <div class="mini-card">
+      <h4>NextTxSeq</h4>
+      <p>下一个待发送帧的序号，发送后递增 1（mod 64）。</p>
+    </div>
+    <div class="mini-card">
+      <h4>TxWindow</h4>
+      <p>发送窗口大小，限制未被确认的 I-frame 数量（最大 63 或 16383）。</p>
+    </div>
+    <div class="mini-card">
+      <h4>UnackedFrames</h4>
+      <p>当前未收到确认的 I-frame 数量，小于 TxWindow 时才可发送新帧。</p>
+    </div>
+    <div class="mini-card">
+      <h4>RetransmissionTimer</h4>
+      <p>每发送一个 I-frame 后启动，超时时触发 P-bit 查询（Poll）。</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="s8-2">
+  <h3>8.2 接收 I-frame</h3>
+  <p>接收方维护 <code>ExpectedTxSeq</code>（期望接收的下一帧序号）。收到 I-frame 后：</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">1</div><div class="step-body"><h4>序号正确</h4><p>TxSeq == ExpectedTxSeq：将帧送往重组函数，ExpectedTxSeq++，发送 RR 确认。</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><h4>序号超前（乱序）</h4><p>TxSeq > ExpectedTxSeq：发送 SREJ 请求缺失帧，记录缺失帧列表（SrejList）。</p></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><h4>序号无效</h4><p>TxSeq 超出有效范围（TxWindow 一半以上）：关闭信道。</p></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><h4>缓冲已满</h4><p>无可用缓冲：发送 RNR 告知对方暂停发送，待缓冲可用后发送 RR。</p></div></div>
+  </div>
+</section>
+
+<section class="section" id="s8-3">
+  <h3>8.3 确认机制（Acknowledgment）</h3>
+  <p>
+    RR/RNR/REJ 的 <code>ReqSeq</code> 字段确认 0 到 ReqSeq-1 的所有 I-frame（累积确认）。
+    P-bit（Poll bit）/ F-bit（Final bit）用于 MonitorTimer 超时后的健康检查：
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图8-1：P/F-bit 交互机制</div>
+    <svg width="540" height="170" viewBox="0 0 540 170" xmlns="http://www.w3.org/2000/svg">
+      <text x="80" y="20" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">Tx 方</text>
+      <text x="460" y="20" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">Rx 方</text>
+      <line x1="80" y1="28" x2="80" y2="160" stroke="#0057b8" stroke-width="2"/>
+      <line x1="460" y1="28" x2="460" y2="160" stroke="#7c3aed" stroke-width="2"/>
+
+      <rect x="10" y="35" width="140" height="24" rx="4" fill="#fef2f2" stroke="#ef4444" stroke-width="1"/>
+      <text x="80" y="51" text-anchor="middle" fill="#ef4444" font-size="11">MonitorTimer 超时</text>
+
+      <line x1="80" y1="75" x2="460" y2="90" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="165" y="65" width="150" height="18" rx="3" fill="#e8f0fb"/>
+      <text x="240" y="78" text-anchor="middle" fill="#0057b8" font-size="11">RR / RNR (P=1)</text>
+
+      <line x1="460" y1="108" x2="80" y2="123" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="170" y="105" width="150" height="18" rx="3" fill="#f5f3ff"/>
+      <text x="245" y="118" text-anchor="middle" fill="#7c3aed" font-size="11">RR / RNR (F=1)</text>
+
+      <text x="270" y="150" text-anchor="middle" fill="#22c55e" font-size="11">✓ 重置 MonitorTimer，继续传输</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s8-4">
+  <h3>8.4 SREJ_SENT 状态</h3>
+  <p>
+    当接收到乱序 I-frame 并发送 SREJ 后，进入 SREJ_SENT 状态。
+    此状态下，所有收到的新 I-frame 将被缓存，等待缺失帧到达后按序提交重组。
+    SREJ 列表维护所有待重传的缺失帧序号。
+  </p>
+  <div class="info-box yellow">
+    <span class="info-icon">⚠️</span>
+    <span>SREJ_SENT 状态下，MaxTransmit 次重传失败后信道将关闭（Close Channel）。</span>
+  </div>
+</section>
+
+<section class="section" id="s8-5">
+  <h3>8.5 流媒体模式细节（Streaming Mode Specifics）</h3>
+  <p>
+    流媒体模式使用与 ERTM 相同的 I-frame 格式，但行为大相径庭：
+  </p>
+  <div class="grid-2">
+    <div class="mini-card">
+      <h4>发送方</h4>
+      <p>设置 TxSeq = NextTxSeq，ReqSeq = 0（始终），NextTxSeq++；F-bit 始终为 0；不使用任何定时器。</p>
+    </div>
+    <div class="mini-card">
+      <h4>接收方</h4>
+      <p>收到乱序帧时，缺失帧标记为丢失，ExpectedTxSeq 直接跳到 TxSeq+1；不发送 RR/RNR/REJ/SREJ；无重传。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SECTION 10 ===== -->
+<section class="section" id="s10">
+  <div class="section-badge">SECTION 10</div>
+  <h2>10. 信用流控过程（Credit Based Flow Control Procedures）</h2>
+  <p>
+    信用流控是 LE L2CAP 面向连接信道的核心机制，通过信用（Credit）精确控制接收方缓冲。
+    有两种变体：LE 信用流控（L2CAP_LE_CREDIT_BASED_CONNECTION）和增强信用流控（L2CAP_CREDIT_BASED_CONNECTION）。
+  </p>
+</section>
+
+<section class="section" id="s10-1">
+  <h3>10.1 LE 信用流控模式规则</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body"><h4>初始信用</h4><p>信道建立时，双方在连接请求/响应中各自指定初始信用数量（Credits 字段）。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body"><h4>发送 K-frame</h4><p>仅在信用 > 0 时可发送 K-frame，每发一个 K-frame 信用减 1。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body"><h4>归还信用</h4><p>接收方任意时刻可发送 L2CAP_FLOW_CONTROL_CREDIT_IND 归还信用，发送方累加信用计数。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body"><h4>信用溢出保护</h4><p>信用总数不得超过 65535。收到信用归还后若超出 65535，或信用为 0 时收到 K-frame，必须断开信道。</p></div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body"><h4>安全检查</h4><p>收到连接请求时须验证认证、授权和加密密钥长度，不足时拒绝连接并返回对应错误码。</p></div>
+    </div>
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">图10-1：LE 信用流控完整连接与数据传输流程</div>
+    <svg width="580" height="310" viewBox="0 0 580 310" xmlns="http://www.w3.org/2000/svg">
+      <text x="90" y="18" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A（发起方）</text>
+      <text x="490" y="18" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">设备 B（响应方）</text>
+      <line x1="90" y1="24" x2="90" y2="300" stroke="#0057b8" stroke-width="2"/>
+      <line x1="490" y1="24" x2="490" y2="300" stroke="#7c3aed" stroke-width="2"/>
+
+      <!-- LE_CREDIT_BASED_CONNECTION_REQ -->
+      <line x1="90" y1="45" x2="490" y2="60" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="145" y="35" width="300" height="18" rx="3" fill="#e8f0fb"/>
+      <text x="295" y="48" text-anchor="middle" fill="#0057b8" font-size="10">LE_CREDIT_BASED_CONNECTION_REQ (PSM, SCID, MTU, MPS, Credits=5)</text>
+
+      <!-- LE_CREDIT_BASED_CONNECTION_RSP -->
+      <line x1="490" y1="75" x2="90" y2="90" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="130" y="74" width="300" height="18" rx="3" fill="#f5f3ff"/>
+      <text x="280" y="87" text-anchor="middle" fill="#7c3aed" font-size="10">LE_CREDIT_BASED_CONNECTION_RSP (DCID, MTU, MPS, Credits=3)</text>
+
+      <!-- K-frames from A -->
+      <line x1="90" y1="110" x2="490" y2="125" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="285" y="116" text-anchor="middle" fill="#22c55e" font-size="10">K-frame[1]（A Credits: 5→4）</text>
+      <line x1="90" y1="135" x2="490" y2="150" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="285" y="141" text-anchor="middle" fill="#22c55e" font-size="10">K-frame[2]（A Credits: 4→3）</text>
+      <line x1="90" y1="160" x2="490" y2="175" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="285" y="166" text-anchor="middle" fill="#22c55e" font-size="10">K-frame[3]（A Credits: 3→2）</text>
+
+      <!-- K-frames from B -->
+      <line x1="490" y1="188" x2="90" y2="200" stroke="#d97706" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="285" y="192" text-anchor="middle" fill="#d97706" font-size="10">K-frame[1]（B Credits: 3→2）</text>
+
+      <!-- Credit return from B -->
+      <line x1="490" y1="220" x2="90" y2="232" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrc)"/>
+      <rect x="170" y="214" width="245" height="18" rx="3" fill="#fffbeb"/>
+      <text x="292" y="227" text-anchor="middle" fill="#b45309" font-size="10">FLOW_CONTROL_CREDIT_IND (CID, Credits=3)（归还信用）</text>
+
+      <!-- A continues -->
+      <line x1="90" y1="248" x2="490" y2="260" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <text x="285" y="253" text-anchor="middle" fill="#22c55e" font-size="10">K-frame[4]（A Credits: 5→4，继续发送）</text>
+
+      <text x="285" y="290" text-anchor="middle" fill="#64748b" font-size="10">双向信用流控，可动态调节发送速率</text>
+    </svg>
+  </div>
+</section>
+
+<section class="section" id="s10-2">
+  <h3>10.2 增强信用流控模式</h3>
+  <p>
+    增强版本的主要改进：支持同时建立<strong>最多 5 个信道</strong>（通过 <code>L2CAP_CREDIT_BASED_CONNECTION_REQ</code>），
+    同时支持 BR/EDR 和 LE。ACL 逻辑传输须配置无限自动刷新超时。
+  </p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>特性</th><th>LE 信用流控</th><th>增强信用流控</th></tr>
+      <tr><td>支持的传输类型</td><td>LE only</td><td>LE + BR/EDR</td></tr>
+      <tr><td>单次可建立信道数</td><td>1</td><td>最多 5</td></tr>
+      <tr><td>信令包</td><td>L2CAP_LE_CREDIT_BASED_CONNECTION_REQ/RSP</td><td>L2CAP_CREDIT_BASED_CONNECTION_REQ/RSP</td></tr>
+      <tr><td>信用机制</td><td>相同</td><td>相同</td></tr>
+      <tr><td>最大信用数</td><td>65535</td><td>65535</td></tr>
+      <tr><td>ACL Flush Timeout</td><td>无特殊要求</td><td>必须为无限</td></tr>
+    </table>
+  </div>
+  <div class="info-box green">
+    <span class="info-icon">✅</span>
+    <span>增强信用流控模式是现代 BLE 应用（如 CoAP over BLE、IPSP）的推荐模式，兼顾效率与安全性。</span>
+  </div>
+</section>
+
+<!-- ===== APPENDIX A ===== -->
+<section class="section" id="sA">
+  <div class="section-badge">APPENDIX A</div>
+  <h2>附录 A：配置 MSC 示例（Configuration Message Sequence Charts）</h2>
+  <p>本附录通过消息序列图（MSC）展示典型配置场景，帮助理解配置协商过程。</p>
+
+  <h3>A.1 基本 MTU 交换</h3>
+  <p>两设备交换 MTU 信息，其余参数取默认值。这是最常见的配置场景。</p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图A-1：基本 MTU 交换流程</div>
+    <svg width="560" height="230" viewBox="0 0 560 230" xmlns="http://www.w3.org/2000/svg">
+      <text x="90" y="18" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A</text>
+      <text x="470" y="18" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">设备 B</text>
+      <line x1="90" y1="24" x2="90" y2="220" stroke="#0057b8" stroke-width="2"/>
+      <line x1="470" y1="24" x2="470" y2="220" stroke="#7c3aed" stroke-width="2"/>
+
+      <line x1="90" y1="48" x2="470" y2="63" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="38" width="220" height="18" rx="3" fill="#e8f0fb"/>
+      <text x="265" y="51" text-anchor="middle" fill="#0057b8" font-size="11">CONFIGURATION_REQ (MTU=512)</text>
+
+      <line x1="470" y1="78" x2="90" y2="93" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="78" width="220" height="18" rx="3" fill="#f0fdf4"/>
+      <text x="265" y="91" text-anchor="middle" fill="#166534" font-size="11">CONFIGURATION_RSP (Success)</text>
+
+      <line x1="470" y1="110" x2="90" y2="125" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="109" width="220" height="18" rx="3" fill="#f5f3ff"/>
+      <text x="265" y="122" text-anchor="middle" fill="#7c3aed" font-size="11">CONFIGURATION_REQ (MTU=256)</text>
+
+      <line x1="90" y1="140" x2="470" y2="155" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="140" width="220" height="18" rx="3" fill="#f0fdf4"/>
+      <text x="265" y="153" text-anchor="middle" fill="#166534" font-size="11">CONFIGURATION_RSP (Success)</text>
+
+      <rect x="110" y="180" width="340" height="30" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="280" y="200" text-anchor="middle" fill="#166534" font-size="12" font-weight="bold">✓ 配置完成：A→B 发送 ≤512B，B→A 发送 ≤256B</text>
+    </svg>
+  </div>
+
+  <h3>A.2 处理未知选项</h3>
+  <p>
+    设备 A（升级版本）请求配置自定义选项 0x20，设备 B 不支持该选项，返回"未知参数"响应，
+    设备 A 重发配置请求并省略该选项，最终协商成功。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图A-2：未知选项处理流程</div>
+    <svg width="560" height="260" viewBox="0 0 560 260" xmlns="http://www.w3.org/2000/svg">
+      <text x="90" y="18" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A（新版本）</text>
+      <text x="470" y="18" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">设备 B（旧版本）</text>
+      <line x1="90" y1="24" x2="90" y2="250" stroke="#0057b8" stroke-width="2"/>
+      <line x1="470" y1="24" x2="470" y2="250" stroke="#7c3aed" stroke-width="2"/>
+
+      <line x1="90" y1="50" x2="470" y2="65" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="140" y="38" width="280" height="20" rx="3" fill="#e8f0fb"/>
+      <text x="280" y="52" text-anchor="middle" fill="#0057b8" font-size="10">CONFIGURATION_REQ (MTU=512, Option-0x20=安全)</text>
+
+      <line x1="470" y1="82" x2="90" y2="97" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="140" y="80" width="280" height="20" rx="3" fill="#fef2f2"/>
+      <text x="280" y="94" text-anchor="middle" fill="#ef4444" font-size="10">CONFIGURATION_RSP (Result=未知参数, 0x20 不支持)</text>
+
+      <!-- A retries without option 0x20 -->
+      <line x1="90" y1="116" x2="470" y2="131" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="160" y="108" width="230" height="18" rx="3" fill="#e8f0fb"/>
+      <text x="275" y="121" text-anchor="middle" fill="#0057b8" font-size="10">CONFIGURATION_REQ (MTU=512，无 0x20)</text>
+
+      <!-- B accepts but specifies own MTU -->
+      <line x1="470" y1="148" x2="90" y2="163" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="140" y="146" width="290" height="20" rx="3" fill="#f0fdf4"/>
+      <text x="285" y="160" text-anchor="middle" fill="#166534" font-size="10">CONFIGURATION_RSP (Success, MTU=0x80 仅接收此大小)</text>
+
+      <rect x="100" y="190" width="360" height="40" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="280" y="208" text-anchor="middle" fill="#b45309" font-size="11">✓ 协商完成：B 告知 A 只接受 ≤0x80(128)B 的包</text>
+      <text x="280" y="224" text-anchor="middle" fill="#b45309" font-size="11">A 可据此缩减为 B 分配的接收缓冲</text>
+    </svg>
+  </div>
+
+  <h3>A.3 配置失败示例</h3>
+  <p>
+    如果配置请求包过大（超过对端信令 MTU），对端发送命令拒绝（COMMAND_REJECT）；
+    或配置了不存在的 CID，设备 B 返回失败响应。设备 A 需拆分为多个配置请求重试。
+  </p>
+  <div class="diagram-wrap">
+    <div class="diagram-title">图A-3：配置失败与重试</div>
+    <svg width="560" height="230" viewBox="0 0 560 230" xmlns="http://www.w3.org/2000/svg">
+      <text x="90" y="18" text-anchor="middle" fill="#0057b8" font-size="13" font-weight="bold">设备 A</text>
+      <text x="470" y="18" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="bold">设备 B</text>
+      <line x1="90" y1="24" x2="90" y2="220" stroke="#0057b8" stroke-width="2"/>
+      <line x1="470" y1="24" x2="470" y2="220" stroke="#7c3aed" stroke-width="2"/>
+
+      <line x1="90" y1="48" x2="470" y2="63" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="140" y="38" width="280" height="18" rx="3" fill="#fef2f2"/>
+      <text x="280" y="51" text-anchor="middle" fill="#ef4444" font-size="10">CONFIGURATION_REQ（超大包，超过信令 MTU）</text>
+
+      <line x1="470" y1="78" x2="90" y2="93" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="76" width="220" height="18" rx="3" fill="#fef2f2"/>
+      <text x="265" y="89" text-anchor="middle" fill="#ef4444" font-size="10">COMMAND_REJECT（信令 MTU 超限）</text>
+
+      <line x1="90" y1="112" x2="470" y2="127" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="103" width="210" height="18" rx="3" fill="#e8f0fb"/>
+      <text x="260" y="116" text-anchor="middle" fill="#0057b8" font-size="10">CONFIGURATION_REQ (Part 1)</text>
+
+      <line x1="90" y1="138" x2="470" y2="153" stroke="#0057b8" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="155" y="130" width="210" height="18" rx="3" fill="#e8f0fb"/>
+      <text x="260" y="143" text-anchor="middle" fill="#0057b8" font-size="10">CONFIGURATION_REQ (Part 2)</text>
+
+      <line x1="470" y1="168" x2="90" y2="183" stroke="#22c55e" stroke-width="1.5" marker-end="url(#arrc)"/>
+      <rect x="160" y="166" width="200" height="18" rx="3" fill="#f0fdf4"/>
+      <text x="260" y="179" text-anchor="middle" fill="#166534" font-size="10">CONFIGURATION_RSP (Success)</text>
+
+      <text x="280" y="210" text-anchor="middle" fill="#22c55e" font-size="11">✓ 拆分配置请求后成功完成配置</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ===== APPENDIX B ===== -->
+<section class="section" id="sB">
+  <div class="section-badge">APPENDIX B</div>
+  <h2>附录 B：信令包名称变更（Changes to Signaling Packet Names）</h2>
+  <p>
+    早期版本的蓝牙规范对信令包使用了不同的名称，蓝牙核心规范 4.2 及之后版本统一采用以下命名规则。
+    下表列出了新旧名称对照，便于阅读历史文档时对照参考。
+  </p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>旧名称（历史版本）</th><th>新名称（Core 4.2+）</th></tr>
+      <tr><td>Command reject</td><td>L2CAP_COMMAND_REJECT_RSP</td></tr>
+      <tr><td>Configuration request</td><td>L2CAP_CONFIGURATION_REQ</td></tr>
+      <tr><td>Configuration response</td><td>L2CAP_CONFIGURATION_RSP</td></tr>
+      <tr><td>Connection Parameter Update request</td><td>L2CAP_CONNECTION_PARAMETER_UPDATE_REQ</td></tr>
+      <tr><td>Connection Parameter Update response</td><td>L2CAP_CONNECTION_PARAMETER_UPDATE_RSP</td></tr>
+      <tr><td>Connection request</td><td>L2CAP_CONNECTION_REQ</td></tr>
+      <tr><td>Connection response</td><td>L2CAP_CONNECTION_RSP</td></tr>
+      <tr><td>Disconnection request</td><td>L2CAP_DISCONNECTION_REQ</td></tr>
+      <tr><td>Disconnection response</td><td>L2CAP_DISCONNECTION_RSP</td></tr>
+      <tr><td>Echo request</td><td>L2CAP_ECHO_REQ</td></tr>
+      <tr><td>Echo response</td><td>L2CAP_ECHO_RSP</td></tr>
+      <tr><td>Information request</td><td>L2CAP_INFORMATION_REQ</td></tr>
+      <tr><td>Information response</td><td>L2CAP_INFORMATION_RSP</td></tr>
+      <tr><td>LE Credit Based Connection request</td><td>L2CAP_LE_CREDIT_BASED_CONNECTION_REQ</td></tr>
+      <tr><td>LE Credit Based Connection response</td><td>L2CAP_LE_CREDIT_BASED_CONNECTION_RSP</td></tr>
+      <tr><td>LE Flow Control Credit</td><td>L2CAP_FLOW_CONTROL_CREDIT_IND</td></tr>
+    </table>
+  </div>
+
+  <div class="info-box blue" style="margin-top:24px;">
+    <span class="info-icon">📖</span>
+    <div>
+      <strong>参考资料</strong><br>
+      本文档基于蓝牙核心规范 6.0（Bluetooth Core Specification 6.0）· Part A —— Logical Link Control and Adaptation Protocol Specification 整理，严格遵守原始章节顺序。如需查阅完整协议原文，请访问 <strong>bluetooth.com</strong> 官方网站。
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+// Navigation
+function nav(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    if (window.btScrollToEl) window.btScrollToEl(el, 80);
+    else el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    // Find corresponding nav item
+    event.currentTarget && event.currentTarget.classList.add('active');
+    // Close sidebar on mobile
+    if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+  }
+}
+
+// Progress bar
+window.addEventListener('scroll', () => {
+  const scrollTop = document.documentElement.scrollTop;
+  const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  const progress = docHeight > 0 ? scrollTop / docHeight : 0;
+  document.getElementById('progress-bar').style.transform = `scaleX(${progress})`;
+
+  // Active nav highlight based on scroll
+  highlightNav();
+});
+
+// Sections for intersection
+const sectionIds = [
+  's0','s1','s1-1','s1-2','s1-3','s1-4',
+  's2','s2-1','s2-2','s2-3',
+  's3','s3-1','s3-2','s3-3','s3-4','s3-5','s3-6','s3-7','s3-8',
+  's4','s4-1','s4-2','s4-3','s4-4','s4-5','s4-6','s4-7',
+  's5','s5-1','s5-2','s5-3','s5-4',
+  's6','s6-1','s6-2',
+  's7','s7-1','s7-2','s7-3','s7-4',
+  's8','s8-1','s8-2','s8-3','s8-4','s8-5',
+  's10','s10-1','s10-2',
+  'sA','sB'
+];
+
+function highlightNav() {
+  const offset = 100;
+  let activeId = null;
+  for (const id of sectionIds) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.top <= offset) {
+      activeId = id;
+    }
+  }
+  if (activeId) {
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.remove('active');
+      // Match by onclick attribute
+      const onclick = n.getAttribute('onclick') || '';
+      if (onclick.includes(`'${activeId}'`)) {
+        n.classList.add('active');
+        // Ensure visible in sidebar
+        const sidebar = document.getElementById('sidebar');
+        const navRect = n.getBoundingClientRect();
+        const sideRect = sidebar.getBoundingClientRect();
+        if (navRect.top < sideRect.top || navRect.bottom > sideRect.bottom) {
+          n.scrollIntoView({ block: 'nearest' });
+        }
+      }
+    });
+  }
+}
+
+// Initial highlight
+highlightNav();
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

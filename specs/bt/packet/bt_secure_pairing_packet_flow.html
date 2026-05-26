@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BR/EDR 安全配对过程（抓包对照）</title>
+  <style>
+    :root {
+      --bg: #f7f8fc;
+      --card: #fff;
+      --ink: #172033;
+      --muted: #607089;
+      --line: #dbe4f0;
+      --red: #dc2626;
+      --red-soft: #fef2f2;
+      --blue: #2563eb;
+      --blue-soft: #eff6ff;
+      --green: #16a34a;
+      --green-soft: #f0fdf4;
+      --orange: #ea580c;
+      --shadow: 0 4px 24px rgba(15, 23, 42, 0.07);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 90% 0%, rgba(220, 38, 38, 0.08), transparent 40%), var(--bg);
+      color: var(--ink);
+      font: 15px/1.7 "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .hero {
+      background: linear-gradient(155deg, #450a0a 0%, #991b1b 45%, #1e3a8a 100%);
+      color: #fff;
+      padding: 48px 24px 40px;
+      text-align: center;
+    }
+
+    .hero h1 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 36px); }
+    .hero p { margin: 0 auto; max-width: 780px; opacity: 0.92; font-size: 15px; }
+
+    .layout {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+      scroll-margin-top: 16px;
+    }
+
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--red);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .badge.time { background: var(--blue-soft); color: var(--blue); }
+
+    .lead { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+
+    .timeline-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 14px 0;
+    }
+
+    .tl-chip {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      border: 1px solid var(--line);
+      font-family: ui-monospace, monospace;
+    }
+
+    .tl-chip.active { background: var(--red-soft); border-color: #fecaca; color: #991b1b; font-weight: 600; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 9px 11px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th { background: #fee2e2; white-space: nowrap; }
+
+    .hex {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+
+    .hex .a { color: #94a3b8; }
+    .hex .h1 { color: #fbbf24; }
+    .hex .h2 { color: #34d399; }
+    .hex .h3 { color: #60a5fa; }
+
+    .note {
+      border-left: 4px solid var(--orange);
+      background: #fff7ed;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 0;
+      font-size: 14px;
+      margin: 14px 0;
+      color: #7c2d12;
+    }
+
+    .note.ok { border-color: var(--green); background: var(--green-soft); color: #14532d; }
+    .note.warn { border-color: var(--red); background: var(--red-soft); color: #991b1b; }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+    .role-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+
+    .role-card strong { display: block; margin-bottom: 6px; }
+
+    .key-flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .key-box {
+      padding: 10px 14px;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      background: #fff;
+      text-align: center;
+      min-width: 100px;
+    }
+
+    .key-arrow { color: var(--red); font-weight: 700; }
+
+    @media (max-width: 700px) {
+      .role-grid { grid-template-columns: 1fr; }
+    }
+
+    nav.top-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+    }
+
+    nav.top-links a {
+      color: rgba(255,255,255,0.9);
+      font-size: 13px;
+      text-decoration: none;
+      padding: 4px 10px;
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: 999px;
+    }
+
+    nav.top-links a:hover { background: rgba(255,255,255,0.15); }
+  
+    .seq-container {
+      background: #f8faff;
+      border: 1px solid #dde3ee;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+    .seq-container svg { display: block; max-width: 100%; height: auto; }
+
+  
+    /* ── 左侧目录导航（packet 抓包文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar) {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">BR/EDR 安全配对过程（抓包对照）</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">抓包流程 · Packet Flow</div>
+    <div class="doc-name">BR/EDR 安全配对过程（抓包对照）</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#抓包时间线总览">抓包时间线总览</a>
+  <a class="packet-nav-link" href="#precheck">0 能力前提：SSP / Secure Connections 28.391s</a>
+  <a class="packet-nav-link" href="#step1">1 IO Capability：选择配对关联模型 28.523913s</a>
+  <a class="packet-nav-link" href="#step2">2 公钥交换：LMP Public Key 28.524s 之后 · IO 与随机数之间</a>
+  <a class="packet-nav-link" href="#step3">3 承诺值：Simple Pairing Confirm 公钥之后 · Number 之前</a>
+  <a class="packet-nav-link" href="#step4">4 随机数揭示：Simple Pairing Number 29.050–29.053s</a>
+  <a class="packet-nav-link" href="#step5">5 DH Key Check：验证共享密钥一致 31.374–31.400s</a>
+  <a class="packet-nav-link" href="#step6">6 Secure Authentication：用 Link Key 认证当前链路 31.402702s</a>
+  <a class="packet-nav-link" href="#step7">7 加密协商与启动 31.413–31.427s</a>
+  <a class="packet-nav-link" href="#summary">密钥与报文阶段对应关系</a>
+  <a class="packet-nav-link" href="#相关文档">相关文档</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+  <a class="packet-nav-link doc" href="paging_to_setup_complete_packet_flow.html">Paging → Setup Complete</a>
+  <a class="packet-nav-link doc" href="setup_complete_to_io_capability_packet_flow.html">Setup → IO Capability</a>
+  <a class="packet-nav-link doc current-doc" href="bt_secure_pairing_packet_flow.html">SSP 安全配对</a>
+  <a class="packet-nav-link doc" href="sdp_packet_flow.html">SDP 服务发现</a>
+  <a class="packet-nav-link doc" href="l2cap_session_packet_flow.html">L2CAP 多会话</a>
+  <a class="packet-nav-link doc" href="hid_connection_packet_flow.html">HID 连接</a>
+  <a class="packet-nav-link doc" href="ble_first_connection_packet_flow.html">BLE 首次连接</a>
+  <a class="packet-nav-link doc" href="ble_second_connection_packet_flow.html">BLE 第二次连接</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<header class="hero">
+    <h1>BR/EDR 安全配对过程</h1>
+    <p>基于 <code>honor50_sunmi_bt_ota.csv</code>：HONOR 50 Pro（Central）与 CloudPrint_0159（Peripheral）在第二次 ACL 建链后的 SSP / Secure Connections 配对与链路加密。</p>
+    <nav class="top-links">
+      <a href="#precheck">能力前提</a>
+      <a href="#step1">IO Capability</a>
+      <a href="#step2">公钥交换</a>
+      <a href="#step3">Simple Pairing Confirm</a>
+      <a href="#step4">随机数揭示</a>
+      <a href="#step5">DH Key Check</a>
+      <a href="#step6">链路认证</a>
+      <a href="#step7">加密协商</a>
+      <a href="#summary">密钥关系</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <!-- Overview timeline -->
+    <section class="card" id="抓包时间线总览">
+      <h2>抓包时间线总览</h2>
+      <p class="lead">配对发生在 LMP Setup Complete 之后、SDP 查询之前。从 IO Capability 到 Start Encryption 约 <strong>2.9 秒</strong>（28.524s → 31.427s）。</p>
+      <div class="timeline-bar">
+        <span class="tl-chip">28.391 Extended Features (SSP/SC)</span>
+        <span class="tl-chip active">28.524 IO Capability</span>
+        <span class="tl-chip active">28.53–29.05 LMP Public Key ×2 (P-256)</span>
+        <span class="tl-chip active">Simple Pairing Confirm ×2</span>
+        <span class="tl-chip active">29.050 Simple Pairing Number ×2</span>
+        <span class="tl-chip active">31.374 DH Key Check ×2</span>
+        <span class="tl-chip active">31.403 Secure Auth</span>
+        <span class="tl-chip active">31.413–31.427 加密启动</span>
+      </div>
+
+            <div class="seq-container" id="msc-1" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;ACL 已建立，尚未加密&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;IO Capability&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Public Key (P-256, 64 B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP Public Key (P-256, 64 B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Simple Pairing Confirm&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Simple Pairing Confirm&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Simple Pairing Number&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Simple Pairing Number&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;DH Key Check&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;DH Key Check&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Secure Authentication&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Enc Key Size Mask / Mode / Size&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Start Encryption Request&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;之后 L2CAP/SDP 在加密链路上进行&quot;}]}"></div>
+
+    </section>
+
+    <!-- Precheck -->
+    <section class="card" id="precheck">
+      <h2><span class="step-num">0</span> 能力前提：SSP / Secure Connections <span class="badge time">28.391s</span></h2>
+      <p class="lead">配对前双方已通过 LMP Extended Features 声明支持 <strong>SSP Host</strong> 与 <strong>SC Host</strong>（Secure Connections），控制器侧还有 <strong>SC Controller</strong>。</p>
+      <table>
+        <tr><th>时间</th><th>报文</th><th>含义</th></tr>
+        <tr><td>28.391412</td><td>LMP Extended Features Exchange (SSP Host, LE Host, SC Host …)</td><td>主机栈支持 Secure Simple Pairing 与 BR/EDR Secure Connections</td></tr>
+        <tr><td>28.395162</td><td>… (SC Controller, Ping …)</td><td>控制器支持 SC 配对算法与 Ping</td></tr>
+      </table>
+      <div class="note ok">因此后续走 <strong>ECDH + DHKey Check</strong> 的 SC 路径，而不是老式 PIN + 仅 4 位配对码的 Legacy 流程。</div>
+    </section>
+
+    <!-- Step 1 IO -->
+    <section class="card" id="step1">
+      <h2><span class="step-num">1</span> IO Capability：选择配对关联模型 <span class="badge time">28.523913s</span></h2>
+      <p class="lead"><code>LMP IO Capability Transaction</code> 交换双方的 IO 能力、OOB、MITM 需求与 Bonding 类型，用于确定 SSP 关联模型（Just Works / Numeric Comparison / Passkey Entry / OOB）。</p>
+
+      <div class="role-grid">
+        <div class="role-card">
+          <strong>HONOR 50 Pro（发起侧）</strong>
+          DisplayYesNo<br>
+          No OOB<br>
+          <span style="color:var(--red)">MITM Protection Required</span><br>
+          Dedicated Bonding
+        </div>
+        <div class="role-card">
+          <strong>CloudPrint_0159</strong>
+          NoInputNoOutput<br>
+          No OOB<br>
+          MITM Protection Not Required<br>
+          General Bonding
+        </div>
+      </div>
+
+      <table>
+        <tr><th>字段</th><th>HONOR</th><th>CloudPrint</th><th>影响</th></tr>
+        <tr><td>IO Capability</td><td>DisplayYesNo</td><td>NoInputNoOutput</td><td>无法做 Numeric Comparison 或 Passkey 输入</td></tr>
+        <tr><td>MITM</td><td>Required</td><td>Not Required</td><td>实际按较弱一侧 → 无用户确认级 MITM</td></tr>
+        <tr><td>Bonding</td><td>Dedicated</td><td>General</td><td>双方仍可进行绑定并存储 link key</td></tr>
+      </table>
+
+      <div class="note warn">
+        <strong>关联模型推断：Just Works。</strong> 打印机无屏无按键，不能显示/输入 6 位数字；配对可完成并加密，但不具备“用户目视确认同一设备”的强 MITM 防护。
+      </div>
+
+            <div class="seq-container" id="msc-2" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&lt;br/&gt;DisplayYesNo, MITM=Yes&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&lt;br/&gt;NoInputNoOutput&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_io_capability_req&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_io_capability_res&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;选定 Just Works 关联模型&quot;}]}"></div>
+
+    </section>
+
+    <!-- Step 2 Public Key -->
+    <section class="card" id="step2">
+      <h2><span class="step-num">2</span> 公钥交换：LMP Public Key <span class="badge time">28.524s 之后 · IO 与随机数之间</span></h2>
+      <p class="lead">IO Capability 确定关联模型后，双方各发送一条 <code>LMP Public Key</code>。本抓包为 <strong>BR/EDR Secure Connections</strong>，使用 <strong>P-256</strong> 曲线，公钥点为 <strong>X‖Y 共 64 字节</strong>（各 32 字节大端）。私钥不出空口。</p>
+
+      <table>
+        <tr><th>顺序</th><th>LMP 信令</th><th>方向</th><th>载荷</th><th>作用</th></tr>
+        <tr><td>1</td><td><code>LMP_public_key</code></td><td>HONOR → CloudPrint</td><td>P-256 公钥 64 字节</td><td>Central 公布己方公钥点</td></tr>
+        <tr><td>2</td><td><code>LMP_public_key</code></td><td>CloudPrint → HONOR</td><td>P-256 公钥 64 字节</td><td>Peripheral 公布己方公钥点</td></tr>
+      </table>
+
+      <div class="hex">
+<span class="a">/* LMP Public Key — BR/EDR Secure Connections，曲线 P-256 */</span>
+<span class="h1">7C</span> <span class="a">← LMP opcode：public_key（Wireshark: “LMP Public Key”）</span>
+<span class="h2">X[0..31]</span>  <span class="a">← 点 X，32 字节</span>
+<span class="h2">Y[0..31]</span>  <span class="a">← 点 Y，32 字节</span>
+<span class="a">  公钥载荷 64 字节 + LMP 头；HONOR / CloudPrint 各一条</span>
+      </div>
+
+      <p style="font-size:14px;color:var(--muted);">
+        收到对端公钥后本地计算：<code>DHKey = ECDH(本地私钥, 对端 P-256 公钥)</code>。<br>
+        下一步先交换 <strong>Commitment</strong>（不暴露随机数），再 <strong>揭示 Na/Nb</strong>。
+      </p>
+
+      <div class="note">
+        <strong>与 CSV：</strong>公钥两条信令在原始 pcap 的 28.53s～29.05s 段；<code>honor50_sunmi_bt_ota.csv</code> 未单独导出时可按 “Public Key” / opcode <code>0x7C</code> 过滤。曲线以 SC 协商为准，本连接为 <strong>P-256（非 P-192）</strong>。
+      </div>
+
+            <div class="seq-container" id="msc-3" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;sk_H, P-256&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;sk_C, P-256&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_public_key&lt;br/&gt;Pub_H = X_H(32B) || Y_H(32B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_public_key&lt;br/&gt;Pub_C = X_C(32B) || Y_C(32B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;], &quot;text&quot;: &quot;DHKey = ECDH(sk_H, Pub_C)&quot;}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;C&quot;], &quot;text&quot;: &quot;DHKey = ECDH(sk_C, Pub_H)&quot;}]}"></div>
+
+    </section>
+
+    <!-- Step 3 Simple Pairing Confirm -->
+    <section class="card" id="step3">
+      <h2><span class="step-num">3</span> 承诺值：Simple Pairing Confirm <span class="badge time">公钥之后 · Number 之前</span></h2>
+      <p class="lead">
+        公钥交换后进入 SSP <strong>认证阶段 1</strong>：双方各发一条
+        <code>LMP Simple Pairing Confirm</code>（Wireshark 亦可能写作 Confirmation / Commitment），
+        载荷为 16 字节承诺值 <strong>Ca / Cb</strong>。此时<strong>尚未</strong>发送随机数 Na/Nb，防止中途篡改公钥或 IO 参数。
+      </p>
+
+      <table>
+        <tr><th>顺序</th><th>LMP 信令</th><th>方向</th><th>载荷</th><th>含义</th></tr>
+        <tr><td>1</td><td><code>LMP_simple_pairing_confirm</code></td><td>HONOR → CloudPrint</td><td>16 字节</td><td>Ca = f(Na, Pub, IOcap, …) 的承诺，不暴露 Na</td></tr>
+        <tr><td>2</td><td><code>LMP_simple_pairing_confirm</code></td><td>CloudPrint → HONOR</td><td>16 字节</td><td>Cb = f(Nb, Pub, IOcap, …) 的承诺</td></tr>
+      </table>
+
+      <div class="hex">
+<span class="a">/* LMP Simple Pairing Confirm — 典型结构 */</span>
+<span class="h1">0B</span> <span class="a">← LMP opcode：simple_pairing_confirm（部分版本显示为 Confirmation）</span>
+<span class="h2">C[0..15]</span>  <span class="a">← 16 字节 Commitment（Ca 或 Cb）</span>
+<span class="a">  计算绑定：本地随机数 + 双方公钥 + IO Capability + BD_ADDR 等</span>
+<span class="a">  对端在收到 Simple Pairing Number 后用同样公式校验 C 是否匹配</span>
+      </div>
+
+      <div class="note ok">
+        <strong>阶段顺序（规范）：</strong>Public Key ×2 → <strong>Confirm ×2</strong> → Number ×2（揭示 Na/Nb）→ 本地校验承诺 → DH Key Check。
+      </div>
+
+            <div class="seq-container" id="msc-4" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;], &quot;text&quot;: &quot;生成随机数 Na，计算 Ca&quot;}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;C&quot;], &quot;text&quot;: &quot;生成随机数 Nb，计算 Cb&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_simple_pairing_confirm (Ca)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_simple_pairing_confirm (Cb)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;尚未发送 Na / Nb&quot;}]}"></div>
+
+    </section>
+
+    <!-- Step 4 Na Nb -->
+    <section class="card" id="step4">
+      <h2><span class="step-num">4</span> 随机数揭示：Simple Pairing Number <span class="badge time">29.050–29.053s</span></h2>
+      <p class="lead">
+        <strong>认证阶段 2</strong>：双方发送 <code>LMP Simple Pairing Number</code>，各 16 字节，即揭示 <strong>Na / Nb</strong>。
+        对端用收到的随机数重算 Commitment，必须与先前 Confirm 一致，否则配对失败。
+      </p>
+
+      <table>
+        <tr><th>时间</th><th>方向（推断）</th><th>报文内容（16 字节）</th><th>结果</th></tr>
+        <tr><td>29.050170</td><td>首条 Simple Pairing Number</td><td><code>B3 60 03 B8 AB B3 CC E7 6C BF E6 0F 13 03 6E A8</code></td><td>Accepted</td></tr>
+        <tr><td>29.053297</td><td>对向 Simple Pairing Number</td><td><code>87 8A 64 4B 77 20 C5 B5 1E 1B 6D B8 11 44 28 FF</code></td><td>Accepted</td></tr>
+      </table>
+
+      <div class="hex">
+<span class="a">/* 报文 1 — honor50_sunmi_bt_ota.csv 第 33 行 */</span>
+<span class="h1">B3 60 03 B8 AB B3 CC E7</span> <span class="h2">6C BF E6 0F 13 03 6E A8</span>
+<span class="a">  揭示 Na（HONOR 侧随机数，16 字节）</span>
+
+<span class="a">/* 报文 2 — 第 34 行 */</span>
+<span class="h1">87 8A 64 4B 77 20 C5 B5</span> <span class="h2">1E 1B 6D B8 11 44 28 FF</span>
+<span class="a">  揭示 Nb（CloudPrint 侧随机数）</span>
+      </div>
+
+      <p style="font-size:14px;color:var(--muted);">
+        收到对端 Number 后：用 Na/Nb + P-256 公钥 + IOcap 等重算 Commitment，与步骤 3 的 Confirm 比对。
+        通过后结合 <code>DHKey</code> 进入 DH Key Check；<strong>DHKey 仍不在空口明文传输</strong>。
+      </p>
+
+            <div class="seq-container" id="msc-5" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;Confirm 已交换，现揭示随机数&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_simple_pairing_number (Na, 16 B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;C&quot;], &quot;text&quot;: &quot;用 Na 校验 Ca&quot;}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_simple_pairing_number (Nb, 16 B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;], &quot;text&quot;: &quot;用 Nb 校验 Cb&quot;}]}"></div>
+
+    </section>
+
+    <!-- Step 5 DH Key Check -->
+    <section class="card" id="step5">
+      <h2><span class="step-num">5</span> DH Key Check：验证共享密钥一致 <span class="badge time">31.374–31.400s</span></h2>
+      <p class="lead"><code>LMP DH Key Check</code> 发送的是基于 DHKey 与配对上下文计算的 <strong>校验值 Ea / Eb</strong>（MAC 思路），对端本地重算后比对，不是“加密一段数据让对方解密”。</p>
+
+      <table>
+        <tr><th>时间</th><th>校验值（16 字节）</th><th>结果</th></tr>
+        <tr><td>31.373952</td><td><code>16 29 E3 04 79 83 FE 30 62 C3 31 8A 1C DD E2 75</code></td><td>Accepted</td></tr>
+        <tr><td>31.399579</td><td><code>E8 1D EE 69 EC 7D 9F 50 AD BB 30 0B 16 8D E8 76</code></td><td>Accepted</td></tr>
+      </table>
+
+      <div class="hex">
+<span class="a">CheckValue = f(DHKey, Na, Nb, BD_ADDR_A, BD_ADDR_B, IOcap, AuthReq, …)</span>
+<span class="h3">HONOR → CloudPrint:</span> <span class="h1">16 29 E3 04 79 83 FE 30 62 C3 31 8A 1C DD E2 75</span>
+<span class="h3">CloudPrint → HONOR:</span> <span class="h1">E8 1D EE 69 EC 7D 9F 50 AD BB 30 0B 16 8D E8 76</span>
+<span class="a">双向 Accepted ⇒ 双方 DHKey 一致，SSP 认证阶段成功</span>
+      </div>
+
+      <div class="note ok">通过后从 DHKey 派生 <strong>link key</strong>（BR/EDR 长期配对密钥，供认证与加密密钥派生使用）。</div>
+
+            <div class="seq-container" id="msc-6" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_DHkey_check (Ea)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_DHkey_check (Eb)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;派生 link key，完成 SSP 配对&quot;}]}"></div>
+
+    </section>
+
+    <!-- Step 6 Secure Auth -->
+    <section class="card" id="step6">
+      <h2><span class="step-num">6</span> Secure Authentication：用 Link Key 认证当前链路 <span class="badge time">31.402702s</span></h2>
+      <p class="lead">DH Key Check 解决的是“配对是否成功”；<code>LMP Secure Authentication Transaction</code> 解决的是“双方现在是否持有<strong>同一个 link key</strong>”，为开启加密做准备。</p>
+
+      <table>
+        <tr><th>时间</th><th>报文</th><th>抓包字段</th></tr>
+        <tr><td>31.402702</td><td>LMP Secure Authentication Transaction</td><td><code>0xCBF367D8</code>（认证响应/挑战相关值，非 link key 本身）</td></tr>
+      </table>
+
+      <div class="hex">
+<span class="a">/* 一方发随机挑战，另一方用 link key 计算响应 */</span>
+Response = g(link_key, AU_RAND, BD_ADDR, …)  →  抓包可见 <span class="h1">0xCBF367D8</span>
+<span class="a">对端用本地 link key 计算期望值并比较，一致则认证通过</span>
+      </div>
+
+            <div class="seq-container" id="msc-7" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_au_rand (挑战)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_sres / Secure Authentication (0xCBF367D8)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;证明双方持有相同 link key&quot;}]}"></div>
+
+    </section>
+
+    <!-- Step 7 Encryption -->
+    <section class="card" id="step7">
+      <h2><span class="step-num">7</span> 加密协商与启动 <span class="badge time">31.413–31.427s</span></h2>
+      <p class="lead">认证通过后，协商加密能力、密钥长度，再发 <code>Start Encryption Request</code> 用 link key 派生会话加密密钥并进入加密态。</p>
+
+      <table>
+        <tr><th>时间</th><th>LMP 报文</th><th>抓包内容解读</th></tr>
+        <tr><td>31.412702</td><td>Encryption Key Size Mask</td><td><code>0xFFC0</code> — 双方支持的密钥长度位图（1～16 字节各 bit）</td></tr>
+        <tr><td>31.416452</td><td>Encryption Mode</td><td><strong>Encryption</strong> · Accepted — 同意对本 ACL 启用加密</td></tr>
+        <tr><td>31.421453</td><td>Encryption Key Size</td><td><strong>16 bytes</strong> · Accepted — 选用最大常规强度（128 bit 有效密钥材料）</td></tr>
+        <tr><td>31.426453</td><td>Start Encryption Request</td><td>见下方 Data 列</td></tr>
+      </table>
+
+      <div class="hex">
+<span class="a">/* Start Encryption Request — CSV Data 列 第 44 行 */</span>
+<span class="h1">22</span> <span class="h2">17 FB A1 CB A3 6E 74 1B E0 13 22 44 82 16 E2 E7</span>
+<span class="a">  22  → LMP opcode（enc_req / Start Encryption 相关）</span>
+<span class="a">  后 16 字节 → EN_RAND，用于与 link key 派生本次链路的 encryption key (Kc)</span>
+<span class="a">  双方按协商的 16-byte key size 截断/使用，空口切换为 E0（或 SC 路径下的相应算法）加密</span>
+      </div>
+
+            <div class="seq-container" id="msc-8" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Encryption Key Size Mask (0xFFC0)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Encryption Mode = Encryption&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Encryption Key Size = 16 bytes&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Start Encryption Request + EN_RAND (16 B)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;派生 Kc，ACL 载荷加密&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP / SDP（密文）&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+
+      <div class="note ok">
+        31.435829 起出现 <code>L2CAP Configure</code> 与 SDP 查询，说明<strong>业务已在加密链路上</strong>进行。31.422079 的 <code>LMP Name Transaction ("HONOR 50 Pro")</code> 发生在加密启动前后，属配对后信息交换。
+      </div>
+    </section>
+
+    <!-- Key relationship -->
+    <section class="card" id="summary">
+      <h2>密钥与报文阶段对应关系</h2>
+      <div class="key-flow">
+        <div class="key-box">Public Key ×2<br><small>P-256 · 64 B</small></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box"><strong>DHKey</strong><br><small>ECDH</small></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box">Confirm ×2<br><small>Ca / Cb</small></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box">Number ×2<br><small>Na / Nb · 29.05s</small></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box">DH Key Check<br><small>31.374s</small></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box"><strong>Link Key</strong></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box">Secure Auth<br><small>31.403s</small></div>
+        <span class="key-arrow">→</span>
+        <div class="key-box"><strong>Kc</strong><br><small>16 B · 31.427s</small></div>
+      </div>
+
+      <table>
+        <tr><th>阶段</th><th>抓包 LMP</th><th>在验证什么</th></tr>
+        <tr><td>能力</td><td>Extended Features (SSP/SC)</td><td>能否走 SC 配对</td></tr>
+        <tr><td>模型</td><td>IO Capability</td><td>Just Works / MITM 强度</td></tr>
+        <tr><td>公钥</td><td>LMP Public Key ×2</td><td>P-256 公钥交换，本地算 DHKey</td></tr>
+        <tr><td>承诺</td><td>Simple Pairing Confirm ×2</td><td>绑定 Na/Nb 与公钥/IOcap，防篡改</td></tr>
+        <tr><td>揭示</td><td>Simple Pairing Number ×2</td><td>揭示 Na/Nb 并校验 Confirm</td></tr>
+        <tr><td>校验</td><td>DH Key Check ×2</td><td>DHKey 一致，派生 link key</td></tr>
+        <tr><td>认证</td><td>Secure Authentication</td><td>Link key 双方一致</td></tr>
+        <tr><td>加密</td><td>Mask / Mode / Size / Start Encryption</td><td>启用 16 字节链路加密</td></tr>
+      </table>
+
+      <div class="note warn">
+        <strong>安全结论（本抓包）：</strong>链路已加密（16 字节密钥长度），但 IO 组合为 DisplayYesNo + NoInputNoOutput，实际为 Just Works，无法满足 HONOR 侧声明的 MITM Required 的用户确认语义。高安全场景需在应用层或 OOB 补足设备身份绑定。
+      </div>
+    </section>
+
+    <section class="card" id="相关文档">
+      <h2>相关文档</h2>
+      <p class="lead" style="margin:0;">
+        <a href="bt_all_packet_flow.html">BR/EDR 全流程分析</a> ·
+        <a href="../misc/lmp_ssp_deepdive.html">Security 规范导读</a> ·
+        <a href="l2cap_session_packet_flow.html">L2CAP 建链与 SDP</a>
+      </p>
+    </section>
+  </div>
+
+  
+  <script>
+
+(function () {
+  'use strict';
+  var PALETTE = [
+    { stroke: '#1565c0', fill: '#e3f2fd' },
+    { stroke: '#2e7d32', fill: '#e8f5e9' },
+    { stroke: '#e65100', fill: '#fff3e0' },
+    { stroke: '#6a1b9a', fill: '#f3e5f5' },
+    { stroke: '#c62828', fill: '#ffebee' },
+    { stroke: '#00695c', fill: '#e0f2f1' }
+  ];
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function splitLabel(label) {
+    return label.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  }
+
+  window.btPacketMsc = {
+    render: function (container, spec) {
+      if (typeof container === 'string') {
+        container = document.getElementById(container);
+      }
+      if (!container || !spec || !spec.actors || !spec.actors.length) return;
+
+      var actors = spec.actors;
+      var items = spec.messages || [];
+      var n = actors.length;
+      var padX = 24;
+      var actorW = 118;
+      var gap = Math.max(28, (720 - padX * 2 - actorW) / Math.max(1, n - 1));
+      var width = Math.max(560, padX * 2 + actorW + gap * (n - 1));
+      var xs = actors.map(function (_, i) {
+        return padX + i * gap + actorW / 2;
+      });
+
+      var rowH = 30;
+      var noteH = 34;
+      var topH = 48;
+      var y = topH;
+      var rows = [];
+
+      items.forEach(function (it) {
+        if (it.type === 'note') {
+          rows.push({ kind: 'note', text: it.text, ids: it.actors || actors.map(function (a) { return a.id; }), y: y });
+          y += noteH;
+        } else {
+          rows.push({
+            kind: 'msg',
+            from: it.from,
+            to: it.to,
+            label: it.label || '',
+            ret: !!it.return,
+            air: !!(it.air || (it.label && /\[Air\]/i.test(it.label))),
+            y: y
+          });
+          y += rowH;
+        }
+      });
+      var height = y + 28;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      actors.forEach(function (_, i) {
+        var m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        m.setAttribute('id', 'pkt-m' + i);
+        m.setAttribute('markerWidth', '7');
+        m.setAttribute('markerHeight', '7');
+        m.setAttribute('refX', '5');
+        m.setAttribute('refY', '3.5');
+        m.setAttribute('orient', 'auto');
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0,7 3.5,0 7');
+        poly.setAttribute('fill', PALETTE[i % PALETTE.length].stroke);
+        m.appendChild(poly);
+        defs.appendChild(m);
+      });
+      svg.appendChild(defs);
+
+      var idIndex = {};
+      actors.forEach(function (a, i) {
+        idIndex[a.id] = i;
+        var p = PALETTE[i % PALETTE.length];
+        var rx = xs[i] - actorW / 2;
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(rx));
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', String(actorW));
+        rect.setAttribute('height', '32');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', p.fill);
+        rect.setAttribute('stroke', p.stroke);
+        rect.setAttribute('stroke-width', '1.5');
+        svg.appendChild(rect);
+        var lines = splitLabel(a.label);
+        lines.forEach(function (ln, li) {
+          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', String(xs[i]));
+          t.setAttribute('y', String(22 + li * 11 - (lines.length - 1) * 5));
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', lines.length > 1 ? '9' : '10');
+          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('fill', p.stroke);
+          t.textContent = ln;
+          svg.appendChild(t);
+        });
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(xs[i]));
+        line.setAttribute('y1', '42');
+        line.setAttribute('x2', String(xs[i]));
+        line.setAttribute('y2', String(height - 8));
+        line.setAttribute('stroke', p.stroke);
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '4,3');
+        line.setAttribute('opacity', '0.45');
+        svg.appendChild(line);
+      });
+
+      rows.forEach(function (row) {
+        if (row.kind === 'note') {
+          var idxs = row.ids.map(function (id) { return idIndex[id]; }).filter(function (x) { return x !== undefined; });
+          if (!idxs.length) return;
+          var x0 = xs[Math.min.apply(null, idxs)] - actorW / 2;
+          var x1 = xs[Math.max.apply(null, idxs)] + actorW / 2;
+          var nr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          nr.setAttribute('x', String(x0 + 4));
+          nr.setAttribute('y', String(row.y - 4));
+          nr.setAttribute('width', String(x1 - x0 - 8));
+          nr.setAttribute('height', '22');
+          nr.setAttribute('rx', '4');
+          nr.setAttribute('fill', '#fff8e1');
+          nr.setAttribute('stroke', '#f9a825');
+          nr.setAttribute('stroke-width', '1');
+          svg.appendChild(nr);
+          var nt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          nt.setAttribute('x', String((x0 + x1) / 2));
+          nt.setAttribute('y', String(row.y + 10));
+          nt.setAttribute('text-anchor', 'middle');
+          nt.setAttribute('font-size', '9');
+          nt.setAttribute('fill', '#6d4c00');
+          nt.setAttribute('font-weight', '600');
+          nt.textContent = row.text;
+          svg.appendChild(nt);
+          return;
+        }
+        var fi = idIndex[row.from];
+        var ti = idIndex[row.to];
+        if (fi === undefined || ti === undefined) return;
+        var x1 = xs[fi];
+        var x2 = xs[ti];
+        var color = PALETTE[fi % PALETTE.length].stroke;
+        if (row.air) color = '#e65100';
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', String(x1));
+        ln.setAttribute('y1', String(row.y));
+        ln.setAttribute('x2', String(x2));
+        ln.setAttribute('y2', String(row.y));
+        ln.setAttribute('stroke', color);
+        ln.setAttribute('stroke-width', row.air ? '2' : '1.5');
+        ln.setAttribute('marker-end', 'url(#pkt-m' + ti + ')');
+        if (row.ret || row.air) ln.setAttribute('stroke-dasharray', '6,3');
+        svg.appendChild(ln);
+        var lines = splitLabel(row.label);
+        var mid = (x1 + x2) / 2;
+        lines.forEach(function (lb, li) {
+          var lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lt.setAttribute('x', String(mid));
+          lt.setAttribute('y', String(row.y - 6 - (lines.length - 1 - li) * 10));
+          lt.setAttribute('text-anchor', 'middle');
+          lt.setAttribute('font-size', '9');
+          lt.setAttribute('fill', color);
+          lt.setAttribute('font-weight', 'bold');
+          lt.textContent = lb;
+          svg.appendChild(lt);
+        });
+      });
+
+      container.innerHTML = '';
+      container.appendChild(svg);
+    }
+  };
+
+  document.querySelectorAll('.seq-container[data-msc]').forEach(function (el) {
+    try {
+      var spec = JSON.parse(el.getAttribute('data-msc'));
+      window.btPacketMsc.render(el, spec);
+    } catch (e) {
+      console.error('btPacketMsc', e);
+    }
+  });
+})();
+
+  </script>
+</div>
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

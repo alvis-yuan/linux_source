@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典蓝牙 ACL 链路建立全过程</title>
+    <style>
+        :root {
+            --master-color: #2563eb; /* 蓝色 */
+            --slave-color: #059669;  /* 绿色 */
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-light: #6b7280;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+        .intro {
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 40px;
+            font-size: 15px;
+        }
+        .phase-title {
+            background: #1f2937;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 30px 0 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .step-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        .step-card.master-initiated { border-left-color: var(--master-color); }
+        .step-card.slave-initiated { border-left-color: var(--slave-color); }
+        
+        .step-header {
+            font-size: 14px;
+            font-weight: bold;
+            color: #9ca3af;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        /* 核心交互图表区域 */
+        .interaction {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 10px;
+        }
+        .device {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            min-width: 90px;
+            text-align: center;
+            z-index: 2;
+        }
+        .device.master { background-color: var(--master-color); }
+        .device.slave { background-color: var(--slave-color); }
+        
+        /* 箭头组件 */
+        .arrow-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 15px;
+        }
+        .packet-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 6px;
+            background: #f3f4f6;
+            padding: 2px 10px;
+            border-radius: 12px;
+        }
+        .line-right {
+            width: 100%; height: 2px; background: var(--master-color); position: relative;
+        }
+        .line-right::after {
+            content: ''; position: absolute; right: 0; top: -5px;
+            border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 12px solid var(--master-color);
+        }
+        .line-left {
+            width: 100%; height: 2px; background: var(--slave-color); position: relative;
+        }
+        .line-left::after {
+            content: ''; position: absolute; left: 0; top: -5px;
+            border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-right: 12px solid var(--slave-color);
+        }
+
+        /* 解释文本区 */
+        .explanation {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        .highlight-m { color: var(--master-color); font-weight: bold; }
+        .highlight-s { color: var(--slave-color); font-weight: bold; }
+    </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+    /* ── 左侧目录导航（misc 专题，样式同 packet）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar),
+    .packet-page > .header {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card,
+    .packet-page .scenario-card,
+    .packet-page .layer-card,
+    .packet-page .role-card,
+    .packet-page .phase-title,
+    .packet-page h2[id],
+    .packet-page .tree,
+    .packet-page .deep-dive {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">ACL 链路建立全过程</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">专题 · Misc</div>
+    <div class="doc-name">ACL 链路建立全过程</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#phase-1-物理基带层寻呼与建链-baseband-paging-目标-实现两台设备在射频频率跳变-afh-">Phase 1: 物理基带层寻呼与建链 (Baseband Paging)
+    目标：实现两台设备在射频频率跳变（AFH）和时钟（Clock）上的完全同步，</a>
+  <a class="packet-nav-link" href="#phase-2-链路管理协议协商-lmp-link-setup-目标-在打通的物理信道上-互换软硬件支持特性-确">Phase 2: 链路管理协议协商 (LMP Link Setup)
+    目标：在打通的物理信道上，互换软硬件支持特性，确认版本，完成配对/加密（可选），并</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="ble_ll_controller_parse.html">BLE 控制器 Link Layer 报文解析</a>
+  <a class="packet-nav-link doc" href="rf_workflow.html">射频与基带交互架构</a>
+  <a class="packet-nav-link doc" href="lmp_ssp_deepdive.html">LMP 职责与 SSP 深度剖析</a>
+  <a class="packet-nav-link doc" href="sdp_database_structure.html">SDP 数据库结构</a>
+  <a class="packet-nav-link doc" href="bt_packet_parse_flow.html">经典蓝牙报文解析流水线</a>
+  <a class="packet-nav-link doc" href="bt_bb_flow.html">基带核心职责与处理流水线</a>
+  <a class="packet-nav-link doc" href="l2cap_classic_part.html">经典 L2CAP 报文与建连</a>
+  <a class="packet-nav-link doc" href="bt_timing.html">BR/EDR 时序与时间轴</a>
+  <a class="packet-nav-link doc" href="bt_baseband_packet_types.html">基带报文类型大全</a>
+  <a class="packet-nav-link doc current-doc" href="bt_acl_create_process.html">ACL 链路建立全过程</a>
+  <a class="packet-nav-link doc" href="bluetooth_rf_flow.html">蓝牙射频 TX/RX 流程</a>
+  <a class="packet-nav-link doc" href="ble_stack_parser.html">BLE 协议栈自底向上解析</a>
+  <a class="packet-nav-link doc" href="baseband_packet_parse_flow.html">经典蓝牙底层报文分流引擎</a>
+  <a class="packet-nav-link doc" href="att_protocol.html">ATT 协议指令分类</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<div class="packet-main container">
+    <h1>经典蓝牙 ACL 链路建立全过程</h1>
+    <div class="intro">
+        ACL（Asynchronous Connection-Less）是蓝牙传输异步数据（如指令、音乐、文件）的核心逻辑链路。<br>
+        一次完整的 ACL 建链包含两大阶段：<strong>物理基带的寻呼建链（Baseband Paging）</strong> 和 <strong>LMP 逻辑层协商（Link Setup）</strong>。
+    </div>
+
+    <!-- 第一阶段：物理层建链 -->
+    <div id="phase-1-物理基带层寻呼与建链-baseband-paging-目标-实现两台设备在射频频率跳变-afh-" class="phase-title">Phase 1: 物理基带层寻呼与建链 (Baseband Paging)</div>
+    <p style="font-size: 14px; color: #6b7280; padding-left: 10px;">目标：实现两台设备在射频频率跳变（AFH）和时钟（Clock）上的完全同步，建立底层物理信道。</p>
+
+    <div id="card" class="step-card master-initiated">
+        <div class="step-header">Step 1</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">ID 包 (Page 寻呼)</div>
+                <div class="line-right"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-m">Master</span> 决定发起连接。它使用已知的 <span class="highlight-s">Slave</span> 的蓝牙 MAC 地址生成**设备接入码（DAC）**，并将其封装成极短的 <strong>ID 包</strong>。Master 会在不同的寻呼跳频频点上快速、高频地广播这个 ID 包，试图“唤醒” Slave。
+        </div>
+    </div>
+
+    <div id="card-2" class="step-card slave-initiated">
+        <div class="step-header">Step 2</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">ID 包 (Page Response)</div>
+                <div class="line-left"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-s">Slave</span> 处于 Page Scan（寻呼扫描）状态，恰好在某个频点上监听到了含有自己 DAC 的 ID 包。Slave 立刻在下一个规定的时隙内，向 Master <strong>原样返回一个 ID 包</strong>，表示：“我听到了，我在这里。”
+        </div>
+    </div>
+
+    <div id="card-3" class="step-card master-initiated">
+        <div class="step-header">Step 3</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">FHS 包 (Master Response)</div>
+                <div class="line-right"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-m">Master</span> 收到 Slave 的回应后，立刻发送一个 <strong>FHS（跳频同步）包</strong>。这个包裹极其重要，里面装载了 Master 的蓝牙 MAC 地址和 Master 的当前系统时钟相位。这是为了让 Slave 接下来能跟着 Master 的节奏跳频。
+        </div>
+    </div>
+
+    <div id="card-4" class="step-card slave-initiated">
+        <div class="step-header">Step 4</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">ID 包 (FHS Acknowledgment)</div>
+                <div class="line-left"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-s">Slave</span> 收到 FHS 包后，再次回复一个 <strong>ID 包</strong> 予以确认收妥。
+            <br><br><em>【核心动作】</em>确认发送完毕后，<strong>Slave 会立刻进行角色切换</strong>：丢弃自己的本地时钟，把系统的跳频序列和时钟强制对齐为刚刚收到的 Master 时钟参数。至此，双方的物理频率彻底同步。
+        </div>
+    </div>
+
+    <div id="card-5" class="step-card master-initiated">
+        <div class="step-header">Step 5 (物理层连接确立)</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">POLL 包 (轮询包)</div>
+                <div class="line-right"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> 时钟同步后，进入新的微网（Piconet）跳频序列。<span class="highlight-m">Master</span> 发出第一个 <strong>POLL 包</strong> 进行测试，强制要求 Slave 回应，以验证物理链路是否真正连通。
+        </div>
+    </div>
+
+    <div id="card-6" class="step-card slave-initiated">
+        <div class="step-header">Step 6 (物理层连接确立)</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">NULL 包 / 任意数据包</div>
+                <div class="line-left"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-s">Slave</span> 收到 POLL 包后，必须回复。通常此时没有业务数据，因此回复一个 <strong>NULL 包</strong>。
+            <br>✅ <strong>至此，基带层的物理 ACL 链路已正式打通，设备不会掉线了。</strong>接下来进入上层的 LMP 逻辑协商。
+        </div>
+    </div>
+
+    <!-- 第二阶段：LMP层协商 -->
+    <div id="phase-2-链路管理协议协商-lmp-link-setup-目标-在打通的物理信道上-互换软硬件支持特性-确" class="phase-title">Phase 2: 链路管理协议协商 (LMP Link Setup)</div>
+    <p style="font-size: 14px; color: #6b7280; padding-left: 10px;">目标：在打通的物理信道上，互换软硬件支持特性，确认版本，完成配对/加密（可选），并宣告连接正式就绪。</p>
+
+    <div id="card-7" class="step-card master-initiated">
+        <div class="step-header">Step 7</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">LMP_host_connection_req</div>
+                <div class="line-right"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> 底层打通后，<span class="highlight-m">Master</span> 的链路管理器（LM）发送该指令，向对方正式提出建立 Host 级别的连接请求。
+        </div>
+    </div>
+
+    <div id="card-8" class="step-card slave-initiated">
+        <div class="step-header">Step 8</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">LMP_accepted</div>
+                <div class="line-left"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-s">Slave</span> 回复接受请求。
+        </div>
+    </div>
+
+    <div id="card-9" class="step-card master-initiated">
+        <div class="step-header">Step 9 (能力与版本交换)</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">LMP_features_req / LMP_version_req</div>
+                <div class="line-right"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> 双方开始一系列查户口操作。<span class="highlight-m">Master</span> 询问对方支持哪些底层特性（比如是否支持 EDR 2Mbps/3Mbps 速率？是否支持低功耗 Sniff 模式？）以及询问蓝牙芯片的版本和厂商信息。
+        </div>
+    </div>
+    
+    <div id="card-10" class="step-card slave-initiated">
+        <div class="step-header">Step 10 (能力与版本交换)</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">LMP_features_res / LMP_version_res</div>
+                <div class="line-left"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-s">Slave</span> 返回自己的特性掩码和版本号。后续双方的通信将以两人中“最低兼容标准”为准进行调度。
+            <br><em>注：在这个阶段之间，如果设备需要鉴权（Authentication）和加密（Encryption），也会穿插发送 LMP_au_rand 和 LMP_encryption_mode_req 等指令完成密码检验。</em>
+        </div>
+    </div>
+
+    <div id="card-11" class="step-card master-initiated">
+        <div class="step-header">Step 11 (建链完成)</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">LMP_setup_complete</div>
+                <div class="line-right"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> 所有需要的底层参数都交换并确认完毕后，<span class="highlight-m">Master</span> 宣告 LMP 协商完成。
+        </div>
+    </div>
+
+    <div id="card-12" class="step-card slave-initiated">
+        <div class="step-header">Step 12 (建链完成)</div>
+        <div class="interaction">
+            <div class="device master">Master (发起方)</div>
+            <div class="arrow-wrapper">
+                <div class="packet-name">LMP_setup_complete</div>
+                <div class="line-left"></div>
+            </div>
+            <div class="device slave">Slave (接收方)</div>
+        </div>
+        <div class="explanation">
+            <strong>说明：</strong> <span class="highlight-s">Slave</span> 也发出协商完成宣告。
+            <br>🎉 <strong>最终结果：</strong> 一条完整的经典蓝牙 ACL 链路建立完毕！蓝牙控制器（Controller）会向上方的蓝牙主机（Host）报告 <code>Connection Complete Event</code>。接下来就可以开始建立 L2CAP 通道，传输 A2DP 音乐、控制信令等业务数据了。
+        </div>
+    </div>
+
+</div>
+</div>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

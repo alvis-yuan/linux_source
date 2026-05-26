@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Micro-USB 1.01 协议完全解析</title>
+<style>
+/* ── 全局变量 ── */
+:root{
+  --bg:#09090f;
+  --bg2:#0e0e18;
+  --card:#131320;
+  --card2:#1a1a2e;
+  --border:#252540;
+  --border2:#1e1e35;
+  --accent:#6c8fff;
+  --accent2:#a56cff;
+  --green:#22d37a;
+  --orange:#f5a623;
+  --red:#f25a5a;
+  --cyan:#24d4e8;
+  --pink:#f06090;
+  --yellow:#f5d020;
+  --text:#dde3f4;
+  --muted:#7a83a0;
+  --muted2:#4f566b;
+}
+
+/* ── 基础 ── */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Segoe UI',system-ui,sans-serif;
+  font-size:15px;line-height:1.75;
+  overflow-x:hidden;
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── HEADER ── */
+header{
+  position:relative;overflow:hidden;
+  padding:52px 40px 40px;text-align:center;
+  background:linear-gradient(160deg,#06061a 0%,#0f0425 45%,#010d18 100%);
+  border-bottom:1px solid var(--border);
+}
+header::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 600px 300px at 20% 50%,rgba(108,143,255,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 600px 300px at 80% 50%,rgba(165,108,255,.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+/* animated grid */
+header::after{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(108,143,255,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(108,143,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+}
+.hdr-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid;border-radius:999px;
+  padding:4px 14px;font-size:.75rem;font-weight:700;
+  letter-spacing:.5px;margin:4px;
+}
+.hdr-badge.blue{color:#7eb4ff;border-color:rgba(108,143,255,.35);background:rgba(108,143,255,.08)}
+.hdr-badge.purple{color:#c4a0ff;border-color:rgba(165,108,255,.35);background:rgba(165,108,255,.08)}
+.hdr-badge.green{color:#5febb4;border-color:rgba(34,211,122,.35);background:rgba(34,211,122,.08)}
+.hdr-badge.orange{color:#ffc87a;border-color:rgba(245,166,35,.35);background:rgba(245,166,35,.08)}
+header h1{
+  font-size:2.55rem;font-weight:900;letter-spacing:-1.5px;
+  background:linear-gradient(90deg,#7eb4ff 0%,#c4a0ff 50%,#5febb4 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  position:relative;line-height:1.15;margin-bottom:10px;
+}
+header h2{
+  font-size:1rem;font-weight:400;color:var(--muted);
+  position:relative;margin-bottom:16px;
+}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 200px)}
+
+/* ── SIDEBAR ── */
+nav#sidebar{
+  width:270px;min-width:270px;
+  background:var(--bg2);
+  border-right:1px solid var(--border);
+  position:sticky;top:0;height:100vh;
+  overflow-y:auto;padding:16px 0;
+  flex-shrink:0;
+}
+nav#sidebar::-webkit-scrollbar{width:3px}
+.sb-group{margin-bottom:6px}
+.sb-label{
+  padding:8px 18px 4px;
+  font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;
+  color:var(--muted2);
+}
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 18px;cursor:pointer;
+  transition:all .18s;color:var(--muted);
+  font-size:.84rem;border-left:3px solid transparent;
+  user-select:none;
+}
+.sb-item:hover{background:rgba(108,143,255,.07);color:var(--text)}
+.sb-item.active{
+  background:rgba(108,143,255,.13);color:#90b8ff;
+  border-left-color:var(--accent);
+}
+.sb-num{
+  min-width:24px;height:24px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.68rem;font-weight:800;flex-shrink:0;
+  background:var(--card2);color:var(--muted2);
+  transition:all .18s;
+}
+.sb-item.active .sb-num{background:rgba(108,143,255,.25);color:#7eb4ff}
+
+/* ── MAIN ── */
+main{flex:1;overflow-x:hidden}
+.section{display:none;padding:40px 52px 60px;animation:fadeIn .3s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── SECTION HEADER ── */
+.sec-eyebrow{
+  font-size:.72rem;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:8px;
+}
+.sec-eyebrow::before{content:'';flex:none;width:28px;height:2px;background:var(--accent);border-radius:2px}
+.sec-title{
+  font-size:2.1rem;font-weight:900;line-height:1.15;letter-spacing:-1px;
+  color:#e8eeff;margin-bottom:8px;
+}
+.sec-sub{color:var(--muted);font-size:.92rem;margin-bottom:28px;padding-bottom:22px;border-bottom:1px solid var(--border2)}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:22px 26px;margin-bottom:18px;
+}
+.card-title{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card p,.card li{color:var(--muted);font-size:.88rem}
+.card ul{padding-left:18px}
+.card li{margin-bottom:4px}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:960px){.g2,.g3,.g4{grid-template-columns:1fr}.section{padding:24px 22px 40px}nav#sidebar{width:220px;min-width:220px}}
+
+/* ── CALLOUTS ── */
+.callout{
+  border-left:4px solid var(--accent);
+  background:rgba(108,143,255,.07);
+  padding:14px 18px;border-radius:0 10px 10px 0;
+  margin:16px 0;font-size:.88rem;color:var(--muted);
+}
+.callout strong{color:var(--text)}
+.callout.green{border-color:var(--green);background:rgba(34,211,122,.07)}
+.callout.orange{border-color:var(--orange);background:rgba(245,166,35,.07)}
+.callout.red{border-color:var(--red);background:rgba(242,90,90,.07)}
+.callout.purple{border-color:var(--accent2);background:rgba(165,108,255,.07)}
+.callout.cyan{border-color:var(--cyan);background:rgba(36,212,232,.07)}
+.callout.yellow{border-color:var(--yellow);background:rgba(245,208,32,.07)}
+
+/* ── TABLES ── */
+.tw{overflow-x:auto;margin:14px 0;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th{
+  background:var(--card2);padding:10px 14px;text-align:left;
+  font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;
+  color:var(--accent);border-bottom:1px solid var(--border);
+}
+td{padding:9px 14px;border-bottom:1px solid var(--border2);color:var(--muted);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.018)}
+td strong{color:var(--text)}
+
+/* ── STAT BOX ── */
+.stat-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.stat{
+  flex:1;min-width:120px;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;text-align:center;
+}
+.stat-val{font-size:1.7rem;font-weight:900;line-height:1}
+.stat-lbl{font-size:.72rem;color:var(--muted);margin-top:5px;line-height:1.3}
+
+/* ── TAGS ── */
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.tag{
+  padding:3px 11px;border-radius:7px;font-size:.74rem;font-weight:700;
+  border:1px solid;white-space:nowrap;
+}
+.tag-blue{color:#90c0ff;border-color:rgba(108,143,255,.4);background:rgba(108,143,255,.12)}
+.tag-green{color:#80f0b0;border-color:rgba(34,211,122,.4);background:rgba(34,211,122,.1)}
+.tag-orange{color:#ffd080;border-color:rgba(245,166,35,.4);background:rgba(245,166,35,.1)}
+.tag-red{color:#ffaaaa;border-color:rgba(242,90,90,.4);background:rgba(242,90,90,.1)}
+.tag-purple{color:#d8b8ff;border-color:rgba(165,108,255,.4);background:rgba(165,108,255,.1)}
+.tag-cyan{color:#80f0f8;border-color:rgba(36,212,232,.4);background:rgba(36,212,232,.1)}
+.tag-yellow{color:#ffe880;border-color:rgba(245,208,32,.4);background:rgba(245,208,32,.1)}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:28px;margin:14px 0}
+.timeline::before{content:'';position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-dot{
+  position:absolute;left:-24px;top:5px;
+  width:14px;height:14px;border-radius:50%;border:2px solid var(--bg2);
+  background:var(--accent);flex-shrink:0;
+}
+.tl-dot.g{background:var(--green)}
+.tl-dot.o{background:var(--orange)}
+.tl-dot.p{background:var(--accent2)}
+.tl-dot.r{background:var(--red)}
+.tl-dot.c{background:var(--cyan)}
+.tl-head{font-weight:700;color:var(--text);margin-bottom:3px;font-size:.9rem}
+.tl-body{color:var(--muted);font-size:.85rem}
+
+/* ── BIT FIELD ── */
+.bitrow{display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border);margin:10px 0}
+.bit{flex:1;text-align:center;padding:7px 5px;border-right:1px solid var(--border);font-size:.76rem}
+.bit:last-child{border-right:none}
+.bit-h{background:var(--card2);font-weight:700;font-size:.68rem;color:var(--muted)}
+.bit-b{background:var(--card)}
+.bc-blue{background:rgba(108,143,255,.18)!important;color:#90c0ff}
+.bc-green{background:rgba(34,211,122,.16)!important;color:#80f0b0}
+.bc-orange{background:rgba(245,166,35,.16)!important;color:#ffd080}
+.bc-red{background:rgba(242,90,90,.16)!important;color:#ffaaaa}
+.bc-purple{background:rgba(165,108,255,.18)!important;color:#d8b8ff}
+.bc-cyan{background:rgba(36,212,232,.16)!important;color:#80f0f8}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{margin:8px 0}
+.progress-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:4px}
+.progress-bar{height:8px;border-radius:999px;background:var(--border);overflow:hidden}
+.progress-fill{height:100%;border-radius:999px;transition:width .8s ease}
+
+/* ── CODE ── */
+.code{
+  background:#080810;border:1px solid var(--border);border-radius:9px;
+  padding:14px 18px;font-family:'Courier New',monospace;font-size:.81rem;
+  overflow-x:auto;margin:14px 0;color:#a8d4ff;line-height:1.65;
+}
+.ck{color:#c792ea}.cn{color:#f78c6c}.cs{color:#c3e88d}.cc{color:#546e7a;font-style:italic}
+
+/* ── CONNECTOR SVG DIAGRAM ── */
+.diagram{margin:18px 0}
+.diagram svg{max-width:100%;height:auto;overflow:visible;display:block;margin:0 auto}
+
+/* defs shared */
+@keyframes dash{to{stroke-dashoffset:-20}}
+.flow-line{stroke-dasharray:6 4;animation:dash .7s linear infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.blink{animation:blink 1.6s infinite}
+</style>
+</head>
+<body>
+
+<!-- ██████████ HEADER ██████████ -->
+<header>
+  <h1>Micro-USB 1.01 协议完全解析</h1>
+  <h2>Universal Serial Bus Micro-USB Cables and Connectors Specification, Revision 1.01 · April 4, 2007</h2>
+  <div>
+    <span class="hdr-badge blue">📅 2007年4月发布</span>
+    <span class="hdr-badge purple">🔌 5-Pin Micro 连接器</span>
+    <span class="hdr-badge green">⚡ 480 Mbps Hi-Speed</span>
+    <span class="hdr-badge orange">🔁 10,000次插拔寿命</span>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- ██████████ SIDEBAR ██████████ -->
+<nav id="sidebar">
+  <div class="sb-group">
+    <div class="sb-label">规范章节</div>
+    <div class="sb-item active" onclick="show(0,this)"><div class="sb-num">1</div>引言 Introduction</div>
+    <div class="sb-item" onclick="show(1,this)"><div class="sb-num">2</div>术语与缩略语</div>
+    <div class="sb-item" onclick="show(2,this)"><div class="sb-num">3</div>重要特性 Features</div>
+    <div class="sb-item" onclick="show(3,this)"><div class="sb-num">4</div>线缆与连接器</div>
+    <div class="sb-item" onclick="show(4,this)"><div class="sb-num">5</div>电气合规要求</div>
+    <div class="sb-item" onclick="show(5,this)"><div class="sb-num">6</div>机械合规要求</div>
+  </div>
+  <div class="sb-group" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border2)">
+    <div class="sb-label">附加参考</div>
+    <div class="sb-item" onclick="show(6,this)"><div class="sb-num">☆</div>与其他USB对比</div>
+    <div class="sb-item" onclick="show(7,this)"><div class="sb-num">☆</div>OTG与ID引脚</div>
+  </div>
+</nav>
+
+<!-- ██████████ MAIN ██████████ -->
+<main>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 0 · Chapter 1: Introduction -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section active" id="s0">
+  <div class="sec-eyebrow">Chapter 1</div>
+  <div class="sec-title">引言 Introduction</div>
+  <div class="sec-sub">规范的背景、目的、适用范围及相关文档说明</div>
+
+  <div class="callout">
+    <strong>规范定位：</strong>本文档是对 USB 2.0 规范的<strong>补充说明（Supplement）</strong>，而非独立标准。凡本规范未明确修改的内容，一律以 USB 2.0 Specification 及 USB On-The-Go Supplement 为准。本规范专门针对手机与便携设备市场设计的 Micro 系列连接器进行规定。
+  </div>
+
+  <!-- 1.1 General -->
+  <div class="card">
+    <div class="card-title">📋 1.1 总体说明 General</div>
+    <p>USB 已成为手机与便携设备之间交换数据的主流接口。然而，这些设备体积越来越薄，传统 Mini-USB 连接器在尺寸与耐久性上已无法满足需求。</p>
+    <div class="callout orange" style="margin-top:12px">
+      <strong>核心痛点：</strong>Mini-USB 高度约 3.0mm，而 Micro-USB 高度仅约 <strong>1.8mm</strong>，大幅减少了设备厚度占用；同时耐久次数从 Mini-USB 的 5,000 次提升至 <strong>10,000 次</strong>。
+    </div>
+  </div>
+
+  <!-- 1.2 Objective -->
+  <div class="card">
+    <div class="card-title">🎯 1.2 规范目标 Objective</div>
+    <p style="margin-bottom:10px">本规范的目的是定义一种 Micro-USB 连接器的要求与特性，使其：</p>
+    <ul style="color:var(--muted);font-size:.88rem;padding-left:18px">
+      <li>满足手机与便携设备市场的当前和未来需求</li>
+      <li>符合 USB 2.0 规范的所有电气性能要求</li>
+      <li>在物理尺寸与形状上比 Mini-USB 更小巧</li>
+      <li>通过 ID 引脚支持 USB On-The-Go（OTG）功能</li>
+      <li>提供比现有互连器更高的耐久性（&ge;10,000 次插拔循环）</li>
+    </ul>
+  </div>
+
+  <!-- 1.3 Scope -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">👥 1.3 适用对象 / 范围</div>
+      <p>本规范适用于：</p>
+      <ul style="margin-top:8px;color:var(--muted);font-size:.86rem;padding-left:16px">
+        <li>Micro-USB 连接器制造商</li>
+        <li>使用 Micro-USB 的设备开发者</li>
+        <li>线缆组件设计者</li>
+        <li>USB 合规测试机构</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">📚 1.4 相关文档</div>
+      <div class="tw" style="margin:0">
+        <table>
+          <tr><th>文档</th><th>说明</th></tr>
+          <tr><td><strong>USB 2.0 Spec</strong></td><td>基础规范，本文补充</td></tr>
+          <tr><td><strong>OTG Supplement</strong></td><td>On-The-Go 功能扩展</td></tr>
+          <tr><td><strong>EIA-364</strong></td><td>连接器测试标准</td></tr>
+          <tr><td><strong>RoHS Directive</strong></td><td>环保限制物质指令</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline: Mini → Micro -->
+  <div class="card diagram">
+    <div class="card-title">📅 USB 连接器演进时间线</div>
+    <svg viewBox="0 0 720 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lg_tl" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#6c8fff" stop-opacity=".7"/>
+          <stop offset="100%" stop-color="#a56cff" stop-opacity=".7"/>
+        </linearGradient>
+      </defs>
+      <!-- 时间轴 -->
+      <line x1="40" y1="90" x2="680" y2="90" stroke="url(#lg_tl)" stroke-width="2.5"/>
+      <polygon points="676,84 688,90 676,96" fill="#a56cff"/>
+
+      <!-- 节点 1: USB 1.0 -->
+      <circle cx="80" cy="90" r="8" fill="#6c8fff" stroke="var(--bg2)" stroke-width="2"/>
+      <text x="80" y="70" fill="#7eb4ff" font-size="10" font-weight="700" text-anchor="middle">1996</text>
+      <text x="80" y="82" fill="var(--muted)" font-size="8" text-anchor="middle">USB 1.0</text>
+      <rect x="20" y="100" width="120" height="38" rx="5" fill="var(--card2)" stroke="var(--border)"/>
+      <text x="80" y="116" fill="var(--text)" font-size="9" font-weight="700" text-anchor="middle">Type-A / Type-B</text>
+      <text x="80" y="129" fill="var(--muted)" font-size="8" text-anchor="middle">12 Mbps / 1.5 Mbps</text>
+
+      <!-- 节点 2: Mini-USB -->
+      <circle cx="260" cy="90" r="8" fill="#f5a623" stroke="var(--bg2)" stroke-width="2"/>
+      <text x="260" y="70" fill="#ffc87a" font-size="10" font-weight="700" text-anchor="middle">2000</text>
+      <text x="260" y="82" fill="var(--muted)" font-size="8" text-anchor="middle">USB 2.0</text>
+      <rect x="200" y="100" width="120" height="52" rx="5" fill="var(--card2)" stroke="var(--border)"/>
+      <text x="260" y="116" fill="#ffc87a" font-size="9" font-weight="700" text-anchor="middle">Mini-A / Mini-B</text>
+      <text x="260" y="129" fill="var(--muted)" font-size="8" text-anchor="middle">480 Mbps HS</text>
+      <text x="260" y="142" fill="var(--muted)" font-size="8" text-anchor="middle">5,000 次插拔</text>
+
+      <!-- 节点 3: Micro-USB ★ -->
+      <circle cx="460" cy="90" r="11" fill="#22d37a" stroke="var(--bg2)" stroke-width="2"/>
+      <text x="460" y="66" fill="#5febb4" font-size="10" font-weight="700" text-anchor="middle">2007年4月</text>
+      <text x="460" y="80" fill="var(--muted)" font-size="8" text-anchor="middle">本规范 ★</text>
+      <rect x="388" y="100" width="144" height="68" rx="5" fill="rgba(34,211,122,.12)" stroke="#22d37a" stroke-width="1.5"/>
+      <text x="460" y="116" fill="#5febb4" font-size="10" font-weight="700" text-anchor="middle">Micro-A / Micro-B</text>
+      <text x="460" y="130" fill="var(--muted)" font-size="8" text-anchor="middle">480 Mbps · 5-Pin</text>
+      <text x="460" y="143" fill="var(--muted)" font-size="8" text-anchor="middle">10,000 次插拔</text>
+      <text x="460" y="156" fill="#5febb4" font-size="8" text-anchor="middle">支持 OTG · 更薄</text>
+
+      <!-- 节点 4: Type-C -->
+      <circle cx="640" cy="90" r="8" fill="#a56cff" stroke="var(--bg2)" stroke-width="2"/>
+      <text x="640" y="70" fill="#c4a0ff" font-size="10" font-weight="700" text-anchor="middle">2014+</text>
+      <text x="640" y="82" fill="var(--muted)" font-size="8" text-anchor="middle">USB 3.x</text>
+      <rect x="580" y="100" width="110" height="38" rx="5" fill="var(--card2)" stroke="var(--border)"/>
+      <text x="635" y="116" fill="#c4a0ff" font-size="9" font-weight="700" text-anchor="middle">Type-C</text>
+      <text x="635" y="129" fill="var(--muted)" font-size="8" text-anchor="middle">24-Pin · 可反插</text>
+    </svg>
+  </div>
+
+  <div class="callout green">
+    <strong>核心价值：</strong>Micro-USB 规范的出现，使 USB 接口首次真正适配了 2007 年前后爆发性增长的智能手机与超薄便携设备市场，同时通过 ID 引脚完整支持了 USB OTG 功能，允许便携设备间直接通信而无需 PC 主机参与。
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 1 · Chapter 2: Acronyms and Terms -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s1">
+  <div class="sec-eyebrow">Chapter 2</div>
+  <div class="sec-title">术语与缩略语 Acronyms & Terms</div>
+  <div class="sec-sub">本章列举并定义了规范全文中使用的专业术语和缩写，是理解后续章节的基础词汇表</div>
+
+  <div class="callout">本章作用：建立统一的技术语言体系。规范中所有术语定义均以本章为准，避免多义歧义。</div>
+
+  <!-- 设备角色术语 -->
+  <div class="card">
+    <div class="card-title">🔌 设备角色术语（Device Role Terms）</div>
+    <div class="tw" style="margin:0">
+      <table>
+        <tr><th>术语</th><th>英文全称</th><th>定义</th></tr>
+        <tr>
+          <td><strong style="color:#90c0ff">A-Device</strong></td>
+          <td>A-Device</td>
+          <td>插入 Micro-A 插头的设备。<strong>会话开始时默认为主机</strong>，负责向 VBUS 供电。若为 OTG 设备，可在特定条件下让出主机角色。</td>
+        </tr>
+        <tr>
+          <td><strong style="color:#80f0b0">B-Device</strong></td>
+          <td>B-Device</td>
+          <td>插入 Micro-B 插头的设备。<strong>会话开始时默认为外设（Peripheral）</strong>。若为 OTG 设备，可获得来自 A-Device 授予的主机角色。</td>
+        </tr>
+        <tr>
+          <td><strong style="color:#ffd080">Host</strong></td>
+          <td>Host</td>
+          <td>当前以 USB 主机角色运作的物理实体。发起所有数据事务并提供帧起始（SOF）信号。</td>
+        </tr>
+        <tr>
+          <td><strong style="color:#d8b8ff">Peripheral</strong></td>
+          <td>Peripheral</td>
+          <td>当前以 USB 从机角色运作的物理实体，响应主机的总线请求。</td>
+        </tr>
+        <tr>
+          <td><strong style="color:#80f0f8">OTG Device</strong></td>
+          <td>On-The-Go Device</td>
+          <td>同时具备主机与外设能力的设备，可通过 ID 引脚与 HNP/SRP 协议切换角色。</td>
+        </tr>
+        <tr>
+          <td><strong style="color:#ffaaaa">Application</strong></td>
+          <td>Application</td>
+          <td>运行在设备上、能够控制 USB 端口行为或动作的任意软件的通用称谓。</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 速度与物理术语 -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">⚡ 速度缩略语</div>
+      <div class="tw" style="margin:0">
+        <table>
+          <tr><th>缩写</th><th>含义</th><th>速率</th></tr>
+          <tr><td><strong>LS</strong></td><td>Low Speed</td><td>1.5 Mb/s</td></tr>
+          <tr><td><strong>FS</strong></td><td>Full Speed</td><td>12 Mb/s</td></tr>
+          <tr><td><strong>HS</strong></td><td>High Speed</td><td>480 Mb/s</td></tr>
+          <tr><td><strong>Higher</strong></td><td>&gt;480 Mb/s</td><td>预留扩展</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔩 连接器安装方式</div>
+      <div class="tw" style="margin:0">
+        <table>
+          <tr><th>术语</th><th>说明</th></tr>
+          <tr><td><strong>DIP-type</strong></td><td>穿孔型，触点和屏蔽尾部焊接穿过 PCB 板</td></tr>
+          <tr><td><strong>Midmount-type</strong></td><td>中置型，连接器安装在 PCB 板顶面与底面之间的切口中</td></tr>
+          <tr><td><strong>PCB</strong></td><td>Printed Circuit Board，印刷电路板</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTG协议术语 -->
+  <div class="card">
+    <div class="card-title">🔄 OTG 协议术语</div>
+    <div class="g2" style="margin:0;gap:12px">
+      <div>
+        <div class="callout purple">
+          <strong>HNP — Host Negotiation Protocol（主机协商协议）</strong><br/>
+          允许 A 设备与 B 设备在会话期间动态交换主机角色的机制。B 设备向 A 设备请求，A 设备同意后挂起总线，B 设备发出连接信号成为新主机。
+        </div>
+      </div>
+      <div>
+        <div class="callout cyan">
+          <strong>SRP — Session Request Protocol（会话请求协议）</strong><br/>
+          允许 B 设备在 VBUS 掉电后请求 A 设备重新上电并开始新会话的机制，节省 A 设备电量。
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="callout green">
+        <strong>ID 引脚（Identification Pin）</strong>：Micro 连接器第 5 引脚，用于区分 Micro-A 插头（ID 接地，阻抗 &lt;10Ω）与 Micro-B 插头（ID 浮空或阻抗 &gt;100kΩ）。OTG 设备通过检测 ID 引脚阻抗来确定自身初始角色。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 2 · Chapter 3: Significant Features -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s2">
+  <div class="sec-eyebrow">Chapter 3</div>
+  <div class="sec-title">重要特性 Significant Features</div>
+  <div class="sec-sub">本章高度概括 Micro-USB 规范的五大核心特性，不涉及完整技术细节，重点在于说明各特性的存在价值</div>
+
+  <div class="callout">本章是整个规范的"特性摘要"，相当于技术简报，帮助读者快速了解 Micro-USB 相对于既有标准的独特之处。</div>
+
+  <!-- 5大特性 -->
+  <div class="stat-row">
+    <div class="stat"><div class="stat-val" style="color:#7eb4ff">3.1</div><div class="stat-lbl">USB 2.0<br/>规范合规</div></div>
+    <div class="stat"><div class="stat-val" style="color:#c4a0ff">3.2</div><div class="stat-lbl">OTG<br/>设备支持</div></div>
+    <div class="stat"><div class="stat-val" style="color:#5febb4">3.3</div><div class="stat-lbl">新型<br/>连接器</div></div>
+    <div class="stat"><div class="stat-val" style="color:#ffc87a">3.4</div><div class="stat-lbl">合规<br/>线缆组件</div></div>
+    <div class="stat"><div class="stat-val" style="color:#f06090">3.5</div><div class="stat-lbl">插头<br/>包覆模具</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:#7eb4ff">⚡ 3.1 USB 2.0 规范合规性</div>
+    <p>Micro-USB 完整继承并遵循 USB 2.0 规范的所有电气性能要求，支持：</p>
+    <div class="tags" style="margin-top:10px">
+      <span class="tag tag-blue">Low Speed 1.5 Mb/s</span>
+      <span class="tag tag-green">Full Speed 12 Mb/s</span>
+      <span class="tag tag-orange">High Speed 480 Mb/s</span>
+      <span class="tag tag-purple">差分信号 D+/D-</span>
+      <span class="tag tag-cyan">NRZI 编码</span>
+      <span class="tag tag-red">CRC 错误检测</span>
+    </div>
+    <div class="callout" style="margin-top:12px;font-size:.85rem">
+      本规范<strong>不改变</strong> USB 2.0 的协议层、传输层和软件接口，仅在物理连接器尺寸与电气接触参数上进行特定补充规定。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:#c4a0ff">🔄 3.2 On-The-Go 设备支持</div>
+    <div class="g2" style="margin:0;gap:12px">
+      <div>
+        <p style="font-size:.88rem">Micro-USB 连接器通过第 5 引脚（<strong>ID 引脚</strong>）原生支持 USB OTG 功能，使两台便携设备无需 PC 主机即可直接通信。</p>
+        <ul style="margin-top:10px;color:var(--muted);font-size:.85rem;padding-left:16px">
+          <li>Micro-A 插头：ID 引脚接地（&lt;10Ω）→ 设备成为主机</li>
+          <li>Micro-B 插头：ID 引脚浮空（&gt;100kΩ）→ 设备成为外设</li>
+          <li>Micro-AB 插座：同时接受 Micro-A 或 Micro-B 插头</li>
+        </ul>
+      </div>
+      <div>
+        <!-- OTG 示意 -->
+        <svg viewBox="0 0 300 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Device A (Phone) -->
+          <rect x="10" y="30" width="100" height="80" rx="10" fill="rgba(108,143,255,.12)" stroke="#6c8fff" stroke-width="1.5"/>
+          <text x="60" y="55" fill="#7eb4ff" font-size="9" font-weight="700" text-anchor="middle">手机 A</text>
+          <text x="60" y="68" fill="var(--muted)" font-size="7" text-anchor="middle">OTG A-Device</text>
+          <text x="60" y="82" fill="#5febb4" font-size="8" font-weight="700" text-anchor="middle">Micro-AB 插座</text>
+          <text x="60" y="95" fill="var(--muted)" font-size="7" text-anchor="middle">ID → GND</text>
+          <text x="60" y="107" fill="#ffc87a" font-size="7" text-anchor="middle">初始角色：主机</text>
+          <!-- Cable -->
+          <rect x="118" y="62" width="64" height="16" rx="4" fill="rgba(34,211,122,.15)" stroke="#22d37a"/>
+          <text x="150" y="74" fill="#5febb4" font-size="8" font-weight="700" text-anchor="middle">Micro-A 线缆</text>
+          <line x1="110" y1="70" x2="118" y2="70" stroke="#22d37a" stroke-width="2"/>
+          <line x1="182" y1="70" x2="190" y2="70" stroke="#22d37a" stroke-width="2"/>
+          <!-- Device B (Camera) -->
+          <rect x="190" y="30" width="100" height="80" rx="10" fill="rgba(165,108,255,.12)" stroke="#a56cff" stroke-width="1.5"/>
+          <text x="240" y="55" fill="#c4a0ff" font-size="9" font-weight="700" text-anchor="middle">相机 B</text>
+          <text x="240" y="68" fill="var(--muted)" font-size="7" text-anchor="middle">OTG B-Device</text>
+          <text x="240" y="82" fill="#80f0b0" font-size="8" font-weight="700" text-anchor="middle">Micro-B 插座</text>
+          <text x="240" y="95" fill="var(--muted)" font-size="7" text-anchor="middle">ID → 浮空</text>
+          <text x="240" y="107" fill="#ffc87a" font-size="7" text-anchor="middle">初始角色：外设</text>
+          <!-- Label -->
+          <text x="150" y="132" fill="var(--muted)" font-size="8" text-anchor="middle">无需 PC 直连通信 · HNP 可动态切换角色</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-title" style="color:#5febb4">🔌 3.3 连接器类型</div>
+      <p style="font-size:.86rem;margin-bottom:10px">Micro-USB 规范定义三种连接器形态：</p>
+      <div class="callout green" style="margin-bottom:8px;font-size:.84rem"><strong>Micro-A 插头</strong>：用于 A 端设备（OTG 主机），ID 引脚接地，不对称键控，只能插入 Micro-AB 插座</div>
+      <div class="callout purple" style="margin-bottom:8px;font-size:.84rem"><strong>Micro-B 插头</strong>：用于 B 端设备（外设），ID 浮空，可插入 Micro-B 或 Micro-AB 插座</div>
+      <div class="callout cyan" style="font-size:.84rem"><strong>Micro-AB 插座</strong>：同时接受 A 或 B 插头，专用于 OTG 设备，区别于只接受 B 的普通 Micro-B 插座</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:#ffc87a">🔧 3.4 & 3.5 线缆组件与包覆模具</div>
+      <p style="font-size:.86rem;margin-bottom:10px">规范对合规线缆和插头包覆模具的约束：</p>
+      <ul style="color:var(--muted);font-size:.85rem;padding-left:16px">
+        <li>传播延迟 &le; <strong>10 ns</strong></li>
+        <li>物理长度 &le; <strong>2.0 m</strong></li>
+        <li>线缆需包含 VBUS、D-、D+、ID（Micro-A 端）、GND 共 5 线</li>
+        <li>插头包覆模具尺寸须符合 Figure 4-4/4-5 的约束形状</li>
+        <li>包覆模具须防止误插（键控设计）</li>
+        <li>直角（侧/下）插头同样需满足相同形状约束</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 3 · Chapter 4: Cables and Connectors -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s3">
+  <div class="sec-eyebrow">Chapter 4</div>
+  <div class="sec-title">线缆与连接器 Cables and Connectors</div>
+  <div class="sec-sub">本章是规范最核心的技术章节，规定所有连接器、线缆及适配器的机械与电气规格，含引脚分配、颜色编码、延迟要求及详细工程图纸</div>
+
+  <!-- 4.1 Introduction -->
+  <div class="callout">
+    <strong>4.1 本章概述：</strong>提供 Micro-A 插头、Micro-B 插头、Micro-AB 插座、Micro-B 插座的机械电气规格，以及线缆组件的设计约束和 Micro-A/B 插头包覆模具的形状规定。
+  </div>
+
+  <!-- 4.2 Connector Mating -->
+  <div class="card">
+    <div class="card-title">🔌 4.2 连接器配对规则（Micro-Connector Mating）</div>
+    <p style="margin-bottom:12px;font-size:.88rem">规范规定哪种插头可以插入哪种插座，强制区分 A/B 角色：</p>
+    <div class="tw" style="margin:0">
+      <table>
+        <tr><th>插座类型</th><th>可接受的插头</th><th>说明</th></tr>
+        <tr><td><strong>Standard-A 插座</strong></td><td>Standard-A 插头</td><td>传统 USB 主机端口，扁平矩形</td></tr>
+        <tr><td><strong>Standard-B 插座</strong></td><td>Standard-B 插头</td><td>传统 USB 设备端口，方形</td></tr>
+        <tr><td><strong>Mini-B 插座</strong></td><td>Mini-B 插头</td><td>旧款小型设备端口</td></tr>
+        <tr><td><strong style="color:#80f0b0">Micro-B 插座</strong></td><td><strong>Micro-B 插头</strong></td><td>普通 Micro USB 手机端口（最常见）</td></tr>
+        <tr><td><strong style="color:#d8b8ff">Micro-AB 插座</strong></td><td><strong>Micro-A 插头 或 Micro-B 插头</strong></td><td>OTG 设备专用，可双向接入</td></tr>
+      </table>
+    </div>
+    <div class="callout orange" style="margin-top:12px;font-size:.85rem">
+      <strong>重要：</strong>Micro-A 插头<strong>不能</strong>插入 Micro-B 插座。Micro-AB 插座才是 OTG 设备的正确接口，普通充电设备的 Micro-B 插座不应有此设计。
+    </div>
+  </div>
+
+  <!-- 4-Pin Diagram: 5-pin connector -->
+  <div class="card diagram">
+    <div class="card-title">📌 5引脚 Micro 连接器引脚定义（Micro-A Plug Pin Assignments · Table 4-2）</div>
+    <svg viewBox="0 0 700 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Connector body (front view) -->
+      <rect x="160" y="40" width="380" height="90" rx="10" fill="rgba(108,143,255,.1)" stroke="#6c8fff" stroke-width="2"/>
+      <!-- Chamfer top corners only -->
+      <text x="350" y="25" fill="var(--muted)" font-size="10" text-anchor="middle" font-weight="700">Micro-A / Micro-B 插头正面（5引脚）</text>
+
+      <!-- Pin 1: VBUS -->
+      <rect x="185" y="60" width="56" height="50" rx="5" fill="rgba(245,166,35,.25)" stroke="#f5a623" stroke-width="1.5"/>
+      <text x="213" y="82" fill="#ffd080" font-size="11" font-weight="800" text-anchor="middle">1</text>
+      <text x="213" y="96" fill="#ffd080" font-size="9" text-anchor="middle">VBUS</text>
+      <text x="213" y="108" fill="var(--muted)" font-size="8" text-anchor="middle">+5V 红色</text>
+
+      <!-- Pin 2: D- -->
+      <rect x="249" y="60" width="56" height="50" rx="5" fill="rgba(242,90,90,.2)" stroke="#f25a5a" stroke-width="1.5"/>
+      <text x="277" y="82" fill="#ffaaaa" font-size="11" font-weight="800" text-anchor="middle">2</text>
+      <text x="277" y="96" fill="#ffaaaa" font-size="9" text-anchor="middle">D−</text>
+      <text x="277" y="108" fill="var(--muted)" font-size="8" text-anchor="middle">数据− 白色</text>
+
+      <!-- Pin 3: D+ -->
+      <rect x="313" y="60" width="56" height="50" rx="5" fill="rgba(34,211,122,.18)" stroke="#22d37a" stroke-width="1.5"/>
+      <text x="341" y="82" fill="#80f0b0" font-size="11" font-weight="800" text-anchor="middle">3</text>
+      <text x="341" y="96" fill="#80f0b0" font-size="9" text-anchor="middle">D+</text>
+      <text x="341" y="108" fill="var(--muted)" font-size="8" text-anchor="middle">数据+ 绿色</text>
+
+      <!-- Pin 4: ID -->
+      <rect x="377" y="60" width="56" height="50" rx="5" fill="rgba(165,108,255,.2)" stroke="#a56cff" stroke-width="1.5"/>
+      <text x="405" y="82" fill="#d8b8ff" font-size="11" font-weight="800" text-anchor="middle">4</text>
+      <text x="405" y="96" fill="#d8b8ff" font-size="9" text-anchor="middle">ID</text>
+      <text x="405" y="108" fill="var(--muted)" font-size="8" text-anchor="middle">识别引脚</text>
+
+      <!-- Pin 5: GND -->
+      <rect x="441" y="60" width="80" height="50" rx="5" fill="rgba(122,131,160,.15)" stroke="var(--muted)" stroke-width="1.5"/>
+      <text x="481" y="82" fill="var(--text)" font-size="11" font-weight="800" text-anchor="middle">5</text>
+      <text x="481" y="96" fill="var(--text)" font-size="9" text-anchor="middle">GND</text>
+      <text x="481" y="108" fill="var(--muted)" font-size="8" text-anchor="middle">地线 黑色</text>
+
+      <!-- Micro-A vs B difference note -->
+      <rect x="160" y="148" width="180" height="52" rx="7" fill="rgba(34,211,122,.08)" stroke="#22d37a" stroke-width="1"/>
+      <text x="250" y="163" fill="#5febb4" font-size="9" font-weight="700" text-anchor="middle">Micro-A 插头</text>
+      <text x="250" y="178" fill="var(--muted)" font-size="8" text-anchor="middle">Pin 4 (ID) → 接地 (GND)</text>
+      <text x="250" y="192" fill="var(--muted)" font-size="8" text-anchor="middle">电阻 &lt; Ra (10Ω MAX)</text>
+
+      <rect x="360" y="148" width="180" height="52" rx="7" fill="rgba(165,108,255,.08)" stroke="#a56cff" stroke-width="1"/>
+      <text x="450" y="163" fill="#c4a0ff" font-size="9" font-weight="700" text-anchor="middle">Micro-B 插头</text>
+      <text x="450" y="178" fill="var(--muted)" font-size="8" text-anchor="middle">Pin 4 (ID) → 浮空或接地</text>
+      <text x="450" y="192" fill="var(--muted)" font-size="8" text-anchor="middle">电阻 &gt; Rb (100kΩ MIN)</text>
+    </svg>
+  </div>
+
+  <!-- 4.3 Color Coding -->
+  <div class="card">
+    <div class="card-title">🎨 4.3 颜色编码（Color Coding · Table 4-3）</div>
+    <p style="font-size:.87rem;margin-bottom:12px">规范要求线缆内部导线颜色与插头/插座的标识颜色一致，以便快速识别和维修：</p>
+    <div class="g4" style="margin-bottom:0">
+      <div style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:14px;text-align:center">
+        <div style="width:28px;height:28px;border-radius:50%;background:#f5a623;margin:0 auto 8px"></div>
+        <div style="font-weight:700;color:#ffd080;font-size:.9rem">VBUS</div>
+        <div style="color:var(--muted);font-size:.78rem;margin-top:3px">Pin 1 · 红色</div>
+      </div>
+      <div style="background:rgba(242,90,90,.1);border:1px solid rgba(242,90,90,.3);border-radius:10px;padding:14px;text-align:center">
+        <div style="width:28px;height:28px;border-radius:50%;background:#f0f0f0;border:2px solid #ccc;margin:0 auto 8px"></div>
+        <div style="font-weight:700;color:#ffaaaa;font-size:.9rem">D−</div>
+        <div style="color:var(--muted);font-size:.78rem;margin-top:3px">Pin 2 · 白色</div>
+      </div>
+      <div style="background:rgba(34,211,122,.1);border:1px solid rgba(34,211,122,.3);border-radius:10px;padding:14px;text-align:center">
+        <div style="width:28px;height:28px;border-radius:50%;background:#22d37a;margin:0 auto 8px"></div>
+        <div style="font-weight:700;color:#80f0b0;font-size:.9rem">D+</div>
+        <div style="color:var(--muted);font-size:.78rem;margin-top:3px">Pin 3 · 绿色</div>
+      </div>
+      <div style="background:rgba(122,131,160,.1);border:1px solid rgba(122,131,160,.3);border-radius:10px;padding:14px;text-align:center">
+        <div style="width:28px;height:28px;border-radius:50%;background:#1a1a1a;border:2px solid #555;margin:0 auto 8px"></div>
+        <div style="font-weight:700;color:var(--text);font-size:.9rem">GND</div>
+        <div style="color:var(--muted);font-size:.78rem;margin-top:3px">Pin 5 · 黑色</div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:14px;font-size:.84rem">
+      <strong>注：</strong>ID 引脚（Pin 4）不在线缆中出现（或仅在 Micro-A 端通过内部连接到 GND），因此无对应线缆颜色规定。
+    </div>
+  </div>
+
+  <!-- 4.4 Delays -->
+  <div class="card">
+    <div class="card-title">⏱ 4.4 设备、线缆与适配器的传播延迟（Table 4-4 / 4-5）</div>
+    <p style="font-size:.87rem;margin-bottom:12px">USB 2.0 在 TP1 至 TP4 之间定义了四个测试平面，总允许传播延迟受严格约束。Micro-USB 的连接器和线缆须满足以下延迟预算：</p>
+    <div class="tw" style="margin:0">
+      <table>
+        <tr><th>组件</th><th>最大传播延迟</th><th>说明</th></tr>
+        <tr><td><strong>Micro 连接器（含线缆）</strong></td><td style="color:#5febb4;font-weight:700">10 ns</td><td>线缆传播延迟 ≤ 10 ns 且物理长度 ≤ 2.0 m</td></tr>
+        <tr><td><strong>适配器</strong></td><td style="color:#ffc87a;font-weight:700">&lt; 1 ns</td><td>Standard-A 插座转 Micro-A 插头的适配器</td></tr>
+        <tr><td><strong>适配器物理长度</strong></td><td style="color:#d8b8ff;font-weight:700">≤ 150 mm</td><td>适配器实体长度限制</td></tr>
+        <tr><td><strong>适配器 VBUS+GND 电阻</strong></td><td style="color:#ffaaaa;font-weight:700">≤ 70 mΩ</td><td>包含接触点，适配器通路总电阻</td></tr>
+        <tr><td><strong>Standard 连接器线缆</strong></td><td style="color:#5febb4;font-weight:700">26 ns</td><td>标准 USB 连接器线缆的最大延迟（参考对比）</td></tr>
+      </table>
+    </div>
+    <!-- Delay budget visual -->
+    <div style="margin-top:16px">
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Micro 线缆延迟预算</span><span style="color:#5febb4">10 ns / 10 ns 上限</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%;background:linear-gradient(90deg,#22d37a,#6c8fff)"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>适配器延迟预算</span><span style="color:#ffc87a">&lt;1 ns / 10 ns 上限</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:10%;background:#f5a623"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Standard 线缆延迟（对比参考）</span><span style="color:#ffaaaa">26 ns（Micro 线缆的 2.6×）</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%;background:linear-gradient(90deg,#f25a5a,#a56cff)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4.5 Compliant Usage -->
+  <div class="card">
+    <div class="card-title">✅ 4.5 合规使用规则（Compliant Usage · 4.5.1 ~ 4.5.8）</div>
+    <div class="g2" style="margin:0;gap:12px">
+      <div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-head">4.5.1 线缆（Cables）</div>
+            <div class="tl-body">规范允许三种线缆类型：Micro-A 转 Micro-B、Standard-A 转 Micro-B、Micro-A 转固定线缆（Captive Cable）。传播延迟 ≤ 10 ns，物理长度 ≤ 2.0 m。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot g"></div>
+            <div class="tl-head">4.5.2 包覆模具（Overmolds）</div>
+            <div class="tl-body">Micro-A 与 Micro-B 插头的包覆模具形状须分别符合 Figure 4-4 和 Figure 4-5 的外形约束，以确保外部尺寸一致性与防误插。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot o"></div>
+            <div class="tl-head">4.5.3 机械接口（Mechanical Interfaces）</div>
+            <div class="tl-body">Micro-A 插头接口尺寸见 Fig.4-6，Micro-B 插头见 Fig.4-7，Micro-AB 插座见 Fig.4-9，Micro-B 插座见 Fig.4-10。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot p"></div>
+            <div class="tl-head">4.5.4 ~ 4.5.5 表面贴装与 DIP/中置型</div>
+            <div class="tl-body">表面贴装（SMT）标准版的接触尾部与屏蔽尾部须符合 Fig.4-11/4-12。DIP 型和中置型在机械尺寸上可有所不同，但必须满足所有最小值要求。</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot c"></div>
+            <div class="tl-head">4.5.6 连接器键控（Connector Keying）</div>
+            <div class="tl-body">Micro-A 与 Micro-B 插头通过不对称形状设计，防止误插入错误插座。规范要求阻断错误插入的金属遮挡量始终 <strong>&gt; 0.35 mm</strong>（Fig.4-13 / 4-14）。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot r"></div>
+            <div class="tl-head">4.5.7 直角插头（Right Angle Plugs）</div>
+            <div class="tl-body">侧角和下角的直角插头包覆模具同样须满足与直插型相同的形状约束（Fig.4-15 至 4-18）。</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot g"></div>
+            <div class="tl-head">4.5.8 适配器（Adapters）</div>
+            <div class="tl-body">Standard-A 插座转 Micro-A 插头的适配器须满足：延迟 &lt; 1 ns、长度 ≤ 150 mm、VBUS+GND 电阻 ≤ 70 mΩ（Fig.4-19）。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3种线缆类型图 -->
+  <div class="card diagram">
+    <div class="card-title">🔗 4.6 三种规范线缆类型</div>
+    <svg viewBox="0 0 720 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Cable 1: Micro-A to Micro-B -->
+      <g transform="translate(0,0)">
+        <text x="120" y="18" fill="var(--accent)" font-size="9" font-weight="700" text-anchor="middle">Fig 4-1</text>
+        <rect x="10" y="28" width="80" height="36" rx="6" fill="rgba(34,211,122,.15)" stroke="#22d37a" stroke-width="1.5"/>
+        <text x="50" y="44" fill="#5febb4" font-size="9" font-weight="700" text-anchor="middle">Micro-A</text>
+        <text x="50" y="56" fill="var(--muted)" font-size="8" text-anchor="middle">插头</text>
+        <line x1="90" y1="46" x2="150" y2="46" stroke="#22d37a" stroke-width="2" class="flow-line"/>
+        <text x="120" y="40" fill="var(--muted)" font-size="7" text-anchor="middle">5线缆</text>
+        <rect x="150" y="28" width="80" height="36" rx="6" fill="rgba(165,108,255,.15)" stroke="#a56cff" stroke-width="1.5"/>
+        <text x="190" y="44" fill="#c4a0ff" font-size="9" font-weight="700" text-anchor="middle">Micro-B</text>
+        <text x="190" y="56" fill="var(--muted)" font-size="8" text-anchor="middle">插头</text>
+        <text x="120" y="82" fill="var(--muted)" font-size="8" text-anchor="middle">OTG 设备互连</text>
+        <text x="120" y="95" fill="var(--muted2)" font-size="7" text-anchor="middle">≤2m · ≤10ns</text>
+      </g>
+
+      <!-- Cable 2: Standard-A to Micro-B -->
+      <g transform="translate(240,0)">
+        <text x="120" y="18" fill="var(--accent)" font-size="9" font-weight="700" text-anchor="middle">Fig 4-2</text>
+        <rect x="10" y="28" width="80" height="36" rx="6" fill="rgba(108,143,255,.15)" stroke="#6c8fff" stroke-width="1.5"/>
+        <text x="50" y="44" fill="#7eb4ff" font-size="9" font-weight="700" text-anchor="middle">Standard-A</text>
+        <text x="50" y="56" fill="var(--muted)" font-size="8" text-anchor="middle">插头（PC端）</text>
+        <line x1="90" y1="46" x2="150" y2="46" stroke="#6c8fff" stroke-width="2" class="flow-line"/>
+        <text x="120" y="40" fill="var(--muted)" font-size="7" text-anchor="middle">4线缆</text>
+        <rect x="150" y="28" width="80" height="36" rx="6" fill="rgba(165,108,255,.15)" stroke="#a56cff" stroke-width="1.5"/>
+        <text x="190" y="44" fill="#c4a0ff" font-size="9" font-weight="700" text-anchor="middle">Micro-B</text>
+        <text x="190" y="56" fill="var(--muted)" font-size="8" text-anchor="middle">插头（设备端）</text>
+        <text x="120" y="82" fill="var(--muted)" font-size="8" text-anchor="middle">PC 连接手机（最常见）</text>
+        <text x="120" y="95" fill="var(--muted2)" font-size="7" text-anchor="middle">≤2m · ≤10ns</text>
+      </g>
+
+      <!-- Cable 3: Micro-A to Captive -->
+      <g transform="translate(480,0)">
+        <text x="120" y="18" fill="var(--accent)" font-size="9" font-weight="700" text-anchor="middle">Fig 4-3</text>
+        <rect x="10" y="28" width="80" height="36" rx="6" fill="rgba(34,211,122,.15)" stroke="#22d37a" stroke-width="1.5"/>
+        <text x="50" y="44" fill="#5febb4" font-size="9" font-weight="700" text-anchor="middle">Micro-A</text>
+        <text x="50" y="56" fill="var(--muted)" font-size="8" text-anchor="middle">插头</text>
+        <line x1="90" y1="46" x2="150" y2="46" stroke="#22d37a" stroke-width="2" class="flow-line"/>
+        <text x="120" y="40" fill="var(--muted)" font-size="7" text-anchor="middle">捆绑线缆</text>
+        <rect x="150" y="22" width="80" height="48" rx="6" fill="rgba(245,166,35,.15)" stroke="#f5a623" stroke-width="1.5"/>
+        <text x="190" y="41" fill="#ffd080" font-size="9" font-weight="700" text-anchor="middle">固定连接</text>
+        <text x="190" y="54" fill="var(--muted)" font-size="8" text-anchor="middle">Captive</text>
+        <text x="190" y="64" fill="var(--muted)" font-size="7" text-anchor="middle">Cable</text>
+        <text x="120" y="82" fill="var(--muted)" font-size="8" text-anchor="middle">OTG 设备内置线缆</text>
+        <text x="120" y="95" fill="var(--muted2)" font-size="7" text-anchor="middle">≤2m · ≤10ns</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- 连接器尺寸对比 -->
+  <div class="card diagram">
+    <div class="card-title">📐 Micro vs Mini vs Standard 连接器尺寸对比</div>
+    <svg viewBox="0 0 700 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Standard-A -->
+      <g transform="translate(30,20)">
+        <rect x="0" y="10" width="120" height="80" rx="5" fill="rgba(108,143,255,.12)" stroke="#6c8fff" stroke-width="1.5"/>
+        <text x="60" y="35" fill="#7eb4ff" font-size="11" font-weight="700" text-anchor="middle">Standard-A</text>
+        <text x="60" y="52" fill="var(--muted)" font-size="9" text-anchor="middle">W: 12.0mm</text>
+        <text x="60" y="66" fill="var(--muted)" font-size="9" text-anchor="middle">H: 4.5mm</text>
+        <text x="60" y="80" fill="var(--muted)" font-size="9" text-anchor="middle">4-Pin</text>
+        <text x="60" y="108" fill="#6c8fff" font-size="9" text-anchor="middle">1,500 次</text>
+      </g>
+
+      <!-- Mini-B -->
+      <g transform="translate(200,40)">
+        <rect x="0" y="0" width="120" height="60" rx="5" fill="rgba(245,166,35,.12)" stroke="#f5a623" stroke-width="1.5"/>
+        <text x="60" y="20" fill="#ffc87a" font-size="11" font-weight="700" text-anchor="middle">Mini-B</text>
+        <text x="60" y="36" fill="var(--muted)" font-size="9" text-anchor="middle">W: 7.4mm · H: 3.0mm</text>
+        <text x="60" y="50" fill="var(--muted)" font-size="9" text-anchor="middle">5-Pin（含ID）</text>
+        <text x="60" y="78" fill="#f5a623" font-size="9" text-anchor="middle">5,000 次</text>
+      </g>
+
+      <!-- Micro-B ★ SMALLEST -->
+      <g transform="translate(390,60)">
+        <rect x="0" y="0" width="120" height="40" rx="4" fill="rgba(34,211,122,.15)" stroke="#22d37a" stroke-width="2"/>
+        <text x="60" y="16" fill="#5febb4" font-size="10" font-weight="800" text-anchor="middle">Micro-B ★</text>
+        <text x="60" y="30" fill="var(--muted)" font-size="8" text-anchor="middle">W: 6.85mm · H: 1.8mm · 5-Pin</text>
+        <text x="60" y="58" fill="#22d37a" font-size="9" font-weight="700" text-anchor="middle">10,000 次 ↑↑</text>
+      </g>
+
+      <!-- Height comparison bar chart -->
+      <text x="570" y="28" fill="var(--muted)" font-size="9" text-anchor="middle">高度对比</text>
+      <rect x="530" y="40" width="30" height="90" rx="3" fill="rgba(108,143,255,.2)" stroke="#6c8fff"/>
+      <text x="545" y="138" fill="#7eb4ff" font-size="7" text-anchor="middle">4.5mm</text>
+      <rect x="567" y="70" width="30" height="60" rx="3" fill="rgba(245,166,35,.2)" stroke="#f5a623"/>
+      <text x="582" y="138" fill="#ffc87a" font-size="7" text-anchor="middle">3.0mm</text>
+      <rect x="604" y="100" width="30" height="30" rx="3" fill="rgba(34,211,122,.3)" stroke="#22d37a" stroke-width="1.5"/>
+      <text x="619" y="138" fill="#5febb4" font-size="7" text-anchor="middle">1.8mm</text>
+      <text x="579" y="155" fill="var(--muted)" font-size="7" text-anchor="middle">A型      Mini     Micro</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 4 · Chapter 5: Electrical Compliance -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s4">
+  <div class="sec-eyebrow">Chapter 5</div>
+  <div class="sec-title">电气合规要求 Electrical Compliance</div>
+  <div class="sec-sub">本章规定 Micro-USB 连接器的电气性能参数，包括接触电阻、电流额定值及未来更高速率的预留框架</div>
+
+  <div class="callout purple">
+    <strong>基础原则：</strong>除本章特别规定外，电气要求与 USB 2.0 规范（第 6 章 Table 6-7）及 OTG Supplement 保持一致。本章仅针对 Micro 连接器接触点的特定参数进行补充规定。
+  </div>
+
+  <!-- 5.1 Higher Data Rates -->
+  <div class="card">
+    <div class="card-title" style="color:#80f0f8">🚀 5.1 超越 USB 2.0 的数据速率（&gt;480 Mb/s）</div>
+    <p style="font-size:.88rem">本节预留了对更高数据速率（超过当前 USB 2.0 规范 480 Mb/s 上限）的扩展空间，规定将在相关要求明确后进行修订。</p>
+    <div class="callout cyan" style="margin-top:12px;font-size:.84rem">
+      <strong>历史背景：</strong>此预留条款为后来的 USB 3.0 Micro-B 连接器（新增 5 个 SuperSpeed 引脚）奠定了设计考量基础。2007 年时该标准尚未确定，故留白预留。
+    </div>
+    <!-- Speed visual -->
+    <div style="margin-top:14px">
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Low Speed (LS)</span><span style="color:#f25a5a">1.5 Mb/s</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:1%;background:#f25a5a"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>Full Speed (FS)</span><span style="color:#f5a623">12 Mb/s</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:2.5%;background:#f5a623"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>High Speed (HS) · Micro-USB 1.01 覆盖范围</span><span style="color:#5febb4">480 Mb/s</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:62%;background:linear-gradient(90deg,#22d37a,#6c8fff)"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>SuperSpeed (SS) · 预留扩展</span><span style="color:#d8b8ff">5 Gb/s+</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%;background:linear-gradient(90deg,#a56cff,#f06090)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.2 Contact Resistance -->
+  <div class="card">
+    <div class="card-title" style="color:#5febb4">🔋 5.2 低电平接触电阻（Low Level Contact Resistance）</div>
+    <div class="g2" style="margin:0;gap:16px;align-items:start">
+      <div>
+        <div class="stat-row" style="margin-bottom:12px">
+          <div class="stat" style="flex:none;min-width:160px">
+            <div class="stat-val" style="color:#5febb4">30 mΩ</div>
+            <div class="stat-lbl">初始最大接触电阻<br/>（20mV开路 100mA测试）</div>
+          </div>
+          <div class="stat" style="flex:none;min-width:160px">
+            <div class="stat-val" style="color:#ffc87a">+10 mΩ</div>
+            <div class="stat-lbl">10,000次插拔后<br/>最大允许增量</div>
+          </div>
+        </div>
+        <div class="callout" style="font-size:.84rem">
+          <strong>测试条件：</strong>开路电压最大 20 mV，测试电流 100 mA，在环境温度 25°C 下测量。
+        </div>
+      </div>
+      <div>
+        <!-- Resistance chart -->
+        <svg viewBox="0 0 280 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="140" y="16" fill="var(--muted)" font-size="9" text-anchor="middle">接触电阻随插拔次数变化</text>
+          <line x1="30" y1="20" x2="30" y2="110" stroke="var(--border)" stroke-width="1"/>
+          <line x1="30" y1="110" x2="270" y2="110" stroke="var(--border)" stroke-width="1"/>
+          <!-- Y labels -->
+          <text x="24" y="24" fill="var(--muted)" font-size="7" text-anchor="end">40mΩ</text>
+          <text x="24" y="57" fill="var(--muted)" font-size="7" text-anchor="end">30mΩ</text>
+          <text x="24" y="90" fill="var(--muted)" font-size="7" text-anchor="end">20mΩ</text>
+          <!-- X labels -->
+          <text x="30" y="120" fill="var(--muted)" font-size="7" text-anchor="middle">0</text>
+          <text x="150" y="120" fill="var(--muted)" font-size="7" text-anchor="middle">5,000</text>
+          <text x="270" y="120" fill="var(--muted)" font-size="7" text-anchor="middle">10,000次</text>
+          <!-- Limit line -->
+          <line x1="30" y1="57" x2="270" y2="57" stroke="#f25a5a" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="275" y="60" fill="#f25a5a" font-size="7">30mΩ限</text>
+          <!-- After limit -->
+          <line x1="30" y1="24" x2="270" y2="24" stroke="#f5a623" stroke-width="1" stroke-dasharray="4 3"/>
+          <text x="275" y="27" fill="#f5a623" font-size="7">40mΩ</text>
+          <!-- Resistance curve -->
+          <polyline points="30,85 80,82 130,79 180,76 230,72 270,68" fill="none" stroke="#22d37a" stroke-width="2"/>
+          <circle cx="30" cy="85" r="3" fill="#22d37a"/>
+          <circle cx="270" cy="68" r="3" fill="#ffc87a"/>
+          <text x="155" y="75" fill="#5febb4" font-size="7">实测趋势</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.3 Current Rating -->
+  <div class="card">
+    <div class="card-title" style="color:#ffd080">⚡ 5.3 接触电流额定值（Contact Current Rating）</div>
+    <div class="g2" style="margin:0;gap:16px">
+      <div>
+        <div class="callout green" style="margin-bottom:12px">
+          <strong>5.3.1 信号接触点（Pin 2、3、4）</strong><br/>
+          在 25°C 环境温度下，最小额定电流为 <strong>1 A</strong>。仅用于数据信号传输的引脚（D-、D+、ID），须能承受此电流而不发生过热或损坏。
+        </div>
+        <div class="callout orange">
+          <strong>5.3.2 电源接触点（Pin 1 和 5）</strong><br/>
+          VBUS（Pin 1）和 GND（Pin 5）须支持 USB 2.0 规范所要求的完整供电电流，在标准总线供电条件下为最大 <strong>500 mA</strong>（高功耗设备配置）。
+        </div>
+      </div>
+      <div>
+        <!-- Current rating diagram -->
+        <svg viewBox="0 0 280 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="140" y="16" fill="var(--muted)" font-size="9" text-anchor="middle" font-weight="700">引脚电流额定值对比</text>
+          <!-- Pin bars -->
+          <rect x="20" y="60" width="44" height="70" rx="4" fill="rgba(245,166,35,.3)" stroke="#f5a623"/>
+          <text x="42" y="78" fill="#ffd080" font-size="8" font-weight="700" text-anchor="middle">Pin 1</text>
+          <text x="42" y="90" fill="#ffd080" font-size="8" text-anchor="middle">VBUS</text>
+          <text x="42" y="122" fill="#ffc87a" font-size="9" font-weight="700" text-anchor="middle">500mA</text>
+
+          <rect x="72" y="90" width="44" height="40" rx="4" fill="rgba(242,90,90,.25)" stroke="#f25a5a"/>
+          <text x="94" y="107" fill="#ffaaaa" font-size="8" font-weight="700" text-anchor="middle">Pin 2</text>
+          <text x="94" y="119" fill="#ffaaaa" font-size="8" text-anchor="middle">D−</text>
+          <text x="94" y="143" fill="#ffc87a" font-size="9" font-weight="700" text-anchor="middle">1A</text>
+
+          <rect x="124" y="90" width="44" height="40" rx="4" fill="rgba(34,211,122,.2)" stroke="#22d37a"/>
+          <text x="146" y="107" fill="#80f0b0" font-size="8" font-weight="700" text-anchor="middle">Pin 3</text>
+          <text x="146" y="119" fill="#80f0b0" font-size="8" text-anchor="middle">D+</text>
+          <text x="146" y="143" fill="#ffc87a" font-size="9" font-weight="700" text-anchor="middle">1A</text>
+
+          <rect x="176" y="90" width="44" height="40" rx="4" fill="rgba(165,108,255,.2)" stroke="#a56cff"/>
+          <text x="198" y="107" fill="#d8b8ff" font-size="8" font-weight="700" text-anchor="middle">Pin 4</text>
+          <text x="198" y="119" fill="#d8b8ff" font-size="8" text-anchor="middle">ID</text>
+          <text x="198" y="143" fill="#ffc87a" font-size="9" font-weight="700" text-anchor="middle">1A</text>
+
+          <rect x="228" y="60" width="44" height="70" rx="4" fill="rgba(122,131,160,.2)" stroke="var(--muted)"/>
+          <text x="250" y="78" fill="var(--text)" font-size="8" font-weight="700" text-anchor="middle">Pin 5</text>
+          <text x="250" y="90" fill="var(--text)" font-size="8" text-anchor="middle">GND</text>
+          <text x="250" y="122" fill="#ffc87a" font-size="9" font-weight="700" text-anchor="middle">500mA</text>
+
+          <!-- baseline -->
+          <line x1="10" y1="130" x2="275" y2="130" stroke="var(--border)" stroke-width="1"/>
+          <text x="140" y="155" fill="var(--muted)" font-size="7" text-anchor="middle">信号接触：min 1A · 电源接触：max 500mA (USB 2.0)</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 5 · Chapter 6: Mechanical Compliance -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s5">
+  <div class="sec-eyebrow">Chapter 6</div>
+  <div class="sec-title">机械合规要求 Mechanical Compliance</div>
+  <div class="sec-sub">本章规定 Micro-USB 连接器的机械性能测试指标，是保证产品长期可靠性与互换性的核心要求，优先于 USB 2.0 规范中的对应值</div>
+
+  <div class="callout red">
+    <strong>优先级声明：</strong>本章要求<strong>优先于</strong> USB 2.0 规范（第 6 章 Table 6-8）及 OTG Supplement 中的对应机械要求。即发生冲突时，以本规范为准。
+  </div>
+
+  <!-- 6.1 Temperature -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title" style="color:#ffaaaa">🌡️ 6.1 工作温度范围（Operating Temperature）</div>
+      <div class="g2" style="margin:0;gap:10px">
+        <div style="background:rgba(108,143,255,.08);border:1px solid rgba(108,143,255,.25);border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">Option I</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#7eb4ff">−30°C</div>
+          <div style="font-size:.85rem;color:var(--muted)">至</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#f25a5a">+80°C</div>
+          <div style="font-size:.74rem;color:var(--muted);margin-top:4px">标准工业级</div>
+        </div>
+        <div style="background:rgba(34,211,122,.08);border:1px solid rgba(34,211,122,.25);border-radius:10px;padding:14px;text-align:center">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px">Option II</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#7eb4ff">−30°C</div>
+          <div style="font-size:.85rem;color:var(--muted)">至</div>
+          <div style="font-size:1.3rem;font-weight:900;color:#f25a5a">+85°C 及以上</div>
+          <div style="font-size:.74rem;color:var(--muted);margin-top:4px">高温扩展级</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" style="color:#ffd080">💪 6.2 & 6.3 插入力与拔出力</div>
+      <div class="stat-row" style="margin-bottom:12px">
+        <div class="stat">
+          <div class="stat-val" style="color:#5febb4">35 N</div>
+          <div class="stat-lbl">最大插入力<br/>Max Insertion Force</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val" style="color:#f5a623">8 N</div>
+          <div class="stat-lbl">10,000次后最小拔出力<br/>Min Extraction Force</div>
+        </div>
+      </div>
+      <div class="callout" style="font-size:.82rem">
+        <strong>速率限制：</strong>测试速率最大 12.5 mm/min（0.492"/min）。建议在锁合机构上涂抹非硅基润滑剂以降低磨损，但不得影响其他性能。
+      </div>
+      <div class="callout red" style="margin-top:8px;font-size:.82rem">
+        <strong>外观要求：</strong>锁合卡扣顶部（与插座屏蔽层摩擦的挂钩面）不允许有毛刺或尖角。
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.4 Plating -->
+  <div class="card">
+    <div class="card-title" style="color:#d8b8ff">🔬 6.4 镀层规格（Plating）</div>
+    <div class="g2" style="margin:0;gap:12px">
+      <div>
+        <p style="font-size:.87rem;margin-bottom:10px;color:var(--muted)">镀层规格决定接触可靠性和耐久性，分两种选项：</p>
+        <div class="tw" style="margin:0">
+          <table>
+            <tr><th>选项</th><th>接触区</th><th>非接触区</th></tr>
+            <tr><td><strong>Option I</strong></td><td>金（Au）+ 镍（Ni）底层</td><td>锡（Sn）可接受</td></tr>
+            <tr><td><strong>Option II</strong></td><td>金（Au）厚层 + Ni 底层</td><td>更高耐久镀层</td></tr>
+          </table>
+        </div>
+        <div class="callout purple" style="margin-top:12px;font-size:.83rem">
+          <strong>原因：</strong>金镀层具有优异的抗氧化性和低接触电阻，是高可靠连接器的首选，配合镍底层可防金属扩散。
+        </div>
+      </div>
+      <div>
+        <div class="callout" style="font-size:.83rem;margin-bottom:10px">
+          <strong>6.5 可焊性（Solderability）</strong>：接触端和屏蔽端须满足相关可焊性标准，确保 PCB 焊接可靠。
+        </div>
+        <div class="callout green" style="font-size:.83rem;margin-bottom:10px">
+          <strong>6.6 剥离强度（Peel Strength）</strong>（仅参考）：规定连接器固定到 PCB 的剥离力参考值，不作强制要求。
+        </div>
+        <div class="callout orange" style="font-size:.83rem;margin-bottom:10px">
+          <strong>6.7 抗扭强度（Wrenching Strength）</strong>（仅参考）：规定插拔时连接器抗扭矩的参考能力。
+        </div>
+        <div class="callout cyan" style="font-size:.83rem">
+          <strong>6.8 引线共面性（Lead Co-Planarity）</strong>：SMT 贴装时，接触尾部须在 PCB 焊盘平面内保持良好共面性，确保回流焊接可靠。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6.9 RoHS & 6.10 Shell Materials -->
+  <div class="g2">
+    <div class="card">
+      <div class="card-title" style="color:#5febb4">♻️ 6.9 RoHS 合规性</div>
+      <p style="font-size:.87rem;margin-bottom:10px">Micro-USB 连接器必须符合欧盟 RoHS 指令（限制有害物质使用指令），禁止使用以下六种有害物质：</p>
+      <div class="tags">
+        <span class="tag tag-red">铅 Pb</span>
+        <span class="tag tag-red">汞 Hg</span>
+        <span class="tag tag-red">镉 Cd</span>
+        <span class="tag tag-red">六价铬 Cr(VI)</span>
+        <span class="tag tag-orange">多溴联苯 PBB</span>
+        <span class="tag tag-orange">多溴二苯醚 PBDE</span>
+      </div>
+      <div class="callout green" style="margin-top:12px;font-size:.83rem">
+        RoHS 合规是进入欧盟市场的前提，也是现代消费电子产品的基本环保要求。
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:#ffc87a">🛡️ 6.10 外壳与锁扣材料</div>
+      <p style="font-size:.87rem;margin-bottom:10px">连接器外壳（Shell）与锁扣（Latch）的材料须满足：</p>
+      <ul style="color:var(--muted);font-size:.85rem;padding-left:16px">
+        <li>足够的机械强度以承受 10,000 次插拔循环</li>
+        <li>良好的弹性恢复性（锁扣需持续保持弹性）</li>
+        <li>耐工作温度范围内的热变形</li>
+        <li>通常采用不锈钢冲压件（厚度约 0.3mm）</li>
+        <li>屏蔽壳体还需提供 EMI 防护</li>
+      </ul>
+      <div class="callout orange" style="margin-top:12px;font-size:.83rem">
+        Micro-USB 的不锈钢壳体加锁扣设计（被动锁扣）是实现 10,000 次耐久性的关键机械结构。
+      </div>
+    </div>
+  </div>
+
+  <!-- 综合机械性能对比 -->
+  <div class="card diagram">
+    <div class="card-title">📊 Micro-USB vs Mini-USB 机械性能全面对比</div>
+    <svg viewBox="0 0 700 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Headers -->
+      <rect x="10" y="10" width="200" height="28" rx="5" fill="var(--card2)"/>
+      <text x="110" y="28" fill="var(--muted)" font-size="10" font-weight="700" text-anchor="middle">参数</text>
+      <rect x="220" y="10" width="220" height="28" rx="5" fill="rgba(245,166,35,.12)" stroke="#f5a623"/>
+      <text x="330" y="28" fill="#ffc87a" font-size="10" font-weight="700" text-anchor="middle">Mini-USB</text>
+      <rect x="450" y="10" width="240" height="28" rx="5" fill="rgba(34,211,122,.12)" stroke="#22d37a"/>
+      <text x="570" y="28" fill="#5febb4" font-size="10" font-weight="700" text-anchor="middle">Micro-USB ★</text>
+
+      <!-- Row 1: Durability -->
+      <rect x="10" y="45" width="200" height="26" rx="3" fill="var(--card)"/>
+      <text x="110" y="62" fill="var(--muted)" font-size="9" text-anchor="middle">插拔耐久次数</text>
+      <rect x="220" y="45" width="220" height="26" rx="3" fill="rgba(245,166,35,.06)"/>
+      <text x="330" y="62" fill="#ffc87a" font-size="11" font-weight="700" text-anchor="middle">5,000 次</text>
+      <rect x="450" y="45" width="240" height="26" rx="3" fill="rgba(34,211,122,.06)"/>
+      <text x="570" y="62" fill="#5febb4" font-size="11" font-weight="700" text-anchor="middle">10,000 次 ↑↑ 2×</text>
+
+      <!-- Row 2: Height -->
+      <rect x="10" y="77" width="200" height="26" rx="3" fill="var(--card)"/>
+      <text x="110" y="94" fill="var(--muted)" font-size="9" text-anchor="middle">连接器高度</text>
+      <rect x="220" y="77" width="220" height="26" rx="3" fill="rgba(245,166,35,.06)"/>
+      <text x="330" y="94" fill="#ffc87a" font-size="11" font-weight="700" text-anchor="middle">3.0 mm</text>
+      <rect x="450" y="77" width="240" height="26" rx="3" fill="rgba(34,211,122,.06)"/>
+      <text x="570" y="94" fill="#5febb4" font-size="11" font-weight="700" text-anchor="middle">1.8 mm ↓↓ 40%更薄</text>
+
+      <!-- Row 3: Pin count -->
+      <rect x="10" y="109" width="200" height="26" rx="3" fill="var(--card)"/>
+      <text x="110" y="126" fill="var(--muted)" font-size="9" text-anchor="middle">引脚数量</text>
+      <rect x="220" y="109" width="220" height="26" rx="3" fill="rgba(245,166,35,.06)"/>
+      <text x="330" y="126" fill="#ffc87a" font-size="11" font-weight="700" text-anchor="middle">5-Pin（含ID）</text>
+      <rect x="450" y="109" width="240" height="26" rx="3" fill="rgba(34,211,122,.06)"/>
+      <text x="570" y="126" fill="#5febb4" font-size="11" font-weight="700" text-anchor="middle">5-Pin（含ID）✓</text>
+
+      <!-- Row 4: Max Insertion Force -->
+      <rect x="10" y="141" width="200" height="26" rx="3" fill="var(--card)"/>
+      <text x="110" y="158" fill="var(--muted)" font-size="9" text-anchor="middle">最大插入力</text>
+      <rect x="220" y="141" width="220" height="26" rx="3" fill="rgba(245,166,35,.06)"/>
+      <text x="330" y="158" fill="#ffc87a" font-size="11" font-weight="700" text-anchor="middle">35 N</text>
+      <rect x="450" y="141" width="240" height="26" rx="3" fill="rgba(34,211,122,.06)"/>
+      <text x="570" y="158" fill="#5febb4" font-size="11" font-weight="700" text-anchor="middle">35 N（相同）</text>
+
+      <!-- Row 5: RoHS -->
+      <rect x="10" y="173" width="200" height="22" rx="3" fill="var(--card)"/>
+      <text x="110" y="188" fill="var(--muted)" font-size="9" text-anchor="middle">RoHS 合规要求</text>
+      <rect x="220" y="173" width="220" height="22" rx="3" fill="rgba(245,166,35,.06)"/>
+      <text x="330" y="188" fill="var(--muted)" font-size="9" text-anchor="middle">视版本而定</text>
+      <rect x="450" y="173" width="240" height="22" rx="3" fill="rgba(34,211,122,.06)"/>
+      <text x="570" y="188" fill="#5febb4" font-size="9" font-weight="700" text-anchor="middle">强制要求 ✓</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 6 · Supplemental: Comparison -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s6">
+  <div class="sec-eyebrow">补充参考</div>
+  <div class="sec-title">USB 连接器家族横向对比</div>
+  <div class="sec-sub">以 Micro-USB 1.01 规范为基准，与其他 USB 连接器类型进行全维度横向比较，帮助深入理解 Micro-USB 在 USB 生态中的定位</div>
+
+  <div class="card diagram">
+    <div class="card-title">🌐 USB 连接器家族全景图</div>
+    <svg viewBox="0 0 720 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lg_usb" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#6c8fff" stop-opacity=".15"/>
+          <stop offset="100%" stop-color="#6c8fff" stop-opacity=".03"/>
+        </linearGradient>
+      </defs>
+      <!-- Center: USB 2.0 -->
+      <ellipse cx="360" cy="140" rx="56" ry="40" fill="rgba(108,143,255,.18)" stroke="#6c8fff" stroke-width="2"/>
+      <text x="360" y="135" fill="#7eb4ff" font-size="11" font-weight="800" text-anchor="middle">USB 2.0</text>
+      <text x="360" y="150" fill="var(--muted)" font-size="8" text-anchor="middle">协议基础</text>
+
+      <!-- Type-A -->
+      <line x1="304" y1="120" x2="194" y2="72" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="100" y="44" width="130" height="56" rx="8" fill="rgba(108,143,255,.1)" stroke="#6c8fff"/>
+      <text x="165" y="65" fill="#7eb4ff" font-size="10" font-weight="700" text-anchor="middle">Type-A 插头</text>
+      <text x="165" y="79" fill="var(--muted)" font-size="8" text-anchor="middle">4-Pin · 扁平</text>
+      <text x="165" y="91" fill="var(--muted)" font-size="8" text-anchor="middle">1,500次 · 主机端</text>
+
+      <!-- Type-B -->
+      <line x1="320" y1="100" x2="240" y2="44" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="230" y="14" width="130" height="56" rx="8" fill="rgba(36,212,232,.1)" stroke="#24d4e8"/>
+      <text x="295" y="35" fill="#80f0f8" font-size="10" font-weight="700" text-anchor="middle">Type-B 插头</text>
+      <text x="295" y="49" fill="var(--muted)" font-size="8" text-anchor="middle">4-Pin · 方形</text>
+      <text x="295" y="61" fill="var(--muted)" font-size="8" text-anchor="middle">打印机/Hub</text>
+
+      <!-- Mini-B -->
+      <line x1="416" y1="100" x2="480" y2="44" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="370" y="14" width="150" height="56" rx="8" fill="rgba(245,166,35,.1)" stroke="#f5a623"/>
+      <text x="445" y="35" fill="#ffc87a" font-size="10" font-weight="700" text-anchor="middle">Mini-B 插头</text>
+      <text x="445" y="49" fill="var(--muted)" font-size="8" text-anchor="middle">5-Pin · 含ID</text>
+      <text x="445" y="61" fill="var(--muted)" font-size="8" text-anchor="middle">相机 · 5,000次</text>
+
+      <!-- Micro-B ★ -->
+      <line x1="360" y1="180" x2="220" y2="234" stroke="#22d37a" stroke-width="1.5"/>
+      <rect x="90" y="210" width="180" height="64" rx="8" fill="rgba(34,211,122,.13)" stroke="#22d37a" stroke-width="2"/>
+      <text x="180" y="228" fill="#5febb4" font-size="11" font-weight="800" text-anchor="middle">Micro-B ★ 本规范</text>
+      <text x="180" y="242" fill="var(--muted)" font-size="8" text-anchor="middle">5-Pin · 1.8mm 超薄</text>
+      <text x="180" y="254" fill="var(--muted)" font-size="8" text-anchor="middle">10,000次 · 手机充电</text>
+      <text x="180" y="266" fill="#5febb4" font-size="8" text-anchor="middle">Micro-USB 1.01 (2007)</text>
+
+      <!-- Micro-AB ★ -->
+      <line x1="380" y1="180" x2="380" y2="210" stroke="#22d37a" stroke-width="1.5"/>
+      <rect x="290" y="210" width="180" height="64" rx="8" fill="rgba(34,211,122,.1)" stroke="#22d37a" stroke-width="1.5"/>
+      <text x="380" y="228" fill="#5febb4" font-size="11" font-weight="800" text-anchor="middle">Micro-AB ★ OTG</text>
+      <text x="380" y="242" fill="var(--muted)" font-size="8" text-anchor="middle">接受 A 或 B 插头</text>
+      <text x="380" y="254" fill="var(--muted)" font-size="8" text-anchor="middle">OTG 设备专用</text>
+      <text x="380" y="266" fill="#5febb4" font-size="8" text-anchor="middle">Micro-USB 1.01 (2007)</text>
+
+      <!-- Type-C -->
+      <line x1="416" y1="180" x2="555" y2="234" stroke="var(--border)" stroke-width="1" stroke-dasharray="4 3"/>
+      <rect x="480" y="210" width="160" height="64" rx="8" fill="rgba(165,108,255,.1)" stroke="#a56cff"/>
+      <text x="560" y="228" fill="#c4a0ff" font-size="10" font-weight="700" text-anchor="middle">Type-C (2014+)</text>
+      <text x="560" y="242" fill="var(--muted)" font-size="8" text-anchor="middle">24-Pin · 可反插</text>
+      <text x="560" y="254" fill="var(--muted)" font-size="8" text-anchor="middle">取代 Micro-USB</text>
+      <text x="560" y="266" fill="#c4a0ff" font-size="8" text-anchor="middle">USB 3.x / PD 240W</text>
+    </svg>
+  </div>
+
+  <!-- 详细对比表 -->
+  <div class="tw">
+    <table>
+      <tr>
+        <th>规格</th>
+        <th style="color:#7eb4ff">Type-A</th>
+        <th style="color:#ffc87a">Mini-B</th>
+        <th style="color:#5febb4">Micro-B ★</th>
+        <th style="color:#c4a0ff">Type-C</th>
+      </tr>
+      <tr>
+        <td><strong>引脚数</strong></td>
+        <td>4</td>
+        <td>5（含ID）</td>
+        <td style="color:#5febb4"><strong>5（含ID）</strong></td>
+        <td>24</td>
+      </tr>
+      <tr>
+        <td><strong>连接器高度</strong></td>
+        <td>4.5 mm</td>
+        <td>3.0 mm</td>
+        <td style="color:#5febb4"><strong>1.8 mm</strong></td>
+        <td>2.4 mm</td>
+      </tr>
+      <tr>
+        <td><strong>插拔寿命</strong></td>
+        <td>1,500 次</td>
+        <td>5,000 次</td>
+        <td style="color:#5febb4"><strong>10,000 次</strong></td>
+        <td>10,000 次</td>
+      </tr>
+      <tr>
+        <td><strong>OTG 支持</strong></td>
+        <td>❌</td>
+        <td>⚠️ 有限</td>
+        <td style="color:#5febb4"><strong>✅ 原生</strong></td>
+        <td>✅ 完整</td>
+      </tr>
+      <tr>
+        <td><strong>最大数据速率</strong></td>
+        <td>480 Mb/s</td>
+        <td>480 Mb/s</td>
+        <td style="color:#5febb4"><strong>480 Mb/s</strong></td>
+        <td>40 Gb/s</td>
+      </tr>
+      <tr>
+        <td><strong>最大供电功率</strong></td>
+        <td>2.5 W</td>
+        <td>2.5 W</td>
+        <td style="color:#5febb4"><strong>2.5 W</strong></td>
+        <td>240 W (PD 3.1)</td>
+      </tr>
+      <tr>
+        <td><strong>可反插</strong></td>
+        <td>❌</td>
+        <td>❌</td>
+        <td>❌</td>
+        <td style="color:#c4a0ff"><strong>✅</strong></td>
+      </tr>
+      <tr>
+        <td><strong>发布年份</strong></td>
+        <td>1996</td>
+        <td>2000</td>
+        <td style="color:#5febb4"><strong>2007</strong></td>
+        <td>2014</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SECTION 7 · Supplemental: OTG & ID Pin Deep Dive -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section" id="s7">
+  <div class="sec-eyebrow">补充参考</div>
+  <div class="sec-title">OTG 机制与 ID 引脚深度解析</div>
+  <div class="sec-sub">USB On-The-Go 是 Micro-USB 1.01 的核心创新特性，本节深入解析 ID 引脚机制、角色切换协议与实际应用场景</div>
+
+  <!-- ID Pin Detection -->
+  <div class="card diagram">
+    <div class="card-title">🔍 ID 引脚检测原理（Section 4.2 延伸）</div>
+    <svg viewBox="0 0 700 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Left: Micro-A plug -->
+      <rect x="20" y="30" width="200" height="140" rx="10" fill="rgba(34,211,122,.08)" stroke="#22d37a" stroke-width="1.5"/>
+      <text x="120" y="52" fill="#5febb4" font-size="11" font-weight="700" text-anchor="middle">Micro-A 插头</text>
+      <!-- Pins -->
+      <rect x="35" y="65" width="170" height="20" rx="3" fill="rgba(245,166,35,.2)" stroke="#f5a623"/>
+      <text x="120" y="79" fill="#ffd080" font-size="8" text-anchor="middle">Pin 1: VBUS</text>
+      <rect x="35" y="90" width="170" height="20" rx="3" fill="rgba(242,90,90,.15)" stroke="#f25a5a"/>
+      <text x="120" y="104" fill="#ffaaaa" font-size="8" text-anchor="middle">Pin 2/3: D-/D+</text>
+      <!-- ID connected to GND -->
+      <rect x="35" y="115" width="80" height="20" rx="3" fill="rgba(165,108,255,.25)" stroke="#a56cff" stroke-width="2"/>
+      <text x="75" y="129" fill="#d8b8ff" font-size="8" font-weight="700" text-anchor="middle">Pin 4: ID</text>
+      <line x1="115" y1="125" x2="175" y2="125" stroke="#22d37a" stroke-width="2"/>
+      <rect x="145" y="115" width="60" height="20" rx="3" fill="rgba(122,131,160,.2)" stroke="var(--muted)"/>
+      <text x="175" y="129" fill="var(--text)" font-size="8" text-anchor="middle">Pin 5: GND</text>
+      <text x="120" y="156" fill="#5febb4" font-size="9" font-weight="700" text-anchor="middle">ID → GND (内部短接)</text>
+      <text x="120" y="170" fill="var(--muted)" font-size="8" text-anchor="middle">阻抗 &lt; Ra = 10Ω MAX</text>
+
+      <!-- Arrow -->
+      <text x="350" y="105" fill="var(--accent)" font-size="28" font-weight="900" text-anchor="middle">→</text>
+
+      <!-- Right: OTG Device detects role -->
+      <rect x="480" y="30" width="200" height="140" rx="10" fill="rgba(108,143,255,.08)" stroke="#6c8fff" stroke-width="1.5"/>
+      <text x="580" y="52" fill="#7eb4ff" font-size="11" font-weight="700" text-anchor="middle">OTG 设备（Micro-AB）</text>
+      <text x="580" y="70" fill="var(--muted)" font-size="9" text-anchor="middle">检测 ID 引脚阻抗...</text>
+      <!-- Decision diamond -->
+      <polygon points="580,85 620,105 580,125 540,105" fill="rgba(108,143,255,.2)" stroke="#6c8fff" stroke-width="1.5"/>
+      <text x="580" y="103" fill="#7eb4ff" font-size="8" font-weight="700" text-anchor="middle">ID阻抗</text>
+      <text x="580" y="114" fill="#7eb4ff" font-size="8" text-anchor="middle">&lt; 10Ω?</text>
+      <!-- YES -->
+      <line x1="540" y1="105" x2="510" y2="105" stroke="#22d37a" stroke-width="1.5"/>
+      <text x="518" y="100" fill="#5febb4" font-size="8">YES</text>
+      <rect x="480" y="115" width="60" height="30" rx="5" fill="rgba(34,211,122,.2)" stroke="#22d37a"/>
+      <text x="510" y="130" fill="#5febb4" font-size="8" font-weight="700" text-anchor="middle">A-Device</text>
+      <text x="510" y="142" fill="var(--muted)" font-size="7" text-anchor="middle">→ 主机角色</text>
+      <!-- NO -->
+      <line x1="620" y1="105" x2="645" y2="105" stroke="#f25a5a" stroke-width="1.5"/>
+      <text x="638" y="100" fill="#ffaaaa" font-size="8">NO</text>
+      <rect x="645" y="115" width="60" height="30" rx="5" fill="rgba(165,108,255,.2)" stroke="#a56cff"/>
+      <text x="675" y="130" fill="#c4a0ff" font-size="8" font-weight="700" text-anchor="middle">B-Device</text>
+      <text x="675" y="142" fill="var(--muted)" font-size="7" text-anchor="middle">→ 外设角色</text>
+
+      <!-- Ra/Rb labels -->
+      <text x="350" y="160" fill="var(--muted)" font-size="8" text-anchor="middle">Ra (A端阻抗) &lt; 10Ω · Rb (B端阻抗) &gt; 100kΩ</text>
+    </svg>
+  </div>
+
+  <!-- HNP Flow -->
+  <div class="card diagram">
+    <div class="card-title">🔄 HNP（主机协商协议）角色切换流程</div>
+    <svg viewBox="0 0 700 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- A Device lane -->
+      <line x1="60" y1="30" x2="60" y2="200" stroke="var(--border)" stroke-width="1"/>
+      <text x="60" y="20" fill="#5febb4" font-size="9" font-weight="700" text-anchor="middle">A-Device（初始主机）</text>
+      <!-- B Device lane -->
+      <line x1="640" y1="30" x2="640" y2="200" stroke="var(--border)" stroke-width="1"/>
+      <text x="640" y="20" fill="#c4a0ff" font-size="9" font-weight="700" text-anchor="middle">B-Device（初始外设）</text>
+
+      <!-- Step 1: A is host -->
+      <rect x="10" y="35" width="100" height="22" rx="4" fill="rgba(34,211,122,.15)" stroke="#22d37a"/>
+      <text x="60" y="50" fill="#5febb4" font-size="8" font-weight="700" text-anchor="middle">作为主机运行</text>
+      <!-- Step 2: B requests HNP -->
+      <line x1="640" y1="68" x2="160" y2="68" stroke="#a56cff" stroke-width="1.5" marker-end="url(#arrW)"/>
+      <rect x="540" y="57" width="110" height="22" rx="4" fill="rgba(165,108,255,.15)" stroke="#a56cff"/>
+      <text x="595" y="72" fill="#c4a0ff" font-size="8" text-anchor="middle">请求 HNP</text>
+      <!-- Step 3: A agrees, suspends -->
+      <rect x="10" y="82" width="100" height="22" rx="4" fill="rgba(108,143,255,.15)" stroke="#6c8fff"/>
+      <text x="60" y="97" fill="#7eb4ff" font-size="8" text-anchor="middle">同意 · 挂起总线</text>
+      <line x1="60" y1="104" x2="60" y2="120" stroke="#6c8fff" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <!-- Step 4: B connects -->
+      <rect x="540" y="110" width="110" height="22" rx="4" fill="rgba(165,108,255,.15)" stroke="#a56cff"/>
+      <text x="595" y="125" fill="#c4a0ff" font-size="8" text-anchor="middle">发出连接信号</text>
+      <!-- Step 5: B becomes host -->
+      <rect x="540" y="140" width="110" height="22" rx="4" fill="rgba(34,211,122,.15)" stroke="#22d37a"/>
+      <text x="595" y="155" fill="#5febb4" font-size="8" font-weight="700" text-anchor="middle">成为新主机 ★</text>
+      <!-- Step 6: A as peripheral -->
+      <rect x="10" y="140" width="100" height="22" rx="4" fill="rgba(165,108,255,.15)" stroke="#a56cff"/>
+      <text x="60" y="155" fill="#c4a0ff" font-size="8" text-anchor="middle">转变为外设</text>
+      <!-- Arrows -->
+      <line x1="110" y1="151" x2="540" y2="151" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3"/>
+      <!-- Data transfer -->
+      <line x1="640" y1="172" x2="160" y2="172" stroke="#22d37a" stroke-width="2" class="flow-line"/>
+      <text x="400" y="166" fill="#5febb4" font-size="8" text-anchor="middle">反向数据传输（B 发起）</text>
+
+      <defs>
+        <marker id="arrW" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <polygon points="0 0,6 3,0 6" fill="#a56cff"/>
+        </marker>
+      </defs>
+
+      <text x="350" y="200" fill="var(--muted)" font-size="8" text-anchor="middle">HNP 允许 OTG 设备在一次会话中动态交换主机与外设角色，实现双向灵活通信</text>
+    </svg>
+  </div>
+
+  <!-- SRP Flow -->
+  <div class="card">
+    <div class="card-title">🔋 SRP（会话请求协议）省电机制</div>
+    <div class="g2" style="margin:0;gap:16px">
+      <div>
+        <p style="font-size:.87rem;margin-bottom:12px">SRP 允许 B 设备在 VBUS 掉电后主动请求 A 设备重新为总线供电，避免 A 设备持续维持 VBUS 浪费电量。</p>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-head">A 设备关闭 VBUS</div><div class="tl-body">会话结束或超时后，A 设备停止为 VBUS 供电，进入低功耗待机状态。</div></div>
+          <div class="tl-item"><div class="tl-dot g"></div><div class="tl-head">B 设备发起 SRP</div><div class="tl-body">B 设备通过在 D+ 上产生短暂脉冲（数据线信号方式）或 VBUS 脉冲，向 A 设备请求重新启动会话。</div></div>
+          <div class="tl-item"><div class="tl-dot o"></div><div class="tl-head">A 设备响应，恢复 VBUS</div><div class="tl-body">A 设备检测到 SRP 请求后，决定是否为 VBUS 重新供电，并启动新的连接会话。</div></div>
+          <div class="tl-item"><div class="tl-dot p"></div><div class="tl-head">会话建立，正常通信</div><div class="tl-body">VBUS 恢复，双方重新完成枚举，进入正常数据传输状态。</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="callout yellow" style="margin-bottom:14px">
+          <strong>节能效果：</strong>SRP 使 A 设备（如手机）无需一直维持 VBUS 供电等待 B 设备，大幅延长电池寿命，尤其适合电池供电的 OTG 应用场景。
+        </div>
+        <div class="callout green">
+          <strong>实际应用：</strong>当手机作为 OTG 主机连接 U 盘，数据传输完成后主机可关闭 VBUS；下次 U 盘需要传输时通过 SRP 唤醒手机重新供电，而无需用户干预拔插线缆。
+        </div>
+        <div style="margin-top:14px;background:var(--card2);border-radius:10px;padding:14px">
+          <div style="font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">ID 引脚阻抗规格</div>
+          <div class="bitrow" style="margin:0">
+            <div class="bit bit-h">参数</div>
+            <div class="bit bit-h">值</div>
+            <div class="bit bit-h">说明</div>
+          </div>
+          <div class="bitrow" style="margin:0">
+            <div class="bit bc-green">Ra_PLUG_ID</div>
+            <div class="bit bc-green">≤ 10Ω</div>
+            <div class="bit" style="font-size:.75rem;color:var(--muted)">Micro-A 端最大 ID 阻抗</div>
+          </div>
+          <div class="bitrow" style="margin:0">
+            <div class="bit bc-purple">Rb_PLUG_ID</div>
+            <div class="bit bc-purple">≥ 100kΩ</div>
+            <div class="bit" style="font-size:.75rem;color:var(--muted)">Micro-B 端最小 ID 阻抗</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实际应用场景 -->
+  <div class="card">
+    <div class="card-title">📱 Micro-USB OTG 实际应用场景</div>
+    <div class="g3" style="margin:0;gap:12px">
+      <div style="background:rgba(34,211,122,.08);border:1px solid rgba(34,211,122,.2);border-radius:10px;padding:16px">
+        <div style="font-size:1.8rem;text-align:center;margin-bottom:8px">📷</div>
+        <div style="font-weight:700;color:#5febb4;font-size:.9rem;text-align:center;margin-bottom:6px">手机 → 相机</div>
+        <div style="color:var(--muted);font-size:.8rem;text-align:center">手机作为 OTG 主机，通过 Micro-AB 插座直接读取相机中的照片，无需电脑中转</div>
+      </div>
+      <div style="background:rgba(108,143,255,.08);border:1px solid rgba(108,143,255,.2);border-radius:10px;padding:16px">
+        <div style="font-size:1.8rem;text-align:center;margin-bottom:8px">🖱️</div>
+        <div style="font-weight:700;color:#7eb4ff;font-size:.9rem;text-align:center;margin-bottom:6px">手机 → 鼠标/键盘</div>
+        <div style="color:var(--muted);font-size:.8rem;text-align:center">通过 Micro-A 转 USB-A 适配器，手机连接标准 USB 键盘或鼠标，实现文字输入操控</div>
+      </div>
+      <div style="background:rgba(165,108,255,.08);border:1px solid rgba(165,108,255,.2);border-radius:10px;padding:16px">
+        <div style="font-size:1.8rem;text-align:center;margin-bottom:8px">💾</div>
+        <div style="font-weight:700;color:#c4a0ff;font-size:.9rem;text-align:center;margin-bottom:6px">手机 → U盘</div>
+        <div style="color:var(--muted);font-size:.8rem;text-align:center">OTG 手机直接读写 U 盘内容，实现便携存储扩展，SRP 协议保证省电唤醒</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div><!-- end layout -->
+
+<script>
+function show(idx, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('s' + idx).classList.add('active');
+  el.classList.add('active');
+  window.scrollTo({ top: document.querySelector('header').offsetHeight, behavior: 'smooth' });
+}
+
+// Progress bar animation on section change
+function animateProgress() {
+  document.querySelectorAll('.progress-fill').forEach(bar => {
+    const w = bar.style.width;
+    bar.style.width = '0';
+    setTimeout(() => { bar.style.width = w; }, 100);
+  });
+}
+document.querySelectorAll('.sb-item').forEach(item => {
+  item.addEventListener('click', () => setTimeout(animateProgress, 100));
+});
+// init
+setTimeout(animateProgress, 400);
+</script>
+</body>
+</html>

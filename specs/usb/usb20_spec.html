@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>USB 2.0 协议详解</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d2e;
+      --card2: #222538;
+      --border: #2e3250;
+      --accent: #4f8ef7;
+      --accent2: #7c5cbf;
+      --green: #22c55e;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --cyan: #06b6d4;
+      --pink: #ec4899;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --hl: #facc15;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ─── HEADER ─────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, #0d1b4b 0%, #1a0533 50%, #0d2b1b 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 32px 36px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(79,142,247,.05) 60px, rgba(79,142,247,.05) 61px),
+                  repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(79,142,247,.05) 60px, rgba(79,142,247,.05) 61px);
+      pointer-events: none;
+    }
+    header h1 {
+      font-size: 2.6rem; font-weight: 800;
+      background: linear-gradient(90deg, #4f8ef7, #a855f7, #22d3ee);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: -1px; position: relative;
+    }
+    header p { color: var(--muted); margin-top: 10px; font-size: .95rem; }
+    .badge {
+      display: inline-block; margin: 6px 4px; padding: 3px 12px;
+      border-radius: 999px; font-size: .78rem; font-weight: 600;
+      border: 1px solid;
+    }
+    .badge-blue { color: #60a5fa; border-color: #1e40af; background: rgba(59,130,246,.1); }
+    .badge-purple { color: #c084fc; border-color: #6d28d9; background: rgba(139,92,246,.1); }
+    .badge-green { color: #4ade80; border-color: #166534; background: rgba(34,197,94,.1); }
+
+    /* ─── LAYOUT ──────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .layout { display: flex; gap: 0; min-height: calc(100vh - 200px); }
+
+    /* ─── SIDEBAR ─────────────────────────────── */
+    nav#sidebar {
+      width: 260px; min-width: 260px;
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      position: sticky; top: 0; height: 100vh;
+      overflow-y: auto; padding: 20px 0;
+    }
+    nav#sidebar::-webkit-scrollbar { width: 4px; }
+    nav#sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .nav-title {
+      padding: 0 18px 8px; font-size: .7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 18px; cursor: pointer; transition: all .2s;
+      font-size: .85rem; color: var(--muted);
+      border-left: 3px solid transparent;
+    }
+    .nav-item:hover { background: rgba(79,142,247,.08); color: var(--text); }
+    .nav-item.active {
+      background: rgba(79,142,247,.15); color: #60a5fa;
+      border-left-color: #4f8ef7;
+    }
+    .nav-num {
+      width: 22px; height: 22px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700; flex-shrink: 0;
+      background: var(--card2); color: var(--muted);
+    }
+    .nav-item.active .nav-num { background: #1e3a8a; color: #60a5fa; }
+
+    /* ─── MAIN CONTENT ────────────────────────── */
+    main { flex: 1; overflow-x: hidden; }
+    .section { display: none; padding: 40px 48px; }
+    .section.active { display: block; }
+
+    .sec-header {
+      margin-bottom: 32px; padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sec-num {
+      font-size: .75rem; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+    }
+    .sec-title {
+      font-size: 2rem; font-weight: 800; line-height: 1.2;
+      background: linear-gradient(90deg, #e2e8f0, #94a3b8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .sec-desc { color: var(--muted); margin-top: 8px; font-size: .95rem; }
+
+    /* ─── CARDS ───────────────────────────────── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px; margin-bottom: 20px;
+    }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; color: #e2e8f0; }
+    .card p { color: var(--muted); font-size: .9rem; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 20px; }
+    @media(max-width:900px) { .grid2,.grid3 { grid-template-columns: 1fr; } .section { padding: 24px; } nav#sidebar { width: 220px; min-width: 220px; } }
+
+    /* ─── HIGHLIGHT BOX ───────────────────────── */
+    .highlight {
+      border-left: 4px solid var(--accent);
+      background: rgba(79,142,247,.07);
+      padding: 14px 18px; border-radius: 0 8px 8px 0;
+      margin: 16px 0; font-size: .9rem;
+    }
+    .highlight.green { border-color: var(--green); background: rgba(34,197,94,.06); }
+    .highlight.orange { border-color: var(--orange); background: rgba(245,158,11,.06); }
+    .highlight.red { border-color: var(--red); background: rgba(239,68,68,.06); }
+    .highlight.purple { border-color: #a855f7; background: rgba(168,85,247,.06); }
+    .highlight.cyan { border-color: var(--cyan); background: rgba(6,182,212,.06); }
+
+    /* ─── TABLE ───────────────────────────────── */
+    .tbl-wrap { overflow-x: auto; margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th {
+      background: var(--card2); padding: 10px 14px; text-align: left;
+      font-weight: 700; color: var(--accent); font-size: .78rem;
+      text-transform: uppercase; letter-spacing: .5px;
+      border-bottom: 2px solid var(--border);
+    }
+    td {
+      padding: 9px 14px; border-bottom: 1px solid var(--border);
+      color: var(--muted); vertical-align: top;
+    }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    td strong { color: var(--text); }
+
+    /* ─── SVG DIAGRAM ─────────────────────────── */
+    .diagram { margin: 20px 0; }
+    .diagram svg { max-width: 100%; height: auto; overflow: visible; }
+
+    /* ─── CODE ────────────────────────────────── */
+    .code-block {
+      background: #0a0d16; border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px 20px; font-family: 'Courier New', monospace;
+      font-size: .82rem; overflow-x: auto; margin: 16px 0; color: #a5d6ff;
+      line-height: 1.6;
+    }
+    .code-block .kw { color: #c792ea; }
+    .code-block .cm { color: #546e7a; font-style: italic; }
+    .code-block .num { color: #f78c6c; }
+    .code-block .str { color: #c3e88d; }
+
+    /* ─── PILL TAGS ───────────────────────────── */
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+    .tag {
+      padding: 3px 10px; border-radius: 6px; font-size: .75rem;
+      font-weight: 600; border: 1px solid;
+    }
+    .tag-blue { color: #93c5fd; border-color: #1d4ed8; background: rgba(29,78,216,.15); }
+    .tag-green { color: #86efac; border-color: #15803d; background: rgba(21,128,61,.15); }
+    .tag-orange { color: #fcd34d; border-color: #b45309; background: rgba(180,83,9,.15); }
+    .tag-red { color: #fca5a5; border-color: #b91c1c; background: rgba(185,28,28,.15); }
+    .tag-purple { color: #d8b4fe; border-color: #7c3aed; background: rgba(124,58,237,.15); }
+    .tag-cyan { color: #67e8f9; border-color: #0e7490; background: rgba(14,116,144,.15); }
+
+    /* ─── TIMELINE / FLOW ─────────────────────── */
+    .timeline { position: relative; padding-left: 28px; margin: 16px 0; }
+    .timeline::before { content:''; position:absolute; left:9px; top:0; bottom:0; width:2px; background: var(--border); }
+    .tl-item { position: relative; margin-bottom: 20px; }
+    .tl-dot {
+      position: absolute; left: -24px; top: 4px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--accent); border: 2px solid var(--bg);
+    }
+    .tl-dot.green { background: var(--green); }
+    .tl-dot.orange { background: var(--orange); }
+    .tl-dot.purple { background: #a855f7; }
+    .tl-title { font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .tl-desc { color: var(--muted); font-size: .88rem; }
+
+    /* ─── STAT BOXES ─────────────────────────── */
+    .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin: 16px 0; }
+    @media(max-width:700px){ .stat-grid { grid-template-columns: 1fr 1fr; } }
+    .stat-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px; text-align: center;
+    }
+    .stat-val { font-size: 1.6rem; font-weight: 800; }
+    .stat-lbl { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ─── PACKET BIT FIELD ────────────────────── */
+    .bitfield { display: flex; margin: 12px 0; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+    .bf-cell {
+      flex: 1; text-align: center; padding: 8px 4px;
+      border-right: 1px solid var(--border); font-size: .78rem;
+    }
+    .bf-cell:last-child { border-right: none; }
+    .bf-top { background: var(--card2); font-weight: 700; font-size: .7rem; color: var(--muted); }
+    .bf-bot { background: var(--card); }
+    .bf-blue { background: rgba(59,130,246,.2) !important; color: #93c5fd; }
+    .bf-green { background: rgba(34,197,94,.2) !important; color: #86efac; }
+    .bf-orange { background: rgba(245,158,11,.2) !important; color: #fcd34d; }
+    .bf-red { background: rgba(239,68,68,.2) !important; color: #fca5a5; }
+    .bf-purple { background: rgba(168,85,247,.2) !important; color: #d8b4fe; }
+    .bf-cyan { background: rgba(6,182,212,.2) !important; color: #67e8f9; }
+
+    /* ─── MINI ANIMATION ─────────────────────── */
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    @keyframes flow { 0%{stroke-dashoffset:40} 100%{stroke-dashoffset:0} }
+    .anim-pulse { animation: pulse 2s infinite; }
+    .anim-flow line, .anim-flow path { animation: flow .8s linear infinite; stroke-dasharray:6 4; }
+
+    /* ─── SCROLLBAR ────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>USB 2.0 协议完全解析</h1>
+  <p>Universal Serial Bus Specification Revision 2.0 — 逐章深度解读 · 配图说明</p>
+  <div style="margin-top:14px">
+    <span class="badge badge-blue">发布于 2000年4月</span>
+    <span class="badge badge-purple">480 Mbps 高速</span>
+    <span class="badge badge-green">11章 · 650页</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="nav-title">章节导航</div>
+    <div class="nav-item active" onclick="showSection(0, this)"><div class="nav-num">1</div>引言</div>
+    <div class="nav-item" onclick="showSection(1, this)"><div class="nav-num">2</div>术语与缩略语</div>
+    <div class="nav-item" onclick="showSection(2, this)"><div class="nav-num">3</div>背景与目标</div>
+    <div class="nav-item" onclick="showSection(3, this)"><div class="nav-num">4</div>架构概述</div>
+    <div class="nav-item" onclick="showSection(4, this)"><div class="nav-num">5</div>数据流模型</div>
+    <div class="nav-item" onclick="showSection(5, this)"><div class="nav-num">6</div>机械特性</div>
+    <div class="nav-item" onclick="showSection(6, this)"><div class="nav-num">7</div>电气特性</div>
+    <div class="nav-item" onclick="showSection(7, this)"><div class="nav-num">8</div>协议层</div>
+    <div class="nav-item" onclick="showSection(8, this)"><div class="nav-num">9</div>设备框架</div>
+    <div class="nav-item" onclick="showSection(9, this)"><div class="nav-num">10</div>主机控制器</div>
+    <div class="nav-item" onclick="showSection(10, this)"><div class="nav-num">11</div>集线器规范</div>
+  </nav>
+
+  <main>
+
+    <!-- ═══════════════ CHAPTER 1 ═══════════════ -->
+    <div class="section active" id="sec0">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 1</div>
+        <div class="sec-title">引言 Introduction</div>
+        <div class="sec-desc">USB 2.0 的动机、目标、范围与文档组织方式</div>
+      </div>
+
+      <div class="highlight">
+        USB（通用串行总线）诞生于1996年，由 Intel、Compaq、Microsoft、NEC 等公司联合制定，旨在解决 PC 外设连接繁杂、标准不统一的问题。USB 2.0 于2000年4月发布，将速率从 12 Mbps 提升至 480 Mbps。
+      </div>
+
+      <div class="grid3">
+        <div class="card">
+          <h3>📌 1.1 动机</h3>
+          <p>解决计算机外设接口混乱问题：串口、并口、PS/2、游戏端口各自为政，难以统一管理和使用。</p>
+        </div>
+        <div class="card">
+          <h3>🎯 1.2 规范目标</h3>
+          <p>为 PC 外设提供单一、标准化的连接方式；支持热插拔；提供总线供电；简化驱动程序开发。</p>
+        </div>
+        <div class="card">
+          <h3>📋 1.3 文档范围</h3>
+          <p>涵盖电气、机械、协议及软件接口规范，适用于主机、集线器和设备端实现者。</p>
+        </div>
+      </div>
+
+      <!-- 时间线 -->
+      <div class="card" style="margin-bottom:20px">
+        <h3 style="margin-bottom:14px">📅 USB 版本演进时间线</h3>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-title">USB 1.0 — 1996年1月</div><div class="tl-desc">首个正式版本。低速 1.5 Mbps / 全速 12 Mbps，键盘、鼠标等低带宽设备。</div></div>
+          <div class="tl-item"><div class="tl-dot green"></div><div class="tl-title">USB 1.1 — 1998年9月</div><div class="tl-desc">修复 1.0 中若干问题，全面普及，大量外设采用。</div></div>
+          <div class="tl-item"><div class="tl-dot orange"></div><div class="tl-title">USB 2.0 — 2000年4月 ★</div><div class="tl-desc">高速模式 480 Mbps，向下兼容 USB 1.x，本文档即基于此版本。</div></div>
+          <div class="tl-item"><div class="tl-dot purple"></div><div class="tl-title">USB 3.x / 4 — 2008年后</div><div class="tl-desc">SuperSpeed 5 Gbps → 40 Gbps，引入 Type-C 连接器。</div></div>
+        </div>
+      </div>
+
+      <!-- 文档组织图 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:16px">📐 规范文档结构</h3>
+        <svg viewBox="0 0 780 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#4f8ef7"/>
+              <stop offset="100%" stop-color="#a855f7"/>
+            </linearGradient>
+          </defs>
+          <!-- 主框 -->
+          <rect x="10" y="20" width="760" height="50" rx="8" fill="url(#lg1)" opacity=".2" stroke="#4f8ef7" stroke-width="1"/>
+          <text x="390" y="50" fill="#93c5fd" font-size="13" font-weight="bold" text-anchor="middle">Universal Serial Bus Specification Revision 2.0</text>
+          <!-- 箭头 -->
+          <line x1="390" y1="70" x2="390" y2="90" stroke="#4f8ef7" stroke-width="1.5"/>
+          <polygon points="385,88 395,88 390,96" fill="#4f8ef7"/>
+          <!-- 分支 -->
+          <line x1="60" y1="100" x2="720" y2="100" stroke="#2e3250" stroke-width="1.5"/>
+          <!-- 11 chapters -->
+          <g id="chaps">
+            <g transform="translate(24,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#4f8ef7" font-size="10" font-weight="700" text-anchor="middle">Ch.1</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">引言</text>
+            </g>
+            <g transform="translate(96,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#4f8ef7" font-size="10" font-weight="700" text-anchor="middle">Ch.2</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">术语</text>
+            </g>
+            <g transform="translate(168,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#22c55e" font-size="10" font-weight="700" text-anchor="middle">Ch.3</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">背景</text>
+            </g>
+            <g transform="translate(240,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#22c55e" font-size="10" font-weight="700" text-anchor="middle">Ch.4</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">架构</text>
+            </g>
+            <g transform="translate(312,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="middle">Ch.5</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">数据流</text>
+            </g>
+            <g transform="translate(384,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="middle">Ch.6</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">机械</text>
+            </g>
+            <g transform="translate(456,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#ef4444" font-size="10" font-weight="700" text-anchor="middle">Ch.7</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">电气</text>
+            </g>
+            <g transform="translate(528,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#ef4444" font-size="10" font-weight="700" text-anchor="middle">Ch.8</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">协议层</text>
+            </g>
+            <g transform="translate(600,0)">
+              <line x1="36" y1="100" x2="36" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="2" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="36" y="138" fill="#a855f7" font-size="10" font-weight="700" text-anchor="middle">Ch.9</text>
+              <text x="36" y="153" fill="#8892a4" font-size="9" text-anchor="middle">设备框架</text>
+            </g>
+            <g transform="translate(642,0)">
+              <line x1="66" y1="100" x2="66" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="32" y="120" width="68" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="66" y="138" fill="#06b6d4" font-size="10" font-weight="700" text-anchor="middle">Ch.10</text>
+              <text x="66" y="153" fill="#8892a4" font-size="9" text-anchor="middle">主机控制</text>
+            </g>
+            <g transform="translate(710,0)">
+              <line x1="42" y1="100" x2="42" y2="120" stroke="#2e3250" stroke-width="1"/>
+              <rect x="8" y="120" width="60" height="60" rx="6" fill="#1a1d2e" stroke="#2e3250"/>
+              <text x="38" y="138" fill="#06b6d4" font-size="10" font-weight="700" text-anchor="middle">Ch.11</text>
+              <text x="38" y="153" fill="#8892a4" font-size="9" text-anchor="middle">集线器</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="highlight green">
+        <strong>合规声明：</strong>实现者必须完整遵守本规范的所有强制性要求（以 "shall" 标注），推荐项（"should"）也应尽量遵守，以保证互操作性。
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 2 ═══════════════ -->
+    <div class="section" id="sec1">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 2</div>
+        <div class="sec-title">术语与缩略语 Terms & Abbreviations</div>
+        <div class="sec-desc">定义整个规范中使用的专业术语、缩写和约定</div>
+      </div>
+
+      <div class="highlight">
+        本章为整个 USB 规范建立统一的语言体系。理解这些术语是阅读后续章节的基础。规范使用 <strong>shall</strong>（必须）/ <strong>should</strong>（应当）/ <strong>may</strong>（可以）严格区分要求级别。
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="card"><h3 style="color:#4f8ef7">拓扑术语</h3>
+            <div class="tbl-wrap"><table><tr><th>术语</th><th>含义</th></tr>
+              <tr><td><strong>Host</strong></td><td>主机，总线上唯一的控制者</td></tr>
+              <tr><td><strong>Hub</strong></td><td>集线器，用于扩展连接点</td></tr>
+              <tr><td><strong>Device</strong></td><td>USB 设备，功能实现者</td></tr>
+              <tr><td><strong>Root Hub</strong></td><td>主机控制器内置的集线器</td></tr>
+              <tr><td><strong>Compound Device</strong></td><td>集成集线器的复合设备</td></tr>
+              <tr><td><strong>Composite Device</strong></td><td>实现多个功能的单体设备</td></tr>
+            </table></div>
+          </div>
+
+          <div class="card" style="margin-top:16px"><h3 style="color:#22c55e">传输术语</h3>
+            <div class="tbl-wrap"><table><tr><th>术语</th><th>含义</th></tr>
+              <tr><td><strong>Endpoint</strong></td><td>端点，设备内的数据缓冲区</td></tr>
+              <tr><td><strong>Pipe</strong></td><td>管道，主机与端点的逻辑连接</td></tr>
+              <tr><td><strong>Transaction</strong></td><td>事务，一次令牌+数据+握手</td></tr>
+              <tr><td><strong>Transfer</strong></td><td>传输，一次完整数据交换</td></tr>
+              <tr><td><strong>Frame</strong></td><td>帧，1ms 周期的时间单元</td></tr>
+              <tr><td><strong>Microframe</strong></td><td>微帧，125µs（仅高速）</td></tr>
+            </table></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card"><h3 style="color:#f59e0b">协议术语</h3>
+            <div class="tbl-wrap"><table><tr><th>缩写</th><th>全称</th></tr>
+              <tr><td><strong>PID</strong></td><td>Packet Identifier 包标识符</td></tr>
+              <tr><td><strong>CRC</strong></td><td>Cyclic Redundancy Check 循环冗余校验</td></tr>
+              <tr><td><strong>NRZI</strong></td><td>Non-Return-to-Zero Inverted 编码方式</td></tr>
+              <tr><td><strong>SOF</strong></td><td>Start of Frame 帧起始包</td></tr>
+              <tr><td><strong>EOP</strong></td><td>End of Packet 包结束信号</td></tr>
+              <tr><td><strong>ACK/NAK</strong></td><td>握手：确认 / 否定确认</td></tr>
+              <tr><td><strong>STALL</strong></td><td>停止响应，错误指示</td></tr>
+            </table></div>
+          </div>
+
+          <div class="card" style="margin-top:16px"><h3 style="color:#a855f7">速度术语</h3>
+            <div class="tbl-wrap"><table><tr><th>术语</th><th>速率</th><th>场景</th></tr>
+              <tr><td><strong>Low Speed (LS)</strong></td><td>1.5 Mbps</td><td>鼠标、键盘</td></tr>
+              <tr><td><strong>Full Speed (FS)</strong></td><td>12 Mbps</td><td>音频、HID</td></tr>
+              <tr><td><strong>High Speed (HS)</strong></td><td>480 Mbps</td><td>存储、视频</td></tr>
+            </table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 速度对比 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:16px">⚡ 三种速度模式对比</h3>
+        <svg viewBox="0 0 700 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- LS -->
+          <rect x="20" y="20" width="40" height="80" rx="4" fill="rgba(239,68,68,.15)" stroke="#ef4444"/>
+          <text x="40" y="15" fill="#ef4444" font-size="10" text-anchor="middle">Low Speed</text>
+          <text x="40" y="66" fill="#ef4444" font-size="11" font-weight="700" text-anchor="middle">1.5</text>
+          <text x="40" y="79" fill="#8892a4" font-size="9" text-anchor="middle">Mbps</text>
+          <text x="40" y="115" fill="#8892a4" font-size="9" text-anchor="middle">D- pullup</text>
+          <!-- FS -->
+          <rect x="90" y="10" width="80" height="90" rx="4" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="130" y="6" fill="#f59e0b" font-size="10" text-anchor="middle">Full Speed</text>
+          <text x="130" y="61" fill="#f59e0b" font-size="11" font-weight="700" text-anchor="middle">12</text>
+          <text x="130" y="74" fill="#8892a4" font-size="9" text-anchor="middle">Mbps</text>
+          <text x="130" y="115" fill="#8892a4" font-size="9" text-anchor="middle">D+ pullup</text>
+          <!-- HS -->
+          <rect x="200" y="0" width="320" height="100" rx="4" fill="rgba(79,142,247,.15)" stroke="#4f8ef7"/>
+          <text x="360" y="-4" fill="#4f8ef7" font-size="10" text-anchor="middle">High Speed</text>
+          <text x="360" y="55" fill="#4f8ef7" font-size="22" font-weight="800" text-anchor="middle">480</text>
+          <text x="360" y="75" fill="#8892a4" font-size="9" text-anchor="middle">Mbps</text>
+          <text x="360" y="115" fill="#8892a4" font-size="9" text-anchor="middle">Chirp 协商后切换</text>
+          <!-- annotation -->
+          <text x="540" y="50" fill="#86efac" font-size="13" font-weight="700">= 480×</text>
+          <text x="590" y="50" fill="#8892a4" font-size="10">LS速率</text>
+          <text x="540" y="68" fill="#86efac" font-size="13" font-weight="700">= 40×</text>
+          <text x="590" y="68" fill="#8892a4" font-size="10">FS速率</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 3 ═══════════════ -->
+    <div class="section" id="sec2">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 3</div>
+        <div class="sec-title">背景与目标 Background</div>
+        <div class="sec-desc">USB 的设计目标、应用场景分类与核心特性列表</div>
+      </div>
+
+      <div class="highlight">
+        本章阐述了 USB 诞生的历史背景和设计哲学。USB 的核心目标是：<strong>易用性</strong>、<strong>低成本</strong>、<strong>充足带宽</strong>、<strong>与 PC 架构协调</strong>。
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" style="color:#4f8ef7">127</div><div class="stat-lbl">最大设备数</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:#22c55e">5m</div><div class="stat-lbl">最大线缆长度</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:#f59e0b">500mA</div><div class="stat-lbl">总线供电电流</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:#a855f7">5V</div><div class="stat-lbl">VBUS 电压</div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>🎯 3.1 设计目标</h3>
+          <div class="tags">
+            <span class="tag tag-blue">易用性（即插即用）</span>
+            <span class="tag tag-green">热插拔支持</span>
+            <span class="tag tag-orange">灵活的带宽分配</span>
+            <span class="tag tag-purple">低成本实现</span>
+            <span class="tag tag-cyan">总线供电</span>
+            <span class="tag tag-red">向下兼容</span>
+          </div>
+          <p style="margin-top:12px;font-size:.88rem">USB 的设计消除了传统接口中令人头痛的 IRQ/DMA/I/O 地址冲突问题，用户无需打开机箱配置跳线。</p>
+        </div>
+        <div class="card">
+          <h3>🗂 3.2 应用场景分类</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>类别</th><th>典型设备</th><th>带宽需求</th></tr>
+            <tr><td><strong>电话/音频</strong></td><td>话筒、耳机、ISDN</td><td>低～中</td></tr>
+            <tr><td><strong>人机交互</strong></td><td>键盘、鼠标、触摸屏</td><td>极低</td></tr>
+            <tr><td><strong>数据/通信</strong></td><td>ISDN、调制解调器</td><td>中</td></tr>
+            <tr><td><strong>成像</strong></td><td>扫描仪、打印机、相机</td><td>中～高</td></tr>
+            <tr><td><strong>存储</strong></td><td>闪存盘、移动硬盘</td><td>高</td></tr>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- Feature list diagram -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:16px">🌟 3.3 USB 核心特性全景</h3>
+        <svg viewBox="0 0 720 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Center -->
+          <circle cx="360" cy="110" r="50" fill="rgba(79,142,247,.15)" stroke="#4f8ef7" stroke-width="2"/>
+          <text x="360" y="105" fill="#60a5fa" font-size="13" font-weight="700" text-anchor="middle">USB 2.0</text>
+          <text x="360" y="122" fill="#8892a4" font-size="10" text-anchor="middle">核心特性</text>
+          <!-- Features -->
+          <g>
+            <!-- top -->
+            <line x1="360" y1="60" x2="360" y2="20" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="290" y="4" width="140" height="24" rx="4" fill="#1a1d2e" stroke="#4f8ef7"/>
+            <text x="360" y="20" fill="#93c5fd" font-size="10" text-anchor="middle">即插即用 / 热插拔</text>
+            <!-- top-right -->
+            <line x1="395" y1="75" x2="520" y2="30" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="500" y="14" width="120" height="24" rx="4" fill="#1a1d2e" stroke="#22c55e"/>
+            <text x="560" y="30" fill="#86efac" font-size="10" text-anchor="middle">总线供电 5V/500mA</text>
+            <!-- right -->
+            <line x1="410" y1="110" x2="560" y2="110" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="556" y="98" width="120" height="24" rx="4" fill="#1a1d2e" stroke="#f59e0b"/>
+            <text x="616" y="114" fill="#fcd34d" font-size="10" text-anchor="middle">4种传输类型</text>
+            <!-- bottom-right -->
+            <line x1="395" y1="145" x2="520" y2="190" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="500" y="178" width="120" height="24" rx="4" fill="#1a1d2e" stroke="#a855f7"/>
+            <text x="560" y="194" fill="#d8b4fe" font-size="10" text-anchor="middle">CRC 错误检测</text>
+            <!-- bottom -->
+            <line x1="360" y1="160" x2="360" y2="196" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="290" y="192" width="140" height="24" rx="4" fill="#1a1d2e" stroke="#ef4444"/>
+            <text x="360" y="208" fill="#fca5a5" font-size="10" text-anchor="middle">127个设备共享总线</text>
+            <!-- bottom-left -->
+            <line x1="325" y1="145" x2="200" y2="190" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="100" y="178" width="120" height="24" rx="4" fill="#1a1d2e" stroke="#06b6d4"/>
+            <text x="160" y="194" fill="#67e8f9" font-size="10" text-anchor="middle">分层星形拓扑</text>
+            <!-- left -->
+            <line x1="310" y1="110" x2="160" y2="110" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="40" y="98" width="120" height="24" rx="4" fill="#1a1d2e" stroke="#ec4899"/>
+            <text x="100" y="114" fill="#f9a8d4" font-size="10" text-anchor="middle">带宽动态分配</text>
+            <!-- top-left -->
+            <line x1="325" y1="75" x2="200" y2="30" stroke="#2e3250" stroke-dasharray="3 2"/>
+            <rect x="80" y="14" width="140" height="24" rx="4" fill="#1a1d2e" stroke="#facc15"/>
+            <text x="150" y="30" fill="#fde68a" font-size="10" text-anchor="middle">低速/全速/高速兼容</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 4 ═══════════════ -->
+    <div class="section" id="sec3">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 4</div>
+        <div class="sec-title">架构概述 Architectural Overview</div>
+        <div class="sec-desc">USB 系统描述、总线拓扑、物理接口、电源、协议与系统配置</div>
+      </div>
+
+      <div class="highlight">
+        USB 系统由 <strong>一个主机（Host）</strong>、若干 <strong>集线器（Hub）</strong> 和若干 <strong>设备（Device）</strong> 组成，形成分层星形拓扑（Tiered Star Topology）。所有通信由主机发起，设备只能响应。
+      </div>
+
+      <!-- 拓扑图 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:16px">🌐 4.1 USB 总线拓扑（分层星形）</h3>
+        <svg viewBox="0 0 720 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Host -->
+          <rect x="280" y="10" width="160" height="44" rx="8" fill="rgba(79,142,247,.2)" stroke="#4f8ef7" stroke-width="2"/>
+          <text x="360" y="31" fill="#60a5fa" font-size="13" font-weight="700" text-anchor="middle">HOST (主机)</text>
+          <text x="360" y="46" fill="#8892a4" font-size="9" text-anchor="middle">唯一主控 · Root Hub 内置</text>
+          <!-- root hub line -->
+          <line x1="360" y1="54" x2="360" y2="80" stroke="#4f8ef7" stroke-width="2"/>
+          <!-- Root Hub -->
+          <rect x="300" y="80" width="120" height="34" rx="6" fill="rgba(6,182,212,.15)" stroke="#06b6d4"/>
+          <text x="360" y="100" fill="#67e8f9" font-size="11" font-weight="700" text-anchor="middle">Root Hub</text>
+          <text x="360" y="112" fill="#8892a4" font-size="9" text-anchor="middle">Tier 1</text>
+          <!-- Root hub branches -->
+          <line x1="320" y1="114" x2="160" y2="140" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="360" y1="114" x2="360" y2="140" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="400" y1="114" x2="560" y2="140" stroke="#2e3250" stroke-width="1.5"/>
+          <!-- Hub 1 -->
+          <rect x="100" y="140" width="120" height="34" rx="6" fill="rgba(6,182,212,.12)" stroke="#06b6d4" stroke-dasharray="4 2"/>
+          <text x="160" y="160" fill="#67e8f9" font-size="10" font-weight="700" text-anchor="middle">Hub 1 (Tier 2)</text>
+          <!-- Device center -->
+          <rect x="300" y="140" width="120" height="34" rx="6" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="360" y="157" fill="#86efac" font-size="10" font-weight="700" text-anchor="middle">Device A</text>
+          <text x="360" y="170" fill="#8892a4" font-size="8" text-anchor="middle">直连设备</text>
+          <!-- Hub 2 -->
+          <rect x="500" y="140" width="120" height="34" rx="6" fill="rgba(6,182,212,.12)" stroke="#06b6d4" stroke-dasharray="4 2"/>
+          <text x="560" y="160" fill="#67e8f9" font-size="10" font-weight="700" text-anchor="middle">Hub 2 (Tier 2)</text>
+          <!-- Hub 1 branches -->
+          <line x1="130" y1="174" x2="80" y2="210" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="160" y1="174" x2="160" y2="210" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="190" y1="174" x2="240" y2="210" stroke="#2e3250" stroke-width="1.5"/>
+          <!-- Devices under hub 1 -->
+          <rect x="38" y="210" width="84" height="30" rx="5" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="80" y="228" fill="#d8b4fe" font-size="9" text-anchor="middle">键盘</text>
+          <rect x="118" y="210" width="84" height="30" rx="5" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="160" y="228" fill="#d8b4fe" font-size="9" text-anchor="middle">鼠标</text>
+          <rect x="198" y="210" width="84" height="30" rx="5" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="240" y="228" fill="#d8b4fe" font-size="9" text-anchor="middle">Hub 3 (Tier 3)</text>
+          <!-- Hub 2 branches -->
+          <line x1="530" y1="174" x2="480" y2="210" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="560" y1="174" x2="560" y2="210" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="590" y1="174" x2="640" y2="210" stroke="#2e3250" stroke-width="1.5"/>
+          <rect x="438" y="210" width="84" height="30" rx="5" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="480" y="228" fill="#fcd34d" font-size="9" text-anchor="middle">U盘</text>
+          <rect x="518" y="210" width="84" height="30" rx="5" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="560" y="228" fill="#fcd34d" font-size="9" text-anchor="middle">打印机</text>
+          <rect x="598" y="210" width="84" height="30" rx="5" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="640" y="228" fill="#fcd34d" font-size="9" text-anchor="middle">摄像头</text>
+          <!-- Tier labels -->
+          <text x="12" y="100" fill="#4f8ef7" font-size="9" font-weight="700">Tier 0</text>
+          <text x="12" y="160" fill="#06b6d4" font-size="9" font-weight="700">Tier 1</text>
+          <text x="12" y="220" fill="#a855f7" font-size="9" font-weight="700">Tier 2</text>
+          <text x="12" y="255" fill="#f59e0b" font-size="9" font-weight="700">Tier 3</text>
+          <!-- limit note -->
+          <text x="360" y="278" fill="#8892a4" font-size="9" text-anchor="middle">最多 5 层 Hub 级联 · 最多 127 个设备（7位地址）</text>
+        </svg>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>🔌 4.4 总线协议特征</h3>
+          <ul style="color:var(--muted);font-size:.88rem;padding-left:18px;line-height:2">
+            <li>主机发起所有事务（Host-Centric）</li>
+            <li>基于令牌的协议（Token-Based）</li>
+            <li>差分信号传输（D+ / D-）</li>
+            <li>NRZI 编码 + 位填充</li>
+            <li>CRC5 / CRC16 错误检测</li>
+            <li>帧（1ms）/ 微帧（125µs）调度</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>⚡ 4.3 电源管理</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>类型</th><th>最大电流</th></tr>
+            <tr><td>低功耗总线供电</td><td>100 mA</td></tr>
+            <tr><td>高功耗总线供电</td><td>500 mA</td></tr>
+            <tr><td>自供电设备</td><td>无限制（外部）</td></tr>
+            <tr><td>挂起状态</td><td>≤ 2.5 mA</td></tr>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="highlight orange">
+        <strong>4.7 数据流类型：</strong>控制传输（Control）、批量传输（Bulk）、中断传输（Interrupt）、同步传输（Isochronous）—— 四种传输类型满足不同延迟和带宽需求，详见第 5 章。
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 5 ═══════════════ -->
+    <div class="section" id="sec4">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 5</div>
+        <div class="sec-title">USB 数据流模型 USB Data Flow Model</div>
+        <div class="sec-desc">端点、管道、帧结构与四种传输类型的详细规范</div>
+      </div>
+
+      <div class="highlight">
+        本章是 USB 规范的核心章节之一。它从逻辑角度描述数据如何在主机软件与设备功能之间流动，引入端点（Endpoint）、管道（Pipe）的概念，并详细规定四种传输类型的格式与约束。
+      </div>
+
+      <!-- 分层模型 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🏗 5.1 实现者视角 — USB 分层模型</h3>
+        <svg viewBox="0 0 700 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Host side -->
+          <rect x="20" y="10" width="280" height="180" rx="8" fill="rgba(79,142,247,.05)" stroke="#2e3250"/>
+          <text x="160" y="28" fill="#4f8ef7" font-size="11" font-weight="700" text-anchor="middle">HOST 主机侧</text>
+          <rect x="40" y="36" width="240" height="28" rx="5" fill="rgba(79,142,247,.15)" stroke="#4f8ef7"/>
+          <text x="160" y="54" fill="#93c5fd" font-size="10" text-anchor="middle">Client Software (客户端软件)</text>
+          <rect x="40" y="74" width="240" height="28" rx="5" fill="rgba(79,142,247,.1)" stroke="#4f8ef7" stroke-dasharray="3 2"/>
+          <text x="160" y="92" fill="#93c5fd" font-size="10" text-anchor="middle">USB System Software (系统软件层)</text>
+          <rect x="40" y="112" width="240" height="28" rx="5" fill="rgba(79,142,247,.1)" stroke="#4f8ef7" stroke-dasharray="3 2"/>
+          <text x="160" y="130" fill="#93c5fd" font-size="10" text-anchor="middle">USB Host Controller (主机控制器)</text>
+          <rect x="40" y="150" width="240" height="28" rx="5" fill="rgba(6,182,212,.1)" stroke="#06b6d4"/>
+          <text x="160" y="168" fill="#67e8f9" font-size="10" text-anchor="middle">USB Bus (物理总线)</text>
+          <!-- Arrows between -->
+          <line x1="300" y1="100" x2="400" y2="100" stroke="#4f8ef7" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <text x="350" y="94" fill="#facc15" font-size="8" text-anchor="middle">逻辑管道</text>
+          <polygon points="396,96 404,100 396,104" fill="#4f8ef7"/>
+          <!-- Device side -->
+          <rect x="400" y="10" width="280" height="180" rx="8" fill="rgba(34,197,94,.05)" stroke="#2e3250"/>
+          <text x="540" y="28" fill="#22c55e" font-size="11" font-weight="700" text-anchor="middle">DEVICE 设备侧</text>
+          <rect x="420" y="36" width="240" height="28" rx="5" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="540" y="54" fill="#86efac" font-size="10" text-anchor="middle">Function (功能层)</text>
+          <rect x="420" y="74" width="240" height="28" rx="5" fill="rgba(34,197,94,.1)" stroke="#22c55e" stroke-dasharray="3 2"/>
+          <text x="540" y="92" fill="#86efac" font-size="10" text-anchor="middle">USB Logical Device (逻辑设备)</text>
+          <rect x="420" y="112" width="240" height="28" rx="5" fill="rgba(34,197,94,.1)" stroke="#22c55e" stroke-dasharray="3 2"/>
+          <text x="540" y="130" fill="#86efac" font-size="10" text-anchor="middle">USB Device Controller (设备控制器)</text>
+          <rect x="420" y="150" width="240" height="28" rx="5" fill="rgba(6,182,212,.1)" stroke="#06b6d4"/>
+          <text x="540" y="168" fill="#67e8f9" font-size="10" text-anchor="middle">USB Bus (物理总线)</text>
+        </svg>
+      </div>
+
+      <!-- 四种传输类型 -->
+      <h3 style="margin:24px 0 12px;color:#e2e8f0">📦 5.4–5.8 四种传输类型详解</h3>
+      <div class="grid2">
+        <div class="card" style="border-color:#4f8ef7">
+          <h3 style="color:#60a5fa">🔧 控制传输 Control Transfer</h3>
+          <div class="tags"><span class="tag tag-blue">双向</span><span class="tag tag-green">保证送达</span><span class="tag tag-orange">三阶段</span></div>
+          <p style="margin-top:8px;font-size:.88rem">用于设备配置和控制命令。每个设备必须实现端点0（EP0）用于控制传输。分为 Setup → Data（可选）→ Status 三个阶段。</p>
+          <div class="highlight" style="margin-top:10px;font-size:.8rem">FS最大数据包：64字节 · HS：64字节</div>
+        </div>
+        <div class="card" style="border-color:#f59e0b">
+          <h3 style="color:#fcd34d">🔄 同步传输 Isochronous Transfer</h3>
+          <div class="tags"><span class="tag tag-orange">固定带宽</span><span class="tag tag-red">无重传</span><span class="tag tag-cyan">实时性</span></div>
+          <p style="margin-top:8px;font-size:.88rem">用于音视频等对时延敏感的应用。保证带宽但不保证数据完整性（无 ACK/NAK）。每帧/微帧传输一次。</p>
+          <div class="highlight orange" style="margin-top:10px;font-size:.8rem">FS最大：1023字节/帧 · HS：1024字节/微帧×3</div>
+        </div>
+        <div class="card" style="border-color:#22c55e">
+          <h3 style="color:#86efac">⏰ 中断传输 Interrupt Transfer</h3>
+          <div class="tags"><span class="tag tag-green">有保证延迟</span><span class="tag tag-blue">小数据量</span><span class="tag tag-purple">轮询</span></div>
+          <p style="margin-top:8px;font-size:.88rem">用于需要定期轮询的设备，如键盘、鼠标。主机周期性查询设备，保证最大响应延迟（端点描述符中指定轮询间隔）。</p>
+          <div class="highlight green" style="margin-top:10px;font-size:.8rem">LS：8字节 · FS：64字节 · HS：1024字节</div>
+        </div>
+        <div class="card" style="border-color:#a855f7">
+          <h3 style="color:#d8b4fe">📦 批量传输 Bulk Transfer</h3>
+          <div class="tags"><span class="tag tag-purple">大数据量</span><span class="tag tag-green">无错误</span><span class="tag tag-red">尽力而为</span></div>
+          <p style="margin-top:8px;font-size:.88rem">用于大量数据传输，如 U 盘、打印机。保证数据完整性（CRC + 重传），但不保证带宽和延迟，利用空闲带宽传输。</p>
+          <div class="highlight purple" style="margin-top:10px;font-size:.8rem">FS最大：64字节 · HS：512字节</div>
+        </div>
+      </div>
+
+      <!-- 传输类型对比表 -->
+      <div class="card">
+        <h3 style="margin-bottom:12px">📊 四种传输类型特性对比</h3>
+        <div class="tbl-wrap"><table>
+          <tr><th>特性</th><th style="color:#60a5fa">Control</th><th style="color:#fcd34d">Isochronous</th><th style="color:#86efac">Interrupt</th><th style="color:#d8b4fe">Bulk</th></tr>
+          <tr><td>保证带宽</td><td>✓ 保留10%</td><td>✓</td><td>✓ 最大延迟</td><td>✗ 尽力</td></tr>
+          <tr><td>错误检测</td><td>✓ CRC</td><td>✓ 检测不重传</td><td>✓ CRC</td><td>✓ CRC+重传</td></tr>
+          <tr><td>重传机制</td><td>✓</td><td>✗</td><td>✓</td><td>✓</td></tr>
+          <tr><td>典型应用</td><td>枚举配置</td><td>音频/视频流</td><td>键盘鼠标</td><td>存储设备</td></tr>
+          <tr><td>方向</td><td>双向</td><td>单向</td><td>单向</td><td>单向</td></tr>
+        </table></div>
+      </div>
+
+      <!-- 帧结构 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🕐 5.3.3 帧与微帧结构</h3>
+        <svg viewBox="0 0 700 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- FS Frame -->
+          <text x="10" y="20" fill="#f59e0b" font-size="10" font-weight="700">全速帧 (1ms)</text>
+          <rect x="10" y="28" width="680" height="36" rx="4" fill="rgba(245,158,11,.08)" stroke="#f59e0b"/>
+          <rect x="10" y="28" width="40" height="36" rx="4" fill="rgba(245,158,11,.3)" stroke="#f59e0b"/>
+          <text x="30" y="50" fill="#fcd34d" font-size="9" text-anchor="middle">SOF</text>
+          <!-- transactions -->
+          <rect x="58" y="32" width="100" height="28" rx="3" fill="rgba(79,142,247,.2)" stroke="#4f8ef7"/>
+          <text x="108" y="50" fill="#93c5fd" font-size="9" text-anchor="middle">Control Tx</text>
+          <rect x="166" y="32" width="120" height="28" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+          <text x="226" y="50" fill="#d8b4fe" font-size="9" text-anchor="middle">Interrupt Tx</text>
+          <rect x="294" y="32" width="200" height="28" rx="3" fill="rgba(245,158,11,.2)" stroke="#f59e0b"/>
+          <text x="394" y="50" fill="#fcd34d" font-size="9" text-anchor="middle">Isochronous Tx</text>
+          <rect x="502" y="32" width="160" height="28" rx="3" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="582" y="50" fill="#86efac" font-size="9" text-anchor="middle">Bulk (剩余带宽)</text>
+
+          <!-- HS Microframe -->
+          <text x="10" y="95" fill="#4f8ef7" font-size="10" font-weight="700">高速微帧 (125µs) — 8个微帧 = 1ms</text>
+          <g transform="translate(0,10)">
+            <rect x="10" y="92" width="80" height="26" rx="3" fill="rgba(79,142,247,.15)" stroke="#4f8ef7"/>
+            <text x="50" y="109" fill="#60a5fa" font-size="9" text-anchor="middle">µFrame 0</text>
+            <rect x="98" y="92" width="80" height="26" rx="3" fill="rgba(79,142,247,.1)" stroke="#2e3250"/>
+            <text x="138" y="109" fill="#4f8ef7" font-size="9" text-anchor="middle">µFrame 1</text>
+            <rect x="186" y="92" width="80" height="26" rx="3" fill="rgba(79,142,247,.1)" stroke="#2e3250"/>
+            <text x="226" y="109" fill="#4f8ef7" font-size="9" text-anchor="middle">µFrame 2</text>
+            <text x="290" y="109" fill="#8892a4" font-size="9">···</text>
+            <rect x="318" y="92" width="80" height="26" rx="3" fill="rgba(79,142,247,.1)" stroke="#2e3250"/>
+            <text x="358" y="109" fill="#4f8ef7" font-size="9" text-anchor="middle">µFrame 7</text>
+            <text x="430" y="109" fill="#8892a4" font-size="9">= 1ms Frame</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 6 ═══════════════ -->
+    <div class="section" id="sec5">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 6</div>
+        <div class="sec-title">机械特性 Mechanical</div>
+        <div class="sec-desc">USB 连接器类型、线缆规格、引脚分配与机械尺寸要求</div>
+      </div>
+
+      <div class="highlight">
+        本章规定了 USB 的物理连接规范，包括连接器形状、引脚定义、线缆结构。USB 采用不对称连接器设计：<strong>Type-A</strong> 连接主机端，<strong>Type-B</strong> 连接设备端，防止误接。
+      </div>
+
+      <!-- 连接器类型 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:16px">🔌 USB 连接器类型一览</h3>
+        <svg viewBox="0 0 720 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Type A -->
+          <g transform="translate(20,20)">
+            <rect x="0" y="10" width="80" height="50" rx="4" fill="rgba(79,142,247,.15)" stroke="#4f8ef7" stroke-width="2"/>
+            <rect x="8" y="18" width="64" height="34" rx="2" fill="rgba(79,142,247,.3)"/>
+            <!-- pins -->
+            <rect x="14" y="26" width="6" height="18" rx="1" fill="#fcd34d"/>
+            <rect x="26" y="26" width="6" height="18" rx="1" fill="#ef4444"/>
+            <rect x="38" y="26" width="6" height="18" rx="1" fill="#86efac"/>
+            <rect x="50" y="26" width="6" height="18" rx="1" fill="#a0a0a0"/>
+            <text x="40" y="82" fill="#60a5fa" font-size="11" font-weight="700" text-anchor="middle">Type-A</text>
+            <text x="40" y="94" fill="#8892a4" font-size="9" text-anchor="middle">主机/下游端口</text>
+            <!-- pin labels -->
+            <text x="17" y="100" fill="#fcd34d" font-size="8">1</text>
+            <text x="29" y="100" fill="#ef4444" font-size="8">2</text>
+            <text x="41" y="100" fill="#86efac" font-size="8">3</text>
+            <text x="53" y="100" fill="#a0a0a0" font-size="8">4</text>
+          </g>
+          <!-- Type B -->
+          <g transform="translate(130,20)">
+            <path d="M8,60 L0,10 L80,10 L72,60 Z" fill="rgba(245,158,11,.15)" stroke="#f59e0b" stroke-width="2"/>
+            <rect x="16" y="18" width="48" height="34" rx="2" fill="rgba(245,158,11,.25)"/>
+            <rect x="22" y="26" width="6" height="18" rx="1" fill="#fcd34d"/>
+            <rect x="32" y="26" width="6" height="18" rx="1" fill="#ef4444"/>
+            <rect x="42" y="26" width="6" height="18" rx="1" fill="#86efac"/>
+            <rect x="52" y="26" width="6" height="18" rx="1" fill="#a0a0a0"/>
+            <text x="40" y="82" fill="#fcd34d" font-size="11" font-weight="700" text-anchor="middle">Type-B</text>
+            <text x="40" y="94" fill="#8892a4" font-size="9" text-anchor="middle">设备/上游端口</text>
+          </g>
+          <!-- Mini-B -->
+          <g transform="translate(250,20)">
+            <path d="M0,10 L16,2 L64,2 L80,10 L80,52 L0,52 Z" fill="rgba(168,85,247,.15)" stroke="#a855f7" stroke-width="1.5"/>
+            <rect x="12" y="14" width="56" height="30" rx="2" fill="rgba(168,85,247,.25)"/>
+            <rect x="18" y="20" width="5" height="18" rx="1" fill="#fcd34d"/>
+            <rect x="27" y="20" width="5" height="18" rx="1" fill="#ef4444"/>
+            <rect x="36" y="20" width="5" height="18" rx="1" fill="#86efac"/>
+            <rect x="45" y="20" width="5" height="18" rx="1" fill="#a0a0a0"/>
+            <rect x="54" y="20" width="5" height="18" rx="1" fill="#8892a4"/>
+            <text x="40" y="75" fill="#d8b4fe" font-size="11" font-weight="700" text-anchor="middle">Mini-B</text>
+            <text x="40" y="87" fill="#8892a4" font-size="9" text-anchor="middle">5pin · 旧款相机</text>
+          </g>
+          <!-- Micro-B -->
+          <g transform="translate(380,22)">
+            <rect x="0" y="0" width="80" height="36" rx="3" fill="rgba(6,182,212,.12)" stroke="#06b6d4" stroke-width="1.5"/>
+            <rect x="8" y="6" width="64" height="24" rx="2" fill="rgba(6,182,212,.2)"/>
+            <rect x="12" y="11" width="5" height="14" rx="1" fill="#fcd34d"/>
+            <rect x="20" y="11" width="5" height="14" rx="1" fill="#ef4444"/>
+            <rect x="28" y="11" width="5" height="14" rx="1" fill="#86efac"/>
+            <rect x="36" y="11" width="5" height="14" rx="1" fill="#a0a0a0"/>
+            <rect x="44" y="11" width="5" height="14" rx="1" fill="#8892a4"/>
+            <text x="40" y="56" fill="#67e8f9" font-size="11" font-weight="700" text-anchor="middle">Micro-B</text>
+            <text x="40" y="68" fill="#8892a4" font-size="9" text-anchor="middle">5pin · 智能手机时代</text>
+          </g>
+          <!-- Type-C note -->
+          <g transform="translate(510,20)">
+            <rect x="0" y="6" width="90" height="38" rx="12" fill="rgba(34,197,94,.12)" stroke="#22c55e" stroke-width="1.5"/>
+            <rect x="10" y="12" width="70" height="26" rx="8" fill="rgba(34,197,94,.2)"/>
+            <text x="45" y="30" fill="#86efac" font-size="12" font-weight="700" text-anchor="middle">TYPE-C</text>
+            <text x="45" y="65" fill="#67e8f9" font-size="10" font-weight="700" text-anchor="middle">USB Type-C</text>
+            <text x="45" y="77" fill="#8892a4" font-size="9" text-anchor="middle">24pin · 可反插</text>
+            <text x="45" y="89" fill="#8892a4" font-size="8" text-anchor="middle">ECN 补充规范</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- 引脚定义 -->
+      <div class="grid2">
+        <div class="card">
+          <h3>📌 4线 USB 引脚定义（Type-A/B）</h3>
+          <div class="bitfield" style="margin-top:12px">
+            <div class="bf-cell bf-top">Pin 1</div>
+            <div class="bf-cell bf-top">Pin 2</div>
+            <div class="bf-cell bf-top">Pin 3</div>
+            <div class="bf-cell bf-top">Pin 4</div>
+          </div>
+          <div class="bitfield">
+            <div class="bf-cell bf-bot bf-orange">VBUS<br><small>+5V</small></div>
+            <div class="bf-cell bf-bot bf-red">D-<br><small>数据-</small></div>
+            <div class="bf-cell bf-bot bf-green">D+<br><small>数据+</small></div>
+            <div class="bf-cell bf-bot" style="color:#a0a0a0">GND<br><small>地线</small></div>
+          </div>
+          <p style="font-size:.82rem;color:var(--muted);margin-top:8px">D+ 和 D- 为差分数据线，阻抗 90Ω，双绞线设计抗干扰</p>
+        </div>
+        <div class="card">
+          <h3>📏 线缆规格要求</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>参数</th><th>高速</th><th>全速/低速</th></tr>
+            <tr><td>最大长度</td><td>5 米</td><td>3 米（低速）</td></tr>
+            <tr><td>导线数</td><td>4</td><td>4</td></tr>
+            <tr><td>数据线阻抗</td><td>90Ω±15%</td><td>无严格要求</td></tr>
+            <tr><td>数据线类型</td><td>双绞屏蔽</td><td>双绞</td></tr>
+            <tr><td>VBUS线规</td><td>≥28 AWG</td><td>≥28 AWG</td></tr>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="highlight cyan">
+        <strong>颜色约定：</strong>USB 线缆内部颜色标准 — 红色（VBUS）、白色（D-）、绿色（D+）、黑色（GND）。USB 2.0 规范还规定了连接器的机械耐久性：至少 1500 次插拔循环。
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 7 ═══════════════ -->
+    <div class="section" id="sec6">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 7</div>
+        <div class="sec-title">电气特性 Electrical</div>
+        <div class="sec-desc">信号电平、驱动阻抗、编码方式、位填充、速度检测与高速握手</div>
+      </div>
+
+      <div class="highlight">
+        本章规定 USB 的电气层规范：差分信号驱动、电平定义、NRZI 编码、位填充机制，以及高速设备独有的 <strong>Chirp 握手协议</strong>（用于速度协商从全速切换到高速模式）。
+      </div>
+
+      <!-- 信号状态 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">⚡ 7.1 信号状态定义</h3>
+        <svg viewBox="0 0 700 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 差分信号波形 -->
+          <text x="10" y="18" fill="#8892a4" font-size="10">D+</text>
+          <text x="10" y="90" fill="#8892a4" font-size="10">D-</text>
+          <!-- D+ waveform -->
+          <polyline points="30,30 80,30 80,15 160,15 160,30 240,30 240,15 320,15 320,30 400,30 400,55 480,55 480,30 560,30 560,15 640,15 640,30" fill="none" stroke="#4f8ef7" stroke-width="2"/>
+          <!-- D- waveform -->
+          <polyline points="30,75 80,75 80,90 160,90 160,75 240,75 240,90 320,90 320,75 400,75 400,100 480,100 480,75 560,75 560,90 640,90 640,75" fill="none" stroke="#ef4444" stroke-width="2"/>
+          <!-- Bit labels -->
+          <line x1="80" y1="110" x2="160" y2="110" stroke="#2e3250"/>
+          <text x="120" y="125" fill="#8892a4" font-size="9" text-anchor="middle">J-State</text>
+          <line x1="160" y1="110" x2="240" y2="110" stroke="#2e3250"/>
+          <text x="200" y="125" fill="#8892a4" font-size="9" text-anchor="middle">K-State</text>
+          <line x1="240" y1="110" x2="320" y2="110" stroke="#2e3250"/>
+          <text x="280" y="125" fill="#fcd34d" font-size="9" text-anchor="middle">Data 1</text>
+          <line x1="320" y1="110" x2="400" y2="110" stroke="#2e3250"/>
+          <text x="360" y="125" fill="#fcd34d" font-size="9" text-anchor="middle">Data 0</text>
+          <line x1="400" y1="110" x2="480" y2="110" stroke="#2e3250"/>
+          <text x="440" y="125" fill="#86efac" font-size="9" text-anchor="middle">SE0(EOP)</text>
+          <!-- legend -->
+          <rect x="80" y="140" width="60" height="14" rx="2" fill="rgba(79,142,247,.2)" stroke="#4f8ef7"/>
+          <text x="110" y="151" fill="#93c5fd" font-size="8" text-anchor="middle">D+>D-: J态(1)</text>
+          <rect x="155" y="140" width="60" height="14" rx="2" fill="rgba(239,68,68,.2)" stroke="#ef4444"/>
+          <text x="185" y="151" fill="#fca5a5" font-size="8" text-anchor="middle">D-&gt;D+: K态(0)</text>
+          <rect x="230" y="140" width="60" height="14" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+          <text x="260" y="151" fill="#86efac" font-size="8" text-anchor="middle">D+=D-=0: SE0</text>
+        </svg>
+      </div>
+
+      <!-- NRZI编码 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🔀 7.1.8 NRZI 编码 + 位填充（Bit Stuffing）</h3>
+        <svg viewBox="0 0 700 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- NRZI 说明 -->
+          <text x="20" y="18" fill="#f59e0b" font-size="10" font-weight="700">原始数据位：</text>
+          <g>
+            <!-- data bits -->
+            <rect x="120" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="140" y="20" fill="#86efac" font-size="10" text-anchor="middle">1</text>
+            <rect x="165" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="185" y="20" fill="#86efac" font-size="10" text-anchor="middle">1</text>
+            <rect x="210" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="230" y="20" fill="#86efac" font-size="10" text-anchor="middle">1</text>
+            <rect x="255" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="275" y="20" fill="#86efac" font-size="10" text-anchor="middle">1</text>
+            <rect x="300" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="320" y="20" fill="#86efac" font-size="10" text-anchor="middle">1</text>
+            <rect x="345" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="365" y="20" fill="#86efac" font-size="10" text-anchor="middle">1</text>
+            <rect x="390" y="6" width="40" height="20" rx="2" fill="rgba(245,158,11,.3)" stroke="#f59e0b" stroke-width="2"/>
+            <text x="410" y="20" fill="#fcd34d" font-size="10" font-weight="700" text-anchor="middle">0</text>
+            <text x="430" y="20" fill="#8892a4" font-size="9">← 强制填充</text>
+            <rect x="480" y="6" width="40" height="20" rx="2" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+            <text x="500" y="20" fill="#86efac" font-size="10" text-anchor="middle">0</text>
+          </g>
+
+          <text x="20" y="52" fill="#4f8ef7" font-size="10" font-weight="700">NRZI 编码：</text>
+          <text x="20" y="68" fill="#8892a4" font-size="9">1=不翻转 · 0=翻转信号电平</text>
+          <!-- NRZI waveform -->
+          <polyline points="120,85 165,85 165,85 210,85 210,85 255,85 255,85 300,85 300,85 345,85 345,85 390,85 390,100 435,100 435,85 480,85 480,100 520,100" fill="none" stroke="#4f8ef7" stroke-width="2.5"/>
+
+          <text x="20" y="128" fill="#8892a4" font-size="9">连续6个"1"后，强制插入一个"0"（位填充），接收方自动去除，防止长时间无跳变导致时钟同步失败。</text>
+        </svg>
+      </div>
+
+      <!-- 高速握手 -->
+      <div class="card">
+        <h3 style="margin-bottom:14px">🤝 7.1.7.5 高速握手（Chirp Sequence）</h3>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-title">设备连接（Connect）</div><div class="tl-desc">设备在 D+ 上拉（Full Speed）。主机检测到设备连接。</div></div>
+          <div class="tl-item"><div class="tl-dot green"></div><div class="tl-title">主机复位（Reset）</div><div class="tl-desc">主机发送 SE0 持续 ≥10ms 的复位信号。</div></div>
+          <div class="tl-item"><div class="tl-dot orange"></div><div class="tl-title">设备发 Chirp-K</div><div class="tl-desc">设备检测到复位，发出 Chirp-K（D-拉低），持续 1~7ms，表示"我支持高速"。</div></div>
+          <div class="tl-item"><div class="tl-dot purple"></div><div class="tl-title">主机响应 Chirp-K/J 序列</div><div class="tl-desc">主机回应 3对 Chirp-KJ（KJKJKJ），双方确认高速能力。</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-title">切换至高速模式 480 Mbps</div><div class="tl-desc">握手完成，双方切换到高速信号电平（400mV 差分），开始高速通信。</div></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>📊 电气参数速查</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>参数</th><th>Full Speed</th><th>High Speed</th></tr>
+            <tr><td>数据速率</td><td>12 Mbps</td><td>480 Mbps</td></tr>
+            <tr><td>差分输出电压</td><td>2.8–3.6V</td><td>400mV ±10%</td></tr>
+            <tr><td>上升时间</td><td>4–20 ns</td><td>≤500 ps</td></tr>
+            <tr><td>信号阻抗</td><td>90Ω</td><td>45Ω（单端）</td></tr>
+          </table></div>
+        </div>
+        <div class="card">
+          <h3>🔧 速度识别方式</h3>
+          <p style="color:var(--muted);font-size:.88rem;margin-bottom:12px">USB 通过上拉电阻位置识别设备速度：</p>
+          <div class="highlight" style="font-size:.82rem">D+ 上拉 1.5kΩ → Full Speed (12 Mbps)</div>
+          <div class="highlight orange" style="font-size:.82rem;margin-top:8px">D- 上拉 1.5kΩ → Low Speed (1.5 Mbps)</div>
+          <div class="highlight green" style="font-size:.82rem;margin-top:8px">Full Speed + Chirp → High Speed (480 Mbps)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 8 ═══════════════ -->
+    <div class="section" id="sec7">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 8</div>
+        <div class="sec-title">协议层 Protocol Layer</div>
+        <div class="sec-desc">USB 包格式、事务类型、CRC 校验、帧同步与包识别符（PID）</div>
+      </div>
+
+      <div class="highlight">
+        协议层定义了 USB 数据包（Packet）的格式和事务（Transaction）结构。所有 USB 通信以<strong>包</strong>为最小单元，每个包由 SYNC + PID + [数据字段] + EOP 构成。事务由 Token → Data → Handshake 三个包组成。
+      </div>
+
+      <!-- 包基本结构 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">📦 8.1 USB 包基本结构</h3>
+        <div class="bitfield">
+          <div class="bf-cell bf-top">SYNC</div>
+          <div class="bf-cell bf-top">PID</div>
+          <div class="bf-cell bf-top" style="flex:3">DATA FIELD（可变）</div>
+          <div class="bf-cell bf-top">CRC</div>
+          <div class="bf-cell bf-top">EOP</div>
+        </div>
+        <div class="bitfield">
+          <div class="bf-cell bf-bot bf-cyan">同步序列<br><small>8位/32位(HS)</small></div>
+          <div class="bf-cell bf-bot bf-blue">包标识符<br><small>8bit</small></div>
+          <div class="bf-cell bf-bot" style="flex:3;background:rgba(255,255,255,.03);color:#8892a4">地址/端点/帧号/数据...<br><small>依包类型而定</small></div>
+          <div class="bf-cell bf-bot bf-orange">校验码<br><small>CRC5/16</small></div>
+          <div class="bf-cell bf-bot bf-red">包结束<br><small>SE0+J</small></div>
+        </div>
+      </div>
+
+      <!-- PID 类型 -->
+      <div class="card">
+        <h3 style="margin-bottom:14px">🏷 8.3 PID（包标识符）完整列表</h3>
+        <div class="grid2">
+          <div>
+            <p style="color:#f59e0b;font-size:.82rem;font-weight:700;margin-bottom:8px">TOKEN 令牌包</p>
+            <div class="tbl-wrap"><table>
+              <tr><th>PID名</th><th>值</th><th>作用</th></tr>
+              <tr><td><strong>OUT</strong></td><td>0001b</td><td>主机→设备数据</td></tr>
+              <tr><td><strong>IN</strong></td><td>1001b</td><td>设备→主机数据</td></tr>
+              <tr><td><strong>SOF</strong></td><td>0101b</td><td>帧起始标记</td></tr>
+              <tr><td><strong>SETUP</strong></td><td>1101b</td><td>控制请求开始</td></tr>
+            </table></div>
+            <p style="color:#4f8ef7;font-size:.82rem;font-weight:700;margin:12px 0 8px">DATA 数据包</p>
+            <div class="tbl-wrap"><table>
+              <tr><th>PID名</th><th>值</th><th>作用</th></tr>
+              <tr><td><strong>DATA0</strong></td><td>0011b</td><td>偶数序列数据</td></tr>
+              <tr><td><strong>DATA1</strong></td><td>1011b</td><td>奇数序列数据</td></tr>
+              <tr><td><strong>DATA2</strong></td><td>0111b</td><td>高速同步用</td></tr>
+              <tr><td><strong>MDATA</strong></td><td>1111b</td><td>高速同步多事务</td></tr>
+            </table></div>
+          </div>
+          <div>
+            <p style="color:#22c55e;font-size:.82rem;font-weight:700;margin-bottom:8px">HANDSHAKE 握手包</p>
+            <div class="tbl-wrap"><table>
+              <tr><th>PID名</th><th>值</th><th>作用</th></tr>
+              <tr><td><strong>ACK</strong></td><td>0010b</td><td>接收成功确认</td></tr>
+              <tr><td><strong>NAK</strong></td><td>1010b</td><td>暂不能接收</td></tr>
+              <tr><td><strong>STALL</strong></td><td>1110b</td><td>错误/端点停止</td></tr>
+              <tr><td><strong>NYET</strong></td><td>0110b</td><td>未就绪(高速)</td></tr>
+            </table></div>
+            <p style="color:#a855f7;font-size:.82rem;font-weight:700;margin:12px 0 8px">SPECIAL 特殊包</p>
+            <div class="tbl-wrap"><table>
+              <tr><th>PID名</th><th>值</th><th>作用</th></tr>
+              <tr><td><strong>PRE</strong></td><td>1100b</td><td>低速设备前导</td></tr>
+              <tr><td><strong>PING</strong></td><td>0100b</td><td>高速流控探测</td></tr>
+              <tr><td><strong>SPLIT</strong></td><td>1000b</td><td>分裂事务(Hub)</td></tr>
+            </table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 事务流程 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🔄 8.5 USB 事务类型流程</h3>
+        <svg viewBox="0 0 700 230" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- IN Transaction -->
+          <text x="10" y="16" fill="#22c55e" font-size="11" font-weight="700">IN 事务（设备→主机）</text>
+          <text x="10" y="35" fill="#8892a4" font-size="9">Host</text>
+          <text x="10" y="80" fill="#8892a4" font-size="9">Device</text>
+          <line x1="60" y1="28" x2="680" y2="28" stroke="#2e3250" stroke-width="1"/>
+          <line x1="60" y1="72" x2="680" y2="72" stroke="#2e3250" stroke-width="1"/>
+          <!-- IN token -->
+          <rect x="70" y="18" width="70" height="20" rx="3" fill="rgba(245,158,11,.2)" stroke="#f59e0b"/>
+          <text x="105" y="31" fill="#fcd34d" font-size="9" text-anchor="middle">IN Token</text>
+          <line x1="140" y1="28" x2="180" y2="72" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- Data -->
+          <rect x="190" y="62" width="80" height="20" rx="3" fill="rgba(79,142,247,.2)" stroke="#4f8ef7"/>
+          <text x="230" y="75" fill="#93c5fd" font-size="9" text-anchor="middle">DATA0/1</text>
+          <line x1="270" y1="72" x2="310" y2="28" stroke="#4f8ef7" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <!-- ACK -->
+          <rect x="320" y="18" width="60" height="20" rx="3" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+          <text x="350" y="31" fill="#86efac" font-size="9" text-anchor="middle">ACK</text>
+          <line x1="320" y1="28" x2="270" y2="72" stroke="#22c55e" stroke-width="1.5"/>
+
+          <!-- OUT Transaction -->
+          <text x="10" y="118" fill="#4f8ef7" font-size="11" font-weight="700">OUT 事务（主机→设备）</text>
+          <text x="10" y="137" fill="#8892a4" font-size="9">Host</text>
+          <text x="10" y="182" fill="#8892a4" font-size="9">Device</text>
+          <line x1="60" y1="130" x2="680" y2="130" stroke="#2e3250" stroke-width="1"/>
+          <line x1="60" y1="174" x2="680" y2="174" stroke="#2e3250" stroke-width="1"/>
+          <rect x="70" y="120" width="70" height="20" rx="3" fill="rgba(245,158,11,.2)" stroke="#f59e0b"/>
+          <text x="105" y="133" fill="#fcd34d" font-size="9" text-anchor="middle">OUT Token</text>
+          <line x1="140" y1="130" x2="180" y2="174" stroke="#f59e0b" stroke-width="1.5"/>
+          <rect x="190" y="120" width="80" height="20" rx="3" fill="rgba(79,142,247,.2)" stroke="#4f8ef7"/>
+          <text x="230" y="133" fill="#93c5fd" font-size="9" text-anchor="middle">DATA0/1</text>
+          <line x1="270" y1="130" x2="310" y2="174" stroke="#4f8ef7" stroke-width="1.5"/>
+          <rect x="320" y="164" width="60" height="20" rx="3" fill="rgba(34,197,94,.2)" stroke="#22c55e"/>
+          <text x="350" y="177" fill="#86efac" font-size="9" text-anchor="middle">ACK/NAK</text>
+          <line x1="320" y1="174" x2="270" y2="130" stroke="#22c55e" stroke-width="1.5"/>
+
+          <!-- Control Transaction -->
+          <text x="10" y="215" fill="#a855f7" font-size="10" font-weight="700">CONTROL 事务：SETUP → [DATA] → STATUS（三阶段握手）</text>
+
+          <defs>
+            <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <polygon points="0 0, 6 3, 0 6" fill="#f59e0b"/>
+            </marker>
+            <marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <polygon points="0 0, 6 3, 0 6" fill="#4f8ef7"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="card">
+        <h3>🔢 CRC 校验机制</h3>
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <div class="highlight" style="font-size:.85rem"><strong>CRC5</strong>（5位）：用于令牌包（Token）中的地址和端点字段保护。生成多项式：x⁵ + x² + 1</div>
+          </div>
+          <div>
+            <div class="highlight orange" style="font-size:.85rem"><strong>CRC16</strong>（16位）：用于数据包（Data）内容保护。生成多项式：x¹⁶ + x¹⁵ + x² + 1</div>
+          </div>
+        </div>
+        <p style="color:var(--muted);font-size:.85rem;margin-top:10px">检错能力：所有1位、2位错误，所有奇数位错误，以及所有长度≤16的突发错误。</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 9 ═══════════════ -->
+    <div class="section" id="sec8">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 9</div>
+        <div class="sec-title">USB 设备框架 Device Framework</div>
+        <div class="sec-desc">设备描述符层次结构、枚举过程、标准请求与设备状态机</div>
+      </div>
+
+      <div class="highlight">
+        本章是 USB 规范中对软件开发者最重要的章节，定义了设备的 <strong>描述符体系</strong>（Descriptor Hierarchy）、<strong>枚举（Enumeration）</strong> 过程、<strong>设备状态机</strong> 以及标准控制请求集合。
+      </div>
+
+      <!-- 描述符层次 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">📋 9.2 描述符层次结构</h3>
+        <svg viewBox="0 0 700 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Device Descriptor -->
+          <rect x="270" y="10" width="160" height="40" rx="6" fill="rgba(79,142,247,.2)" stroke="#4f8ef7" stroke-width="2"/>
+          <text x="350" y="28" fill="#60a5fa" font-size="11" font-weight="700" text-anchor="middle">Device Descriptor</text>
+          <text x="350" y="42" fill="#8892a4" font-size="9" text-anchor="middle">设备描述符 (18字节)</text>
+          <!-- lines to config -->
+          <line x1="280" y1="50" x2="180" y2="85" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="350" y1="50" x2="350" y2="85" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="420" y1="50" x2="520" y2="85" stroke="#2e3250" stroke-width="1.5"/>
+          <!-- Config -->
+          <rect x="110" y="85" width="140" height="36" rx="5" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="180" y="103" fill="#86efac" font-size="10" font-weight="700" text-anchor="middle">Configuration 1</text>
+          <text x="180" y="115" fill="#8892a4" font-size="8" text-anchor="middle">配置描述符 (9字节)</text>
+          <rect x="280" y="85" width="140" height="36" rx="5" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="350" y="103" fill="#86efac" font-size="10" font-weight="700" text-anchor="middle">Configuration 2</text>
+          <text x="350" y="115" fill="#8892a4" font-size="8" text-anchor="middle">（可选多配置）</text>
+          <rect x="450" y="85" width="140" height="36" rx="5" fill="rgba(34,197,94,.12)" stroke="#22c55e" stroke-dasharray="3 2"/>
+          <text x="520" y="103" fill="#86efac" font-size="10" text-anchor="middle">Configuration N</text>
+          <!-- lines to interface -->
+          <line x1="150" y1="121" x2="120" y2="155" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="210" y1="121" x2="240" y2="155" stroke="#2e3250" stroke-width="1.5"/>
+          <!-- Interface -->
+          <rect x="50" y="155" width="130" height="36" rx="5" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="115" y="173" fill="#d8b4fe" font-size="10" font-weight="700" text-anchor="middle">Interface 0</text>
+          <text x="115" y="185" fill="#8892a4" font-size="8" text-anchor="middle">接口描述符 (9字节)</text>
+          <rect x="200" y="155" width="130" height="36" rx="5" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="265" y="173" fill="#d8b4fe" font-size="10" font-weight="700" text-anchor="middle">Interface 1</text>
+          <text x="265" y="185" fill="#8892a4" font-size="8" text-anchor="middle">（多接口）</text>
+          <!-- lines to endpoint -->
+          <line x1="85" y1="191" x2="65" y2="225" stroke="#2e3250" stroke-width="1.5"/>
+          <line x1="145" y1="191" x2="165" y2="225" stroke="#2e3250" stroke-width="1.5"/>
+          <!-- Endpoints -->
+          <rect x="10" y="225" width="100" height="32" rx="4" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="60" y="240" fill="#fcd34d" font-size="9" font-weight="700" text-anchor="middle">Endpoint 0</text>
+          <text x="60" y="252" fill="#8892a4" font-size="7" text-anchor="middle">EP0 控制端点</text>
+          <rect x="120" y="225" width="100" height="32" rx="4" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="170" y="240" fill="#fcd34d" font-size="9" font-weight="700" text-anchor="middle">Endpoint N</text>
+          <text x="170" y="252" fill="#8892a4" font-size="7" text-anchor="middle">端点描述符(7字节)</text>
+          <!-- String Descriptors -->
+          <rect x="490" y="155" width="170" height="100" rx="5" fill="rgba(6,182,212,.1)" stroke="#06b6d4" stroke-dasharray="4 2"/>
+          <text x="575" y="172" fill="#67e8f9" font-size="10" font-weight="700" text-anchor="middle">String Descriptors</text>
+          <text x="575" y="188" fill="#8892a4" font-size="9" text-anchor="middle">字符串描述符（可选）</text>
+          <text x="575" y="204" fill="#8892a4" font-size="8" text-anchor="middle">制造商名称</text>
+          <text x="575" y="218" fill="#8892a4" font-size="8" text-anchor="middle">产品名称</text>
+          <text x="575" y="232" fill="#8892a4" font-size="8" text-anchor="middle">序列号...</text>
+        </svg>
+      </div>
+
+      <!-- 设备描述符字段 -->
+      <div class="card">
+        <h3 style="margin-bottom:12px">📄 9.6.1 设备描述符字段（Device Descriptor）</h3>
+        <div class="tbl-wrap"><table>
+          <tr><th>字段</th><th>大小</th><th>含义</th></tr>
+          <tr><td><strong>bLength</strong></td><td>1字节</td><td>描述符总长度 = 18</td></tr>
+          <tr><td><strong>bDescriptorType</strong></td><td>1字节</td><td>描述符类型 = 0x01</td></tr>
+          <tr><td><strong>bcdUSB</strong></td><td>2字节</td><td>USB规范版本号（BCD格式，如 0x0200 = USB 2.0）</td></tr>
+          <tr><td><strong>bDeviceClass</strong></td><td>1字节</td><td>设备类（0=由接口决定，0xFF=厂商自定义）</td></tr>
+          <tr><td><strong>bMaxPacketSize0</strong></td><td>1字节</td><td>EP0最大包大小（8/16/32/64字节）</td></tr>
+          <tr><td><strong>idVendor</strong></td><td>2字节</td><td>厂商ID（由USB-IF分配）</td></tr>
+          <tr><td><strong>idProduct</strong></td><td>2字节</td><td>产品ID（厂商自定义）</td></tr>
+          <tr><td><strong>bcdDevice</strong></td><td>2字节</td><td>设备版本号（BCD格式）</td></tr>
+          <tr><td><strong>bNumConfigurations</strong></td><td>1字节</td><td>支持的配置数量</td></tr>
+        </table></div>
+      </div>
+
+      <!-- 枚举过程 -->
+      <div class="card">
+        <h3 style="margin-bottom:14px">🔍 9.1.2 枚举（Enumeration）完整流程</h3>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-title">① 设备连接 → Hub 检测</div><div class="tl-desc">设备接入，Hub 通过 D+/D- 上拉电阻检测到连接，向主机报告状态变化。</div></div>
+          <div class="tl-item"><div class="tl-dot green"></div><div class="tl-title">② 主机复位设备</div><div class="tl-desc">主机向 Hub 发送 Port Reset 命令，Hub 对该端口发送 SE0 复位信号（≥10ms）。设备进入默认状态（Default State），监听地址0。</div></div>
+          <div class="tl-item"><div class="tl-dot orange"></div><div class="tl-title">③ 主机读取设备描述符（前8字节）</div><div class="tl-desc">使用地址0、EP0 发送 GET_DESCRIPTOR 请求，读取设备描述符前8字节，获取 bMaxPacketSize0。</div></div>
+          <div class="tl-item"><div class="tl-dot purple"></div><div class="tl-title">④ 再次复位 → 分配地址</div><div class="tl-desc">主机发送 SET_ADDRESS 请求，为设备分配唯一 7位地址（1~127）。设备进入地址状态（Address State）。</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-title">⑤ 读取完整描述符</div><div class="tl-desc">主机使用新地址读取完整的设备描述符、配置描述符（含接口+端点）、字符串描述符。</div></div>
+          <div class="tl-item"><div class="tl-dot green"></div><div class="tl-title">⑥ 设置配置 → 枚举完成</div><div class="tl-desc">主机选择合适的配置，发送 SET_CONFIGURATION 请求。设备进入配置状态（Configured State），可以正常传输数据。</div></div>
+        </div>
+      </div>
+
+      <!-- 设备状态机 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🔁 9.1 设备状态机</h3>
+        <svg viewBox="0 0 700 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- States -->
+          <ellipse cx="60" cy="90" rx="55" ry="28" fill="rgba(239,68,68,.1)" stroke="#ef4444"/>
+          <text x="60" y="87" fill="#fca5a5" font-size="9" font-weight="700" text-anchor="middle">Attached</text>
+          <text x="60" y="99" fill="#8892a4" font-size="7" text-anchor="middle">未连接</text>
+
+          <ellipse cx="185" cy="90" rx="55" ry="28" fill="rgba(245,158,11,.1)" stroke="#f59e0b"/>
+          <text x="185" y="87" fill="#fcd34d" font-size="9" font-weight="700" text-anchor="middle">Powered</text>
+          <text x="185" y="99" fill="#8892a4" font-size="7" text-anchor="middle">已上电</text>
+
+          <ellipse cx="310" cy="90" rx="55" ry="28" fill="rgba(168,85,247,.1)" stroke="#a855f7"/>
+          <text x="310" y="87" fill="#d8b4fe" font-size="9" font-weight="700" text-anchor="middle">Default</text>
+          <text x="310" y="99" fill="#8892a4" font-size="7" text-anchor="middle">地址0</text>
+
+          <ellipse cx="435" cy="90" rx="55" ry="28" fill="rgba(6,182,212,.1)" stroke="#06b6d4"/>
+          <text x="435" y="87" fill="#67e8f9" font-size="9" font-weight="700" text-anchor="middle">Address</text>
+          <text x="435" y="99" fill="#8892a4" font-size="7" text-anchor="middle">已分配地址</text>
+
+          <ellipse cx="560" cy="90" rx="55" ry="28" fill="rgba(34,197,94,.1)" stroke="#22c55e"/>
+          <text x="560" y="87" fill="#86efac" font-size="9" font-weight="700" text-anchor="middle">Configured</text>
+          <text x="560" y="99" fill="#8892a4" font-size="7" text-anchor="middle">可传数据</text>
+
+          <ellipse cx="660" cy="90" rx="38" ry="28" fill="rgba(79,142,247,.1)" stroke="#4f8ef7"/>
+          <text x="660" y="87" fill="#93c5fd" font-size="9" font-weight="700" text-anchor="middle">Suspend</text>
+          <text x="660" y="99" fill="#8892a4" font-size="7" text-anchor="middle">挂起</text>
+
+          <!-- Arrows -->
+          <line x1="115" y1="90" x2="128" y2="90" stroke="#4f8ef7" stroke-width="1.5" marker-end="url(#arrf)"/>
+          <text x="121" y="82" fill="#8892a4" font-size="7" text-anchor="middle">接入</text>
+          <line x1="240" y1="90" x2="253" y2="90" stroke="#4f8ef7" stroke-width="1.5" marker-end="url(#arrf)"/>
+          <text x="246" y="82" fill="#8892a4" font-size="7" text-anchor="middle">Reset</text>
+          <line x1="365" y1="90" x2="378" y2="90" stroke="#4f8ef7" stroke-width="1.5" marker-end="url(#arrf)"/>
+          <text x="372" y="82" fill="#8892a4" font-size="7" text-anchor="middle">SET_ADDR</text>
+          <line x1="490" y1="90" x2="503" y2="90" stroke="#4f8ef7" stroke-width="1.5" marker-end="url(#arrf)"/>
+          <text x="496" y="82" fill="#8892a4" font-size="7" text-anchor="middle">SET_CFG</text>
+          <line x1="615" y1="90" x2="620" y2="90" stroke="#4f8ef7" stroke-width="1.5" marker-end="url(#arrf)"/>
+          <text x="617" y="82" fill="#8892a4" font-size="7" text-anchor="middle">3ms空闲</text>
+
+          <defs>
+            <marker id="arrf" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <polygon points="0 0, 5 2.5, 0 5" fill="#4f8ef7"/>
+            </marker>
+          </defs>
+          <!-- Suspend arc back -->
+          <path d="M 660 62 Q 480 10 310 62" fill="none" stroke="#8892a4" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="480" y="22" fill="#8892a4" font-size="7" text-anchor="middle">Resume / Reset → 恢复</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 10 ═══════════════ -->
+    <div class="section" id="sec9">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 10</div>
+        <div class="sec-title">USB 主机控制器 Host Controller</div>
+        <div class="sec-desc">主机控制器模型、调度器、帧生成、带宽管理与软件接口</div>
+      </div>
+
+      <div class="highlight">
+        主机控制器（Host Controller）是 USB 系统的核心硬件，负责生成 SOF（帧起始）、调度所有事务、管理带宽分配、与主机软件（驱动）交互。USB 2.0 定义了 <strong>EHCI</strong>（Enhanced Host Controller Interface）规范用于高速支持。
+      </div>
+
+      <!-- HC 架构 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🖥 10.1 主机控制器软件层次</h3>
+        <svg viewBox="0 0 700 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Stack layers -->
+          <rect x="100" y="10" width="500" height="34" rx="6" fill="rgba(79,142,247,.2)" stroke="#4f8ef7" stroke-width="2"/>
+          <text x="350" y="32" fill="#60a5fa" font-size="11" font-weight="700" text-anchor="middle">Client Software（客户端软件 / 驱动）</text>
+
+          <line x1="350" y1="44" x2="350" y2="58" stroke="#4f8ef7" stroke-width="1.5"/>
+
+          <rect x="100" y="58" width="500" height="34" rx="6" fill="rgba(6,182,212,.15)" stroke="#06b6d4"/>
+          <text x="350" y="80" fill="#67e8f9" font-size="11" font-weight="700" text-anchor="middle">USBD（USB 系统驱动 / 总线驱动）</text>
+
+          <line x1="350" y1="92" x2="350" y2="106" stroke="#06b6d4" stroke-width="1.5"/>
+
+          <rect x="100" y="106" width="500" height="34" rx="6" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="350" y="128" fill="#d8b4fe" font-size="11" font-weight="700" text-anchor="middle">HCD（主机控制器驱动 EHCI/OHCI/UHCI）</text>
+
+          <line x1="350" y1="140" x2="350" y2="154" stroke="#a855f7" stroke-width="1.5"/>
+
+          <rect x="100" y="154" width="500" height="34" rx="6" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="350" y="176" fill="#fcd34d" font-size="11" font-weight="700" text-anchor="middle">Host Controller 硬件（EHCI 控制器）</text>
+
+          <line x1="350" y1="188" x2="350" y2="202" stroke="#f59e0b" stroke-width="1.5"/>
+
+          <rect x="200" y="202" width="300" height="16" rx="4" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="350" y="214" fill="#86efac" font-size="9" font-weight="700" text-anchor="middle">USB 物理总线</text>
+
+          <!-- side labels -->
+          <text x="10" y="32" fill="#8892a4" font-size="8">用户态</text>
+          <text x="10" y="80" fill="#8892a4" font-size="8">内核态</text>
+          <text x="10" y="128" fill="#8892a4" font-size="8">驱动层</text>
+          <text x="10" y="176" fill="#8892a4" font-size="8">硬件层</text>
+        </svg>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>📅 10.2 帧调度（Frame Scheduling）</h3>
+          <p style="color:var(--muted);font-size:.88rem;margin-bottom:10px">主机控制器每 1ms（全速）或 125µs（高速）产生一次 SOF 包，并在该帧内按优先级调度各类传输：</p>
+          <div class="tbl-wrap"><table>
+            <tr><th>优先级</th><th>传输类型</th><th>带宽保证</th></tr>
+            <tr><td>1（最高）</td><td>同步传输</td><td>预留固定带宽</td></tr>
+            <tr><td>2</td><td>中断传输</td><td>保证最大延迟</td></tr>
+            <tr><td>3</td><td>控制传输</td><td>保留≥10%</td></tr>
+            <tr><td>4（最低）</td><td>批量传输</td><td>剩余带宽</td></tr>
+          </table></div>
+        </div>
+        <div class="card">
+          <h3>⚙️ 主机控制器规范对比</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>规范</th><th>速度支持</th><th>厂商</th></tr>
+            <tr><td><strong>UHCI</strong></td><td>LS/FS</td><td>Intel</td></tr>
+            <tr><td><strong>OHCI</strong></td><td>LS/FS</td><td>Compaq/MS</td></tr>
+            <tr><td><strong>EHCI</strong></td><td>LS/FS/<span style="color:#4f8ef7">HS</span></td><td>USB-IF</td></tr>
+            <tr><td><strong>xHCI</strong></td><td>全部+SS</td><td>Intel(USB3)</td></tr>
+          </table></div>
+          <div class="highlight" style="margin-top:10px;font-size:.82rem">EHCI 内含 Transaction Translator (TT)，将 HS 下行事务转换为 FS/LS，实现向下兼容。</div>
+        </div>
+      </div>
+
+      <!-- 带宽分配图 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">📊 10.5 带宽分配（1ms 帧示例）</h3>
+        <svg viewBox="0 0 680 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="20" width="660" height="44" rx="4" fill="rgba(255,255,255,.02)" stroke="#2e3250"/>
+          <!-- SOF -->
+          <rect x="10" y="20" width="30" height="44" fill="rgba(245,158,11,.3)" stroke="#f59e0b"/>
+          <text x="25" y="46" fill="#fcd34d" font-size="8" text-anchor="middle">SOF</text>
+          <!-- ISO 30% -->
+          <rect x="40" y="20" width="200" height="44" fill="rgba(245,158,11,.12)" stroke="#f59e0b"/>
+          <text x="140" y="40" fill="#fcd34d" font-size="9" text-anchor="middle">Isochronous (~30%)</text>
+          <text x="140" y="54" fill="#8892a4" font-size="8" text-anchor="middle">固定带宽保留</text>
+          <!-- INT 10% -->
+          <rect x="240" y="20" width="66" height="44" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="273" y="40" fill="#d8b4fe" font-size="9" text-anchor="middle">INT</text>
+          <text x="273" y="54" fill="#8892a4" font-size="8" text-anchor="middle">~10%</text>
+          <!-- Control 10% -->
+          <rect x="306" y="20" width="66" height="44" fill="rgba(79,142,247,.15)" stroke="#4f8ef7"/>
+          <text x="339" y="40" fill="#93c5fd" font-size="9" text-anchor="middle">CTRL</text>
+          <text x="339" y="54" fill="#8892a4" font-size="8" text-anchor="middle">≥10%</text>
+          <!-- Bulk 50% -->
+          <rect x="372" y="20" width="260" height="44" fill="rgba(34,197,94,.1)" stroke="#22c55e"/>
+          <text x="502" y="40" fill="#86efac" font-size="9" text-anchor="middle">Bulk（剩余约 50%，尽力而为）</text>
+          <text x="502" y="54" fill="#8892a4" font-size="8" text-anchor="middle">无带宽保证</text>
+          <!-- EOP -->
+          <rect x="632" y="20" width="38" height="44" fill="rgba(239,68,68,.15)" stroke="#ef4444"/>
+          <text x="651" y="46" fill="#fca5a5" font-size="7" text-anchor="middle">EOF</text>
+          <!-- label -->
+          <text x="10" y="12" fill="#8892a4" font-size="9">← 1ms (Full Speed) 帧时间 →</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ═══════════════ CHAPTER 11 ═══════════════ -->
+    <div class="section" id="sec10">
+      <div class="sec-header">
+        <div class="sec-num">Chapter 11</div>
+        <div class="sec-title">集线器规范 Hub Specification</div>
+        <div class="sec-desc">集线器架构、中继器、事务转换、端口电源管理与集线器描述符</div>
+      </div>
+
+      <div class="highlight">
+        集线器（Hub）是 USB 系统扩展的关键器件，负责<strong>信号中继</strong>（Repeater）、<strong>速度匹配</strong>（Transaction Translator）和<strong>端口电源管理</strong>。USB 2.0 最多支持 5 级 Hub 级联。
+      </div>
+
+      <!-- Hub 内部架构 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">🔧 11.1 集线器内部架构</h3>
+        <svg viewBox="0 0 700 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Hub box -->
+          <rect x="80" y="10" width="560" height="200" rx="10" fill="rgba(6,182,212,.05)" stroke="#06b6d4" stroke-width="1.5"/>
+          <text x="360" y="28" fill="#67e8f9" font-size="11" font-weight="700" text-anchor="middle">USB Hub 内部结构</text>
+
+          <!-- Upstream port -->
+          <rect x="100" y="40" width="120" height="36" rx="5" fill="rgba(79,142,247,.2)" stroke="#4f8ef7"/>
+          <text x="160" y="58" fill="#60a5fa" font-size="10" font-weight="700" text-anchor="middle">Upstream Port</text>
+          <text x="160" y="70" fill="#8892a4" font-size="8" text-anchor="middle">上游端口（连接主机）</text>
+
+          <!-- Repeater -->
+          <rect x="260" y="35" width="180" height="100" rx="6" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+          <text x="350" y="58" fill="#d8b4fe" font-size="10" font-weight="700" text-anchor="middle">Repeater</text>
+          <text x="350" y="72" fill="#8892a4" font-size="8" text-anchor="middle">信号放大/整形</text>
+          <rect x="275" y="80" width="150" height="20" rx="3" fill="rgba(168,85,247,.2)"/>
+          <text x="350" y="93" fill="#d8b4fe" font-size="8" text-anchor="middle">Transaction Translator (TT)</text>
+          <text x="350" y="108" fill="#8892a4" font-size="7" text-anchor="middle">HS↔FS/LS 速度转换</text>
+
+          <!-- Hub Controller -->
+          <rect x="260" y="150" width="180" height="36" rx="5" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+          <text x="350" y="168" fill="#fcd34d" font-size="10" font-weight="700" text-anchor="middle">Hub Controller</text>
+          <text x="350" y="182" fill="#8892a4" font-size="8" text-anchor="middle">端口状态管理/控制请求</text>
+
+          <!-- Downstream ports -->
+          <rect x="490" y="40" width="110" height="22" rx="4" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="545" y="55" fill="#86efac" font-size="8" font-weight="700" text-anchor="middle">Downstream Port 1</text>
+          <rect x="490" y="70" width="110" height="22" rx="4" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="545" y="85" fill="#86efac" font-size="8" font-weight="700" text-anchor="middle">Downstream Port 2</text>
+          <rect x="490" y="100" width="110" height="22" rx="4" fill="rgba(34,197,94,.12)" stroke="#22c55e" stroke-dasharray="3 2"/>
+          <text x="545" y="115" fill="#86efac" font-size="8" text-anchor="middle">Downstream Port N</text>
+          <text x="545" y="130" fill="#8892a4" font-size="7" text-anchor="middle">标准Hub：4~7口</text>
+
+          <!-- Connections -->
+          <line x1="220" y1="58" x2="260" y2="72" stroke="#4f8ef7" stroke-width="1.5"/>
+          <line x1="440" y1="72" x2="490" y2="52" stroke="#22c55e" stroke-width="1.5"/>
+          <line x1="440" y1="80" x2="490" y2="81" stroke="#22c55e" stroke-width="1.5"/>
+          <line x1="440" y1="90" x2="490" y2="111" stroke="#22c55e" stroke-width="1.5"/>
+          <line x1="350" y1="135" x2="350" y2="150" stroke="#a855f7" stroke-width="1"/>
+
+          <!-- Power -->
+          <rect x="100" y="120" width="120" height="50" rx="5" fill="rgba(239,68,68,.12)" stroke="#ef4444" stroke-dasharray="3 2"/>
+          <text x="160" y="140" fill="#fca5a5" font-size="9" font-weight="700" text-anchor="middle">Power Control</text>
+          <text x="160" y="155" fill="#8892a4" font-size="7" text-anchor="middle">过流检测/断电保护</text>
+          <text x="160" y="165" fill="#8892a4" font-size="7" text-anchor="middle">每端口可单独控制</text>
+        </svg>
+      </div>
+
+      <!-- 集线器描述符 -->
+      <div class="grid2">
+        <div class="card">
+          <h3>📋 11.23.2 集线器描述符</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>字段</th><th>含义</th></tr>
+            <tr><td><strong>bNbrPorts</strong></td><td>下游端口数量（如4/7）</td></tr>
+            <tr><td><strong>wHubCharacteristics</strong></td><td>Hub特性（供电、TT特性等）</td></tr>
+            <tr><td><strong>bPwrOn2PwrGood</strong></td><td>上电到稳定的等待时间（单位2ms）</td></tr>
+            <tr><td><strong>bHubContrCurrent</strong></td><td>Hub控制器自身耗电（mA）</td></tr>
+            <tr><td><strong>DeviceRemovable</strong></td><td>各端口设备是否可拆卸（位图）</td></tr>
+          </table></div>
+        </div>
+        <div class="card">
+          <h3>🔌 11.5 端口状态与控制</h3>
+          <div class="tbl-wrap"><table>
+            <tr><th>端口状态</th><th>描述</th></tr>
+            <tr><td><strong>Powered-off</strong></td><td>端口未上电</td></tr>
+            <tr><td><strong>Disconnected</strong></td><td>已上电但无设备</td></tr>
+            <tr><td><strong>Disabled</strong></td><td>设备已连接但被禁用</td></tr>
+            <tr><td><strong>Resetting</strong></td><td>正在发送复位信号</td></tr>
+            <tr><td><strong>Enabled</strong></td><td>正常工作状态</td></tr>
+            <tr><td><strong>Suspended</strong></td><td>挂起省电状态</td></tr>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- TT 事务转换说明 -->
+      <div class="card diagram">
+        <h3 style="margin-bottom:14px">⚡ 11.17 事务转换器（Transaction Translator）工作原理</h3>
+        <svg viewBox="0 0 700 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Host HS -->
+          <rect x="10" y="30" width="120" height="40" rx="5" fill="rgba(79,142,247,.2)" stroke="#4f8ef7"/>
+          <text x="70" y="48" fill="#60a5fa" font-size="10" font-weight="700" text-anchor="middle">Host / EHCI</text>
+          <text x="70" y="62" fill="#8892a4" font-size="8" text-anchor="middle">480 Mbps</text>
+
+          <!-- HS link -->
+          <line x1="130" y1="50" x2="200" y2="50" stroke="#4f8ef7" stroke-width="2"/>
+          <text x="165" y="42" fill="#4f8ef7" font-size="8" text-anchor="middle">480 Mbps</text>
+
+          <!-- Hub + TT box -->
+          <rect x="200" y="10" width="300" height="120" rx="8" fill="rgba(6,182,212,.08)" stroke="#06b6d4"/>
+          <text x="350" y="30" fill="#67e8f9" font-size="10" font-weight="700" text-anchor="middle">Hub (with TT)</text>
+
+          <!-- Repeater -->
+          <rect x="215" y="40" width="110" height="30" rx="4" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+          <text x="270" y="58" fill="#d8b4fe" font-size="9" text-anchor="middle">Repeater (HS)</text>
+
+          <!-- TT -->
+          <rect x="355" y="40" width="130" height="50" rx="4" fill="rgba(245,158,11,.2)" stroke="#f59e0b"/>
+          <text x="420" y="58" fill="#fcd34d" font-size="9" font-weight="700" text-anchor="middle">TT 缓冲区</text>
+          <text x="420" y="72" fill="#8892a4" font-size="7" text-anchor="middle">Split Transaction</text>
+          <text x="420" y="83" fill="#8892a4" font-size="7" text-anchor="middle">拆分/合并事务</text>
+
+          <!-- TT arrow -->
+          <line x1="325" y1="55" x2="355" y2="55" stroke="#f59e0b" stroke-width="1.5"/>
+          <text x="340" y="48" fill="#8892a4" font-size="7" text-anchor="middle">HS包</text>
+
+          <!-- FS/LS output -->
+          <line x1="500" y1="50" x2="570" y2="50" stroke="#22c55e" stroke-width="2"/>
+          <text x="535" y="42" fill="#22c55e" font-size="8" text-anchor="middle">12 Mbps</text>
+
+          <rect x="570" y="30" width="120" height="40" rx="5" fill="rgba(34,197,94,.15)" stroke="#22c55e"/>
+          <text x="630" y="48" fill="#86efac" font-size="10" font-weight="700" text-anchor="middle">FS/LS Device</text>
+          <text x="630" y="62" fill="#8892a4" font-size="8" text-anchor="middle">全速/低速设备</text>
+
+          <text x="350" y="112" fill="#8892a4" font-size="8" text-anchor="middle">主机用高速 SPLIT 事务指令，TT 负责转换为 FS/LS 子事务并缓冲响应</text>
+        </svg>
+      </div>
+
+      <div class="highlight green">
+        <strong>集线器电源保护：</strong>每个 Hub 端口必须实现过流检测，当某端口电流超过 500mA 时，必须在 100ms 内切断该端口电源，防止损坏主机或 Hub 供电系统。
+      </div>
+
+      <!-- 总结 -->
+      <div class="card" style="border-color:#facc15;margin-top:24px">
+        <h3 style="color:#facc15;margin-bottom:14px">🎓 USB 2.0 规范总结</h3>
+        <div class="grid3">
+          <div>
+            <p style="font-weight:700;color:#e2e8f0;margin-bottom:6px">物理层（Ch.6-7）</p>
+            <p style="color:var(--muted);font-size:.85rem">差分信号 D+/D-，NRZI编码，位填充，Chirp握手，4线连接器</p>
+          </div>
+          <div>
+            <p style="font-weight:700;color:#e2e8f0;margin-bottom:6px">协议层（Ch.8）</p>
+            <p style="color:var(--muted);font-size:.85rem">包结构、PID、4种传输类型、CRC校验、事务握手机制</p>
+          </div>
+          <div>
+            <p style="font-weight:700;color:#e2e8f0;margin-bottom:6px">设备框架（Ch.9）</p>
+            <p style="color:var(--muted);font-size:.85rem">描述符层次、枚举流程、设备状态机、标准控制请求</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function showSection(idx, el) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('sec' + idx).classList.add('active');
+    el.classList.add('active');
+    // scroll to top
+    document.querySelector('main').scrollTop = 0;
+    window.scrollTo(0, document.querySelector('header').offsetHeight);
+  }
+</script>
+
+</body>
+</html>

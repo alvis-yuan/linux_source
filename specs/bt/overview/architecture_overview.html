@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vol 1 — 蓝牙架构、变更历史与约定 · Core 6.0</title>
+<style>
+/* ─── Reset & Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 15px; }
+body {
+  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  background: #f0f2f7;
+  color: #1c2333;
+  line-height: 1.75;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── CSS Variables ─── */
+:root {
+  --nav-w: 272px;
+  --hdr-h: 58px;
+  --blue:      #1a56db;
+  --blue-d:    #1245b5;
+  --blue-lt:   #eef3fd;
+  --teal:      #0694a2;
+  --teal-lt:   #e3fbfc;
+  --green:     #057a55;
+  --green-lt:  #def7ec;
+  --orange:    #d03801;
+  --orange-lt: #fef3c7;
+  --purple:    #6c2bd9;
+  --purple-lt: #f5f3ff;
+  --red:       #c81e1e;
+  --red-lt:    #fde8e8;
+  --gray:      #374151;
+  --gray-lt:   #f1f5f9;
+  --border:    #dde3ee;
+  --shadow:    0 1px 8px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 20px rgba(0,0,0,.10);
+  --radius:    12px;
+}
+
+/* ─── Top Header ─── */
+.top-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+  height: var(--hdr-h);
+  background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 20px 0 calc(var(--nav-w) + 20px);
+  box-shadow: 0 2px 12px rgba(0,0,0,.25);
+}
+.top-bar .vol-badge {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 6px; padding: 3px 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; color: #c7d9ff; white-space: nowrap;
+}
+.top-bar h1 { font-size: 16px; font-weight: 700; color: #fff; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-bar .spec-ver { font-size: 11px; color: #a5b8e8; white-space: nowrap; }
+
+/* ─── Hamburger (mobile) ─── */
+.ham {
+  display: none; background: none; border: none; cursor: pointer;
+  width: 36px; height: 36px; flex-shrink: 0; color: #fff;
+  font-size: 22px; align-items: center; justify-content: center;
+}
+
+/* ─── Sidebar Nav ─── */
+.sidebar {
+  position: fixed; top: var(--hdr-h); left: 0; bottom: 0;
+  width: var(--nav-w);
+  background: #fff;
+  border-right: 1px solid var(--border);
+  overflow-y: auto; overflow-x: hidden;
+  z-index: 200;
+  display: flex; flex-direction: column;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+
+.nav-header {
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  background: #f8faff;
+}
+.nav-header .nav-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #8898b3; }
+
+.nav-group { padding: 8px 0; border-bottom: 1px solid #f0f2f7; }
+.nav-part-label {
+  padding: 6px 16px 4px;
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1px; color: #b0b8cc;
+  display: flex; align-items: center; gap: 6px;
+}
+.nav-part-label .dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+
+.nav-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px 7px 20px;
+  color: #4b5875; text-decoration: none; font-size: 13px;
+  border-left: 3px solid transparent;
+  transition: all .15s;
+  cursor: pointer; user-select: none;
+  position: relative;
+}
+.nav-link:hover { background: #f4f6fb; color: var(--blue); }
+.nav-link.active { color: var(--blue); background: var(--blue-lt); border-left-color: var(--blue); font-weight: 600; }
+.nav-link .nav-num {
+  font-size: 10px; font-weight: 700;
+  background: #e8edf8; color: #6878a8;
+  padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
+}
+.nav-link.active .nav-num { background: var(--blue-lt); color: var(--blue); }
+.nav-sub {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 16px 5px 32px;
+  color: #6b7a99; text-decoration: none; font-size: 12px;
+  border-left: 3px solid transparent;
+  transition: all .15s; cursor: pointer;
+}
+.nav-sub:hover { background: #f4f6fb; color: var(--blue); }
+.nav-sub.active { color: var(--blue); background: var(--blue-lt); border-left-color: #90adec; font-weight: 500; }
+
+/* ─── Main Content ─── */
+.main {
+  margin-left: var(--nav-w);
+  margin-top: var(--hdr-h);
+  padding: 36px 36px 80px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Section / Card ─── */
+.spec-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 36px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.section-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 20px 26px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbff;
+}
+.section-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.section-head .part-tag {
+  display: inline-block; font-size: 10px; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 5px; margin-bottom: 3px;
+}
+.section-head h2 { font-size: 19px; font-weight: 800; line-height: 1.3; }
+.section-body { padding: 28px 28px 32px; }
+
+/* ─── Subsection ─── */
+.sub { margin-bottom: 32px; }
+.sub:last-child { margin-bottom: 0; }
+.sub h3 {
+  font-size: 15.5px; font-weight: 700; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 8px;
+  padding-bottom: 8px; border-bottom: 1.5px solid #edf0f7;
+}
+.sub h3 .tag {
+  font-size: 10px; font-weight: 700; padding: 2px 7px;
+  border-radius: 4px; letter-spacing: .5px; flex-shrink: 0;
+}
+.sub h4 { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: #2d3a5a; }
+.sub p { font-size: 14px; color: #3d4f6e; margin-bottom: 9px; line-height: 1.8; }
+.sub ul, .sub ol { padding-left: 20px; font-size: 14px; color: #3d4f6e; margin-bottom: 9px; }
+.sub li { margin-bottom: 4px; }
+
+/* ─── Diagram label ─── */
+.fig-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .7px; color: #8898b3; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.fig-label::before {
+  content: ''; display: inline-block; width: 3px; height: 14px;
+  border-radius: 2px; flex-shrink: 0;
+}
+
+/* ─── Info Boxes ─── */
+.ibox {
+  border-radius: 9px; padding: 12px 16px;
+  border-left: 4px solid; margin: 12px 0;
+  display: flex; gap: 10px; font-size: 13.5px;
+}
+.ibox .ico { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+.ibox.note { background: #eff6ff; border-color: var(--blue); }
+.ibox.tip  { background: var(--green-lt); border-color: var(--green); }
+.ibox.warn { background: var(--orange-lt); border-color: var(--orange); }
+.ibox.key  { background: var(--purple-lt); border-color: var(--purple); }
+.ibox strong { font-weight: 700; }
+
+/* ─── Tables ─── */
+.tbl-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); margin: 12px 0; }
+table.spec { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.spec th { background: var(--blue); color: #fff; padding: 9px 13px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+table.spec td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.6; }
+table.spec tr:last-child td { border-bottom: none; }
+table.spec tr:nth-child(even) td { background: #f8faff; }
+table.spec .mono { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12px; color: var(--blue-d); }
+table.spec .c-success { color: var(--green); font-weight: 700; }
+table.spec .c-warn { color: var(--orange); font-weight: 700; }
+table.spec .c-err { color: var(--red); font-weight: 700; }
+
+/* ─── Code inline ─── */
+code {
+  background: #eef1f8; color: var(--blue-d);
+  padding: 1px 5px; border-radius: 4px;
+  font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 12.5px;
+}
+
+/* ─── SVG diagrams ─── */
+svg { max-width: 100%; height: auto; overflow: visible; display: block; }
+
+/* ─── Stack/layer diagram ─── */
+.stack-wrap { margin: 14px 0; }
+
+/* ─── Topology grid ─── */
+.topo-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 14px; margin: 14px 0; }
+.topo-card {
+  border: 2px solid var(--border); border-radius: 10px;
+  padding: 14px 12px; text-align: center;
+  transition: transform .15s, box-shadow .15s; cursor: default;
+}
+.topo-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.topo-card .topo-icon { font-size: 28px; margin-bottom: 7px; display: block; }
+.topo-card .topo-name { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.topo-card .topo-desc { font-size: 11px; color: #6b7a99; }
+
+/* ─── Keyword convention rows ─── */
+.kw-grid { display: grid; grid-template-columns: auto 1fr; gap: 0; margin: 12px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.kw-term { background: #1c3064; color: #a8c0f0; font-family: monospace; font-size: 13px; font-weight: 700; padding: 9px 14px; border-bottom: 1px solid #2a3f7a; }
+.kw-def  { background: #fff; font-size: 13px; color: #3d4f6e; padding: 9px 14px; border-bottom: 1px solid var(--border); }
+.kw-term:last-of-type, .kw-def:last-of-type { border-bottom: none; }
+
+/* ─── Error code search ─── */
+.err-search-wrap { display: flex; gap: 8px; margin-bottom: 12px; }
+.err-search {
+  flex: 1; padding: 8px 13px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 13px; outline: none;
+  transition: border-color .2s;
+}
+.err-search:focus { border-color: var(--blue); }
+.err-count { font-size: 12px; color: #8898b3; align-self: center; white-space: nowrap; }
+
+/* ─── PHY bars ─── */
+.phy-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.phy-label { width: 100px; font-size: 12px; font-weight: 600; flex-shrink: 0; color: #374151; }
+.phy-bg { flex: 1; background: #edf0f7; border-radius: 5px; height: 20px; overflow: hidden; }
+.phy-fill { height: 100%; border-radius: 5px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #fff; font-weight: 700; transition: width 1.2s cubic-bezier(.25,.8,.25,1); }
+.phy-note { width: 80px; font-size: 11.5px; color: #6b7a99; flex-shrink: 0; }
+
+/* ─── Naming scheme demo ─── */
+.pdu-name { display: flex; flex-wrap: wrap; gap: 3px; margin: 14px 0; }
+.pdu-part {
+  padding: 6px 12px; border-radius: 6px; font-family: monospace;
+  font-size: 13px; font-weight: 700; text-align: center; line-height: 1.3;
+}
+.pdu-part .pl { font-size: 9px; font-weight: 600; display: block; opacity: .7; }
+.pdu-sep { align-self: center; font-size: 18px; color: #b0b8cc; font-weight: 300; }
+
+/* ─── Back to top ─── */
+.btt {
+  position: fixed; bottom: 26px; right: 26px;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--blue); color: #fff;
+  border: none; cursor: pointer; font-size: 18px;
+  box-shadow: var(--shadow-md); z-index: 400;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity .25s;
+}
+.btt.vis { opacity: 1; }
+
+/* ─── Sidebar overlay (mobile) ─── */
+.overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+  z-index: 190;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 820px) {
+  :root { --nav-w: 260px; }
+  .sidebar { transform: translateX(-100%); transition: transform .25s; }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; padding: 24px 16px 60px; }
+  .top-bar { padding-left: 16px; }
+  .ham { display: flex; }
+  .overlay.show { display: block; }
+}
+@media (max-width: 480px) {
+  .section-body { padding: 18px 14px 22px; }
+  .section-head { padding: 16px 14px; }
+  .topo-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- ══ TOP BAR ══ -->
+<header class="top-bar">
+  <button class="ham" id="hamBtn" aria-label="菜单">☰</button>
+  <span class="vol-badge">Vol 1</span>
+  <h1>架构、变更历史与约定 Architecture, Change History &amp; Conventions</h1>
+  <span class="spec-ver">Core 6.0</span>
+</header>
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar" id="sidebar">
+  <div class="nav-header">
+    <div class="nav-title">目录 Contents</div>
+  </div>
+
+  <!-- Part A -->
+  <div class="nav-group">
+    <div class="nav-part-label">
+      <span class="dot" style="background:#1a56db"></span>Part A · 架构
+    </div>
+    <a class="nav-link active" href="#a-general">
+      <span class="nav-num">1</span>总体描述
+    </a>
+    <a class="nav-sub" href="#a-bredr">1.1 BR/EDR 概述</a>
+    <a class="nav-sub" href="#a-le">1.2 LE 概述</a>
+    <a class="nav-link" href="#a-hostctrl">
+      <span class="nav-num">2</span>主机与控制器
+    </a>
+    <a class="nav-link" href="#a-channels">
+      <span class="nav-num">3</span>信道与链路层次
+    </a>
+    <a class="nav-sub" href="#a-phy-ch">3.1 物理信道</a>
+    <a class="nav-sub" href="#a-phy-link">3.2 物理链路</a>
+    <a class="nav-sub" href="#a-log-trans">3.3 逻辑传输</a>
+    <a class="nav-sub" href="#a-log-link">3.4 逻辑链路</a>
+    <a class="nav-sub" href="#a-l2cap">3.5 L2CAP 信道</a>
+    <a class="nav-link" href="#a-topology">
+      <span class="nav-num">4</span>网络拓扑
+    </a>
+    <a class="nav-link" href="#a-iso">
+      <span class="nav-num">5</span>等时传输
+    </a>
+    <a class="nav-sub" href="#a-cis">5.1 CIS 连接等时流</a>
+    <a class="nav-sub" href="#a-bis">5.2 BIS 广播等时流</a>
+    <a class="nav-link" href="#a-coex">
+      <span class="nav-num">7</span>无线共存 (MWS)
+    </a>
+    <a class="nav-link" href="#a-direction">
+      <span class="nav-num">8</span>方向探测 (AoA/AoD)
+    </a>
+    <a class="nav-sub" href="#a-aoa">8.1 到达角 AoA</a>
+    <a class="nav-sub" href="#a-aod">8.2 出发角 AoD</a>
+    <a class="nav-link" href="#a-cs">
+      <span class="nav-num">9</span>信道测音 (CS)
+    </a>
+    <a class="nav-sub" href="#a-cs-proc">9.1 CS 过程</a>
+    <a class="nav-sub" href="#a-cs-pbr">9.2 相位测距</a>
+    <a class="nav-sub" href="#a-cs-rtt">9.3 RTT 测距</a>
+    <a class="nav-sub" href="#a-cs-sec">9.4 安全特性</a>
+  </div>
+
+  <!-- Part B -->
+  <div class="nav-group">
+    <div class="nav-part-label">
+      <span class="dot" style="background:#0694a2"></span>Part B · 缩略语
+    </div>
+    <a class="nav-link" href="#b-abbr">
+      <span class="nav-num">1</span>缩略语列表
+    </a>
+  </div>
+
+  <!-- Part E -->
+  <div class="nav-group">
+    <div class="nav-part-label">
+      <span class="dot" style="background:#6c2bd9"></span>Part E · 术语与约定
+    </div>
+    <a class="nav-link" href="#e-lang">
+      <span class="nav-num">1</span>语言约定
+    </a>
+    <a class="nav-link" href="#e-interp">
+      <span class="nav-num">2</span>通用解释规则
+    </a>
+    <a class="nav-sub" href="#e-num">2.1 数值表示</a>
+    <a class="nav-sub" href="#e-bits">2.2 位编号</a>
+    <a class="nav-sub" href="#e-rfu">2.4 保留字段</a>
+    <a class="nav-sub" href="#e-invalid">2.7 无效行为</a>
+    <a class="nav-sub" href="#e-types">2.9 类型名称</a>
+    <a class="nav-sub" href="#e-math">2.10 数学约定</a>
+    <a class="nav-sub" href="#e-reqsym">2.11 需求符号</a>
+    <a class="nav-link" href="#e-naming">
+      <span class="nav-num">3</span>命名约定 (PDU)
+    </a>
+  </div>
+
+  <!-- Part F -->
+  <div class="nav-group">
+    <div class="nav-part-label">
+      <span class="dot" style="background:#c81e1e"></span>Part F · 错误码
+    </div>
+    <a class="nav-link" href="#f-overview">
+      <span class="nav-num">1</span>错误码概述
+    </a>
+    <a class="nav-link" href="#f-list">
+      <span class="nav-num">2</span>错误码详解
+    </a>
+  </div>
+</nav>
+
+<!-- ══ OVERLAY ══ -->
+<div class="overlay" id="overlay"></div>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     PART A — ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+
+<section class="spec-section" id="part-a">
+  <div class="section-head">
+    <div class="section-icon" style="background:#dbeafe;">🏗️</div>
+    <div>
+      <span class="part-tag" style="background:#dbeafe;color:#1e40af;">Part A</span>
+      <h2>架构概述 Architecture</h2>
+    </div>
+  </div>
+  <div class="section-body">
+
+    <!-- §1 General -->
+    <div class="sub" id="a-general">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§1</span>总体描述 General Description</h3>
+      <p>蓝牙无线技术是一种用于替代有线连接的短距离通信系统，核心特性包括：<strong>抗干扰性强、低功耗、低成本</strong>。规范中大量特性是可选的，以允许产品差异化。</p>
+      <p>蓝牙系统存在两种形态：<strong>BR/EDR（基本速率/增强数据率）</strong>和 <strong>LE（低功耗）</strong>，两者均包含设备发现、连接建立机制，但底层实现互不兼容。</p>
+
+      <div class="fig-label" style="--c:#1a56db"><span style="background:#1a56db" class="fig-label::before"></span>BR/EDR 与 LE 对比</div>
+      <div class="tbl-wrap">
+        <table class="spec">
+          <thead><tr><th>特性</th><th>BR/EDR</th><th>LE (Low Energy)</th></tr></thead>
+          <tbody>
+            <tr><td>频段</td><td>2.4 GHz ISM</td><td>2.4 GHz ISM</td></tr>
+            <tr><td>跳频</td><td>79 频点，间隔 1 MHz</td><td>40 频点，间隔 2 MHz</td></tr>
+            <tr><td>调制</td><td>GFSK / π/4-DQPSK / 8-DPSK</td><td>GFSK + 可选 ASK</td></tr>
+            <tr><td>最大速率</td><td>3 Mb/s (EDR)</td><td>2 Mb/s (LE 2M PHY)</td></tr>
+            <tr><td>同步连接</td><td>✅ SCO / eSCO</td><td>✅ CIS / BIS (5.2+)</td></tr>
+            <tr><td>等时广播</td><td>❌</td><td>✅ BIS / BIG</td></tr>
+            <tr><td>测距</td><td>❌</td><td>✅ Channel Sounding (6.0)</td></tr>
+            <tr><td>典型用途</td><td>音频、HID、串口</td><td>传感器、健康、音频(LE Audio)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- §1.1 BR/EDR -->
+      <div id="a-bredr">
+        <h4>1.1 BR/EDR 概述</h4>
+        <p>BR/EDR 物理层工作在 2.4 GHz ISM 频段，使用 <strong>FHSS 跳频收发器</strong>对抗干扰与衰落。基本速率使用 1 Msym/s GFSK 调制，EDR 使用 π/4-DQPSK（2 Mb/s）或 8-DPSK（3 Mb/s）。</p>
+        <p>一组设备同步到同一个中心设备（<strong>Central</strong>）的时钟和跳频序列后，构成一个 <strong>Piconet（微微网）</strong>。Central 控制时隙调度，Peripheral 与其通信。数据以 <strong>TDD（时分双工）</strong>方式在时隙中传输。</p>
+      </div>
+
+      <!-- §1.2 LE -->
+      <div id="a-le">
+        <h4>1.2 LE（低功耗蓝牙）概述</h4>
+        <p>LE 同样工作在 2.4 GHz ISM 频段，使用 FDMA + TDMA 双重多址接入方式。40 个物理信道间隔 2 MHz；用于距离估算时，还使用 72 个间隔 1 MHz 的信道。</p>
+
+        <div class="fig-label">LE PHY 速率对比</div>
+        <div style="margin:10px 0 14px">
+          <div class="phy-row">
+            <span class="phy-label">LE 1M PHY</span>
+            <div class="phy-bg"><div class="phy-fill" data-w="50%" style="background:#1a56db;width:0">1 Mb/s</div></div>
+            <span class="phy-note">强制支持</span>
+          </div>
+          <div class="phy-row">
+            <span class="phy-label">LE 2M PHY</span>
+            <div class="phy-bg"><div class="phy-fill" data-w="100%" style="background:#0694a2;width:0">2 Mb/s</div></div>
+            <span class="phy-note">可选 (5.0+)</span>
+          </div>
+          <div class="phy-row">
+            <span class="phy-label">Coded S=2</span>
+            <div class="phy-bg"><div class="phy-fill" data-w="25%" style="background:#d03801;width:0">500 kb/s</div></div>
+            <span class="phy-note">长距 (5.0+)</span>
+          </div>
+          <div class="phy-row">
+            <span class="phy-label">Coded S=8</span>
+            <div class="phy-bg"><div class="phy-fill" data-w="12.5%" style="background:#c81e1e;width:0">125 kb/s</div></div>
+            <span class="phy-note">超长距(5.0+)</span>
+          </div>
+          <div class="phy-row">
+            <span class="phy-label">LE 2M 2BT</span>
+            <div class="phy-bg"><div class="phy-fill" data-w="100%" style="background:#6c2bd9;width:0">2 Mb/s(ASK)</div></div>
+            <span class="phy-note">CS测距 (6.0)</span>
+          </div>
+        </div>
+
+        <p>LE 设备角色：广播者（<strong>Advertiser</strong>）在广播信道发送广播包；扫描者（<strong>Scanner</strong>）监听不打算连接的广播；发起者（<strong>Initiator</strong>）发现并建立连接。连接建立后，Initiator 成为 Central，Advertiser 成为 Peripheral。</p>
+      </div>
+    </div>
+
+    <!-- §2 Host & Controller -->
+    <div class="sub" id="a-hostctrl">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§2</span>主机与控制器 Host &amp; Controller</h3>
+      <p>蓝牙核心系统由一个 <strong>Host（主机）</strong>和一个或多个 <strong>Controller（控制器）</strong>组成，二者通过 <strong>HCI（主机控制器接口）</strong>交互。</p>
+
+      <div class="fig-label">Host / Controller 分层与三种配置</div>
+      <svg viewBox="0 0 680 300" xmlns="http://www.w3.org/2000/svg" style="margin:12px 0">
+        <defs>
+          <marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+            <polygon points="0 0,7 3.5,0 7" fill="#8898b3"/>
+          </marker>
+        </defs>
+
+        <!-- LE Only -->
+        <rect x="20" y="10" width="190" height="280" rx="10" fill="#f0f7ff" stroke="#90b8f8" stroke-width="1.5"/>
+        <text x="115" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#1a56db">LE Only Controller</text>
+        <rect x="34" y="44" width="162" height="34" rx="6" fill="#dbeafe" stroke="#60a5fa" stroke-width="1"/>
+        <text x="115" y="67" text-anchor="middle" font-size="11" fill="#1e40af" font-weight="600">Host (应用/协议栈)</text>
+        <rect x="34" y="88" width="162" height="26" rx="5" fill="#1a56db"/>
+        <text x="115" y="106" text-anchor="middle" font-size="11" fill="white" font-weight="700">HCI</text>
+        <rect x="34" y="124" width="162" height="30" rx="5" fill="#3b82f6"/>
+        <text x="115" y="144" text-anchor="middle" font-size="11" fill="white">Link Layer (LL)</text>
+        <rect x="34" y="164" width="162" height="30" rx="5" fill="#60a5f5"/>
+        <text x="115" y="184" text-anchor="middle" font-size="11" fill="white">LE Physical Layer</text>
+        <text x="115" y="222" text-anchor="middle" font-size="10" fill="#1a56db">⟺ LE 无线通信</text>
+        <text x="115" y="270" text-anchor="middle" font-size="10" fill="#6b7a99">传感器、LE Audio…</text>
+
+        <!-- BR/EDR Only -->
+        <rect x="245" y="10" width="190" height="280" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+        <text x="340" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#057a55">BR/EDR Controller</text>
+        <rect x="259" y="44" width="162" height="34" rx="6" fill="#d1fae5" stroke="#6ee7b7" stroke-width="1"/>
+        <text x="340" y="67" text-anchor="middle" font-size="11" fill="#065f46" font-weight="600">Host (应用/协议栈)</text>
+        <rect x="259" y="88" width="162" height="26" rx="5" fill="#057a55"/>
+        <text x="340" y="106" text-anchor="middle" font-size="11" fill="white" font-weight="700">HCI</text>
+        <rect x="259" y="124" width="162" height="30" rx="5" fill="#10b981"/>
+        <text x="340" y="144" text-anchor="middle" font-size="11" fill="white">Link Manager (LMP)</text>
+        <rect x="259" y="164" width="162" height="30" rx="5" fill="#34d399"/>
+        <text x="340" y="184" text-anchor="middle" font-size="11" fill="white">Baseband / Radio</text>
+        <text x="340" y="222" text-anchor="middle" font-size="10" fill="#057a55">⟺ BR/EDR 无线通信</text>
+        <text x="340" y="270" text-anchor="middle" font-size="10" fill="#6b7a99">音频、HID、串口…</text>
+
+        <!-- Combined -->
+        <rect x="470" y="10" width="190" height="280" rx="10" fill="#fdf4ff" stroke="#d8b4fe" stroke-width="1.5"/>
+        <text x="565" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#6c2bd9">BR/EDR/LE 组合</text>
+        <rect x="484" y="44" width="162" height="34" rx="6" fill="#ede9fe" stroke="#c4b5fd" stroke-width="1"/>
+        <text x="565" y="67" text-anchor="middle" font-size="11" fill="#4c1d95" font-weight="600">Host (应用/协议栈)</text>
+        <rect x="484" y="88" width="162" height="26" rx="5" fill="#6c2bd9"/>
+        <text x="565" y="106" text-anchor="middle" font-size="11" fill="white" font-weight="700">HCI</text>
+        <rect x="484" y="124" width="78" height="30" rx="5" fill="#7c3aed"/>
+        <text x="523" y="144" text-anchor="middle" font-size="10" fill="white">LL</text>
+        <rect x="568" y="124" width="78" height="30" rx="5" fill="#8b5cf6"/>
+        <text x="607" y="144" text-anchor="middle" font-size="10" fill="white">LMP</text>
+        <rect x="484" y="164" width="78" height="30" rx="5" fill="#a78bfa"/>
+        <text x="523" y="184" text-anchor="middle" font-size="10" fill="white">LE PHY</text>
+        <rect x="568" y="164" width="78" height="30" rx="5" fill="#c4b5fd"/>
+        <text x="607" y="184" text-anchor="middle" font-size="10" fill="#3b0764">BR/EDR PHY</text>
+        <text x="565" y="222" text-anchor="middle" font-size="10" fill="#6c2bd9">⟺ 双模无线通信</text>
+        <text x="565" y="270" text-anchor="middle" font-size="10" fill="#6b7a99">手机、电脑、网关…</text>
+      </svg>
+
+      <div class="ibox note"><span class="ico">ℹ️</span><div>一个蓝牙核心实现 <strong>只能有一个控制器</strong>，该控制器可以是纯 LE、纯 BR/EDR 或二者的组合。Host 侧实现 HCI 以上的所有层（L2CAP、SMP、GATT、GAP 等）。</div></div>
+    </div>
+
+    <!-- §3 Channels -->
+    <div class="sub" id="a-channels">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§3</span>信道与链路层次体系 Channel &amp; Link Hierarchy</h3>
+      <p>从物理信道向上，蓝牙定义了五层抽象：<strong>物理信道 → 物理链路 → 逻辑传输 → 逻辑链路 → L2CAP 信道</strong>。每一层都在下一层之上提供更高级别的服务。</p>
+
+      <div class="fig-label">五层信道/链路层次图</div>
+      <svg viewBox="0 0 640 230" xmlns="http://www.w3.org/2000/svg" style="margin:10px 0">
+        <defs>
+          <marker id="da" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+            <polygon points="0 0,7 3.5,0 7" fill="#8898b3"/>
+          </marker>
+        </defs>
+        <!-- layers -->
+        <rect x="100" y="10" width="440" height="36" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+        <text x="320" y="33" text-anchor="middle" font-size="13" font-weight="700" fill="#6c2bd9">L2CAP 信道 / Channel</text>
+
+        <rect x="100" y="56" width="440" height="36" rx="8" fill="#dbeafe" stroke="#60a5fa" stroke-width="1.5"/>
+        <text x="320" y="79" text-anchor="middle" font-size="13" font-weight="700" fill="#1e40af">逻辑链路 / Logical Link</text>
+
+        <rect x="100" y="102" width="440" height="36" rx="8" fill="#d1fae5" stroke="#34d399" stroke-width="1.5"/>
+        <text x="320" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#065f46">逻辑传输 / Logical Transport</text>
+
+        <rect x="100" y="148" width="440" height="36" rx="8" fill="#fef3c7" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="320" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#92400e">物理链路 / Physical Link</text>
+
+        <rect x="100" y="194" width="440" height="36" rx="8" fill="#fee2e2" stroke="#f87171" stroke-width="1.5"/>
+        <text x="320" y="217" text-anchor="middle" font-size="13" font-weight="700" fill="#991b1b">物理信道 / Physical Channel</text>
+
+        <!-- arrows -->
+        <line x1="320" y1="46" x2="320" y2="56" stroke="#b0b8cc" stroke-width="2" marker-end="url(#da)"/>
+        <line x1="320" y1="92" x2="320" y2="102" stroke="#b0b8cc" stroke-width="2" marker-end="url(#da)"/>
+        <line x1="320" y1="138" x2="320" y2="148" stroke="#b0b8cc" stroke-width="2" marker-end="url(#da)"/>
+        <line x1="320" y1="184" x2="320" y2="194" stroke="#b0b8cc" stroke-width="2" marker-end="url(#da)"/>
+
+        <!-- right annotations -->
+        <text x="560" y="32" font-size="10" fill="#6b7a99">协议复用 / 分包重组</text>
+        <text x="560" y="78" font-size="10" fill="#6b7a99">ACL-U / LE-U / SCO-S</text>
+        <text x="560" y="124" font-size="10" fill="#6b7a99">ACL / SCO / eSCO / CIS / BIS</text>
+        <text x="560" y="170" font-size="10" fill="#6b7a99">点对点 / 广播</text>
+        <text x="560" y="216" font-size="10" fill="#6b7a99">RF 信道（FHSS）</text>
+      </svg>
+
+      <div id="a-phy-ch">
+        <h4>3.1 物理信道 (Physical Channels)</h4>
+        <p>物理信道是 RF 层的基本单元。BR/EDR 使用 79 个 1 MHz 间隔的信道，LE 使用 40 个 2 MHz 间隔的信道（其中 3 个为广播信道）。设备使用相同的跳频序列以实现同步。</p>
+      </div>
+      <div id="a-phy-link">
+        <h4>3.2 物理链路 (Physical Links)</h4>
+        <p>物理链路建立在 Central 与 Peripheral 之间。一个 Central 可同时维护多个 Peripheral 的物理链路，但 Peripheral 之间不直接建立物理链路。特殊情况：广播物理链路是单向的。</p>
+      </div>
+      <div id="a-log-trans">
+        <h4>3.3 逻辑传输 (Logical Transports)</h4>
+        <p>逻辑传输在物理链路上复用，支持不同 QoS 属性（可靠/同步/等时）。主要类型如下：</p>
+        <div class="tbl-wrap">
+          <table class="spec">
+            <thead><tr><th>类型</th><th>方向</th><th>可靠性</th><th>适用</th></tr></thead>
+            <tbody>
+              <tr><td>ACL (LE ACL)</td><td>双向</td><td>可靠重传</td><td>通用数据、控制信令</td></tr>
+              <tr><td>SCO / eSCO</td><td>双向</td><td>同步，有限重传</td><td>BR/EDR 语音</td></tr>
+              <tr><td>CIS</td><td>双向</td><td>等时，无重传</td><td>LE Audio 耳机</td></tr>
+              <tr><td>BIS</td><td>单向广播</td><td>等时，无重传</td><td>LE Audio 广播</td></tr>
+              <tr><td>ADVB</td><td>单向广播</td><td>不可靠</td><td>设备发现、广播</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div id="a-log-link">
+        <h4>3.4 逻辑链路 (Logical Links)</h4>
+        <p>逻辑链路映射在逻辑传输之上，定义数据流的 QoS 特性。不同逻辑链路可以共享同一逻辑传输，通过调度函数管理资源。控制协议（LMP/LL）也作为特殊逻辑链路承载。</p>
+      </div>
+      <div id="a-l2cap">
+        <h4>3.5 L2CAP 信道</h4>
+        <p>L2CAP（逻辑链路控制和适配协议）在逻辑链路上提供信道抽象，负责<strong>协议复用</strong>、<strong>分包重组</strong>，以及多个高层协议（ATT、SMP、RFCOMM 等）的数据复用。</p>
+      </div>
+    </div>
+
+    <!-- §4 Topology -->
+    <div class="sub" id="a-topology">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§4</span>网络拓扑 Communication Topologies</h3>
+      <p>蓝牙支持多种网络拓扑，从点对点到散射网（Scatternet），设备可同时扮演多种角色。</p>
+      <div class="topo-grid">
+        <div class="topo-card" style="border-color:#60a5fa">
+          <span class="topo-icon">📍</span>
+          <div class="topo-name" style="color:#1a56db">Piconet（微微网）</div>
+          <div class="topo-desc">1 个 Central + 最多 7 个 Peripheral，共享跳频序列</div>
+        </div>
+        <div class="topo-card" style="border-color:#34d399">
+          <span class="topo-icon">🌐</span>
+          <div class="topo-name" style="color:#057a55">Scatternet（散射网）</div>
+          <div class="topo-desc">多个 Piconet 通过共享节点互联，实现更大范围覆盖</div>
+        </div>
+        <div class="topo-card" style="border-color:#fbbf24">
+          <span class="topo-icon">📡</span>
+          <div class="topo-name" style="color:#92400e">广播模式</div>
+          <div class="topo-desc">Advertiser 向所有 Scanner 单向广播，无需连接</div>
+        </div>
+        <div class="topo-card" style="border-color:#c4b5fd">
+          <span class="topo-icon">🔗</span>
+          <div class="topo-name" style="color:#6c2bd9">点对点连接</div>
+          <div class="topo-desc">Central ↔ Peripheral 全双工 ACL 连接</div>
+        </div>
+        <div class="topo-card" style="border-color:#f87171">
+          <span class="topo-icon">🎵</span>
+          <div class="topo-name" style="color:#c81e1e">LE Audio 广播</div>
+          <div class="topo-desc">BIS 广播等时流，Source → 无限个 Sink</div>
+        </div>
+        <div class="topo-card" style="border-color:#86efac">
+          <span class="topo-icon">🔊</span>
+          <div class="topo-name" style="color:#065f46">Connectionless CPB</div>
+          <div class="topo-desc">BR/EDR 无连接外围广播，中心→多个外围</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- §5 Isochronous -->
+    <div class="sub" id="a-iso">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§5</span>等时传输 Isochronous Channels (BT 5.2+)</h3>
+      <p>等时信道专为时延敏感的音频流设计，保证固定间隔（<code>ISO_Interval</code>）的数据传输，分为连接等时（CIS）和广播等时（BIS）两种。</p>
+
+      <div id="a-cis">
+        <h4>5.1 CIS — 连接等时流</h4>
+        <p>CIS 建立在 ACL 连接之上，提供 Central ↔ Peripheral 之间的双向等时数据流。每个 CIS 事件包含若干子事件（subevent），Central 先发，Peripheral 后应答。通道由信道选择算法决定。</p>
+      </div>
+
+      <div id="a-bis">
+        <h4>5.2 BIS — 广播等时流 &amp; BIG</h4>
+        <p>BIS 无需连接即可广播等时数据。一个设备可发送多个同步 BIS，称为 <strong>BIG（广播等时组）</strong>。发送端还会在 BIG 结尾插入 <em>Control subevent</em> 广播控制信息。接收端通过同步到周期性广播的 BIG 同步信息后，才能接收 BIS 流。</p>
+
+        <div class="fig-label">BIG / BIS 事件结构</div>
+        <svg viewBox="0 0 660 150" xmlns="http://www.w3.org/2000/svg" style="margin:10px 0">
+          <!-- time axis -->
+          <line x1="20" y1="120" x2="640" y2="120" stroke="#dde3ee" stroke-width="2"/>
+          <text x="645" y="124" font-size="10" fill="#8898b3">t →</text>
+          <!-- BIG event 1 -->
+          <rect x="30" y="30" width="250" height="80" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+          <text x="155" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#6c2bd9">BIG Event 1</text>
+          <!-- BIS 1 subevents -->
+          <rect x="40" y="42" width="50" height="28" rx="5" fill="#7c3aed"/>
+          <text x="65" y="61" text-anchor="middle" font-size="9" fill="white">BIS 1 SE1</text>
+          <rect x="96" y="42" width="50" height="28" rx="5" fill="#7c3aed"/>
+          <text x="121" y="61" text-anchor="middle" font-size="9" fill="white">BIS 2 SE1</text>
+          <rect x="152" y="42" width="50" height="28" rx="5" fill="#7c3aed"/>
+          <text x="177" y="61" text-anchor="middle" font-size="9" fill="white">BIS 1 SE2</text>
+          <rect x="208" y="42" width="50" height="28" rx="5" fill="#7c3aed"/>
+          <text x="233" y="61" text-anchor="middle" font-size="9" fill="white">BIS 2 SE2</text>
+          <!-- control subevent -->
+          <rect x="152" y="76" width="106" height="26" rx="5" fill="#c4b5fd" stroke="#6c2bd9" stroke-width="1"/>
+          <text x="205" y="94" text-anchor="middle" font-size="9" fill="#3b0764" font-weight="700">Control Subevent</text>
+
+          <!-- BIG event 2 -->
+          <rect x="300" y="30" width="200" height="80" rx="8" fill="#ede9fe" stroke="#8b5cf6" stroke-width="1.5"/>
+          <text x="400" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#6c2bd9">BIG Event 2 (无CS)</text>
+          <rect x="310" y="42" width="50" height="28" rx="5" fill="#8b5cf6"/>
+          <text x="335" y="61" text-anchor="middle" font-size="9" fill="white">BIS 1 SE1</text>
+          <rect x="366" y="42" width="50" height="28" rx="5" fill="#8b5cf6"/>
+          <text x="391" y="61" text-anchor="middle" font-size="9" fill="white">BIS 2 SE1</text>
+          <rect x="422" y="42" width="50" height="28" rx="5" fill="#8b5cf6"/>
+          <text x="447" y="61" text-anchor="middle" font-size="9" fill="white">BIS 1 SE2</text>
+
+          <!-- ISO interval -->
+          <line x1="30" y1="135" x2="300" y2="135" stroke="#a78bfa" stroke-width="1.5"/>
+          <line x1="30" y1="130" x2="30" y2="140" stroke="#a78bfa" stroke-width="2"/>
+          <line x1="300" y1="130" x2="300" y2="140" stroke="#a78bfa" stroke-width="2"/>
+          <text x="165" y="148" text-anchor="middle" font-size="10" fill="#6c2bd9">ISO_Interval</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- §7 Coexistence -->
+    <div class="sub" id="a-coex">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§7</span>无线共存 Wireless Coexistence (MWS)</h3>
+      <p>蓝牙 BR/EDR 设备可能与 LTE/Wi-Fi 等同频段技术共存于同一设备（例如手机主板）。规范定义了 <strong>MWS（移动无线系统）共存信令</strong>机制，使蓝牙控制器能感知外部帧结构，减少互扰。</p>
+      <div class="tbl-wrap">
+        <table class="spec">
+          <thead><tr><th>机制</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>FRAME_SYNC 信号</td><td>外部系统（LTE）的帧同步信号，蓝牙对齐自己的时隙</td></tr>
+            <tr><td>时钟粗调 (CCA)</td><td>使用 LMP_CLK_ADJ PDU 移动蓝牙 CLK，用于 MWS 接入时对齐</td></tr>
+            <tr><td>时钟拖拽 (Clock Dragging)</td><td>缓慢调整时钟相位（不超过自然漂移速率），持续微调</td></tr>
+            <tr><td>SAM（时隙可用性掩码）</td><td>两设备互告可用时隙，优化调度以减少与外部无线技术的冲突</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ibox tip"><span class="ico">💡</span><div>建议将与 MWS 共存的蓝牙设备设为 Central，因为 Central 可更快地响应时序偏差并发起纠正措施。</div></div>
+    </div>
+
+    <!-- §8 Direction Finding -->
+    <div class="sub" id="a-direction">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§8</span>方向探测 Direction Finding (AoA / AoD)</h3>
+      <p>BLE 5.1 引入方向探测功能，允许设备估算信号的到达角（AoA）或出发角（AoD），公式为：</p>
+      <div style="background:#f8faff;border:1px solid #dde3ee;border-radius:8px;padding:12px 18px;margin:10px 0;font-family:monospace;font-size:13px;color:#1e40af">
+        φ = (2π × d × cos θ) ÷ λ &nbsp;&nbsp;⟹&nbsp;&nbsp; θ = arccos( φλ ÷ 2πd )
+      </div>
+
+      <div id="a-aoa">
+        <h4>8.1 到达角（AoA）</h4>
+        <p><strong>发射端</strong>使用单天线发送方向探测包（CTE 常音扩展）。<strong>接收端</strong>拥有天线阵列，在接收时切换天线，采集 I/Q 样本，通过不同天线元素接收到的相位差估算信号到达角。适用于实时定位系统（RTLS）。</p>
+      </div>
+
+      <div id="a-aod">
+        <h4>8.2 出发角（AoD）</h4>
+        <p><strong>发射端</strong>拥有天线阵列，在发送时切换天线。<strong>接收端</strong>使用单天线接收，采集 I/Q 样本，利用发射端天线阵列的布局信息计算出发角。适用于基础设施广播的室内定位。</p>
+      </div>
+
+      <div class="fig-label">AoA vs AoD 示意对比</div>
+      <svg viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg" style="margin:10px 0">
+        <!-- AoA -->
+        <rect x="10" y="10" width="300" height="140" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+        <text x="160" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#1a56db">AoA — 到达角</text>
+        <!-- single TX -->
+        <rect x="20" y="80" width="60" height="32" rx="6" fill="#1a56db"/>
+        <text x="50" y="101" text-anchor="middle" font-size="10" fill="white" font-weight="700">TX 单天线</text>
+        <!-- wave lines -->
+        <line x1="80" y1="96" x2="200" y2="60" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="80" y1="96" x2="200" y2="96" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="80" y1="96" x2="200" y2="132" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <!-- array RX -->
+        <rect x="200" y="50" width="24" height="24" rx="4" fill="#93c5fd" stroke="#1a56db" stroke-width="1"/>
+        <text x="212" y="67" text-anchor="middle" font-size="8" fill="#1e40af">RX1</text>
+        <rect x="200" y="84" width="24" height="24" rx="4" fill="#93c5fd" stroke="#1a56db" stroke-width="1"/>
+        <text x="212" y="101" text-anchor="middle" font-size="8" fill="#1e40af">RX2</text>
+        <rect x="200" y="118" width="24" height="24" rx="4" fill="#93c5fd" stroke="#1a56db" stroke-width="1"/>
+        <text x="212" y="135" text-anchor="middle" font-size="8" fill="#1e40af">RX3</text>
+        <text x="248" y="96" font-size="9" fill="#1a56db">天线阵列</text>
+        <text x="248" y="110" font-size="9" fill="#1a56db">采集 I/Q</text>
+        <text x="160" y="150" text-anchor="middle" font-size="9" fill="#6b7a99">接收端多天线 → 计算相位差 → AoA</text>
+
+        <!-- AoD -->
+        <rect x="330" y="10" width="300" height="140" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+        <text x="480" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#057a55">AoD — 出发角</text>
+        <!-- array TX -->
+        <rect x="340" y="50" width="24" height="24" rx="4" fill="#34d399" stroke="#057a55" stroke-width="1"/>
+        <text x="352" y="67" text-anchor="middle" font-size="8" fill="#065f46">TX1</text>
+        <rect x="340" y="84" width="24" height="24" rx="4" fill="#34d399" stroke="#057a55" stroke-width="1"/>
+        <text x="352" y="101" text-anchor="middle" font-size="8" fill="#065f46">TX2</text>
+        <rect x="340" y="118" width="24" height="24" rx="4" fill="#34d399" stroke="#057a55" stroke-width="1"/>
+        <text x="352" y="135" text-anchor="middle" font-size="8" fill="#065f46">TX3</text>
+        <text x="338" y="44" font-size="9" fill="#057a55">天线阵列</text>
+        <!-- wave lines -->
+        <line x1="364" y1="62" x2="540" y2="90" stroke="#6ee7b7" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="364" y1="96" x2="540" y2="90" stroke="#6ee7b7" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <line x1="364" y1="130" x2="540" y2="90" stroke="#6ee7b7" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <!-- single RX -->
+        <rect x="540" y="76" width="60" height="32" rx="6" fill="#057a55"/>
+        <text x="570" y="97" text-anchor="middle" font-size="10" fill="white" font-weight="700">RX 单天线</text>
+        <text x="480" y="150" text-anchor="middle" font-size="9" fill="#6b7a99">发射端多天线切换 → 接收端 I/Q → AoD</text>
+      </svg>
+    </div>
+
+    <!-- §9 Channel Sounding -->
+    <div class="sub" id="a-cs">
+      <h3><span class="tag" style="background:#dbeafe;color:#1e40af;">§9</span>信道测音 Channel Sounding (BT 6.0)</h3>
+      <p>Channel Sounding（CS）是蓝牙 6.0 引入的核心新特性，通过在多个 RF 信道上双向交换信号，对两设备间的传播路径进行特性化测量，进而估算距离。</p>
+      <div class="ibox key"><span class="ico">🔑</span><div>CS 同时支持 <strong>RTT（往返时间）</strong>和 <strong>PBR（相位测距）</strong>两种方法，二者可联合使用以提升精度和安全性。</div></div>
+
+      <div id="a-cs-proc">
+        <h4>9.1 CS 层次结构</h4>
+        <p>CS 的时频结构分为四个层次：<strong>CS 过程 → CS 事件 → CS 子事件 → CS 步骤</strong>。每个步骤（Step）从频率切换时间段 <code>T_FCS</code> 开始，是 Initiator 与 Reflector 之间一次双向交换。</p>
+
+        <div class="fig-label">CS 层次关系图</div>
+        <svg viewBox="0 0 640 140" xmlns="http://www.w3.org/2000/svg" style="margin:10px 0">
+          <rect x="10" y="10" width="620" height="120" rx="10" fill="#fef9c3" stroke="#fbbf24" stroke-width="1.5"/>
+          <text x="320" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">CS 过程 (Procedure)</text>
+
+          <rect x="20" y="36" width="590" height="84" rx="8" fill="#fff7ed" stroke="#fb923c" stroke-width="1.5"/>
+          <text x="315" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#c2410c">CS 事件 (Event)</text>
+
+          <rect x="30" y="58" width="268" height="54" rx="7" fill="#ffedd5" stroke="#fdba74" stroke-width="1"/>
+          <text x="164" y="73" text-anchor="middle" font-size="10" font-weight="700" fill="#9a3412">子事件 (Subevent 1)</text>
+          <rect x="40" y="78" width="60" height="26" rx="5" fill="#fb923c"/>
+          <text x="70" y="96" text-anchor="middle" font-size="9" fill="white">Step(Mode0)</text>
+          <rect x="106" y="78" width="60" height="26" rx="5" fill="#f97316"/>
+          <text x="136" y="96" text-anchor="middle" font-size="9" fill="white">Step(Mode1)</text>
+          <rect x="172" y="78" width="60" height="26" rx="5" fill="#ea580c"/>
+          <text x="202" y="96" text-anchor="middle" font-size="9" fill="white">Step(Mode2)</text>
+
+          <rect x="310" y="58" width="268" height="54" rx="7" fill="#ffedd5" stroke="#fdba74" stroke-width="1"/>
+          <text x="444" y="73" text-anchor="middle" font-size="10" font-weight="700" fill="#9a3412">子事件 (Subevent 2)</text>
+          <rect x="320" y="78" width="60" height="26" rx="5" fill="#fb923c"/>
+          <text x="350" y="96" text-anchor="middle" font-size="9" fill="white">Step(Mode0)</text>
+          <rect x="386" y="78" width="60" height="26" rx="5" fill="#f97316"/>
+          <text x="416" y="96" text-anchor="middle" font-size="9" fill="white">Step(Mode3)</text>
+          <rect x="452" y="78" width="60" height="26" rx="5" fill="#ea580c"/>
+          <text x="482" y="96" text-anchor="middle" font-size="9" fill="white">Step(Mode2)</text>
+        </svg>
+
+        <div class="tbl-wrap">
+          <table class="spec">
+            <thead><tr><th>步骤模式</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td>Mode-0</td><td>频率和时序校准（每个子事件开头）</td></tr>
+              <tr><td>Mode-1</td><td>交换 RTT 包（CS_SYNC），测量到达/出发时间</td></tr>
+              <tr><td>Mode-2</td><td>交换 CS 音调，测量相位和幅度（PBR）</td></tr>
+              <tr><td>Mode-3</td><td>同时进行 RTT 测量和 PBR 音调测量</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="a-cs-pbr">
+        <h4>9.2 基于相位的测距（PBR）</h4>
+        <p>在多个频率 f 上测量相位，则距离 x 与相位随频率的变化率成正比：</p>
+        <div style="background:#fdf4ff;border:1px solid #d8b4fe;border-radius:8px;padding:12px 18px;margin:10px 0;font-family:monospace;font-size:13px;color:#6c2bd9">
+          φ<sub>CH</sub>(f) = −4πxf/c &nbsp;&nbsp;⟹&nbsp;&nbsp; x = −(dφ/df) × c / (4π)
+        </div>
+        <p>当频点间隔为 1 MHz 时，相位模糊距离 <strong>d<sub>wrap</sub> = 150 m</strong>，超出此距离需结合 RTT 消歧。</p>
+      </div>
+
+      <div id="a-cs-rtt">
+        <h4>9.3 基于往返时间的测距（RTT）</h4>
+        <p>两设备交换 CS_SYNC 包，记录各自的出发时间（ToD）和到达时间（ToA），估算飞行时间（ToF）：</p>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 18px;margin:10px 0;font-family:monospace;font-size:13px;color:#057a55">
+          x = (T<sub>initiator</sub> − T<sub>reflector</sub>) / 2 × c
+        </div>
+        <p>支持三种精度等级：32 位伪噪声接入地址（基础）、96 位探测序列（中等）、128 位随机序列（最高）。</p>
+      </div>
+
+      <div id="a-cs-sec">
+        <h4>9.4 安全特性</h4>
+        <p>CS 内置了防距离欺骗（Distance Spoofing）机制：RTT 与 PBR 在同一子事件中提供两路独立距离估算；随机序列可检测中间人攻击；DRBG 密码随机化跳频序列、步骤模式、音调调制和 CS_SYNC 内容。密钥材料在加密链路下交换，不对外暴露。</p>
+      </div>
+    </div>
+
+  </div><!-- /section-body Part A -->
+</section>
+
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     PART B — ACRONYMS & ABBREVIATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="spec-section" id="part-b">
+  <div class="section-head">
+    <div class="section-icon" style="background:#ccfbf1;">📖</div>
+    <div>
+      <span class="part-tag" style="background:#ccfbf1;color:#0f766e;">Part B</span>
+      <h2>缩略语与缩写 Acronyms &amp; Abbreviations</h2>
+    </div>
+  </div>
+  <div class="section-body">
+    <div class="sub" id="b-abbr">
+      <h3><span class="tag" style="background:#ccfbf1;color:#0f766e;">§1</span>缩略语列表</h3>
+      <p>本部分列出蓝牙规范中使用的所有标准缩略语与缩写，确保术语统一解读。以下为核心缩略语精选：</p>
+      <div class="tbl-wrap">
+        <table class="spec">
+          <thead><tr><th>缩写</th><th>全称</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">ACL</td><td>Asynchronous Connection-Oriented</td><td>异步面向连接，通用数据传输逻辑传输</td></tr>
+            <tr><td class="mono">ADV</td><td>Advertising</td><td>广播，用于设备发现和连接建立</td></tr>
+            <tr><td class="mono">AFH</td><td>Adaptive Frequency Hopping</td><td>自适应跳频，动态规避干扰信道</td></tr>
+            <tr><td class="mono">AoA</td><td>Angle of Arrival</td><td>到达角，用于方向探测</td></tr>
+            <tr><td class="mono">AoD</td><td>Angle of Departure</td><td>出发角，用于方向探测</td></tr>
+            <tr><td class="mono">ATT</td><td>Attribute Protocol</td><td>属性协议，GATT 底层协议</td></tr>
+            <tr><td class="mono">BIG</td><td>Broadcast Isochronous Group</td><td>广播等时组，包含多个 BIS</td></tr>
+            <tr><td class="mono">BIS</td><td>Broadcast Isochronous Stream</td><td>广播等时流，用于 LE Audio 广播</td></tr>
+            <tr><td class="mono">BR/EDR</td><td>Basic Rate / Enhanced Data Rate</td><td>经典蓝牙，基本速率/增强数据率</td></tr>
+            <tr><td class="mono">CIG</td><td>Connected Isochronous Group</td><td>连接等时组，包含多个 CIS</td></tr>
+            <tr><td class="mono">CIS</td><td>Connected Isochronous Stream</td><td>连接等时流，双向等时数据</td></tr>
+            <tr><td class="mono">CPB</td><td>Connectionless Peripheral Broadcast</td><td>无连接外围广播（BR/EDR）</td></tr>
+            <tr><td class="mono">CS</td><td>Channel Sounding</td><td>信道测音，BT 6.0 测距功能</td></tr>
+            <tr><td class="mono">CTE</td><td>Constant Tone Extension</td><td>常音扩展，方向探测的 RF 附加段</td></tr>
+            <tr><td class="mono">DRBG</td><td>Deterministic Random Bit Generator</td><td>确定性随机比特生成器，用于 CS 安全</td></tr>
+            <tr><td class="mono">eSCO</td><td>Extended Synchronous Connection-Oriented</td><td>增强同步连接，支持重传</td></tr>
+            <tr><td class="mono">FDMA</td><td>Frequency Division Multiple Access</td><td>频分多址</td></tr>
+            <tr><td class="mono">FHSS</td><td>Frequency Hopping Spread Spectrum</td><td>跳频扩频</td></tr>
+            <tr><td class="mono">GAP</td><td>Generic Access Profile</td><td>通用访问规范，定义设备发现与连接模式</td></tr>
+            <tr><td class="mono">GATT</td><td>Generic Attribute Profile</td><td>通用属性规范，定义服务/特征</td></tr>
+            <tr><td class="mono">HCI</td><td>Host Controller Interface</td><td>主机控制器接口</td></tr>
+            <tr><td class="mono">IQ</td><td>In-phase / Quadrature</td><td>同相/正交分量，用于 AoA/AoD 测量</td></tr>
+            <tr><td class="mono">ISM</td><td>Industrial, Scientific and Medical</td><td>工业科学医疗频段（2.4 GHz）</td></tr>
+            <tr><td class="mono">L2CAP</td><td>Logical Link Control and Adaptation Protocol</td><td>逻辑链路控制与适配协议</td></tr>
+            <tr><td class="mono">LE</td><td>Low Energy</td><td>低功耗蓝牙</td></tr>
+            <tr><td class="mono">LMP</td><td>Link Manager Protocol</td><td>链路管理协议（BR/EDR 控制）</td></tr>
+            <tr><td class="mono">MIC</td><td>Message Integrity Check</td><td>消息完整性校验码（加密用）</td></tr>
+            <tr><td class="mono">MWS</td><td>Mobile Wireless System</td><td>移动无线系统（共存信令）</td></tr>
+            <tr><td class="mono">PBR</td><td>Phase-Based Ranging</td><td>相位测距（CS 方法之一）</td></tr>
+            <tr><td class="mono">PDU</td><td>Protocol Data Unit</td><td>协议数据单元</td></tr>
+            <tr><td class="mono">PHY</td><td>Physical Layer</td><td>物理层</td></tr>
+            <tr><td class="mono">RTT</td><td>Round-Trip Time</td><td>往返时间测量（CS 方法之一）</td></tr>
+            <tr><td class="mono">SAM</td><td>Slot Availability Mask</td><td>时隙可用性掩码（共存调度）</td></tr>
+            <tr><td class="mono">SCO</td><td>Synchronous Connection-Oriented</td><td>同步面向连接（BR/EDR 语音）</td></tr>
+            <tr><td class="mono">SMP</td><td>Security Manager Protocol</td><td>安全管理协议，处理配对</td></tr>
+            <tr><td class="mono">TDD</td><td>Time-Division Duplex</td><td>时分双工</td></tr>
+            <tr><td class="mono">TDMA</td><td>Time Division Multiple Access</td><td>时分多址</td></tr>
+            <tr><td class="mono">ToA</td><td>Time of Arrival</td><td>到达时间</td></tr>
+            <tr><td class="mono">ToD</td><td>Time of Departure</td><td>出发时间</td></tr>
+            <tr><td class="mono">ToF</td><td>Time of Flight</td><td>飞行时间（信号传播时间）</td></tr>
+            <tr><td class="mono">UUID</td><td>Universally Unique Identifier</td><td>通用唯一标识符（16/32/128 位）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     PART E — GENERAL TERMINOLOGY & INTERPRETATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="spec-section" id="part-e">
+  <div class="section-head">
+    <div class="section-icon" style="background:#f5f3ff;">📜</div>
+    <div>
+      <span class="part-tag" style="background:#f5f3ff;color:#6c2bd9;">Part E</span>
+      <h2>通用术语与解释 General Terminology &amp; Interpretation</h2>
+    </div>
+  </div>
+  <div class="section-body">
+
+    <!-- §1 Language Conventions -->
+    <div class="sub" id="e-lang">
+      <h3><span class="tag" style="background:#f5f3ff;color:#6c2bd9;">§1</span>语言约定 Language Conventions</h3>
+      <p>规范使用一套严格定义的关键词来表达不同程度的需求强制性，开发者必须严格区分：</p>
+      <div class="kw-grid">
+        <div class="kw-term">shall</div>
+        <div class="kw-def">必须 — 规范要求，必须原样实现，不得偏差（强制）</div>
+        <div class="kw-term">shall not</div>
+        <div class="kw-def">禁止 — 规范明令禁止的行为</div>
+        <div class="kw-term">should</div>
+        <div class="kw-def">建议 — 推荐但不强制，不满足也不算违规</div>
+        <div class="kw-term">should not</div>
+        <div class="kw-def">不建议 — 不推荐但未明令禁止</div>
+        <div class="kw-term">may</div>
+        <div class="kw-def">可以 — 在规范范围内允许，实现可自行选择</div>
+        <div class="kw-term">must</div>
+        <div class="kw-def">必然 — 陈述无条件事实，或满足某条件后的必然结果</div>
+        <div class="kw-term">can</div>
+        <div class="kw-def">能够 — 表达一种可能性或能力，不具有规范约束力</div>
+      </div>
+      <div class="ibox warn"><span class="ico">⚠️</span><div>混淆 <strong>shall</strong> 与 <strong>should</strong>、<strong>may</strong> 与 <strong>must</strong> 是规范理解中最常见的错误。<strong>shall</strong> 是实现的硬性要求，违反将导致不合规。</div></div>
+
+      <h4>1.7 实现替代方案</h4>
+      <p>规范中示例所展示的某种实现方式，并不限制其他符合规范的替代实现。只要满足 <code>shall</code> 要求，实现者可自由选择技术路线。</p>
+
+      <h4>1.9 适当语言（Appropriate Language）</h4>
+      <p>规范已将某些被认定为不适当的术语替换为中性用语（如 master→Central，slave→Peripheral），并相应调整了 HCI 命令/事件名称。完整映射表见 Bluetooth SIG 官网。</p>
+    </div>
+
+    <!-- §2 Interpretation Rules -->
+    <div class="sub" id="e-interp">
+      <h3><span class="tag" style="background:#f5f3ff;color:#6c2bd9;">§2</span>通用解释规则 General Interpretation Rules</h3>
+
+      <div id="e-num">
+        <h4>2.1 二进制与十六进制</h4>
+        <p>二进制前缀 <code>0b</code>（如 <code>0b1101</code> = 13），十六进制前缀 <code>0x</code>（如 <code>0x42</code> = 66）。可用下划线分隔数字以增强可读性（如 <code>0b0010_1011</code>），不影响数值。未带前缀的数为十进制。</p>
+      </div>
+      <div id="e-bits">
+        <h4>2.2 位编号与位域</h4>
+        <p>位始终从 <strong>0 开始编号</strong>，0 为最低有效位（LSB）。位域写法：下标连字符（CLK<sub>4-2</sub>）或方括号加冒号（CLK[4:2]），端点均包含，<strong>最高位写在前</strong>。</p>
+      </div>
+
+      <div id="e-rfu">
+        <h4>2.4 保留字段处理规则</h4>
+        <div class="tbl-wrap">
+          <table class="spec">
+            <thead><tr><th>标记</th><th>发送方行为</th><th>接收方行为</th></tr></thead>
+            <tbody>
+              <tr><td><strong>RFU</strong>（Reserved for Future Use）</td><td>必须置 0</td><td>必须忽略（不得因此拒绝结构）</td></tr>
+              <tr><td><strong>Previously used</strong></td><td>按 RFU 处理</td><td>按 RFU 处理（不用于新特性）</td></tr>
+              <tr><td><strong>Reserved for spec dev</strong></td><td>不得在产品中使用</td><td>按 RFU 处理</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="ibox note"><span class="ico">ℹ️</span><div>RFU 字段用于 CRC/加密等计算时，<strong>必须使用实际收到的原始值</strong>，而非将其替换为 0。</div></div>
+      </div>
+
+      <div id="e-invalid">
+        <h4>2.7 响应无效行为</h4>
+        <p>当设备收到规范不允许的包或 PDU（状态错误、内容非法）时，可采取以下之一应对：</p>
+        <ul>
+          <li><strong>忽略</strong>该包或 PDU</li>
+          <li><strong>恢复</strong>：发送拒绝响应 / 忽略超长内容 / 使用最近合法值 / 使用默认值</li>
+          <li><strong>终止连接</strong>：立即或在合适层面断开（如安全过程中检测到攻击时）</li>
+        </ul>
+        <div class="ibox tip"><span class="ico">💡</span><div>选择哪种响应方式影响用户体验。例如，Peripheral 发出的 POLL 包可能是 NULL 包的 TYPE 字段被破坏，忽略比断连更合理；但安全过程中的无效行为则应立即断连。</div></div>
+      </div>
+
+      <div id="e-types">
+        <h4>2.9 类型名称约定</h4>
+        <p>所有数值以 <strong>小端序（little-endian）</strong>存储。规范定义了以下基本类型：</p>
+        <div class="tbl-wrap">
+          <table class="spec">
+            <thead><tr><th>类型名</th><th>含义</th><th>举例</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">uint#</td><td>无符号整数，# 位</td><td>uint16: 0–65535</td></tr>
+              <tr><td class="mono">sint#</td><td>有符号整数，# 位（二补码）</td><td>sint12: -2048~+2047</td></tr>
+              <tr><td class="mono">boolean</td><td>1 位布尔值（0=false,1=true）</td><td>—</td></tr>
+              <tr><td class="mono">float#</td><td>IEEE 754 浮点（16/32/64/128/256 位）</td><td>float32 = 单精度</td></tr>
+              <tr><td class="mono">uuid16/32/128</td><td>蓝牙 UUID</td><td>0x1800 = Generic Access Service</td></tr>
+              <tr><td class="mono">utf8s</td><td>UTF-8 字符串（变长）</td><td>utf8s{8z}: 8 字节，用 0 补齐</td></tr>
+              <tr><td class="mono">type[N]</td><td>N 元素数组</td><td>sint12[3]: 6 字节</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="e-math">
+        <h4>2.10 数学约定</h4>
+        <div class="tbl-wrap">
+          <table class="spec">
+            <thead><tr><th>符号</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">⌊x⌋</td><td>向下取整（不超过 x 的最大整数）</td></tr>
+              <tr><td class="mono">⌈x⌉</td><td>向上取整（不小于 x 的最小整数）</td></tr>
+              <tr><td class="mono">x mod y</td><td>取余（结果始终非负）</td></tr>
+              <tr><td class="mono">⊕</td><td>按位异或（XOR）</td></tr>
+              <tr><td class="mono">x ∥ y</td><td>比特序列拼接（concatenation）</td></tr>
+              <tr><td class="mono">x ± y</td><td>任意满足 x−y ≤ v ≤ x+y 的值</td></tr>
+              <tr><td class="mono">min(x,y) / max(x,y)</td><td>最小值 / 最大值</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>运算优先级（高→低）：指数 &gt; ×÷mod &gt; +− &gt; 关系运算符。同优先级从左到右计算。有符号整数用二补码表示。整数溢出通过 mod 2<sup>B</sup> 处理。</p>
+      </div>
+
+      <div id="e-reqsym">
+        <h4>2.11 需求状态符号</h4>
+        <div class="tbl-wrap">
+          <table class="spec">
+            <thead><tr><th>符号</th><th>含义</th></tr></thead>
+            <tbody>
+              <tr><td class="mono c-err">M</td><td>Mandatory — 强制支持/包含</td></tr>
+              <tr><td class="mono" style="color:#1a56db">O</td><td>Optional — 可选，各条目独立</td></tr>
+              <tr><td class="mono c-warn">C.#</td><td>Conditional — 条件性，# 表示条件编号，条件在附近定义</td></tr>
+              <tr><td class="mono" style="color:#6b7a99">E</td><td>Excluded — 此上下文中不得支持（其他上下文可能允许）</td></tr>
+              <tr><td class="mono" style="color:#6b7a99">X</td><td>Reserved — 预留，当前排除，未来版本可能变更状态</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- §3 Naming -->
+    <div class="sub" id="e-naming">
+      <h3><span class="tag" style="background:#f5f3ff;color:#6c2bd9;">§3</span>命名约定 Naming Conventions (LE Link Layer PDU)</h3>
+      <p>LE 链路层 PDU 名称由最多 <strong>5 个大写组件</strong>（以下划线分隔）组成，使 PDU 的用途和使用场景一目了然：</p>
+      <div class="tbl-wrap">
+        <table class="spec">
+          <thead><tr><th>位置</th><th>组件</th><th>可选</th><th>取值示例</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>①</td><td>Where（在哪）</td><td>可选</td><td>—, AUX</td><td>无=主广播/数据信道；AUX=辅广播信道</td></tr>
+            <tr><td>②</td><td>When（何时）</td><td>必须</td><td>ADV, LL, BIS, CIS, SYNC…</td><td>使用的链路层过程类型</td></tr>
+            <tr><td>③</td><td>What（做什么）</td><td>通常有</td><td>DIRECT, NONCONN, PHY_UPDATE…</td><td>区分同场景下的不同 PDU</td></tr>
+            <tr><td>④</td><td>Version（版本）</td><td>可选</td><td>—, EXT</td><td>无=原始版本；EXT=扩展版本</td></tr>
+            <tr><td>⑤</td><td>How（如何）</td><td>必须</td><td>IND, REQ, RSP</td><td>IND=指示无需回复；REQ=请求；RSP=响应</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fig-label">PDU 命名分解示例</div>
+
+      <!-- AUX_ADV_IND -->
+      <p style="font-size:12px;color:#8898b3;margin-bottom:4px;">示例 1：<strong>AUX_ADV_IND</strong></p>
+      <div class="pdu-name">
+        <div class="pdu-part" style="background:#dbeafe;color:#1e40af"><span class="pl">① Where</span>AUX</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#d1fae5;color:#065f46"><span class="pl">② When</span>ADV</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#fef3c7;color:#92400e"><span class="pl">⑤ How</span>IND</div>
+      </div>
+      <p style="font-size:12px;color:#6b7a99;margin-top:4px;">辅助广播信道上的广播指示（无需回复）</p>
+
+      <!-- LL_REJECT_EXT_IND -->
+      <p style="font-size:12px;color:#8898b3;margin:12px 0 4px;">示例 2：<strong>LL_REJECT_EXT_IND</strong></p>
+      <div class="pdu-name">
+        <div class="pdu-part" style="background:#d1fae5;color:#065f46"><span class="pl">② When</span>LL</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#ede9fe;color:#5b21b6"><span class="pl">③ What</span>REJECT</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#fee2e2;color:#991b1b"><span class="pl">④ Version</span>EXT</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#fef3c7;color:#92400e"><span class="pl">⑤ How</span>IND</div>
+      </div>
+      <p style="font-size:12px;color:#6b7a99;margin-top:4px;">数据信道 LL 控制 PDU，扩展版拒绝指示</p>
+
+      <!-- LL_LENGTH_REQ / RSP -->
+      <p style="font-size:12px;color:#8898b3;margin:12px 0 4px;">示例 3：<strong>LL_LENGTH_REQ</strong> / <strong>LL_LENGTH_RSP</strong></p>
+      <div class="pdu-name">
+        <div class="pdu-part" style="background:#d1fae5;color:#065f46"><span class="pl">② When</span>LL</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#ede9fe;color:#5b21b6"><span class="pl">③ What</span>LENGTH</div>
+        <span class="pdu-sep">_</span>
+        <div class="pdu-part" style="background:#fef3c7;color:#92400e"><span class="pl">⑤ How</span>REQ / RSP</div>
+      </div>
+      <p style="font-size:12px;color:#6b7a99;margin-top:4px;">数据包长度协商请求与响应，REQ 期待 RSP 回复</p>
+    </div>
+
+  </div><!-- /section-body Part E -->
+</section>
+
+
+<!-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     PART F — CONTROLLER ERROR CODES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="spec-section" id="part-f">
+  <div class="section-head">
+    <div class="section-icon" style="background:#fee2e2;">🚨</div>
+    <div>
+      <span class="part-tag" style="background:#fee2e2;color:#991b1b;">Part F</span>
+      <h2>控制器错误码 Controller Error Codes</h2>
+    </div>
+  </div>
+  <div class="section-body">
+
+    <div class="sub" id="f-overview">
+      <h3><span class="tag" style="background:#fee2e2;color:#991b1b;">§1</span>错误码概述 Overview</h3>
+      <p>错误码用于 HCI 命令失败或 LMP/LL 消息传递失败时，指示失败原因。错误码大小为 <strong>1 字节（0x00–0xFF）</strong>。</p>
+      <ul>
+        <li><code>0x00</code> = <strong>Success（成功）</strong></li>
+        <li><code>0x01–0xFF</code> = 各类失败原因</li>
+        <li>Host 若收到未识别的错误码，应将其等同于 <code>0x1F Unspecified Error</code></li>
+      </ul>
+      <div class="ibox note"><span class="ico">ℹ️</span><div>错误码在 HCI 命令返回、LMP PDU 和 LL Control PDU 中均可能出现。部分错误码在特定协议层有特定语义，不可随意混用。</div></div>
+    </div>
+
+    <div class="sub" id="f-list">
+      <h3><span class="tag" style="background:#fee2e2;color:#991b1b;">§2</span>错误码详解 Error Code Descriptions</h3>
+      <p>下表列出所有已定义的错误码，支持关键词搜索：</p>
+
+      <div class="err-search-wrap">
+        <input class="err-search" type="text" id="errSearch" placeholder="搜索错误码 (名称/代码/说明)…" oninput="filterErr()"/>
+        <span class="err-count" id="errCount"></span>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="spec" id="errTable">
+          <thead><tr><th>错误码</th><th>英文名称</th><th>中文说明</th><th>常见场景</th></tr></thead>
+          <tbody>
+            <tr><td class="mono c-success">0x00</td><td>Success</td><td>操作成功</td><td>所有正常完成的操作</td></tr>
+            <tr><td class="mono c-err">0x01</td><td>Unknown HCI Command</td><td>未知 HCI 命令</td><td>控制器不认识该 HCI 操作码</td></tr>
+            <tr><td class="mono c-err">0x02</td><td>Unknown Connection Identifier</td><td>未知连接标识符</td><td>命令中的连接句柄不存在</td></tr>
+            <tr><td class="mono c-err">0x03</td><td>Hardware Failure</td><td>硬件故障</td><td>控制器内部不可描述的硬件错误</td></tr>
+            <tr><td class="mono c-err">0x04</td><td>Page Timeout</td><td>寻呼超时</td><td>BR/EDR 建立连接时寻呼对端超时</td></tr>
+            <tr><td class="mono c-err">0x05</td><td>Authentication Failure</td><td>认证失败</td><td>配对或认证时 PIN/链路密钥不正确</td></tr>
+            <tr><td class="mono c-err">0x06</td><td>PIN or Key Missing</td><td>PIN 或密钥缺失</td><td>配对/认证所需的密钥未找到</td></tr>
+            <tr><td class="mono c-err">0x07</td><td>Memory Capacity Exceeded</td><td>内存容量超限</td><td>控制器无内存存储新参数</td></tr>
+            <tr><td class="mono c-err">0x08</td><td>Connection Timeout</td><td>连接超时</td><td>链路监督超时或广播同步超时</td></tr>
+            <tr><td class="mono c-err">0x09</td><td>Connection Limit Exceeded</td><td>连接数超限</td><td>控制器已达最大连接数</td></tr>
+            <tr><td class="mono c-err">0x0A</td><td>Synchronous Connection Limit Exceeded</td><td>同步连接数超限</td><td>SCO/eSCO 连接达到最大值</td></tr>
+            <tr><td class="mono c-err">0x0B</td><td>Connection Already Exists</td><td>连接已存在</td><td>尝试与已连接设备再次建立连接</td></tr>
+            <tr><td class="mono c-err">0x0C</td><td>Command Disallowed</td><td>命令不允许</td><td>控制器当前状态不允许执行该命令</td></tr>
+            <tr><td class="mono c-err">0x0D</td><td>Connection Rejected — Limited Resources</td><td>连接拒绝（资源不足）</td><td>资源（缓冲、带宽）不足时拒绝连接</td></tr>
+            <tr><td class="mono c-err">0x0E</td><td>Connection Rejected — Security Reasons</td><td>连接拒绝（安全原因）</td><td>安全需求（认证/配对）未满足</td></tr>
+            <tr><td class="mono c-err">0x0F</td><td>Connection Rejected — Unacceptable BD_ADDR</td><td>连接拒绝（地址不可接受）</td><td>设备仅接受特定地址</td></tr>
+            <tr><td class="mono c-err">0x10</td><td>Connection Accept Timeout Exceeded</td><td>连接接受超时</td><td>连接接受定时器到期</td></tr>
+            <tr><td class="mono c-err">0x11</td><td>Unsupported Feature or Parameter Value</td><td>不支持的特性或参数值</td><td>HCI 命令中含不支持的特性/参数</td></tr>
+            <tr><td class="mono c-err">0x12</td><td>Invalid HCI Command Parameters</td><td>无效 HCI 命令参数</td><td>参数类型/范围/长度/一致性错误</td></tr>
+            <tr><td class="mono c-err">0x13</td><td>Remote User Terminated Connection</td><td>远端用户主动断开</td><td>对端用户或应用发起正常断连</td></tr>
+            <tr><td class="mono c-err">0x14</td><td>Remote Device Terminated — Low Resources</td><td>远端断开（资源不足）</td><td>对端资源耗尽，主动断连</td></tr>
+            <tr><td class="mono c-err">0x15</td><td>Remote Device Terminated — Power Off</td><td>远端断开（即将关机）</td><td>对端设备即将关机</td></tr>
+            <tr><td class="mono c-err">0x16</td><td>Connection Terminated by Local Host</td><td>本地 Host 终止连接</td><td>本地应用/Host 主动断连</td></tr>
+            <tr><td class="mono c-err">0x17</td><td>Repeated Attempts</td><td>重复尝试</td><td>短时间内多次认证/配对失败，暂拒</td></tr>
+            <tr><td class="mono c-err">0x18</td><td>Pairing Not Allowed</td><td>配对不允许</td><td>设备当前不允许配对（如时间窗口外）</td></tr>
+            <tr><td class="mono c-err">0x19</td><td>Unknown LMP PDU</td><td>未知 LMP PDU</td><td>收到不认识的 LMP 操作码</td></tr>
+            <tr><td class="mono c-err">0x1A</td><td>Unsupported Remote Feature</td><td>远端不支持该特性</td><td>对端不支持命令/PDU 对应的功能</td></tr>
+            <tr><td class="mono c-err">0x1B</td><td>SCO Offset Rejected</td><td>SCO 偏移被拒绝</td><td>LMP_SCO_LINK_REQ 中请求的偏移不被接受</td></tr>
+            <tr><td class="mono c-err">0x1C</td><td>SCO Interval Rejected</td><td>SCO 间隔被拒绝</td><td>请求的 SCO 间隔不被接受</td></tr>
+            <tr><td class="mono c-err">0x1D</td><td>SCO Air Mode Rejected</td><td>SCO 空中模式被拒绝</td><td>请求的 SCO 空中传输模式不被接受</td></tr>
+            <tr><td class="mono c-err">0x1E</td><td>Invalid LMP / LL Parameters</td><td>无效 LMP/LL 参数</td><td>PDU 长度/参数/一致性错误</td></tr>
+            <tr><td class="mono c-err">0x1F</td><td>Unspecified Error</td><td>未指定错误</td><td>无更合适错误码时的通用兜底</td></tr>
+            <tr><td class="mono c-err">0x20</td><td>Unsupported LMP/LL Parameter Value</td><td>不支持的 LMP/LL 参数值</td><td>长时间协商后参数值不被支持</td></tr>
+            <tr><td class="mono c-err">0x21</td><td>Role Change Not Allowed</td><td>角色切换不允许</td><td>当前不允许 Central↔Peripheral 角色切换</td></tr>
+            <tr><td class="mono c-err">0x22</td><td>LMP/LL Response Timeout</td><td>LMP/LL 响应超时</td><td>LMP/LL 事务未在超时内得到回应</td></tr>
+            <tr><td class="mono c-err">0x23</td><td>LMP Error Transaction Collision / LL Procedure Collision</td><td>事务/过程碰撞</td><td>相同事务同时进行发生冲突</td></tr>
+            <tr><td class="mono c-err">0x24</td><td>LMP PDU Not Allowed</td><td>LMP PDU 不允许</td><td>操作码不被当前状态允许发送</td></tr>
+            <tr><td class="mono c-err">0x25</td><td>Encryption Mode Not Acceptable</td><td>加密模式不可接受</td><td>请求的加密模式当前不被接受</td></tr>
+            <tr><td class="mono c-err">0x26</td><td>Link Key Cannot Be Changed</td><td>链路密钥不可更改</td><td>使用固定单元密钥时链路密钥无法更改</td></tr>
+            <tr><td class="mono c-err">0x27</td><td>Requested QoS Not Supported</td><td>请求的 QoS 不支持</td><td>服务质量参数不被支持</td></tr>
+            <tr><td class="mono c-err">0x28</td><td>Instant Passed</td><td>时刻已过</td><td>LMP/LL PDU 中含时刻的操作，但该时刻已过去</td></tr>
+            <tr><td class="mono c-err">0x29</td><td>Pairing with Unit Key Not Supported</td><td>不支持单元密钥配对</td><td>对端请求使用单元密钥配对，但不支持</td></tr>
+            <tr><td class="mono c-err">0x2A</td><td>Different Transaction Collision</td><td>不同事务碰撞</td><td>新事务与进行中的不同事务发生冲突</td></tr>
+            <tr><td class="mono c-err">0x2C</td><td>QoS Unacceptable Parameter</td><td>QoS 参数不可接受</td><td>指定 QoS 参数无法接受，但其他值可能可以</td></tr>
+            <tr><td class="mono c-err">0x2D</td><td>QoS Rejected</td><td>QoS 拒绝</td><td>QoS 参数完全不可接受，协商终止</td></tr>
+            <tr><td class="mono c-err">0x2E</td><td>Channel Classification Not Supported</td><td>信道分类不支持</td><td>控制器不支持信道质量评估</td></tr>
+            <tr><td class="mono c-err">0x2F</td><td>Insufficient Security</td><td>安全性不足</td><td>命令/PDU 要求加密链路，但当前未加密</td></tr>
+            <tr><td class="mono c-err">0x30</td><td>Parameter Out of Mandatory Range</td><td>参数超出强制范围</td><td>参数值超出规范强制范围且接收方不接受</td></tr>
+            <tr><td class="mono c-err">0x32</td><td>Role Switch Pending</td><td>角色切换进行中</td><td>正在进行角色切换，命令暂不可用</td></tr>
+            <tr><td class="mono c-err">0x34</td><td>Reserved Slot Violation</td><td>保留时隙违规</td><td>同步协商因保留时隙冲突而终止</td></tr>
+            <tr><td class="mono c-err">0x35</td><td>Role Switch Failed</td><td>角色切换失败</td><td>角色切换尝试失败，恢复原始微微网结构</td></tr>
+            <tr><td class="mono c-err">0x36</td><td>Extended Inquiry Response Too Large</td><td>扩展查询响应过大</td><td>EIR 加 FEC 要求后无法放入支持的包类型</td></tr>
+            <tr><td class="mono c-err">0x37</td><td>Secure Simple Pairing Not Supported by Host</td><td>Host 不支持安全简单配对</td><td>IO 能力交换被拒绝（Host 端不支持 SSP）</td></tr>
+            <tr><td class="mono c-err">0x38</td><td>Host Busy — Pairing</td><td>Host 忙于配对</td><td>Host 正在处理其他配对，拒绝新配对请求</td></tr>
+            <tr><td class="mono c-err">0x39</td><td>Connection Rejected — No Suitable Channel</td><td>连接拒绝（无合适信道）</td><td>信道选择算法无法找到合适信道</td></tr>
+            <tr><td class="mono c-err">0x3A</td><td>Controller Busy</td><td>控制器忙</td><td>控制器当前繁忙，无法处理请求</td></tr>
+            <tr><td class="mono c-err">0x3B</td><td>Unacceptable Connection Parameters</td><td>连接参数不可接受</td><td>远端因连接参数不合适而终止/拒绝连接</td></tr>
+            <tr><td class="mono c-err">0x3C</td><td>Advertising Timeout</td><td>广播超时</td><td>固定时长广播结束，或定向广播未建立连接</td></tr>
+            <tr><td class="mono c-err">0x3D</td><td>Connection Terminated due to MIC Failure</td><td>MIC 校验失败终止连接</td><td>收到的数据包 MIC 验证失败，连接被终止</td></tr>
+            <tr><td class="mono c-err">0x3E</td><td>Connection Failed to be Established / Sync Timeout</td><td>连接建立失败 / 同步超时</td><td>LL 发起连接但未能在规定时间内建立</td></tr>
+            <tr><td class="mono c-err">0x40</td><td>Coarse Clock Adjustment Rejected — Using Dragging</td><td>粗调被拒，改用时钟拖拽</td><td>Central 暂时无法执行粗调，将改用时钟拖拽</td></tr>
+            <tr><td class="mono c-err">0x41</td><td>Type0 Submap Not Defined</td><td>Type0 子图未定义</td><td>LMP PDU 被拒绝，因 Type 0 子图未定义</td></tr>
+            <tr><td class="mono c-err">0x42</td><td>Unknown Advertising Identifier</td><td>未知广播标识符</td><td>命令中的广播/同步句柄不存在</td></tr>
+            <tr><td class="mono c-err">0x43</td><td>Limit Reached</td><td>已达限制</td><td>请求的操作已达限制数量（如广播次数）</td></tr>
+            <tr><td class="mono c-err">0x44</td><td>Operation Cancelled by Host</td><td>操作被 Host 取消</td><td>Host 成功取消了进行中的控制器操作</td></tr>
+            <tr><td class="mono c-err">0x45</td><td>Packet Too Long</td><td>数据包过长</td><td>发送或接收的数据包超过允许的最大长度</td></tr>
+            <tr><td class="mono c-err">0x46</td><td>Too Late</td><td>提供太晚</td><td>信息提供给控制器时已超出时间限制</td></tr>
+            <tr><td class="mono c-err">0x47</td><td>Too Early</td><td>提供太早</td><td>信息在控制器准备好接受之前提供</td></tr>
+            <tr><td class="mono c-err">0x48</td><td>Insufficient Channels</td><td>信道不足</td><td>操作结果可用物理信道数量过少</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /section-body Part F -->
+</section>
+
+</main><!-- /main -->
+
+<!-- Back to top -->
+<button class="btt" id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+/* ── Sidebar toggle (mobile) ── */
+const ham = document.getElementById('hamBtn');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+
+ham.addEventListener('click', () => {
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+});
+overlay.addEventListener('click', () => {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+});
+
+/* ── Active nav link on scroll ── */
+const allLinks = document.querySelectorAll('.nav-link, .nav-sub');
+const targets = [];
+allLinks.forEach(a => {
+  const id = a.getAttribute('href')?.replace('#','');
+  if (id) {
+    const el = document.getElementById(id);
+    if (el) targets.push({ el, a });
+  }
+});
+
+function setActive() {
+  let best = null;
+  const scrollY = window.scrollY + 90;
+  targets.forEach(({ el, a }) => {
+    if (el.getBoundingClientRect().top + window.scrollY <= scrollY) best = a;
+  });
+  allLinks.forEach(l => l.classList.remove('active'));
+  if (best) best.classList.add('active');
+}
+window.addEventListener('scroll', setActive, { passive: true });
+setActive();
+
+/* ── Smooth nav click ── */
+allLinks.forEach(a => {
+  a.addEventListener('click', e => {
+    const href = a.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      e.preventDefault();
+      const target = document.querySelector(href);
+      if (target) {
+        const top = target.getBoundingClientRect().top + window.scrollY - 75;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+      if (window.innerWidth <= 820) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+      }
+    }
+  });
+});
+
+/* ── Back to top ── */
+const btt = document.getElementById('btt');
+window.addEventListener('scroll', () => {
+  btt.classList.toggle('vis', window.scrollY > 400);
+}, { passive: true });
+
+/* ── PHY bar animation ── */
+const phyFills = document.querySelectorAll('.phy-fill');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.width = e.target.dataset.w || e.target.style.width;
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+phyFills.forEach(f => {
+  f.dataset.w = f.style.width || '0';
+  f.style.width = '0';
+  observer.observe(f);
+});
+
+/* ── Error code search ── */
+function filterErr() {
+  const q = document.getElementById('errSearch').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#errTable tbody tr');
+  let count = 0;
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    const show = !q || text.includes(q);
+    row.style.display = show ? '' : 'none';
+    if (show) count++;
+  });
+  const total = rows.length;
+  const countEl = document.getElementById('errCount');
+  countEl.textContent = q ? `显示 ${count} / ${total} 条` : `共 ${total} 条`;
+}
+// Init count
+filterErr();
+</script>
+</body>
+</html>

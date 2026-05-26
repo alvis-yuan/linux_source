@@ -1,0 +1,2530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bluetooth GAP 协议详解 - Core 6.0</title>
+<style>
+  :root {
+    --blue-deep: #0a1628;
+    --blue-mid: #0d2150;
+    --blue-bright: #1565c0;
+    --blue-accent: #1e88e5;
+    --blue-light: #42a5f5;
+    --cyan: #00b4d8;
+    --teal: #00897b;
+    --bg: #f0f4f9;
+    --card: #ffffff;
+    --text: #1a202c;
+    --text-light: #4a5568;
+    --border: #e2e8f0;
+    --nav-w: 280px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ===== SIDEBAR ===== */
+  #sidebar {
+    width: var(--nav-w);
+    min-width: var(--nav-w);
+    background: linear-gradient(180deg, var(--blue-deep) 0%, var(--blue-mid) 100%);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--blue-accent) transparent;
+  }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--blue-accent); border-radius: 4px; }
+
+  .sidebar-header {
+    padding: 22px 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.2);
+  }
+
+  .sidebar-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .bt-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--blue-accent), var(--cyan));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .sidebar-header h1 {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    line-height: 1.3;
+  }
+
+  .sidebar-header .version {
+    font-size: 11px;
+    color: var(--cyan);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  nav { flex: 1; padding: 8px 0 20px; }
+
+  .nav-group { margin-bottom: 2px; }
+
+  .nav-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 10px 18px 4px;
+  }
+
+  .nav-item {
+    display: block;
+    padding: 8px 18px 8px 20px;
+    color: rgba(255,255,255,0.72);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    border-left: 3px solid transparent;
+    position: relative;
+  }
+
+  .nav-item:hover {
+    color: white;
+    background: rgba(255,255,255,0.08);
+    border-left-color: var(--cyan);
+  }
+
+  .nav-item.active {
+    color: white;
+    background: rgba(30,136,229,0.25);
+    border-left-color: var(--cyan);
+    font-weight: 600;
+  }
+
+  .nav-item.sub {
+    padding-left: 32px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+  }
+
+  .nav-item.sub:hover, .nav-item.sub.active {
+    color: rgba(255,255,255,0.95);
+  }
+
+  /* ===== MAIN CONTENT ===== */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    max-width: calc(100vw - var(--nav-w));
+  }
+
+  .content-header {
+    background: linear-gradient(135deg, var(--blue-deep) 0%, #1a237e 40%, #0d47a1 100%);
+    color: white;
+    padding: 48px 48px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .content-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .content-header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 30%;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(100,181,246,0.07);
+  }
+
+  .content-header .tag {
+    display: inline-block;
+    background: rgba(0,180,216,0.25);
+    color: var(--cyan);
+    border: 1px solid rgba(0,180,216,0.4);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
+
+  .content-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    line-height: 1.2;
+    position: relative;
+    z-index: 1;
+  }
+
+  .content-header p {
+    font-size: 15px;
+    color: rgba(255,255,255,0.75);
+    max-width: 700px;
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+  }
+
+  .content-body { padding: 40px 48px 60px; }
+
+  /* ===== SECTION ===== */
+  .section {
+    margin-bottom: 60px;
+    scroll-margin-top: 20px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .section-num {
+    background: linear-gradient(135deg, var(--blue-bright), var(--blue-accent));
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(21,101,192,0.35);
+  }
+
+  .section-title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--blue-deep);
+  }
+
+  .subsection { margin-bottom: 36px; }
+
+  .subsection-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--blue-bright);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .subsection-title::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: linear-gradient(to bottom, var(--blue-accent), var(--cyan));
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  p {
+    color: var(--text-light);
+    line-height: 1.8;
+    margin-bottom: 12px;
+    font-size: 14.5px;
+  }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 22px 24px;
+    border: 1px solid var(--border);
+    margin-bottom: 18px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .info-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+  }
+
+  .info-card .icon {
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+
+  .info-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue-deep);
+    margin-bottom: 6px;
+  }
+
+  .info-card p {
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ===== DIAGRAMS ===== */
+  .diagram-box {
+    background: white;
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    overflow-x: auto;
+  }
+
+  .diagram-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue-accent);
+    text-align: center;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Stack Diagram */
+  .stack-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .stack-layer {
+    width: 100%;
+    padding: 13px 20px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    border-radius: 0;
+    position: relative;
+  }
+
+  .stack-layer:first-child { border-radius: 10px 10px 0 0; }
+  .stack-layer:last-child { border-radius: 0 0 10px 10px; }
+
+  .stack-layer .sub-text {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+
+  .stack-arrow {
+    width: 2px;
+    height: 16px;
+    background: var(--border);
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .stack-arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid var(--border);
+  }
+
+  /* Role Diagram */
+  .role-diagram {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    flex-wrap: wrap;
+  }
+
+  .role-box {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: 2px solid #90caf9;
+    border-radius: 12px;
+    padding: 16px 22px;
+    text-align: center;
+    min-width: 130px;
+    position: relative;
+  }
+
+  .role-box .role-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--blue-bright);
+    margin-bottom: 4px;
+  }
+
+  .role-box .role-desc {
+    font-size: 11px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+
+  .role-connector {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--blue-light);
+    font-size: 22px;
+  }
+
+  /* State Machine */
+  .state-machine {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+  }
+
+  .state-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .state-node {
+    background: white;
+    border: 2px solid var(--blue-accent);
+    border-radius: 50px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue-bright);
+    text-align: center;
+    min-width: 120px;
+    box-shadow: 0 3px 10px rgba(21,101,192,0.15);
+  }
+
+  .state-node.active-state {
+    background: linear-gradient(135deg, var(--blue-accent), var(--cyan));
+    color: white;
+    border-color: transparent;
+  }
+
+  .state-arrows {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    font-size: 22px;
+    color: var(--blue-light);
+  }
+
+  /* Table */
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+
+  .spec-table th {
+    background: linear-gradient(135deg, var(--blue-bright), var(--blue-accent));
+    color: white;
+    padding: 11px 15px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+
+  .spec-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+
+  .spec-table tr:last-child td { border-bottom: none; }
+
+  .spec-table tr:nth-child(even) td { background: #f8fafc; }
+
+  .spec-table tr:hover td { background: #e3f2fd; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-m { background: #e8f5e9; color: #2e7d32; }
+  .badge-o { background: #fff8e1; color: #f57f17; }
+  .badge-c { background: #e3f2fd; color: #1565c0; }
+  .badge-e { background: #fce4ec; color: #880e4f; }
+
+  /* Timeline / Flow */
+  .flow-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .flow-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 36px;
+  }
+
+  .flow-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue-accent), var(--cyan));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 800;
+    font-size: 14px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(21,101,192,0.3);
+  }
+
+  .flow-line {
+    width: 2px;
+    height: 36px;
+    background: linear-gradient(to bottom, var(--blue-accent), transparent);
+    flex-shrink: 0;
+  }
+
+  .flow-content {
+    padding-bottom: 28px;
+    flex: 1;
+  }
+
+  .flow-content h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue-deep);
+    margin-bottom: 4px;
+  }
+
+  .flow-content p {
+    font-size: 13px;
+    color: var(--text-light);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* Security modes */
+  .security-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .security-card {
+    border-radius: 12px;
+    padding: 18px;
+    border-left: 4px solid;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  .security-card.lvl1 { border-left-color: #4caf50; background: #f1f8f1; }
+  .security-card.lvl2 { border-left-color: #2196f3; background: #e8f4fd; }
+  .security-card.lvl3 { border-left-color: #ff9800; background: #fff8e1; }
+  .security-card.lvl4 { border-left-color: #f44336; background: #fdecea; }
+
+  .security-card .lvl-badge {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .security-card.lvl1 .lvl-badge { color: #4caf50; }
+  .security-card.lvl2 .lvl-badge { color: #1976d2; }
+  .security-card.lvl3 .lvl-badge { color: #e65100; }
+  .security-card.lvl4 .lvl-badge { color: #c62828; }
+
+  .security-card h4 { font-size: 14px; font-weight: 700; color: var(--blue-deep); margin-bottom: 6px; }
+  .security-card p { font-size: 12.5px; color: var(--text-light); margin: 0; line-height: 1.5; }
+
+  /* Highlight box */
+  .highlight-box {
+    background: linear-gradient(135deg, #e3f2fd, #e8eaf6);
+    border: 1px solid #90caf9;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .highlight-box .hb-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--blue-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .highlight-box p {
+    font-size: 13.5px;
+    color: #37474f;
+    margin: 0;
+    line-height: 1.7;
+  }
+
+  /* Timer table */
+  .timer-item {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .timer-item:last-child { border-bottom: none; }
+
+  .timer-name {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--blue-accent);
+    min-width: 180px;
+    flex-shrink: 0;
+  }
+
+  .timer-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e65100;
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+
+  .timer-desc {
+    font-size: 12.5px;
+    color: var(--text-light);
+    line-height: 1.5;
+  }
+
+  /* Advertising Diagram */
+  .adv-channel {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .ch-block {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    min-width: 60px;
+  }
+
+  .ch-adv { background: linear-gradient(135deg, #1565c0, #42a5f5); color: white; }
+  .ch-data { background: linear-gradient(135deg, #00695c, #26a69a); color: white; }
+  .ch-label { font-size: 12px; color: var(--text-light); font-weight: 600; }
+
+  /* GAP Arch Box */
+  .arch-box {
+    border: 2px solid;
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 13px;
+    margin: 4px 0;
+  }
+
+  .arch-gap { border-color: #1565c0; color: #1565c0; background: #e3f2fd; }
+  .arch-l2cap { border-color: #00695c; color: #00695c; background: #e0f2f1; }
+  .arch-hci { border-color: #e65100; color: #e65100; background: #fff3e0; }
+  .arch-ll { border-color: #6a1b9a; color: #6a1b9a; background: #f3e5f5; }
+  .arch-phy { border-color: #1b5e20; color: #1b5e20; background: #e8f5e9; }
+
+  .arch-arrow-down {
+    text-align: center;
+    color: #90a4ae;
+    font-size: 20px;
+    line-height: 1;
+    margin: 2px 0;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .content-body { padding: 24px; }
+    .content-header { padding: 30px 24px; }
+    .content-header h1 { font-size: 24px; }
+  }
+
+  /* Scrollbar for main */
+  main::-webkit-scrollbar { width: 6px; }
+  main::-webkit-scrollbar-track { background: var(--bg); }
+  main::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+  /* Section separator */
+  .sep { height: 1px; background: var(--border); margin: 32px 0; }
+
+  /* Smooth scroll */
+  html { scroll-behavior: smooth; }
+
+  .note-box {
+    background: #fffde7;
+    border-left: 4px solid #f9a825;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-size: 13.5px;
+    color: #5d4037;
+    line-height: 1.7;
+  }
+
+  .code-inline {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-family: 'Courier New', monospace;
+    font-size: 12.5px;
+    color: #c62828;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="bt-icon">&#10026;</div>
+      <div>
+        <h1>Bluetooth GAP</h1>
+        <div class="version">Core Spec 6.0 · Part C</div>
+      </div>
+    </div>
+  </div>
+  <nav id="nav">
+    <div class="nav-group">
+      <div class="nav-group-label">概览</div>
+      <a class="nav-item" data-target="sec-intro">简介 &amp; 前言</a>
+      <a class="nav-item sub" data-target="sec-scope">1.1 适用范围</a>
+      <a class="nav-item sub" data-target="sec-conventions">1.2 符号与约定</a>
+      <a class="nav-item sub" data-target="sec-requirements">1.3 GAP 要求</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 2 节</div>
+      <a class="nav-item" data-target="sec-overview">Profile 总览</a>
+      <a class="nav-item sub" data-target="sec-stack">2.1 协议栈结构</a>
+      <a class="nav-item sub" data-target="sec-roles">2.2 Profile 角色</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 3 节</div>
+      <a class="nav-item" data-target="sec-user-interface">用户界面方面</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 4-5 节 BR/EDR</div>
+      <a class="nav-item" data-target="sec-bredr-modes">可发现/可连接模式</a>
+      <a class="nav-item sub" data-target="sec-disc-modes">4.1 可发现模式</a>
+      <a class="nav-item sub" data-target="sec-conn-modes">5.1 可连接模式</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 6-8 节 BR/EDR</div>
+      <a class="nav-item" data-target="sec-bonding">配对与绑定</a>
+      <a class="nav-item sub" data-target="sec-security-br">安全模式(BR/EDR)</a>
+      <a class="nav-item sub" data-target="sec-idle">空闲模式流程</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 9 节 LE</div>
+      <a class="nav-item" data-target="sec-le-modes">LE 可发现模式</a>
+      <a class="nav-item sub" data-target="sec-le-disc">发现流程</a>
+      <a class="nav-item sub" data-target="sec-advertising">广播机制</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 10 节 LE</div>
+      <a class="nav-item" data-target="sec-le-conn">LE 连接模式</a>
+      <a class="nav-item sub" data-target="sec-le-conn-proc">连接流程</a>
+      <a class="nav-item sub" data-target="sec-privacy">隐私与地址</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 11-12 节 LE</div>
+      <a class="nav-item" data-target="sec-le-security">LE 安全模式</a>
+      <a class="nav-item sub" data-target="sec-le-sec-levels">安全等级</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 13-14 节</div>
+      <a class="nav-item" data-target="sec-iso">等时广播(ISO)</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">第 15-17 节</div>
+      <a class="nav-item" data-target="sec-common">通用格式要求</a>
+      <a class="nav-item sub" data-target="sec-adv-data">广播数据格式</a>
+      <a class="nav-item sub" data-target="sec-appearance">设备外观</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">附录</div>
+      <a class="nav-item" data-target="sec-timers">附录 A · GAP 定时器</a>
+      <a class="nav-item" data-target="sec-appendix-b">附录 B · 信息流</a>
+    </div>
+  </nav>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main id="main-content">
+
+  <!-- HEADER -->
+  <div class="content-header">
+    <div class="tag">Bluetooth Core 6.0 · Part C</div>
+    <h1>Generic Access Profile (GAP)<br>通用访问规范详解</h1>
+    <p>GAP 定义了蓝牙设备发现（空闲模式）和连接管理（连接模式）的通用流程，并规定安全级别使用方式及用户界面层可访问参数的通用格式要求。</p>
+  </div>
+
+  <div class="content-body">
+
+    <!-- ===== SECTION 1: INTRO ===== -->
+    <div class="section" id="sec-intro">
+      <div class="section-title">
+        <div class="section-num">1</div>
+        <h2>前言 Foreword</h2>
+      </div>
+      <p>蓝牙 SIG 定义的 Profile 规范确保了来自不同制造商的设备在特定服务与使用场景下的互操作性。Profile 从蓝牙 SIG 规范中选取消息与流程（统称为<strong>能力 Capabilities</strong>），描述特定服务的空中接口。</p>
+      <div class="highlight-box">
+        <div class="hb-title">核心思想</div>
+        <p>GAP 是所有蓝牙 Profile 的基础。它定义了设备如何被发现、如何建立连接、如何处理安全，以及如何向用户呈现相关参数。任何蓝牙传输层 Profile 和应用层 Profile 都必须遵循 GAP 的规定。</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🔍</div>
+          <h3>BR/EDR-only</h3>
+          <p>经典蓝牙核心配置，支持传统高速蓝牙通信（音频、数据传输等）</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">📡</div>
+          <h3>LE only</h3>
+          <p>低功耗蓝牙核心配置，适用于传感器、可穿戴、IoT 等低功耗场景</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">⚡</div>
+          <h3>BR/EDR/LE</h3>
+          <p>双模核心配置，同时支持经典蓝牙和低功耗蓝牙，最为通用</p>
+        </div>
+      </div>
+
+      <div class="diagram-box">
+        <div class="diagram-title">实现传输类型概览</div>
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>实现传输类型</th>
+              <th>适用 Core 配置</th>
+              <th>典型应用</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>BR/EDR-only</strong></td>
+              <td>BR/EDR Core Configuration</td>
+              <td>耳机、音箱、键盘鼠标</td>
+            </tr>
+            <tr>
+              <td><strong>LE only</strong></td>
+              <td>LE Core Configuration</td>
+              <td>心率带、温度传感器、信标</td>
+            </tr>
+            <tr>
+              <td><strong>BR/EDR/LE</strong></td>
+              <td>BR/EDR/LE Core Configuration</td>
+              <td>智能手机、平板、电脑</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SCOPE -->
+    <div class="section" id="sec-scope">
+      <div class="section-title">
+        <div class="section-num">1.1</div>
+        <h2>适用范围 Scope</h2>
+      </div>
+      <p>GAP 的目的涵盖三个核心层面：</p>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">📋</div>
+          <h3>定义规范与建议</h3>
+          <p>为传输层和应用层 Profile 引入与模式及访问流程相关的定义、建议与通用要求</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔗</div>
+          <h3>规范设备行为</h3>
+          <p>描述设备在待机和连接状态下的行为，重点关注发现、链路建立和安全流程</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🖥️</div>
+          <h3>用户界面要求</h3>
+          <p>规定用户界面的编码方案、流程名称及参数名称，以提供良好的用户体验</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONVENTIONS -->
+    <div class="section" id="sec-conventions">
+      <div class="section-title">
+        <div class="section-num">1.2</div>
+        <h2>符号与约定 Symbols &amp; Conventions</h2>
+      </div>
+      <div class="subsection">
+        <div class="subsection-title">1.2.2 信令图约定</div>
+        <p>信令图中用于描述流程的箭头规范如下：</p>
+        <div class="diagram-box">
+          <div class="diagram-title">信令图箭头含义</div>
+          <div style="max-width:480px;margin:0 auto;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+              <div style="text-align:center;background:#e3f2fd;border-radius:10px;padding:12px 16px;min-width:80px;">
+                <div style="font-weight:800;font-size:15px;color:#1565c0;">设备 A</div>
+                <div style="font-size:11px;color:#666;">发起方 / Initiator</div>
+              </div>
+              <div style="text-align:center;background:#e8f5e9;border-radius:10px;padding:12px 16px;min-width:80px;">
+                <div style="font-weight:800;font-size:15px;color:#2e7d32;">设备 B</div>
+                <div style="font-size:11px;color:#666;">接受方 / Acceptor</div>
+              </div>
+            </div>
+            <table style="width:100%;font-size:13px;border-collapse:collapse;">
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px 6px;color:#1565c0;font-weight:700;">A ——→ B</td>
+                <td style="padding:8px 6px;color:#555;">实线箭头：必须执行的消息/子流程</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px 6px;color:#1565c0;font-weight:700;">A - - → B</td>
+                <td style="padding:8px 6px;color:#555;">虚线箭头：可选消息/子流程</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:8px 6px;color:#2e7d32;font-weight:700;">B ——→ A</td>
+                <td style="padding:8px 6px;color:#555;">由 B 发起的子流程</td>
+              </tr>
+              <tr>
+                <td style="padding:8px 6px;color:#9c27b0;font-weight:700;">A ←——→ B</td>
+                <td style="padding:8px 6px;color:#555;">发起方未定义（A 或 B 均可）</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="subsection">
+        <div class="subsection-title">1.2.3 定时器与计数器记法</div>
+        <p>GAP 专用定时器采用格式 <span class="code-inline">TGAP(nnn)</span> 命名，以区别于蓝牙协议规范及其他 Profile 中使用的定时器。</p>
+        <div class="note-box">💡 示例：<span class="code-inline">TGAP(adv_fast_interval)</span> 表示快速广播间隔定时器；<span class="code-inline">TGAP(lim_adv_timeout)</span> 表示有限可发现模式广播超时定时器。</div>
+      </div>
+      <div class="subsection">
+        <div class="subsection-title">1.2.4 UUID 记法</div>
+        <p>使用 <strong>«  »</strong> 符号（例如 «Device Name»）表示蓝牙 SIG 定义的标准 UUID。</p>
+      </div>
+    </div>
+
+    <!-- REQUIREMENTS -->
+    <div class="section" id="sec-requirements">
+      <div class="section-title">
+        <div class="section-num">1.3</div>
+        <h2>GAP 要求 Requirements</h2>
+      </div>
+      <p>GAP 中适用于实现的章节取决于其所实现的 Core-Host 配置或 Core-Complete 配置：</p>
+      <div class="diagram-box">
+        <div class="diagram-title">各 Core 配置适用章节</div>
+        <table class="spec-table">
+          <thead>
+            <tr><th>Core 配置</th><th>适用章节</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>BR/EDR</strong></td>
+              <td>第 1-8、12、15-17 节，附录 A、B</td>
+              <td>经典蓝牙，包含全部 BR/EDR 安全与发现规程</td>
+            </tr>
+            <tr>
+              <td><strong>LE</strong></td>
+              <td>第 1-3、9-12、15-17 节，附录 A、B</td>
+              <td>低功耗蓝牙，包含 LE 广播、扫描、连接规程</td>
+            </tr>
+            <tr>
+              <td><strong>BR/EDR/LE</strong></td>
+              <td>全部章节</td>
+              <td>双模设备，需满足所有要求</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 2: OVERVIEW ===== -->
+    <div class="section" id="sec-overview">
+      <div class="section-title">
+        <div class="section-num">2</div>
+        <h2>Profile 总览 Profile Overview</h2>
+      </div>
+      <p>GAP 描述了蓝牙系统中最核心的四大能力：Profile 角色、可发现模式与流程、连接模式与流程、安全模式与流程。</p>
+    </div>
+
+    <!-- STACK -->
+    <div class="section" id="sec-stack">
+      <div class="section-title">
+        <div class="section-num">2.1</div>
+        <h2>协议栈结构 Profile Stack</h2>
+      </div>
+      <p>GAP 位于蓝牙协议栈的 Host 层，处于应用层之下，直接管理连接和安全流程：</p>
+      <div class="two-col">
+        <div class="diagram-box">
+          <div class="diagram-title">BR/EDR 协议栈</div>
+          <div style="max-width:320px;margin:0 auto;">
+            <div class="arch-box" style="border-color:#7b1fa2;color:#7b1fa2;background:#f3e5f5;">应用层 / Application</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-gap">GAP（通用访问规范）</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-l2cap">L2CAP</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-hci">HCI</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box" style="border-color:#37474f;color:#37474f;background:#eceff1;">LMP / Baseband</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-phy">Radio (2.4 GHz ISM)</div>
+          </div>
+        </div>
+        <div class="diagram-box">
+          <div class="diagram-title">LE 协议栈</div>
+          <div style="max-width:320px;margin:0 auto;">
+            <div class="arch-box" style="border-color:#7b1fa2;color:#7b1fa2;background:#f3e5f5;">应用层 / Application</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-gap">GAP（通用访问规范）</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box" style="border-color:#00695c;color:#00695c;background:#e0f2f1;">ATT / SMP / L2CAP</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-hci">HCI</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-ll">Link Layer (LL)</div>
+            <div class="arch-arrow-down">↕</div>
+            <div class="arch-box arch-phy">PHY (1M / 2M / Coded)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROLES -->
+    <div class="section" id="sec-roles">
+      <div class="section-title">
+        <div class="section-num">2.2</div>
+        <h2>Profile 角色 Profile Roles</h2>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">2.2.1 BR/EDR 角色</div>
+        <p>在 BR/EDR 传输中，GAP 使用 <strong>A-party（发起方 / 寻呼方）</strong>和 <strong>B-party（接受方 / 被寻呼方）</strong>的通用记法来描述两个设备之间的通信。</p>
+        <div class="diagram-box">
+          <div class="diagram-title">BR/EDR 通信角色</div>
+          <div class="role-diagram">
+            <div class="role-box">
+              <div class="role-name">设备 A</div>
+              <div class="role-desc">发起方<br>Initiator / Paging</div>
+            </div>
+            <div style="display:flex;align-items:center;font-size:28px;color:#42a5f5;">⇄</div>
+            <div class="role-box">
+              <div class="role-name">设备 B</div>
+              <div class="role-desc">接受方<br>Acceptor / Paged</div>
+            </div>
+          </div>
+          <p style="text-align:center;font-size:12px;color:#888;margin-top:14px;">A-party 发起设备发现、物理链路建立或已有链路上的事务</p>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">2.2.2 LE 四种角色</div>
+        <p>LE 物理传输定义了四种 GAP 角色，彼此功能互补，构成完整的 LE 生态系统：</p>
+        <div class="card-grid">
+          <div class="info-card" style="border-left:4px solid #1565c0;">
+            <div class="icon">📢</div>
+            <h3>Broadcaster（广播者）</h3>
+            <p>持续发送广播包，不建立连接。适合信标、广告牌等场景。必须支持 Advertising 状态。</p>
+          </div>
+          <div class="info-card" style="border-left:4px solid #00695c;">
+            <div class="icon">👁️</div>
+            <h3>Observer（观察者）</h3>
+            <p>扫描并接收广播包，不发起连接。适合扫描器、数据收集器。必须支持 Scanning 状态。</p>
+          </div>
+          <div class="info-card" style="border-left:4px solid #e65100;">
+            <div class="icon">📱</div>
+            <h3>Peripheral（外围设备）</h3>
+            <p>发广播并接受连接请求，连接后成为 Slave。适合传感器、心率带等。</p>
+          </div>
+          <div class="info-card" style="border-left:4px solid #6a1b9a;">
+            <div class="icon">🖥️</div>
+            <h3>Central（中央设备）</h3>
+            <p>扫描并主动发起连接，连接后成为 Master。适合智能手机、网关设备。</p>
+          </div>
+        </div>
+
+        <div class="diagram-box">
+          <div class="diagram-title">LE 角色关系图</div>
+          <div style="max-width:560px;margin:0 auto;">
+            <!-- Broadcaster <-> Observer -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;">
+              <div style="text-align:center;">
+                <div style="background:linear-gradient(135deg,#1565c0,#42a5f5);color:white;border-radius:10px;padding:10px 20px;font-weight:800;font-size:14px;">Broadcaster</div>
+                <div style="font-size:11px;color:#888;margin-top:4px;">广播者</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:24px;color:#1565c0;">→→→</div>
+                <div style="font-size:11px;color:#888;">广播包（无需连接）</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="background:linear-gradient(135deg,#00695c,#26a69a);color:white;border-radius:10px;padding:10px 20px;font-weight:800;font-size:14px;">Observer</div>
+                <div style="font-size:11px;color:#888;margin-top:4px;">观察者</div>
+              </div>
+            </div>
+            <!-- Peripheral <-> Central -->
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="text-align:center;">
+                <div style="background:linear-gradient(135deg,#e65100,#ff7043);color:white;border-radius:10px;padding:10px 20px;font-weight:800;font-size:14px;">Peripheral</div>
+                <div style="font-size:11px;color:#888;margin-top:4px;">外围设备</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:24px;color:#e65100;">⇄</div>
+                <div style="font-size:11px;color:#888;">双向连接</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="background:linear-gradient(135deg,#6a1b9a,#ab47bc);color:white;border-radius:10px;padding:10px 20px;font-weight:800;font-size:14px;">Central</div>
+                <div style="font-size:11px;color:#888;margin-top:4px;">中央设备</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="diagram-box">
+          <div class="diagram-title">LE 角色与 Link Layer 功能需求（M=必须 O=可选 E=排除）</div>
+          <div style="overflow-x:auto;">
+            <table class="spec-table">
+              <thead>
+                <tr>
+                  <th>功能</th>
+                  <th>Broadcaster</th>
+                  <th>Observer</th>
+                  <th>Peripheral</th>
+                  <th>Central</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>发射机</strong></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-o">O</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-m">M</span></td></tr>
+                <tr><td><strong>接收机</strong></td><td><span class="badge badge-o">O</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-m">M</span></td></tr>
+                <tr><td>待机状态</td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-m">M</span></td></tr>
+                <tr><td>广播状态</td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-e">E</span></td></tr>
+                <tr><td>扫描状态</td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-m">M</span></td></tr>
+                <tr><td>发起状态</td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-m">M</span></td></tr>
+                <tr><td>连接态(外围)</td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-m">M</span></td><td><span class="badge badge-e">E</span></td></tr>
+                <tr><td>连接态(中央)</td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-e">E</span></td><td><span class="badge badge-m">M</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+            <span><span class="badge badge-m">M</span> = 必须支持</span>
+            <span><span class="badge badge-o">O</span> = 可选</span>
+            <span><span class="badge badge-c">C</span> = 条件必须</span>
+            <span><span class="badge badge-e">E</span> = 排除（不允许）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 3: USER INTERFACE ===== -->
+    <div class="section" id="sec-user-interface">
+      <div class="section-title">
+        <div class="section-num">3</div>
+        <h2>用户界面方面 User Interface Aspects</h2>
+      </div>
+      <p>GAP 对用户界面可见的参数与流程提出了统一的规范要求，以确保跨设备、跨制造商的一致体验。</p>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">📝</div>
+          <h3>设备名称</h3>
+          <p>«Device Name» — UTF-8 编码的设备友好名称，最长 248 字节，用于在 UI 中标识设备</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🎨</div>
+          <h3>设备外观</h3>
+          <p>«Appearance» — 16-bit 数值描述设备类型（如手表、心率计），用于 UI 图标选择</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔑</div>
+          <h3>配对流程名称</h3>
+          <p>标准化配对/绑定流程的用户可见名称，确保用户理解安全操作的含义</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">📊</div>
+          <h3>信号强度显示</h3>
+          <p>RSSI 等物理层测量值的展示规范，帮助用户判断连接质量</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 4-5: BR/EDR MODES ===== -->
+    <div class="section" id="sec-bredr-modes">
+      <div class="section-title">
+        <div class="section-num">4–5</div>
+        <h2>BR/EDR 发现与连接模式</h2>
+      </div>
+      <p>BR/EDR（经典蓝牙）中的设备可发现性和可连接性由专用模式和流程控制，确保设备在正确时机可被找到、可被连接。</p>
+    </div>
+
+    <div class="section" id="sec-disc-modes">
+      <div class="section-title">
+        <div class="section-num">4.1</div>
+        <h2>可发现模式 Discoverability Modes</h2>
+      </div>
+      <div class="diagram-box">
+        <div class="diagram-title">BR/EDR 可发现模式状态机</div>
+        <div class="state-machine">
+          <div class="state-row">
+            <div class="state-node" style="background:#f5f5f5;border-color:#9e9e9e;color:#616161;">不可发现模式<br><small style="font-weight:400;font-size:11px;">Non-Discoverable</small></div>
+          </div>
+          <div style="text-align:center;color:#bbb;font-size:22px;margin:4px 0;">↕</div>
+          <div class="state-row">
+            <div class="state-node" style="background:#fff8e1;border-color:#f9a825;color:#e65100;">有限可发现模式<br><small style="font-weight:400;font-size:11px;">Limited Discoverable</small></div>
+          </div>
+          <div style="text-align:center;color:#bbb;font-size:22px;margin:4px 0;">↕</div>
+          <div class="state-row">
+            <div class="state-node active-state">通用可发现模式<br><small style="font-weight:400;font-size:11px;">General Discoverable</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🚫</div>
+          <h3>不可发现模式</h3>
+          <p>设备不响应查询（Inquiry）请求。适用于已配对、已连接或需要保护隐私的场景。</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">⏱️</div>
+          <h3>有限可发现模式</h3>
+          <p>设备在有限时间窗口内（最长 180 秒）响应查询。适用于新设备首次设置。</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">📡</div>
+          <h3>通用可发现模式</h3>
+          <p>设备持续响应任何查询请求，无时间限制。适用于公共共享设备。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-conn-modes">
+      <div class="section-title">
+        <div class="section-num">5.1</div>
+        <h2>可连接模式 Connectability Modes</h2>
+      </div>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🔒</div>
+          <h3>不可连接模式</h3>
+          <p>设备不接受任何寻呼（Page）请求。通常在设备忙于其他操作或维护隐私时使用。</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔓</div>
+          <h3>可连接模式</h3>
+          <p>设备周期性扫描寻呼信道（Page Scan），接受来自已知或未知设备的连接请求。</p>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <div class="diagram-title">BR/EDR 连接建立流程</div>
+        <div class="flow-diagram">
+          <div class="flow-step">
+            <div class="flow-left">
+              <div class="flow-dot">1</div>
+              <div class="flow-line"></div>
+            </div>
+            <div class="flow-content">
+              <h4>查询 (Inquiry)</h4>
+              <p>设备 A 发送 IAC（查询访问码），发现周围可发现设备</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left">
+              <div class="flow-dot">2</div>
+              <div class="flow-line"></div>
+            </div>
+            <div class="flow-content">
+              <h4>查询响应 (Inquiry Response)</h4>
+              <p>设备 B 回复 FHS 数据包，包含其蓝牙地址、时钟信息</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left">
+              <div class="flow-dot">3</div>
+              <div class="flow-line"></div>
+            </div>
+            <div class="flow-content">
+              <h4>寻呼 (Page)</h4>
+              <p>设备 A 使用获得的信息向设备 B 发起寻呼，建立物理链路</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left">
+              <div class="flow-dot">4</div>
+              <div class="flow-line"></div>
+            </div>
+            <div class="flow-content">
+              <h4>链路建立 (Link Establishment)</h4>
+              <p>LMP 握手完成，ACL 链路建立成功</p>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="flow-left">
+              <div class="flow-dot">5</div>
+            </div>
+            <div class="flow-content">
+              <h4>认证/加密 (Authentication/Encryption)</h4>
+              <p>依安全需求进行配对、认证和加密协商</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 6-8: BONDING & SECURITY ===== -->
+    <div class="section" id="sec-bonding">
+      <div class="section-title">
+        <div class="section-num">6</div>
+        <h2>配对与绑定 Pairing &amp; Bonding</h2>
+      </div>
+      <p>配对（Pairing）是指两设备首次建立共享密钥的过程；绑定（Bonding）是指将配对信息持久存储，以便后续无需重新配对直接连接。</p>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🤝</div>
+          <h3>非绑定模式 Non-Bondable</h3>
+          <p>配对完成后不保存链路密钥，适合一次性临时连接</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">💾</div>
+          <h3>绑定模式 Bondable</h3>
+          <p>配对后保存链路密钥，下次连接可直接使用，无需重新配对</p>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <div class="diagram-title">BR/EDR 配对流程（LMP Pairing）</div>
+        <div style="max-width:500px;margin:0 auto;">
+          <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:start;">
+            <div style="text-align:center;background:#e3f2fd;border-radius:10px 10px 0 0;padding:12px;font-weight:800;color:#1565c0;">设备 A</div>
+            <div></div>
+            <div style="text-align:center;background:#e8f5e9;border-radius:10px 10px 0 0;padding:12px;font-weight:800;color:#2e7d32;">设备 B</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;border-left:2px solid #e3f2fd;border-right:2px solid #e8f5e9;padding:6px 0;">
+            <div style="border-right:1px dashed #ccc;padding:6px 10px;font-size:12px;text-align:right;color:#555;min-height:36px;"></div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:18px;color:#42a5f5;">→</div>
+            <div style="padding:6px 10px;font-size:12px;color:#555;"><span style="font-weight:700;">LMP_in_rand</span><br>发送随机数</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;border-left:2px solid #e3f2fd;border-right:2px solid #e8f5e9;padding:6px 0;">
+            <div style="border-right:1px dashed #ccc;padding:6px 10px;font-size:12px;text-align:right;color:#555;">输入 PIN 码</div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:18px;color:#42a5f5;">←</div>
+            <div style="padding:6px 10px;font-size:12px;color:#555;">输入 PIN 码</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;border-left:2px solid #e3f2fd;border-right:2px solid #e8f5e9;padding:6px 0;">
+            <div style="border-right:1px dashed #ccc;padding:6px 10px;font-size:12px;text-align:right;color:#555;min-height:36px;"></div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:18px;color:#42a5f5;">⇄</div>
+            <div style="padding:6px 10px;font-size:12px;color:#555;"><span style="font-weight:700;">生成链路密钥</span><br>E21/E22 算法</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;border-left:2px solid #e3f2fd;border-right:2px solid #e8f5e9;border-bottom:2px solid #ccc;padding:6px 0;border-radius:0 0 8px 8px;">
+            <div style="border-right:1px dashed #ccc;padding:6px 10px;font-size:12px;text-align:right;color:#555;min-height:36px;"></div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:18px;color:#42a5f5;">⇄</div>
+            <div style="padding:6px 10px;font-size:12px;color:#555;"><span style="font-weight:700;">相互认证</span><br>LMP_au_rand / sres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-security-br">
+      <div class="section-title">
+        <div class="section-num">7</div>
+        <h2>BR/EDR 安全模式 Security Modes</h2>
+      </div>
+      <div class="security-grid">
+        <div class="security-card lvl1">
+          <div class="lvl-badge">安全模式 1</div>
+          <h4>无安全性</h4>
+          <p>不执行任何安全流程，所有通信均以明文传输，无认证无加密</p>
+        </div>
+        <div class="security-card lvl2">
+          <div class="lvl-badge">安全模式 2</div>
+          <h4>服务级强制安全</h4>
+          <p>链路建立后在服务访问层面强制安全，由安全管理器控制，可按服务设置不同安全要求</p>
+        </div>
+        <div class="security-card lvl3">
+          <div class="lvl-badge">安全模式 3</div>
+          <h4>链路级强制安全</h4>
+          <p>链路建立前必须完成认证和加密，是 BR/EDR 传统安全模式的标准配置</p>
+        </div>
+        <div class="security-card lvl4">
+          <div class="lvl-badge">安全模式 4</div>
+          <h4>服务级强制安全(SSP)</h4>
+          <p>基于简单安全配对（SSP）的服务级安全，使用 ECDH 密钥交换，提供更强安全性</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-idle">
+      <div class="section-title">
+        <div class="section-num">8</div>
+        <h2>空闲模式流程 Idle Mode Procedures</h2>
+      </div>
+      <p>空闲模式流程定义了设备在无活跃连接时的行为，主要包括设备发现流程（查询）和名称发现流程。</p>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🔎</div>
+          <h3>通用查询流程</h3>
+          <p>General Inquiry — 发现处于通用可发现模式或有限可发现模式的设备</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">⏰</div>
+          <h3>有限查询流程</h3>
+          <p>Limited Inquiry — 仅发现处于有限可发现模式的设备，用于快速找到"刚激活"的设备</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">📛</div>
+          <h3>名称发现流程</h3>
+          <p>Name Discovery — 通过 LMP 请求获取远端设备的友好名称（Device Name）</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔧</div>
+          <h3>设备标识流程</h3>
+          <p>Device Identification — 通过 SDP 查询获取设备的标识信息（厂商、型号等）</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 9: LE MODES ===== -->
+    <div class="section" id="sec-le-modes">
+      <div class="section-title">
+        <div class="section-num">9</div>
+        <h2>LE 可发现性模式与流程</h2>
+      </div>
+      <p>LE 使用广播（Advertising）机制代替 BR/EDR 的查询（Inquiry）机制来实现设备发现。LE 设备通过在广播通道上发送广播包来宣告自身存在。</p>
+    </div>
+
+    <div class="section" id="sec-le-disc">
+      <div class="section-title">
+        <div class="section-num">9.1</div>
+        <h2>LE 发现流程 LE Discovery Procedures</h2>
+      </div>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">📵</div>
+          <h3>不可发现模式</h3>
+          <p>设备不在广播数据中设置可发现标志，扫描者无法通过标准流程发现该设备</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">⏱️</div>
+          <h3>有限可发现模式</h3>
+          <p>广播中设置 LE_Limited_Discoverable_Mode 标志位，最长广播 180 秒（TGAP(lim_adv_timeout)）</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">📡</div>
+          <h3>通用可发现模式</h3>
+          <p>广播中设置 LE_General_Discoverable_Mode 标志位，无时间限制地持续广播</p>
+        </div>
+      </div>
+
+      <div class="diagram-box">
+        <div class="diagram-title">LE 设备发现流程</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:600px;margin:0 auto;">
+          <div>
+            <div style="text-align:center;font-weight:700;color:#1565c0;margin-bottom:10px;font-size:13px;">外围设备（广播方）</div>
+            <div class="flow-diagram">
+              <div class="flow-step">
+                <div class="flow-left"><div class="flow-dot" style="font-size:12px;">1</div><div class="flow-line"></div></div>
+                <div class="flow-content"><h4>设置广播参数</h4><p>选择广播类型、间隔、通道</p></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-left"><div class="flow-dot" style="font-size:12px;">2</div><div class="flow-line"></div></div>
+                <div class="flow-content"><h4>发送 ADV 包</h4><p>在 37/38/39 通道广播</p></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-left"><div class="flow-dot" style="font-size:12px;">3</div></div>
+                <div class="flow-content"><h4>响应扫描请求</h4><p>（主动扫描）发送 SCAN_RSP</p></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="text-align:center;font-weight:700;color:#2e7d32;margin-bottom:10px;font-size:13px;">中央设备（扫描方）</div>
+            <div class="flow-diagram">
+              <div class="flow-step">
+                <div class="flow-left"><div class="flow-dot" style="background:linear-gradient(135deg,#2e7d32,#66bb6a);font-size:12px;">1</div><div class="flow-line" style="background:linear-gradient(to bottom,#66bb6a,transparent);"></div></div>
+                <div class="flow-content"><h4>启动扫描</h4><p>被动扫描 or 主动扫描</p></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-left"><div class="flow-dot" style="background:linear-gradient(135deg,#2e7d32,#66bb6a);font-size:12px;">2</div><div class="flow-line" style="background:linear-gradient(to bottom,#66bb6a,transparent);"></div></div>
+                <div class="flow-content"><h4>接收 ADV 包</h4><p>过滤可发现标志位</p></div>
+              </div>
+              <div class="flow-step">
+                <div class="flow-left"><div class="flow-dot" style="background:linear-gradient(135deg,#2e7d32,#66bb6a);font-size:12px;">3</div></div>
+                <div class="flow-content"><h4>上报设备列表</h4><p>向上层应用报告发现的设备</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-advertising">
+      <div class="section-title">
+        <div class="section-num">9.2</div>
+        <h2>LE 广播机制 Advertising</h2>
+      </div>
+      <p>LE 使用 2.4GHz ISM 频段的 40 个信道，其中 3 个为专用广播信道（Primary Advertising Channels），37 个为数据信道（也可用于扩展广播）。</p>
+      <div class="diagram-box">
+        <div class="diagram-title">LE 信道分配（40 个信道，2402-2480 MHz）</div>
+        <div>
+          <div class="adv-channel">
+            <div class="ch-label" style="min-width:100px;">广播信道：</div>
+            <div class="ch-block ch-adv">CH 37<br><small>2402 MHz</small></div>
+            <div class="ch-block ch-adv">CH 38<br><small>2426 MHz</small></div>
+            <div class="ch-block ch-adv">CH 39<br><small>2480 MHz</small></div>
+          </div>
+          <div class="adv-channel" style="flex-wrap:wrap;">
+            <div class="ch-label" style="min-width:100px;">数据信道：</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <div class="ch-block ch-data" style="min-width:40px;padding:6px 8px;font-size:11px;">0</div>
+              <div class="ch-block ch-data" style="min-width:40px;padding:6px 8px;font-size:11px;">1</div>
+              <div class="ch-block ch-data" style="min-width:40px;padding:6px 8px;font-size:11px;">2</div>
+              <div style="display:flex;align-items:center;color:#888;font-size:13px;padding:0 4px;">···</div>
+              <div class="ch-block ch-data" style="min-width:40px;padding:6px 8px;font-size:11px;">36</div>
+              <div style="display:flex;align-items:center;font-size:12px;color:#666;margin-left:6px;">共 37 个数据信道</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-box">
+        <div class="diagram-title">广播事件类型</div>
+        <table class="spec-table">
+          <thead>
+            <tr><th>广播类型</th><th>可连接</th><th>可扫描</th><th>定向</th><th>典型用途</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ADV_IND</td><td>✅</td><td>✅</td><td>❌</td><td>通用可连接广播（Peripheral 最常用）</td></tr>
+            <tr><td>ADV_DIRECT_IND</td><td>✅</td><td>❌</td><td>✅</td><td>定向快速重连已配对的 Central</td></tr>
+            <tr><td>ADV_NONCONN_IND</td><td>❌</td><td>❌</td><td>❌</td><td>信标、iBeacon，仅广播数据</td></tr>
+            <tr><td>ADV_SCAN_IND</td><td>❌</td><td>✅</td><td>❌</td><td>可扫描但不可连接，支持额外数据</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 10: LE CONNECTION ===== -->
+    <div class="section" id="sec-le-conn">
+      <div class="section-title">
+        <div class="section-num">10</div>
+        <h2>LE 连接模式与流程</h2>
+      </div>
+      <p>LE 连接模式规定了设备如何通过广播和扫描建立低功耗连接，以及连接建立后的参数管理。</p>
+    </div>
+
+    <div class="section" id="sec-le-conn-proc">
+      <div class="section-title">
+        <div class="section-num">10.1</div>
+        <h2>LE 连接建立流程</h2>
+      </div>
+      <div class="diagram-box">
+        <div class="diagram-title">LE 连接建立完整流程</div>
+        <div style="max-width:560px;margin:0 auto;">
+          <!-- Timeline -->
+          <div style="display:grid;grid-template-columns:1fr 80px 1fr;gap:0;font-size:13px;">
+            <div style="text-align:center;background:linear-gradient(135deg,#e65100,#ff7043);color:white;border-radius:10px 10px 0 0;padding:10px;font-weight:800;">Peripheral<br><small style="font-weight:400;">外围设备</small></div>
+            <div style="background:#f5f5f5;padding:10px;text-align:center;font-size:11px;color:#999;"></div>
+            <div style="text-align:center;background:linear-gradient(135deg,#6a1b9a,#ab47bc);color:white;border-radius:10px 10px 0 0;padding:10px;font-weight:800;">Central<br><small style="font-weight:400;">中央设备</small></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 80px 1fr;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;">
+            <div style="padding:10px;text-align:right;border-right:1px solid #e2e8f0;font-size:12px;color:#555;background:#fafafa;">发送 ADV_IND<br><span style="color:#e65100;font-weight:700;">[广播数据包]</span></div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;background:#f0f8ff;">→</div>
+            <div style="padding:10px;font-size:12px;color:#555;">扫描接收广播包</div>
+
+            <div style="padding:10px;text-align:right;border-right:1px solid #e2e8f0;border-top:1px solid #f0f0f0;font-size:12px;color:#555;background:#fafafa;">（等待）</div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;background:#f0f8ff;border-top:1px solid #e8f4fd;">←</div>
+            <div style="padding:10px;font-size:12px;color:#555;border-top:1px solid #f0f0f0;">发送 CONNECT_IND<br><span style="color:#6a1b9a;font-weight:700;">[连接请求]</span></div>
+
+            <div style="padding:10px;text-align:right;border-right:1px solid #e2e8f0;border-top:1px solid #f0f0f0;font-size:12px;color:#555;background:#fafafa;">连接建立<br>成为 Slave</div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#4caf50;background:#f1f8f1;border-top:1px solid #e8f5e9;">⇄</div>
+            <div style="padding:10px;font-size:12px;color:#555;border-top:1px solid #f0f0f0;">连接建立<br>成为 Master</div>
+
+            <div style="padding:10px;text-align:right;border-right:1px solid #e2e8f0;border-top:1px solid #f0f0f0;font-size:12px;color:#555;background:#fafafa;">协商连接参数</div>
+            <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#4caf50;background:#f1f8f1;border-top:1px solid #e8f5e9;">⇄</div>
+            <div style="padding:10px;font-size:12px;color:#555;border-top:1px solid #f0f0f0;">协商连接参数</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-box">
+        <div class="diagram-title">LE 连接参数说明</div>
+        <table class="spec-table">
+          <thead>
+            <tr><th>参数</th><th>范围</th><th>作用</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Connection Interval</strong></td><td>7.5ms – 4s</td><td>两个连接事件之间的时间间隔，影响延迟和功耗</td></tr>
+            <tr><td><strong>Peripheral Latency</strong></td><td>0 – 499</td><td>外围设备可跳过的最大连接事件数，用于省电</td></tr>
+            <tr><td><strong>Supervision Timeout</strong></td><td>100ms – 32s</td><td>超过此时间无通信则认为连接断开</td></tr>
+            <tr><td><strong>Connection Interval (推荐)</strong></td><td>30-50ms(1M) / 90-150ms(Coded)</td><td>GAP 推荐的初始连接间隔（TGAP(initial_conn_interval)）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section" id="sec-privacy">
+      <div class="section-title">
+        <div class="section-num">10.8</div>
+        <h2>隐私与设备地址 Privacy &amp; Address</h2>
+      </div>
+      <p>GAP 定义了三种蓝牙设备地址类型，以在可追踪性与连接性之间取得平衡：</p>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🏷️</div>
+          <h3>公共地址 Public Address</h3>
+          <p>由 IEEE 分配的全球唯一 48-bit MAC 地址，固定不变，最易被追踪</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🎲</div>
+          <h3>随机静态地址 Random Static</h3>
+          <p>设备启动时随机生成，最高两位为 11，每次开机可变但会话中固定</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔄</div>
+          <h3>可解析私有地址 RPA</h3>
+          <p>基于 IRK（身份解析密钥）周期性生成，默认每 15 分钟轮换一次，防止位置追踪</p>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <div class="diagram-title">可解析私有地址（RPA）生成与解析流程</div>
+        <div style="max-width:500px;margin:0 auto;font-size:13px;">
+          <div style="background:#e8f4fd;border-radius:10px;padding:16px;margin-bottom:12px;">
+            <div style="font-weight:700;color:#1565c0;margin-bottom:8px;">🔑 生成 RPA</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+              <div style="background:#1565c0;color:white;border-radius:6px;padding:6px 12px;font-weight:700;">IRK (128-bit)</div>
+              <div style="font-size:18px;">+</div>
+              <div style="background:#0288d1;color:white;border-radius:6px;padding:6px 12px;font-weight:700;">prand (24-bit 随机)</div>
+              <div style="font-size:18px;">→</div>
+              <div style="background:#00695c;color:white;border-radius:6px;padding:6px 12px;font-weight:700;">hash (24-bit)</div>
+            </div>
+            <div style="color:#555;font-size:12px;">RPA = prand[23:22]=10 || prand[21:0] || hash(IRK, prand)</div>
+          </div>
+          <div style="background:#e8f5e9;border-radius:10px;padding:16px;">
+            <div style="font-weight:700;color:#2e7d32;margin-bottom:8px;">🔓 解析 RPA</div>
+            <div style="color:#555;font-size:12px;line-height:1.7;">
+              1. 取 RPA 的高 24 位（prand）<br>
+              2. 用本地存储的 IRK 计算 hash'(IRK, prand)<br>
+              3. 若 hash' == RPA 低 24 位 → 解析成功，设备身份确认
+            </div>
+          </div>
+          <div class="note-box" style="margin-top:12px;">轮换间隔由 <span class="code-inline">TGAP(private_addr_int)</span> 控制，默认 <strong>15 分钟</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 11-12: LE SECURITY ===== -->
+    <div class="section" id="sec-le-security">
+      <div class="section-title">
+        <div class="section-num">11–12</div>
+        <h2>LE 安全流程与绑定</h2>
+      </div>
+      <p>LE 安全基于安全管理协议（SMP），使用 AES-128 加密，并通过 LE Secure Connections（LESC）提供椭圆曲线 Diffie-Hellman（ECDH）密钥交换，抵御中间人攻击。</p>
+    </div>
+
+    <div class="section" id="sec-le-sec-levels">
+      <div class="section-title">
+        <div class="section-num">12.1</div>
+        <h2>LE 安全模式与级别</h2>
+      </div>
+      <div class="highlight-box">
+        <div class="hb-title">LE 安全模式 1（加密连接）</div>
+        <p>安全模式 1 要求使用加密链路，分为四个安全级别，从无需安全到需要 LESC 认证加密。</p>
+      </div>
+      <div class="security-grid">
+        <div class="security-card lvl1">
+          <div class="lvl-badge">模式 1 级别 1</div>
+          <h4>无安全要求</h4>
+          <p>无需认证，无需加密。通信以明文进行。</p>
+        </div>
+        <div class="security-card lvl2">
+          <div class="lvl-badge">模式 1 级别 2</div>
+          <h4>未认证加密</h4>
+          <p>需要加密但无需 MITM 保护。使用 Just Works 配对方式。</p>
+        </div>
+        <div class="security-card lvl3">
+          <div class="lvl-badge">模式 1 级别 3</div>
+          <h4>认证加密</h4>
+          <p>需要认证（MITM 保护）且加密。使用 Passkey Entry 或 OOB 配对。</p>
+        </div>
+        <div class="security-card lvl4">
+          <div class="lvl-badge">模式 1 级别 4</div>
+          <h4>LESC 认证加密</h4>
+          <p>需要 LE Secure Connections 的 MITM 保护加密，128-bit 加密强度。</p>
+        </div>
+      </div>
+      <div class="highlight-box" style="background:linear-gradient(135deg,#fce4ec,#f8bbd0);border-color:#f48fb1;margin-top:4px;">
+        <div class="hb-title" style="color:#880e4f;">LE 安全模式 2（数据签名）</div>
+        <p>安全模式 2 使用数据签名而非加密来保证数据完整性，分为未认证签名（级别 1）和认证签名（级别 2）两个级别。</p>
+      </div>
+      <div class="diagram-box" style="margin-top:16px;">
+        <div class="diagram-title">LE 配对方式对比</div>
+        <table class="spec-table">
+          <thead>
+            <tr><th>配对方式</th><th>MITM 保护</th><th>用户交互</th><th>适用场景</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Just Works</strong></td><td>❌ 无</td><td>无需输入</td><td>无显示/输入能力的设备</td></tr>
+            <tr><td><strong>Passkey Entry</strong></td><td>✅ 有</td><td>输入 6 位数字</td><td>有键盘或显示屏的设备</td></tr>
+            <tr><td><strong>OOB (带外)</strong></td><td>依 OOB 通道</td><td>NFC/二维码等</td><td>需要高安全性的场景</td></tr>
+            <tr><td><strong>Numeric Comparison</strong></td><td>✅ 有</td><td>确认 6 位数字</td><td>LESC，双方均有显示屏</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 13-14: ISO ===== -->
+    <div class="section" id="sec-iso">
+      <div class="section-title">
+        <div class="section-num">13–14</div>
+        <h2>等时广播 Isochronous Broadcasting</h2>
+      </div>
+      <p>Bluetooth 5.2 引入了等时广播（Isochronous Broadcasting）机制，支持周期性广播（Periodic Advertising）和等时广播组（BIG），专为音频流传输设计。</p>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">🎵</div>
+          <h3>周期广播 (PA)</h3>
+          <p>Periodic Advertising — 设备以固定周期发送广播，Observer 可与其时间同步，用于广播音频流信息</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">📻</div>
+          <h3>BIG (广播等时组)</h3>
+          <p>Broadcast Isochronous Group — 允许一个设备同时向多个设备广播音频，实现真无线立体声（TWS）</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔊</div>
+          <h3>Auracast™</h3>
+          <p>基于 LE Audio 和 BIG，实现公共场所音频广播（如机场、影院），无需配对即可收听</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">⏱️</div>
+          <h3>同步训练</h3>
+          <p>Synchronization Train — 帮助 Observer 找到并同步到广播流的时间信息结构</p>
+        </div>
+      </div>
+      <div class="diagram-box">
+        <div class="diagram-title">等时广播架构</div>
+        <div style="max-width:500px;margin:0 auto;text-align:center;">
+          <div style="background:linear-gradient(135deg,#1565c0,#42a5f5);color:white;border-radius:12px;padding:16px;font-weight:800;font-size:15px;margin-bottom:20px;">
+            📡 广播者 (Broadcaster)
+            <div style="font-size:12px;font-weight:400;margin-top:4px;">发送 BIG (Broadcast Isochronous Group)</div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:8px;font-size:24px;color:#42a5f5;margin-bottom:12px;">↓ ↓ ↓</div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:700;color:#1565c0;border:2px solid #90caf9;">
+              🎧 BIS 1<br><small style="font-weight:400;color:#555;">BIG 等时流 1</small>
+            </div>
+            <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:700;color:#1565c0;border:2px solid #90caf9;">
+              🎧 BIS 2<br><small style="font-weight:400;color:#555;">BIG 等时流 2</small>
+            </div>
+            <div style="background:#e3f2fd;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:700;color:#1565c0;border:2px solid #90caf9;">
+              🎧 BIS N<br><small style="font-weight:400;color:#555;">BIG 等时流 N</small>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:center;gap:8px;font-size:24px;color:#42a5f5;margin:12px 0;">↓</div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;color:#2e7d32;">接收设备 1</div>
+            <div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;color:#2e7d32;">接收设备 2</div>
+            <div style="background:#e8f5e9;border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;color:#2e7d32;">接收设备 N</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION 15-17: COMMON ===== -->
+    <div class="section" id="sec-common">
+      <div class="section-title">
+        <div class="section-num">15–17</div>
+        <h2>通用格式要求</h2>
+      </div>
+      <p>GAP 规定了广播数据结构、设备名称编码、外观值编码等通用格式，以确保不同设备之间的互操作性。</p>
+    </div>
+
+    <div class="section" id="sec-adv-data">
+      <div class="section-title">
+        <div class="section-num">15</div>
+        <h2>广播数据格式 Advertising Data Format</h2>
+      </div>
+      <p>LE 广播数据包（ADV Data）和扫描响应包（Scan Response）最大 31 字节，由一组 AD Structure 组成：</p>
+      <div class="diagram-box">
+        <div class="diagram-title">AD Structure 格式</div>
+        <div style="max-width:480px;margin:0 auto;">
+          <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;border:2px solid #1565c0;">
+            <div style="background:linear-gradient(135deg,#1565c0,#1976d2);color:white;padding:16px;text-align:center;min-width:80px;">
+              <div style="font-weight:800;font-size:14px;">Length</div>
+              <div style="font-size:11px;margin-top:4px;">1 字节</div>
+              <div style="font-size:11px;opacity:0.8;">= Type+Data 长度</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#0288d1,#29b6f6);color:white;padding:16px;text-align:center;min-width:80px;">
+              <div style="font-weight:800;font-size:14px;">AD Type</div>
+              <div style="font-size:11px;margin-top:4px;">1 字节</div>
+              <div style="font-size:11px;opacity:0.8;">数据类型标识</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#00695c,#26a69a);color:white;padding:16px;text-align:center;flex:1;">
+              <div style="font-weight:800;font-size:14px;">AD Data</div>
+              <div style="font-size:11px;margin-top:4px;">0 – N 字节</div>
+              <div style="font-size:11px;opacity:0.8;">具体数据内容</div>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px;">常用 AD Type 示例：</div>
+            <table class="spec-table" style="font-size:12px;">
+              <tr><td style="font-family:monospace;color:#c62828;">0x01</td><td>Flags（可发现模式标志）</td></tr>
+              <tr><td style="font-family:monospace;color:#c62828;">0x02/0x03</td><td>16-bit UUID 列表（不完整/完整）</td></tr>
+              <tr><td style="font-family:monospace;color:#c62828;">0x08/0x09</td><td>设备名称（缩短/完整）</td></tr>
+              <tr><td style="font-family:monospace;color:#c62828;">0x0A</td><td>TX Power Level</td></tr>
+              <tr><td style="font-family:monospace;color:#c62828;">0xFF</td><td>Manufacturer Specific Data（厂商自定义）</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="sec-appearance">
+      <div class="section-title">
+        <div class="section-num">16–17</div>
+        <h2>设备外观与通用属性</h2>
+      </div>
+      <div class="card-grid">
+        <div class="info-card">
+          <div class="icon">⌚</div>
+          <h3>设备外观 (0x180A)</h3>
+          <p>16-bit 值，蓝牙 SIG 统一定义。如：0x0180=通用手表，0x0341=心率计，0x0180=运动传感器</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔋</div>
+          <h3>首选连接参数</h3>
+          <p>Peripheral Preferred Connection Parameters — 外围设备向中央设备建议的连接间隔、延迟等参数</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🆔</div>
+          <h3>中央地址解析</h3>
+          <p>Central Address Resolution — 声明设备是否支持解析可解析私有地址，影响隐私功能协商</p>
+        </div>
+        <div class="info-card">
+          <div class="icon">🔀</div>
+          <h3>可解析私有地址标志</h3>
+          <p>Resolvable Private Address Only — 声明设备仅使用可解析私有地址，增强隐私保护</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== APPENDIX A: TIMERS ===== -->
+    <div class="section" id="sec-timers">
+      <div class="section-title">
+        <div class="section-num">A</div>
+        <h2>附录 A · GAP 定时器参数</h2>
+      </div>
+      <p>GAP 定义了一系列标准定时器参数，用于规范广播、扫描和连接的时间行为。格式为 <span class="code-inline">TGAP(nnn)</span>。</p>
+      <div class="diagram-box">
+        <div class="diagram-title">关键 GAP 定时器汇总</div>
+        <div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(lim_adv_timeout)</div>
+            <div class="timer-val">180 s</div>
+            <div class="timer-desc">有限可发现模式下的最大广播时间（必须值）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(adv_fast_interval1)</div>
+            <div class="timer-val">30–60 ms</div>
+            <div class="timer-desc">用户触发时的快速广播间隔（1M PHY，可连接/可发现模式）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(adv_slow_interval)</div>
+            <div class="timer-val">1–1.2 s</div>
+            <div class="timer-desc">后台广播时的慢速广播间隔（1M PHY）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(adv_fast_period)</div>
+            <div class="timer-val">30 s</div>
+            <div class="timer-desc">用户触发时的最小快速广播持续时间</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(scan_fast_interval)</div>
+            <div class="timer-val">30–60 ms</div>
+            <div class="timer-desc">用户触发的扫描间隔（1M PHY）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(scan_fast_window)</div>
+            <div class="timer-val">30 ms</div>
+            <div class="timer-desc">用户触发的扫描窗口（1M PHY）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(scan_fast_period)</div>
+            <div class="timer-val">30.72 s</div>
+            <div class="timer-desc">用户触发时的最小扫描持续时间</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(gen_disc_scan_min)</div>
+            <div class="timer-val">10.24 s</div>
+            <div class="timer-desc">通用发现流程最小扫描时间（1M PHY）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(lim_disc_scan_min)</div>
+            <div class="timer-val">10.24 s</div>
+            <div class="timer-desc">有限发现流程最小扫描时间（1M PHY）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(initial_conn_interval)</div>
+            <div class="timer-val">30–50 ms</div>
+            <div class="timer-desc">连接建立时的初始连接间隔（1M PHY）</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(conn_pause_peripheral)</div>
+            <div class="timer-val">5 s</div>
+            <div class="timer-desc">连接建立后外围设备发起参数更新前的最短等待时间</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(conn_pause_central)</div>
+            <div class="timer-val">1 s</div>
+            <div class="timer-desc">中央设备空闲定时器</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(private_addr_int)</div>
+            <div class="timer-val">15 min</div>
+            <div class="timer-desc">可解析私有地址最大轮换间隔</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(conn_param_timeout)</div>
+            <div class="timer-val">30 s</div>
+            <div class="timer-desc">连接参数更新通知定时器</div>
+          </div>
+          <div class="timer-item">
+            <div class="timer-name">TGAP(Sync_Train_Duration)</div>
+            <div class="timer-val">30.72 s</div>
+            <div class="timer-desc">同步训练模式持续时间（必须值）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-box">
+        <div class="diagram-title">广播间隔与扫描参数可视化对比</div>
+        <div style="padding:10px 0;">
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
+              <span>快速广播间隔 (adv_fast_interval1)</span>
+              <span>30–60 ms</span>
+            </div>
+            <div style="height:16px;border-radius:8px;overflow:hidden;background:#f0f0f0;">
+              <div style="width:4%;height:100%;background:linear-gradient(90deg,#1565c0,#42a5f5);border-radius:8px;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
+              <span>慢速广播间隔 (adv_slow_interval)</span>
+              <span>1–1.2 s</span>
+            </div>
+            <div style="height:16px;border-radius:8px;overflow:hidden;background:#f0f0f0;">
+              <div style="width:18%;height:100%;background:linear-gradient(90deg,#0288d1,#4fc3f7);border-radius:8px;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
+              <span>有限广播超时 (lim_adv_timeout)</span>
+              <span>180 s (3 min)</span>
+            </div>
+            <div style="height:16px;border-radius:8px;overflow:hidden;background:#f0f0f0;">
+              <div style="width:55%;height:100%;background:linear-gradient(90deg,#e65100,#ff7043);border-radius:8px;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">
+              <span>私有地址轮换 (private_addr_int)</span>
+              <span>15 min</span>
+            </div>
+            <div style="height:16px;border-radius:8px;overflow:hidden;background:#f0f0f0;">
+              <div style="width:100%;height:100%;background:linear-gradient(90deg,#6a1b9a,#ab47bc);border-radius:8px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:6px;margin-top:4px;">
+            <span>短 ←</span>
+            <span>相对时间</span>
+            <span>→ 长</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== APPENDIX B ===== -->
+    <div class="section" id="sec-appendix-b">
+      <div class="section-title">
+        <div class="section-num">B</div>
+        <h2>附录 B · 相关流程信息流</h2>
+      </div>
+      <p>附录 B 提供了 GAP 中关键安全和发现流程的信号流图示意，帮助实现者理解各消息的交互顺序。</p>
+
+      <div class="subsection">
+        <div class="subsection-title">B.1 LMP 认证流程</div>
+        <div class="diagram-box">
+          <div class="diagram-title">LMP 认证（已有链路密钥）</div>
+          <div style="max-width:400px;margin:0 auto;font-size:13px;">
+            <div style="display:grid;grid-template-columns:1fr 60px 1fr;background:#f8fafc;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">
+              <div style="text-align:center;background:#1565c0;color:white;padding:10px;font-weight:700;">验证方 A</div>
+              <div style="background:#1565c0;"></div>
+              <div style="text-align:center;background:#2e7d32;color:white;padding:10px;font-weight:700;">被验方 B</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#555;font-size:12px;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">发送随机数 AU_RAND</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;">→</div>
+              <div style="padding:10px;color:#555;font-size:12px;display:flex;align-items:center;">LMP_au_rand</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#555;font-size:12px;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">验证 SRES</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;">←</div>
+              <div style="padding:10px;color:#555;font-size:12px;display:flex;align-items:center;">LMP_sres (E1算法计算)</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#4caf50;font-size:12px;font-weight:700;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">✅ 认证成功</div>
+              <div style="display:flex;align-items:center;justify-content:center;color:#ccc;">—</div>
+              <div style="padding:10px;color:#4caf50;font-size:12px;font-weight:700;display:flex;align-items:center;">✅ 链接建立</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">B.3 服务发现流程 (SDP)</div>
+        <div class="diagram-box">
+          <div class="diagram-title">BR/EDR 服务发现协议 (SDP) 示例流程</div>
+          <div style="max-width:400px;margin:0 auto;font-size:13px;">
+            <div style="display:grid;grid-template-columns:1fr 60px 1fr;background:#f8fafc;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0;">
+              <div style="text-align:center;background:#1565c0;color:white;padding:10px;font-weight:700;">SDP 客户端</div>
+              <div style="background:#1565c0;"></div>
+              <div style="text-align:center;background:#00695c;color:white;padding:10px;font-weight:700;">SDP 服务端</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#555;font-size:12px;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">ServiceSearch Request</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;">→</div>
+              <div style="padding:10px;color:#555;font-size:12px;display:flex;align-items:center;">接收服务搜索请求</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#555;font-size:12px;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">接收服务列表</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;">←</div>
+              <div style="padding:10px;color:#555;font-size:12px;display:flex;align-items:center;">ServiceSearch Response</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#555;font-size:12px;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">AttributeRead Request</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;">→</div>
+              <div style="padding:10px;color:#555;font-size:12px;display:flex;align-items:center;">查询服务属性</div>
+
+              <div style="padding:10px;text-align:right;border-right:1px dashed #ccc;color:#555;font-size:12px;min-height:40px;display:flex;align-items:center;justify-content:flex-end;">获得服务属性</div>
+              <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:#42a5f5;">←</div>
+              <div style="padding:10px;color:#555;font-size:12px;display:flex;align-items:center;">AttributeRead Response</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">B.4–B.5 LE 私有地址生成与解析</div>
+        <div class="note-box">
+          📌 可解析私有地址（RPA）的生成与解析流程详见 <strong>第 10.8.2.2 节</strong>（生成）和 <strong>第 10.8.2.3 节</strong>（解析），本附录提供参考索引。流程图已在 <strong>第 10.8 节</strong>中展示。
+        </div>
+      </div>
+
+      <!-- Summary Overview -->
+      <div class="card" style="background:linear-gradient(135deg,#0a1628,#0d2150);color:white;margin-top:20px;">
+        <div style="font-size:16px;font-weight:800;margin-bottom:16px;color:#64b5f6;">📌 GAP 协议全貌总结</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+          <div style="background:rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+            <div style="font-size:22px;margin-bottom:6px;">🏗️</div>
+            <div style="font-weight:700;font-size:13px;color:#90caf9;margin-bottom:4px;">协议基础</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.65);">定义角色、模式、格式与约定</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+            <div style="font-size:22px;margin-bottom:6px;">🔍</div>
+            <div style="font-weight:700;font-size:13px;color:#80cbc4;margin-bottom:4px;">设备发现</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.65);">BR/EDR 查询 / LE 广播扫描</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+            <div style="font-size:22px;margin-bottom:6px;">🔗</div>
+            <div style="font-weight:700;font-size:13px;color:#ffcc80;margin-bottom:4px;">连接管理</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.65);">链路建立、参数协商、断开</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+            <div style="font-size:22px;margin-bottom:6px;">🔐</div>
+            <div style="font-weight:700;font-size:13px;color:#ef9a9a;margin-bottom:4px;">安全机制</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.65);">配对、绑定、加密、认证</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+            <div style="font-size:22px;margin-bottom:6px;">🔒</div>
+            <div style="font-weight:700;font-size:13px;color:#ce93d8;margin-bottom:4px;">隐私保护</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.65);">RPA 地址、IRK 解析</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+            <div style="font-size:22px;margin-bottom:6px;">🎵</div>
+            <div style="font-weight:700;font-size:13px;color:#a5d6a7;margin-bottom:4px;">等时广播</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.65);">BIG / BIS / Auracast 音频</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  // Highlight active nav item on scroll
+  const sections = document.querySelectorAll('.section[id]');
+  const navItems = document.querySelectorAll('.nav-item[data-target]');
+
+  function setActive(id) {
+    navItems.forEach(item => {
+      if (item.getAttribute('data-target') === id) {
+        item.classList.add('active');
+        // Scroll nav to keep active item visible
+        const sidebar = document.getElementById('sidebar');
+        const itemRect = item.getBoundingClientRect();
+        const sidebarRect = sidebar.getBoundingClientRect();
+        if (itemRect.bottom > sidebarRect.bottom || itemRect.top < sidebarRect.top) {
+          item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  // Click navigation
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const targetId = item.getAttribute('data-target');
+      const target = document.getElementById(targetId);
+      if (target) {
+        if (window.btScrollToEl) window.btScrollToEl(target, 16);
+        else target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setActive(targetId);
+      }
+      if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+    });
+  });
+
+  // Scroll spy
+  const mainContent = document.getElementById('main-content');
+  mainContent.addEventListener('scroll', () => {
+    let current = '';
+    const scrollTop = mainContent.scrollTop;
+    const mainRect = mainContent.getBoundingClientRect();
+
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop - mainContent.offsetTop;
+      if (scrollTop >= sectionTop - 60) {
+        current = section.id;
+      }
+    });
+
+    if (current) setActive(current);
+  });
+
+  // Init
+  setActive('sec-intro');
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

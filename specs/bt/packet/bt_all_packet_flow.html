@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HONOR 50 Pro 与 CloudPrint_0159 经典蓝牙流程分析</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1c2430;
+      --muted: #5f6c7b;
+      --line: #dce3ee;
+      --blue: #1d62d6;
+      --green: #187a4d;
+      --orange: #b65c00;
+      --red: #b42318;
+      --shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    header {
+      background: linear-gradient(135deg, #102a56, #1d62d6);
+      color: white;
+      padding: 44px 6vw 36px;
+    }
+
+    header h1 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.2;
+    }
+
+    header p {
+      margin: 0;
+      max-width: 980px;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 16px;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      margin: 0 0 22px;
+      padding: 24px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+    }
+
+    h3 {
+      margin: 20px 0 8px;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    code {
+      background: #eef3fb;
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.94em;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 16px 0 6px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fbfdff;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.2;
+      color: var(--blue);
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    .note {
+      border-left: 4px solid var(--orange);
+      background: #fff7ed;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #5d3900;
+      margin: 14px 0;
+    }
+
+    .ok {
+      border-left-color: var(--green);
+      background: #f0fdf4;
+      color: #164b35;
+    }
+
+    .warn {
+      border-left-color: var(--red);
+      background: #fff1f2;
+      color: #6a1a14;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .chip {
+      border: 1px solid #bdd0f6;
+      background: #eef4ff;
+      color: #173f8f;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 13px;
+    }
+
+    .timeline {
+      position: relative;
+      margin: 20px 0 8px;
+      padding-left: 26px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 4px;
+      bottom: 4px;
+      left: 8px;
+      width: 2px;
+      background: var(--line);
+    }
+
+    .event {
+      position: relative;
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfdff;
+    }
+
+    .event::before {
+      content: "";
+      position: absolute;
+      left: -24px;
+      top: 16px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--blue);
+      box-shadow: 0 0 0 4px #dce9ff;
+    }
+
+    .time {
+      font-weight: 700;
+      color: var(--blue);
+      margin-right: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+    }
+
+    th {
+      background: #eef3fb;
+      color: #27364a;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .flow {
+      border-top: 6px solid #dce9ff;
+    }
+
+    .flow h2 {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .flow h2 span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: white;
+      font-size: 16px;
+      flex: 0 0 auto;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+
+      section {
+        padding: 18px;
+      }
+    }
+  
+    .seq-container {
+      background: #f8faff;
+      border: 1px solid #dde3ee;
+      border-radius: 10px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+    .seq-container svg { display: block; max-width: 100%; height: auto; }
+
+  
+    /* ── 左侧目录导航（packet 抓包文档）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar) {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">HONOR 50 Pro 与 CloudPrint_0159 经典蓝牙流程分析</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">抓包流程 · Packet Flow</div>
+    <div class="doc-name">HONOR 50 Pro 与 CloudPrint_0159 经典蓝牙流程分析</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#结论概览">结论概览</a>
+  <a class="packet-nav-link" href="#角色与协议对照">角色与协议对照</a>
+  <a class="packet-nav-link" href="#flow-1">1Inquiry / 发现与名称识别</a>
+  <a class="packet-nav-link" href="#flow-2">2Paging / 建立物理 ACL 链路</a>
+  <a class="packet-nav-link" href="#flow-3">3Connect / LMP 能力协商与链路参数建立</a>
+  <a class="packet-nav-link" href="#flow-4">4Pairing / SSP 认证与加密</a>
+  <a class="packet-nav-link" href="#flow-5">5Service Discovery / SDP 与业务通道</a>
+  <a class="packet-nav-link" href="#flow-6">6链路维持 / AFH、功控与 Sniff</a>
+  <a class="packet-nav-link" href="#关键判断与建议">关键判断与建议</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc current-doc" href="bt_all_packet_flow.html">BR/EDR 全流程</a>
+  <a class="packet-nav-link doc" href="paging_to_setup_complete_packet_flow.html">Paging → Setup Complete</a>
+  <a class="packet-nav-link doc" href="setup_complete_to_io_capability_packet_flow.html">Setup → IO Capability</a>
+  <a class="packet-nav-link doc" href="bt_secure_pairing_packet_flow.html">SSP 安全配对</a>
+  <a class="packet-nav-link doc" href="sdp_packet_flow.html">SDP 服务发现</a>
+  <a class="packet-nav-link doc" href="l2cap_session_packet_flow.html">L2CAP 多会话</a>
+  <a class="packet-nav-link doc" href="hid_connection_packet_flow.html">HID 连接</a>
+  <a class="packet-nav-link doc" href="ble_first_connection_packet_flow.html">BLE 首次连接</a>
+  <a class="packet-nav-link doc" href="ble_second_connection_packet_flow.html">BLE 第二次连接</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<header>
+    <h1>HONOR 50 Pro 与 CloudPrint_0159 经典蓝牙流程分析</h1>
+    <p>输入抓包：<code>honor50_sunmi_bt_ota.csv</code>。本文按 Bluetooth Core v4.2 BR/EDR Controller 的典型链路过程，对两台设备之间的 inquiry、paging、connect、SSP 配对、加密和业务通道建立进行对照分析。</p>
+  </header>
+
+  <div class="packet-main">
+    <section id="结论概览">
+      <h2>结论概览</h2>
+      <div class="grid">
+        <div class="metric">
+          <strong>116</strong>
+          <span>CSV 解码事件总数</span>
+        </div>
+        <div class="metric">
+          <strong>27.541s - 186.126s</strong>
+          <span>抓包可见时间窗口</span>
+        </div>
+        <div class="metric">
+          <strong>84 / 25 / 7</strong>
+          <span>LMP / L2CAP / SDP 事件数量</span>
+        </div>
+        <div class="metric">
+          <strong>Central -> Peripheral</strong>
+          <span>推定 HONOR 50 Pro 主动连接 CloudPrint_0159</span>
+        </div>
+      </div>
+
+      <div class="note">
+        CSV 从 LMP 层事件开始，未包含 Inquiry ID 包、FHS 包、Page ID train 等更底层的基带原始包。因此 inquiry 和 paging 的空口前导过程只能按协议推断；抓包中可直接验证的是 page 成功后的 LMP、L2CAP、SDP 和加密流程。
+      </div>
+
+      <div class="chips">
+        <span class="chip">CloudPrint_0159：被发现/被连接设备</span>
+        <span class="chip">HONOR 50 Pro：推定发起扫描、建链和 SDP 查询</span>
+        <span class="chip">SSP Host + SC Host 均被双方支持</span>
+        <span class="chip">最终启用 16 字节链路加密</span>
+      </div>
+
+      <h3>抓包主线</h3>
+      <div class="timeline">
+        <div class="event"><span class="time">27.541 - 27.560s</span>短连接：能力交换、读取 <code>CloudPrint_0159</code> 名称后由远端用户终止连接。</div>
+        <div class="event"><span class="time">28.372 - 28.524s</span>第二次连接：版本/特性/扩展特性交换，Host Connection 接受，完成 packet type、slot、AFH、监督超时等 LMP 协商。</div>
+        <div class="event"><span class="time">28.524 - 31.426s</span>SSP 配对与安全：IO Capability、Simple Pairing Number、DH Key Check、安全认证、加密模式、密钥长度和 Start Encryption。</div>
+        <div class="event"><span class="time">31.436 - 31.744s</span>上层业务：L2CAP 配置，SDP 查询 PnP/HID/SPP 服务，随后建立 HID Control 和 HID Interrupt 通道。</div>
+        <div class="event"><span class="time">31.747 - 186.126s</span>链路维持：QoS、周期性 AFH map 更新、功率控制、Sniff/Sniff Subrating、Ping。</div>
+      </div>
+    </section>
+
+    <section id="角色与协议对照">
+      <h2>角色与协议对照</h2>
+      <div class="two-col">
+        <div>
+          <p>从 <code>LMP Version Exchange (Central: 5.2 . Peripheral: 6.0)</code>、后续 SDP 查询返回 CloudPrint 侧的 HID/SPP/PnP 服务，以及手机名 <code>HONOR 50 Pro</code> 在配对后才被读取来看，本次主流程可按下述角色理解：</p>
+          <table>
+            <tr><th>角色</th><th>设备</th><th>依据</th></tr>
+            <tr><td>Central / Master / Initiator</td><td>HONOR 50 Pro</td><td>主动发现外设、发起 BR/EDR page、发起 SDP 查询；IO Capability 为 DisplayYesNo 且要求 MITM。</td></tr>
+            <tr><td>Peripheral / Slave / Acceptor</td><td>CloudPrint_0159</td><td>被查询名称和服务，提供 HID、SPP、PnP 等 SDP 记录；IO Capability 为 NoInputNoOutput。</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="note ok">
+            协议层级关系：Inquiry/Page 属于 BR/EDR Baseband；连接后的能力、时钟偏移、AFH、认证与加密主要由 LMP 完成；服务发现和 HID/RFCOMM 通道建立由 L2CAP/SDP 承载。
+          </div>
+          <div class="note warn">
+            安全含义：一端 DisplayYesNo 且要求 MITM，另一端 NoInputNoOutput。按 SSP 关联模型，最终很可能退化为 Just Works，能建立加密但不能提供用户确认级别的 MITM 防护。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="flow" id="flow-1">
+      <h2><span>1</span>Inquiry / 发现与名称识别</h2>
+      <p>协议上，HONOR 50 Pro 若要发现 CloudPrint_0159，会在 inquiry hop train 上发送 GIAC/DIAC ID 包；CloudPrint_0159 处于 inquiry scan 时响应 FHS，FHS 中携带 BD_ADDR、class of device、clock 等用于后续 page 的信息。CSV 没有记录这些基带包，但 27.548s 的 <code>LMP Name Transaction ("CloudPrint_0159")</code> 是发现阶段之后读取远端名称的直接证据。</p>
+      <table>
+        <tr><th>抓包时间</th><th>事件</th><th>解读</th></tr>
+        <tr><td>27.541400</td><td>LMP Features Exchange</td><td>已经进入 ACL/LMP 层，说明 inquiry/page 前导已完成或被过滤。</td></tr>
+        <tr><td>27.548900</td><td>LMP Name Transaction ("CloudPrint_0159")</td><td>HONOR 读取 CloudPrint 的 friendly name，常见于设备列表展示或重新确认目标。</td></tr>
+        <tr><td>27.560150</td><td>LMP Detach (Remote User Terminated Connection)</td><td>短连接完成名称读取后断开，未进入完整配对。</td></tr>
+      </table>
+            <div class="seq-container" id="msc-1" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;Central/Inquiry initiator&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;Peripheral/Inquiry scan&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;CSV 未包含基带 ID/FHS 原始包，以下为 Core v4.2 典型过程&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Inquiry ID packets (GIAC/DIAC, inquiry hop train)&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Inquiry Response / FHS (BD_ADDR, CoD, clock)&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Page for remote name procedure&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Page response, ACL/LMP link ready&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP name_req / Name Transaction&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;\&quot;CloudPrint_0159\&quot;&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP detach (Remote User Terminated Connection)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+      <p>因此，本抓包对 inquiry 的结论是：发现动作本身未直接呈现，但名称读取和短连接断开符合“扫描到目标后读取名称”的行为。</p>
+    </section>
+
+    <section class="flow" id="flow-2">
+      <h2><span>2</span>Paging / 建立物理 ACL 链路</h2>
+      <p>BR/EDR page 阶段使用 inquiry 得到的 BD_ADDR 与 clock estimate 去命中对端 page scan。命中后，双方交换 page response/FHS，决定 master/slave 时钟和访问码，进入 connection state。CSV 第二段从 28.372s 的 LMP Version Exchange 开始，说明 page 已成功完成。</p>
+      <table>
+        <tr><th>抓包时间</th><th>事件</th><th>解读</th></tr>
+        <tr><td>28.372662</td><td>LMP Version Exchange (Central: 5.2 . Peripheral: 6.0)</td><td>page 成功后的首批 LMP 控制面交换。</td></tr>
+        <tr><td>28.398911</td><td>LMP Host Connection (Accepted)</td><td>控制器通知/请求主机接受连接，主机侧放行。</td></tr>
+        <tr><td>28.403912</td><td>LMP Setup Complete</td><td>LMP 连接建立阶段完成，可以继续安全和上层通道流程。</td></tr>
+      </table>
+            <div class="seq-container" id="msc-2" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;Central/Page initiator&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;Peripheral/Page scan&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;Page ID train / page response 未出现在 CSV&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Page ID packets using CloudPrint DAC&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Slave page response&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;FHS packet, master clock/access code&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Slave response, enter connection state&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP version_req / version_res&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP features_req / features_res&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_host_connection_req&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP_accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP_setup_complete&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+      <p>28.372s 前看不到 page train，不代表未发生，而是 CSV 的导出粒度已从 LMP 层开始；LMP 版本和特性交换是 page 成功后的可靠边界点。</p>
+    </section>
+
+    <section class="flow" id="flow-3">
+      <h2><span>3</span>Connect / LMP 能力协商与链路参数建立</h2>
+      <p>连接建立后，双方先对齐控制器能力、EDR packet type、slot、AFH、时钟精度、clock offset 和 supervision timeout。抓包显示双方均支持 SSP Host、LE Host、SC Host，控制器还支持 Secure Connections Controller 与 Ping。</p>
+      <table>
+        <tr><th>阶段</th><th>抓包证据</th><th>协议意义</th></tr>
+        <tr><td>版本和基础特性</td><td>28.372662、28.376411、28.391412、28.395162</td><td>确认 LMP 版本、Feature Page 0/扩展页，后续是否可用 SSP/SC/EDR/AFH 取决于此。</td></tr>
+        <tr><td>主机连接确认</td><td>28.398911 Host Connection Accepted</td><td>Host 允许 ACL 连接继续存在，避免控制器层面建链后被主机拒绝。</td></tr>
+        <tr><td>EDR 与时隙能力</td><td>28.403287 Packet Type Table，28.409539 Max Slot Request，28.518913 Preferred Rate</td><td>允许 2/3 Mbps EDR，使用 5-slot 包提高吞吐。</td></tr>
+        <tr><td>AFH 与抗干扰</td><td>28.446412 Set AFH，28.447663 Channel Classification Request</td><td>启用自适应跳频，并允许报告信道质量。</td></tr>
+        <tr><td>连接监督</td><td>28.522663 Supervision Timeout 5.000s</td><td>连续丢包或失联超过 5 秒可触发链路超时。</td></tr>
+      </table>
+            <div class="seq-container" id="msc-3" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;Central&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;Peripheral&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Version Exchange&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Features Exchange&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Extended Features Exchange&lt;br/&gt;(SSP Host, LE Host, SC Host)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Host Connection&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Packet Type Table&lt;br/&gt;(2/3 Mbps)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Setup Complete&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Max Slot Request&lt;br/&gt;(5 slots)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Set AFH + Channel Classification&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Timing Accuracy / Clock Offset&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Supervision Timeout&lt;br/&gt;(8000 slots = 5s)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+      <p>这一段没有异常拒绝。链路从建立后约 150 ms 内完成基本能力协商，随后立即进入安全配对。</p>
+    </section>
+
+    <section class="flow" id="flow-4">
+      <h2><span>4</span>Pairing / SSP 认证与加密</h2>
+      <p>28.523s 起进入 Secure Simple Pairing。HONOR 50 Pro 报告 <code>DisplayYesNo</code>、无 OOB、要求 MITM、Dedicated Bonding；CloudPrint_0159 报告 <code>NoInputNoOutput</code>、无 OOB、不要求 MITM、General Bonding。由于打印设备无输入输出能力，按 SSP 关联模型更接近 Just Works，而不是 Numeric Comparison。</p>
+      <table>
+        <tr><th>抓包时间</th><th>事件</th><th>解读</th></tr>
+        <tr><td>28.523913</td><td>LMP IO Capability Transaction</td><td>交换 IO/OOB/MITM/Bonding 参数，决定 SSP 关联模型。</td></tr>
+        <tr><td>29.050170、29.053297</td><td>LMP Simple Pairing Number</td><td>SSP 认证过程中的随机数/确认值相关交换，双方均接受。</td></tr>
+        <tr><td>31.373952、31.399579</td><td>LMP DH Key Check</td><td>双方基于 ECDH 派生结果做一致性校验。</td></tr>
+        <tr><td>31.402702</td><td>LMP Secure Authentication Transaction</td><td>认证完成前后的安全事务。</td></tr>
+        <tr><td>31.412702 - 31.426453</td><td>Key Size Mask、Encryption Mode、Key Size、Start Encryption</td><td>协商加密能力与 16 字节密钥长度，并开始链路加密。</td></tr>
+      </table>
+            <div class="seq-container" id="msc-4" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;DisplayYesNo, MITM required&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;NoInputNoOutput, MITM not required&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP IO Capability Request/Response&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;关联模型推定为 Just Works；可加密，但不具备强 MITM 确认&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Simple Pairing Number&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP Simple Pairing Number&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP DH Key Check&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;LMP DH Key Check&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Secure Authentication Transaction&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Encryption Key Size Mask&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Encryption Mode = Encryption&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Encryption Key Size = 16 bytes&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Start Encryption Request&quot;, &quot;return&quot;: false, &quot;air&quot;: false}]}"></div>
+
+      <div class="note ok">
+        配对结果：DH Key Check 双向 Accepted，随后启用 16 bytes encryption key，说明认证和链路加密建立成功。
+      </div>
+      <div class="note warn">
+        风险点：虽然 HONOR 端要求 MITM，但对端 NoInputNoOutput 使用户确认无法完成。若产品安全需求要求强 MITM，应让 CloudPrint 侧具备显示/确认/OOB 能力，或通过应用层二维码/云端绑定补足身份校验。
+      </div>
+    </section>
+
+    <section class="flow" id="flow-5">
+      <h2><span>5</span>Service Discovery / SDP 与业务通道</h2>
+      <p>加密开始后，HONOR 50 Pro 立刻通过 L2CAP/SDP 查询 CloudPrint_0159 的服务记录。返回的服务包括 PnP Information、HID、多个 Serial Port Profile RFCOMM 通道。随后建立 HID Control 和 HID Interrupt 通道，这说明配对后的业务连接目标不是仅停留在发现层，而是进入 HID 类设备通道。</p>
+      <table>
+        <tr><th>抓包时间</th><th>事件</th><th>解读</th></tr>
+        <tr><td>31.435830 - 31.443953</td><td>L2CAP Configure + SDP Service Search Attribute PnP</td><td>查询设备身份信息。</td></tr>
+        <tr><td>31.456453 - 31.605206</td><td>SDP 查询 HID、SPP、PnP、Phonebook Access</td><td>一次综合服务枚举，CloudPrint 返回 HID 和多个 SPP server 通道。</td></tr>
+        <tr><td>31.693956 - 31.718957</td><td>单独查询 HID 记录</td><td>读取 HID descriptor、language、profile version 等属性。</td></tr>
+        <tr><td>31.723957 - 31.743957</td><td>L2CAP Connection: HID Control / HID Interrupt</td><td>建立 HID 控制和中断数据通道。</td></tr>
+        <tr><td>31.747083</td><td>LMP Quality of Service (18 slots = 11.250 ms)</td><td>为后续 HID 交互设置 QoS。</td></tr>
+      </table>
+            <div class="seq-container" id="msc-5" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&lt;br/&gt;SDP/HID client&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&lt;br/&gt;SDP/HID/SPP server&quot;}], &quot;messages&quot;: [{&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connection/Configure&lt;br/&gt;(PSM=SDP)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP Service Search Attribute&lt;br/&gt;(PnP Information)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;PnP Information&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP Service Search Attribute&lt;br/&gt;(HID, SPP, PnP)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HID + RFCOMM Ch2/3/4/5 + PnP&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;SDP Service Search/Attribute&lt;br/&gt;(HID handle 0x00010001)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HID descriptor/profile attributes&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connection&lt;br/&gt;(PSM=HID Control)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Configure Complete&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;L2CAP Connection&lt;br/&gt;(PSM=HID Interrupt)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Configure Complete&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP QoS&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}]}"></div>
+
+    </section>
+
+    <section class="flow" id="flow-6">
+      <h2><span>6</span>链路维持 / AFH、功控与 Sniff</h2>
+      <p>业务通道建立后，抓包长时间出现 <code>LMP Set AFH</code>、<code>LMP Power Control</code>、<code>LMP Sniff Mode</code>、<code>LMP Ping</code>。这属于连接稳定性和功耗优化流程，不是新的配对。</p>
+      <table>
+        <tr><th>抓包时间</th><th>事件</th><th>解读</th></tr>
+        <tr><td>32.650s - 186.126s</td><td>多次 LMP Set AFH，信道数从 57、48、46、38 逐步变化，后期最低约 20</td><td>环境干扰或共存策略导致可用跳频信道不断重算。</td></tr>
+        <tr><td>35.105s、42.598s、54.641s</td><td>LMP Power Control</td><td>逐步提升发射功率，后续达到最大功率。</td></tr>
+        <tr><td>61.774s</td><td>LMP Sniff Mode，T=48 slots = 30 ms</td><td>进入低功耗 sniff，保持周期性监听。</td></tr>
+        <tr><td>61.866s</td><td>Sniff Subrating Not Accepted, LMP PDU Not Allowed</td><td>首次尝试子速率被拒绝，后续 93.889s 重新协商成功但参数受限。</td></tr>
+        <tr><td>148.880s、184.371s</td><td>LMP Ping</td><td>安全连接场景下的链路存活/防超时确认。</td></tr>
+      </table>
+            <div class="seq-container" id="msc-6" data-msc="{&quot;actors&quot;: [{&quot;id&quot;: &quot;H&quot;, &quot;label&quot;: &quot;HONOR 50 Pro&quot;}, {&quot;id&quot;: &quot;C&quot;, &quot;label&quot;: &quot;CloudPrint_0159&quot;}], &quot;messages&quot;: [{&quot;type&quot;: &quot;note&quot;, &quot;actors&quot;: [&quot;H&quot;, &quot;C&quot;], &quot;text&quot;: &quot;↻ 周期性链路自适应&quot;}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Set AFH&lt;br/&gt;(更新可用跳频信道图)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;AFH 生效&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Power Control&lt;br/&gt;(increment power)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Changed / Max power&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Sniff Mode&lt;br/&gt;(T=48 slots, 30 ms)&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Accepted&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Sniff Subrating&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Not Accepted / later limited parameters&quot;, &quot;return&quot;: true, &quot;air&quot;: false}, {&quot;from&quot;: &quot;H&quot;, &quot;to&quot;: &quot;C&quot;, &quot;label&quot;: &quot;LMP Ping&quot;, &quot;return&quot;: false, &quot;air&quot;: false}, {&quot;from&quot;: &quot;C&quot;, &quot;to&quot;: &quot;H&quot;, &quot;label&quot;: &quot;Ping response&quot;, &quot;return&quot;: true, &quot;air&quot;: false}]}"></div>
+
+    </section>
+
+    <section id="关键判断与建议">
+      <h2>关键判断与建议</h2>
+      <table>
+        <tr><th>问题</th><th>判断</th><th>建议</th></tr>
+        <tr><td>Inquiry 是否完整可见？</td><td>不可见。CSV 首行已经是 LMP，缺少 ID/FHS 等基带层证据。</td><td>若需要完整空口佐证，导出/保留 baseband packet、inquiry result、page train 相关解码。</td></tr>
+        <tr><td>Paging 是否成功？</td><td>成功。28.372s 后连续 LMP 版本、特性、Host Connection Accepted、Setup Complete 可证明 ACL link 已建立。</td><td>以 28.372s 作为第二次完整连接的可见起点。</td></tr>
+        <tr><td>配对是否成功？</td><td>成功。DH Key Check 双向 Accepted，后续 Start Encryption，密钥长度 16 字节。</td><td>若遇到兼容性问题，优先检查 IO Capability 组合和 Host bonding 策略。</td></tr>
+        <tr><td>MITM 是否满足？</td><td>大概率不满足。NoInputNoOutput 对端无法做 Numeric Comparison 或 passkey。</td><td>对高安全绑定场景，增加 OOB、二维码、应用层账号绑定或设备侧确认能力。</td></tr>
+        <tr><td>后续连接是否稳定？</td><td>整体稳定，但 AFH 可用信道后期降到约 20，且功率到最大。</td><td>关注 2.4 GHz 干扰、天线距离、Wi-Fi 共存与打印机射频性能。</td></tr>
+      </table>
+    </section>
+  </div>
+
+  
+  <script>
+
+(function () {
+  'use strict';
+  var PALETTE = [
+    { stroke: '#1565c0', fill: '#e3f2fd' },
+    { stroke: '#2e7d32', fill: '#e8f5e9' },
+    { stroke: '#e65100', fill: '#fff3e0' },
+    { stroke: '#6a1b9a', fill: '#f3e5f5' },
+    { stroke: '#c62828', fill: '#ffebee' },
+    { stroke: '#00695c', fill: '#e0f2f1' }
+  ];
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function splitLabel(label) {
+    return label.replace(/<br\s*\/?>/gi, '\n').split('\n');
+  }
+
+  window.btPacketMsc = {
+    render: function (container, spec) {
+      if (typeof container === 'string') {
+        container = document.getElementById(container);
+      }
+      if (!container || !spec || !spec.actors || !spec.actors.length) return;
+
+      var actors = spec.actors;
+      var items = spec.messages || [];
+      var n = actors.length;
+      var padX = 24;
+      var actorW = 118;
+      var gap = Math.max(28, (720 - padX * 2 - actorW) / Math.max(1, n - 1));
+      var width = Math.max(560, padX * 2 + actorW + gap * (n - 1));
+      var xs = actors.map(function (_, i) {
+        return padX + i * gap + actorW / 2;
+      });
+
+      var rowH = 30;
+      var noteH = 34;
+      var topH = 48;
+      var y = topH;
+      var rows = [];
+
+      items.forEach(function (it) {
+        if (it.type === 'note') {
+          rows.push({ kind: 'note', text: it.text, ids: it.actors || actors.map(function (a) { return a.id; }), y: y });
+          y += noteH;
+        } else {
+          rows.push({
+            kind: 'msg',
+            from: it.from,
+            to: it.to,
+            label: it.label || '',
+            ret: !!it.return,
+            air: !!(it.air || (it.label && /\[Air\]/i.test(it.label))),
+            y: y
+          });
+          y += rowH;
+        }
+      });
+      var height = y + 28;
+
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+      var defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      actors.forEach(function (_, i) {
+        var m = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        m.setAttribute('id', 'pkt-m' + i);
+        m.setAttribute('markerWidth', '7');
+        m.setAttribute('markerHeight', '7');
+        m.setAttribute('refX', '5');
+        m.setAttribute('refY', '3.5');
+        m.setAttribute('orient', 'auto');
+        var poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0,7 3.5,0 7');
+        poly.setAttribute('fill', PALETTE[i % PALETTE.length].stroke);
+        m.appendChild(poly);
+        defs.appendChild(m);
+      });
+      svg.appendChild(defs);
+
+      var idIndex = {};
+      actors.forEach(function (a, i) {
+        idIndex[a.id] = i;
+        var p = PALETTE[i % PALETTE.length];
+        var rx = xs[i] - actorW / 2;
+        var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(rx));
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', String(actorW));
+        rect.setAttribute('height', '32');
+        rect.setAttribute('rx', '8');
+        rect.setAttribute('fill', p.fill);
+        rect.setAttribute('stroke', p.stroke);
+        rect.setAttribute('stroke-width', '1.5');
+        svg.appendChild(rect);
+        var lines = splitLabel(a.label);
+        lines.forEach(function (ln, li) {
+          var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          t.setAttribute('x', String(xs[i]));
+          t.setAttribute('y', String(22 + li * 11 - (lines.length - 1) * 5));
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('font-size', lines.length > 1 ? '9' : '10');
+          t.setAttribute('font-weight', 'bold');
+          t.setAttribute('fill', p.stroke);
+          t.textContent = ln;
+          svg.appendChild(t);
+        });
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', String(xs[i]));
+        line.setAttribute('y1', '42');
+        line.setAttribute('x2', String(xs[i]));
+        line.setAttribute('y2', String(height - 8));
+        line.setAttribute('stroke', p.stroke);
+        line.setAttribute('stroke-width', '1');
+        line.setAttribute('stroke-dasharray', '4,3');
+        line.setAttribute('opacity', '0.45');
+        svg.appendChild(line);
+      });
+
+      rows.forEach(function (row) {
+        if (row.kind === 'note') {
+          var idxs = row.ids.map(function (id) { return idIndex[id]; }).filter(function (x) { return x !== undefined; });
+          if (!idxs.length) return;
+          var x0 = xs[Math.min.apply(null, idxs)] - actorW / 2;
+          var x1 = xs[Math.max.apply(null, idxs)] + actorW / 2;
+          var nr = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          nr.setAttribute('x', String(x0 + 4));
+          nr.setAttribute('y', String(row.y - 4));
+          nr.setAttribute('width', String(x1 - x0 - 8));
+          nr.setAttribute('height', '22');
+          nr.setAttribute('rx', '4');
+          nr.setAttribute('fill', '#fff8e1');
+          nr.setAttribute('stroke', '#f9a825');
+          nr.setAttribute('stroke-width', '1');
+          svg.appendChild(nr);
+          var nt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          nt.setAttribute('x', String((x0 + x1) / 2));
+          nt.setAttribute('y', String(row.y + 10));
+          nt.setAttribute('text-anchor', 'middle');
+          nt.setAttribute('font-size', '9');
+          nt.setAttribute('fill', '#6d4c00');
+          nt.setAttribute('font-weight', '600');
+          nt.textContent = row.text;
+          svg.appendChild(nt);
+          return;
+        }
+        var fi = idIndex[row.from];
+        var ti = idIndex[row.to];
+        if (fi === undefined || ti === undefined) return;
+        var x1 = xs[fi];
+        var x2 = xs[ti];
+        var color = PALETTE[fi % PALETTE.length].stroke;
+        if (row.air) color = '#e65100';
+        var ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ln.setAttribute('x1', String(x1));
+        ln.setAttribute('y1', String(row.y));
+        ln.setAttribute('x2', String(x2));
+        ln.setAttribute('y2', String(row.y));
+        ln.setAttribute('stroke', color);
+        ln.setAttribute('stroke-width', row.air ? '2' : '1.5');
+        ln.setAttribute('marker-end', 'url(#pkt-m' + ti + ')');
+        if (row.ret || row.air) ln.setAttribute('stroke-dasharray', '6,3');
+        svg.appendChild(ln);
+        var lines = splitLabel(row.label);
+        var mid = (x1 + x2) / 2;
+        lines.forEach(function (lb, li) {
+          var lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          lt.setAttribute('x', String(mid));
+          lt.setAttribute('y', String(row.y - 6 - (lines.length - 1 - li) * 10));
+          lt.setAttribute('text-anchor', 'middle');
+          lt.setAttribute('font-size', '9');
+          lt.setAttribute('fill', color);
+          lt.setAttribute('font-weight', 'bold');
+          lt.textContent = lb;
+          svg.appendChild(lt);
+        });
+      });
+
+      container.innerHTML = '';
+      container.appendChild(svg);
+    }
+  };
+
+  document.querySelectorAll('.seq-container[data-msc]').forEach(function (el) {
+    try {
+      var spec = JSON.parse(el.getAttribute('data-msc'));
+      window.btPacketMsc.render(el, spec);
+    } catch (e) {
+      console.error('btPacketMsc', e);
+    }
+  });
+})();
+
+  </script>
+</div>
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,1939 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙 SDP 协议规范解析 (Core 6.0)</title>
+<style>
+  :root {
+    --blue-dark: #003366;
+    --blue-mid: #0055a5;
+    --blue-light: #4a90d9;
+    --blue-pale: #e8f2fc;
+    --accent: #00bcd4;
+    --accent2: #ff6f00;
+    --text: #1a2233;
+    --text-light: #5a6a80;
+    --border: #d0dce8;
+    --sidebar-w: 280px;
+    --header-h: 56px;
+    --white: #ffffff;
+    --green: #2e7d32;
+    --orange: #e65100;
+    --purple: #6a1b9a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--header-h) + 16px);
+  }
+
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f4f7fb;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue-mid) 100%);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    gap: 14px;
+  }
+  .bluetooth-logo {
+    width: 32px; height: 32px; flex-shrink: 0;
+  }
+  header h1 {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  header span {
+    color: rgba(255,255,255,0.6);
+    font-size: 13px;
+    margin-left: 8px;
+  }
+
+  /* ===== SIDEBAR ===== */
+  #sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    width: var(--sidebar-w);
+    bottom: 0;
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    z-index: 90;
+    padding-bottom: 30px;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--blue-light); border-radius: 4px; }
+
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-light);
+    padding: 14px 18px 6px;
+    border-top: 1px solid var(--border);
+    margin-top: 6px;
+  }
+  .nav-section-title:first-child { border-top: none; margin-top: 0; }
+
+  .nav-item {
+    display: block;
+    padding: 7px 18px 7px 28px;
+    font-size: 13px;
+    color: var(--text);
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.18s;
+    line-height: 1.4;
+  }
+  .nav-item:hover {
+    background: var(--blue-pale);
+    color: var(--blue-mid);
+    border-left-color: var(--blue-light);
+  }
+  .nav-item.active {
+    background: var(--blue-pale);
+    color: var(--blue-mid);
+    border-left-color: var(--blue-mid);
+    font-weight: 600;
+  }
+  .nav-item.top-level {
+    padding-left: 18px;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .nav-item.sub-level { padding-left: 34px; }
+  .nav-item.subsub-level { padding-left: 48px; font-size: 12px; color: var(--text-light); }
+
+  /* ===== MAIN ===== */
+  #main {
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 36px 40px 60px;
+    max-width: 1100px;
+  }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    margin-bottom: 52px;
+    scroll-margin-top: calc(var(--header-h) + 16px);
+  }
+
+  /* 所有正文锚点（含子章节 div）跳转时避开固定顶栏 */
+  #main [id] {
+    scroll-margin-top: calc(var(--header-h) + 16px);
+  }
+
+  .section-badge {
+    display: inline-block;
+    background: var(--blue-mid);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  h2.section-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--blue-dark);
+    border-bottom: 3px solid var(--blue-mid);
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2.section-title .sec-num {
+    font-size: 15px;
+    color: var(--blue-light);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  h3.sub-title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--blue-mid);
+    margin: 28px 0 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h3.sub-title .sec-num { font-size: 13px; color: var(--blue-light); }
+
+  h4.subsub-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--blue-dark);
+    margin: 20px 0 10px;
+    padding-left: 12px;
+    border-left: 4px solid var(--accent);
+  }
+
+  p {
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 12px;
+    font-size: 14.5px;
+  }
+
+  /* ===== CARDS & DIAGRAMS ===== */
+  .card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    margin: 18px 0;
+    box-shadow: 0 2px 8px rgba(0,60,140,0.06);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 14px;
+    background: var(--blue-mid);
+    border-radius: 2px;
+  }
+
+  .diagram-wrap {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 18px 0;
+    box-shadow: 0 2px 8px rgba(0,60,140,0.07);
+  }
+  .diagram-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 12px;
+    font-style: italic;
+  }
+
+  /* SVG diagrams */
+  svg text { font-family: 'Segoe UI', 'PingFang SC', sans-serif; }
+
+  /* ===== TABLES ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin: 14px 0;
+  }
+  thead tr { background: var(--blue-mid); color: white; }
+  th { padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  tr:nth-child(even) td { background: var(--blue-pale); }
+  tr:hover td { background: #dceefb; }
+
+  /* ===== CODE ===== */
+  pre {
+    background: #1a2233;
+    color: #a8d8ff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    overflow-x: auto;
+    line-height: 1.7;
+    margin: 12px 0;
+  }
+  code { font-family: 'Consolas', 'Courier New', monospace; }
+  .kw { color: #f9c74f; }
+  .val { color: #90e0ef; }
+  .cmt { color: #6a8ea0; font-style: italic; }
+  .str { color: #95d5b2; }
+
+  /* ===== NOTES / ALERTS ===== */
+  .note {
+    background: #fff8e1;
+    border-left: 4px solid #ffc107;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 13.5px;
+  }
+  .note strong { color: var(--orange); }
+
+  .info-box {
+    background: var(--blue-pale);
+    border-left: 4px solid var(--blue-mid);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 13.5px;
+  }
+
+  /* ===== FLEX GRIDS ===== */
+  .flex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .grid-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .grid-card .icon { font-size: 28px; margin-bottom: 8px; }
+  .grid-card .label { font-size: 13px; font-weight: 700; color: var(--blue-dark); margin-bottom: 4px; }
+  .grid-card .desc { font-size: 12px; color: var(--text-light); line-height: 1.5; }
+
+  /* ===== PACKET FIELD ===== */
+  .pkt-row {
+    display: flex;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin: 10px 0;
+  }
+  .pkt-cell {
+    flex: 1;
+    padding: 8px 4px;
+    border-right: 1px solid var(--border);
+    background: var(--blue-pale);
+    color: var(--blue-dark);
+    min-width: 0;
+  }
+  .pkt-cell:last-child { border-right: none; }
+  .pkt-cell .bits { font-size: 10px; font-weight: 400; color: var(--text-light); display: block; }
+  .pkt-cell.highlight { background: var(--blue-mid); color: white; }
+  .pkt-cell.highlight .bits { color: rgba(255,255,255,0.7); }
+  .pkt-cell.accent { background: #e8f5e9; color: var(--green); }
+  .pkt-cell.warn { background: #fff3e0; color: var(--orange); }
+
+  /* ===== UUID VISUAL ===== */
+  .uuid-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+  .uuid-seg {
+    background: var(--blue-dark);
+    color: white;
+    font-family: monospace;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+  }
+  .uuid-sep { color: var(--text-light); font-weight: bold; font-size: 18px; }
+
+  /* ===== TIMELINE / FLOW ===== */
+  .flow-wrap { margin: 16px 0; }
+
+  .ham {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    color: #fff;
+    font-size: 22px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    #main { padding: 20px 16px 40px; }
+    header h1 { font-size: 15px; }
+    .ham { display: flex; }
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- HEADER -->
+<header>
+  <button type="button" class="ham" aria-label="菜单">☰</button>
+  <svg class="bluetooth-logo" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="6" fill="white" fill-opacity="0.15"/>
+    <path d="M16 4 L22 10 L13 19 L22 28 L16 34" stroke="white" stroke-width="2.5" fill="none" transform="translate(0,-3)"/>
+    <path d="M16 4 L10 10 L19 19 L10 28" stroke="white" stroke-width="2.5" fill="none" stroke-opacity="0.6" transform="translate(0,-3)"/>
+    <circle cx="16" cy="16" r="13" stroke="white" stroke-width="1.5" fill="none" stroke-opacity="0.4"/>
+  </svg>
+  <h1>蓝牙 SDP 协议规范解析</h1>
+  <span>Bluetooth Core 6.0 · Part B</span>
+</header>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="nav-section-title">概述</div>
+  <a class="nav-item top-level active" onclick="scrollToSection('intro', this); return false;">1. 引言</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('intro-general', this); return false;">1.1 总体描述</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('intro-conv', this); return false;">1.5 约定</a>
+
+  <div class="nav-section-title">核心概念</div>
+  <a class="nav-item top-level" onclick="scrollToSection('overview', this); return false;">2. 总览</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('overview-arch', this); return false;">2.1 客户端-服务器架构</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('overview-record', this); return false;">2.2 服务记录</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('overview-attr', this); return false;">2.3 服务属性</a>
+  <a class="nav-item subsub-level" onclick="scrollToSection('overview-attr-id', this); return false;">2.3.1 属性 ID</a>
+  <a class="nav-item subsub-level" onclick="scrollToSection('overview-attr-val', this); return false;">2.3.2 属性值</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('overview-class', this); return false;">2.4 服务类</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('overview-search', this); return false;">2.5 搜索服务</a>
+  <a class="nav-item subsub-level" onclick="scrollToSection('overview-uuid', this); return false;">2.5.1 UUID</a>
+  <a class="nav-item subsub-level" onclick="scrollToSection('overview-pattern', this); return false;">2.5.2 服务搜索模式</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('overview-browse', this); return false;">2.6 浏览服务</a>
+
+  <div class="nav-section-title">数据表示</div>
+  <a class="nav-item top-level" onclick="scrollToSection('data', this); return false;">3. 数据表示</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-element', this); return false;">3.1 数据元素</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-types', this); return false;">3.2 数据类型</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-nil', this); return false;">3.3 Nil 类型</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-int', this); return false;">3.4 整数类型</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-uuid', this); return false;">3.5 UUID 类型</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-text', this); return false;">3.6 文本字符串</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-bool', this); return false;">3.7 布尔值</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-seq', this); return false;">3.8 序列类型</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('data-url', this); return false;">3.9 URL 类型</a>
+
+  <div class="nav-section-title">协议描述</div>
+  <a class="nav-item top-level" onclick="scrollToSection('protocol', this); return false;">4. 协议描述</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-byteorder', this); return false;">4.1 字节顺序</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-pdu', this); return false;">4.2 PDU 格式</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-error', this); return false;">4.3 错误响应</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-search', this); return false;">4.5 服务搜索请求</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-attr', this); return false;">4.6 服务属性请求</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-searchattr', this); return false;">4.7 搜索属性请求</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('protocol-cont', this); return false;">4.8 续传状态</a>
+
+  <div class="nav-section-title">属性定义</div>
+  <a class="nav-item top-level" onclick="scrollToSection('attributes', this); return false;">5. 服务属性定义</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('attr-universal', this); return false;">5.1 通用属性</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('attr-sdp', this); return false;">5.2 SDP 服务器属性</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('attr-browse', this); return false;">5.3 浏览组描述属性</a>
+
+  <div class="nav-section-title">附录</div>
+  <a class="nav-item top-level" onclick="scrollToSection('security', this); return false;">6. 安全</a>
+  <a class="nav-item top-level" onclick="scrollToSection('appendix-b', this); return false;">附录 B: 事务示例</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('example1', this); return false;">B.1 ServiceSearchRequest</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('example2', this); return false;">B.2 ServiceAttributeRequest</a>
+  <a class="nav-item sub-level" onclick="scrollToSection('example3', this); return false;">B.3 SearchAttributeRequest</a>
+  <a class="nav-item top-level" onclick="scrollToSection('appendix-c', this); return false;">附录 C: PDU 名称变更</a>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+
+<!-- ===================== SECTION 1: Introduction ===================== -->
+<div class="section" id="intro">
+  <div class="section-badge">Part B · Section 1</div>
+  <h2 class="section-title"><span class="sec-num">§1</span>引言 (Introduction)</h2>
+  <p>本部分定义了一种协议，用于发现蓝牙设备所提供或可通过蓝牙设备访问的服务。SDP（Service Discovery Protocol，服务发现协议）是蓝牙协议栈的重要组成部分，解决了"如何知道对方设备支持哪些服务"的根本问题。</p>
+
+  <div class="flex-grid">
+    <div class="grid-card">
+      <div class="icon">🔍</div>
+      <div class="label">服务发现</div>
+      <div class="desc">发现附近蓝牙设备上可用的服务类型</div>
+    </div>
+    <div class="grid-card">
+      <div class="icon">📋</div>
+      <div class="label">属性查询</div>
+      <div class="desc">获取服务的详细属性，如协议栈、访问方式</div>
+    </div>
+    <div class="grid-card">
+      <div class="icon">🔗</div>
+      <div class="label">连接准备</div>
+      <div class="desc">为后续建立服务连接提供必要信息</div>
+    </div>
+    <div class="grid-card">
+      <div class="icon">🌐</div>
+      <div class="label">动态拓扑</div>
+      <div class="desc">适应蓝牙设备动态进入/离开的无线环境</div>
+    </div>
+  </div>
+
+  <div id="intro-general">
+    <h3 class="sub-title"><span class="sec-num">§1.1</span>总体描述</h3>
+    <p>SDP 为应用程序提供了一种机制，用于发现哪些服务是可用的，并确定这些可用服务的特征。服务的属性包括：服务的类型或类别，以及利用该服务所需的机制或协议信息。</p>
+    <div class="note">
+      <strong>⚠️ 注意：</strong> SDP 仅负责<strong>发现</strong>服务及其属性（包括相关服务访问协议），而<strong>不</strong>负责实际<strong>利用</strong>这些服务（例如不传输服务数据）。实际的服务连接需要在 SDP 查询完成后，通过独立的连接来建立。
+    </div>
+  </div>
+
+  <div id="intro-conv">
+    <h3 class="sub-title"><span class="sec-num">§1.5</span>约定 (Conventions)</h3>
+    <h4 class="subsub-title">位与字节顺序约定</h4>
+    <p>在单字节内包含多个位字段时，更高有效位（高位）在左侧，低有效位在右侧。多字节字段按网络字节序（大端序）传输，高字节在左，低字节在右。</p>
+    <div class="diagram-wrap">
+      <div class="card-title">字节序示意图</div>
+      <svg width="100%" height="90" viewBox="0 0 600 90">
+        <!-- Bit ordering -->
+        <rect x="10" y="10" width="580" height="36" rx="6" fill="#e8f2fc" stroke="#4a90d9" stroke-width="1.5"/>
+        <text x="20" y="24" font-size="10" fill="#5a6a80">位 7 (MSB)</text>
+        <text x="554" y="24" font-size="10" fill="#5a6a80" text-anchor="end">位 0 (LSB)</text>
+        <line x1="10" y1="30" x2="590" y2="30" stroke="#4a90d9" stroke-width="0.5" stroke-dasharray="4,4"/>
+        <text x="300" y="50" font-size="12" fill="#003366" text-anchor="middle" font-weight="bold">高有效位 → 低有效位（从左到右）</text>
+        <!-- Byte ordering -->
+        <text x="10" y="78" font-size="12" fill="#003366" font-weight="bold">多字节字段：</text>
+        <rect x="110" y="64" width="80" height="22" rx="4" fill="#0055a5"/>
+        <rect x="196" y="64" width="80" height="22" rx="4" fill="#2e7d32"/>
+        <rect x="282" y="64" width="80" height="22" rx="4" fill="#e65100"/>
+        <rect x="368" y="64" width="80" height="22" rx="4" fill="#6a1b9a"/>
+        <text x="150" y="79" font-size="11" fill="white" text-anchor="middle">字节 0 (MSB)</text>
+        <text x="236" y="79" font-size="11" fill="white" text-anchor="middle">字节 1</text>
+        <text x="322" y="79" font-size="11" fill="white" text-anchor="middle">字节 2</text>
+        <text x="408" y="79" font-size="11" fill="white" text-anchor="middle">字节 3 (LSB)</text>
+        <text x="460" y="79" font-size="11" fill="#5a6a80">← 网络字节序</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 2: Overview ===================== -->
+<div class="section" id="overview">
+  <div class="section-badge">Part B · Section 2</div>
+  <h2 class="section-title"><span class="sec-num">§2</span>总览 (Overview)</h2>
+
+  <!-- 2.1 Architecture -->
+  <div id="overview-arch">
+    <h3 class="sub-title"><span class="sec-num">§2.1</span>SDP 客户端-服务器架构</h3>
+    <p>SDP 采用经典的客户端-服务器模型。服务器维护一个 SDP 数据库，包含描述其所关联服务特征的服务记录列表。客户端通过发出 SDP 请求，从服务器检索服务记录中的信息。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">图 2.1 · 2.2 — SDP 客户端-服务器交互模型</div>
+      <svg width="100%" height="320" viewBox="0 0 700 320">
+        <!-- Background -->
+        <rect x="0" y="0" width="700" height="320" fill="#f8fafd" rx="8"/>
+
+        <!-- Device A (Client side) -->
+        <rect x="20" y="20" width="200" height="280" rx="10" fill="#e8f2fc" stroke="#4a90d9" stroke-width="2"/>
+        <text x="120" y="44" font-size="13" font-weight="bold" fill="#003366" text-anchor="middle">蓝牙设备 A</text>
+        <rect x="40" y="54" width="160" height="36" rx="6" fill="#0055a5"/>
+        <text x="120" y="76" font-size="12" fill="white" text-anchor="middle">应用程序</text>
+        <rect x="40" y="98" width="160" height="36" rx="6" fill="#4a90d9"/>
+        <text x="120" y="120" font-size="12" fill="white" text-anchor="middle">SDP 客户端</text>
+        <rect x="40" y="142" width="160" height="36" rx="6" fill="#6a8ea0"/>
+        <text x="120" y="164" font-size="12" fill="white" text-anchor="middle">L2CAP</text>
+        <rect x="40" y="186" width="160" height="36" rx="6" fill="#90a4ae"/>
+        <text x="120" y="208" font-size="12" fill="white" text-anchor="middle">基带 (Baseband)</text>
+        <rect x="40" y="230" width="160" height="40" rx="6" fill="#b0bec5"/>
+        <text x="120" y="254" font-size="12" fill="white" text-anchor="middle">射频 (RF)</text>
+
+        <!-- Device B (Server side) -->
+        <rect x="480" y="20" width="200" height="280" rx="10" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+        <text x="580" y="44" font-size="13" font-weight="bold" fill="#1b5e20" text-anchor="middle">蓝牙设备 B</text>
+        <rect x="500" y="54" width="160" height="36" rx="6" fill="#2e7d32"/>
+        <text x="580" y="76" font-size="12" fill="white" text-anchor="middle">服务应用程序</text>
+        <rect x="500" y="98" width="160" height="36" rx="6" fill="#43a047"/>
+        <text x="580" y="120" font-size="12" fill="white" text-anchor="middle">SDP 服务器</text>
+        <rect x="500" y="142" width="160" height="36" rx="6" fill="#6a8ea0"/>
+        <text x="580" y="164" font-size="12" fill="white" text-anchor="middle">L2CAP</text>
+        <rect x="500" y="186" width="160" height="36" rx="6" fill="#90a4ae"/>
+        <text x="580" y="208" font-size="12" fill="white" text-anchor="middle">基带 (Baseband)</text>
+        <rect x="500" y="230" width="160" height="40" rx="6" fill="#b0bec5"/>
+        <text x="580" y="254" font-size="12" fill="white" text-anchor="middle">射频 (RF)</text>
+
+        <!-- SDP DB on server -->
+        <rect x="500" y="272" width="160" height="24" rx="4" fill="#fff9c4" stroke="#ffc107" stroke-width="1.5"/>
+        <text x="580" y="288" font-size="11" fill="#795548" text-anchor="middle">📦 SDP 服务记录数据库</text>
+
+        <!-- Arrows: SDP Request -->
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#0055a5"/>
+          </marker>
+          <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#2e7d32"/>
+          </marker>
+        </defs>
+        <line x1="200" y1="116" x2="498" y2="116" stroke="#0055a5" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arr)"/>
+        <rect x="280" y="100" width="140" height="22" rx="4" fill="white" stroke="#4a90d9" stroke-width="1"/>
+        <text x="350" y="115" font-size="11" font-weight="bold" fill="#0055a5" text-anchor="middle">→ SDP 请求 (Request)</text>
+
+        <line x1="498" y1="136" x2="200" y2="136" stroke="#2e7d32" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arr2)"/>
+        <rect x="280" y="138" width="140" height="22" rx="4" fill="white" stroke="#43a047" stroke-width="1"/>
+        <text x="350" y="153" font-size="11" font-weight="bold" fill="#2e7d32" text-anchor="middle">← SDP 响应 (Response)</text>
+
+        <!-- RF link -->
+        <line x1="200" y1="250" x2="498" y2="250" stroke="#ff6f00" stroke-width="1.5" stroke-dasharray="3,3"/>
+        <text x="350" y="246" font-size="10" fill="#ff6f00" text-anchor="middle">无线射频链路</text>
+      </svg>
+      <p class="diagram-caption">图 2.1/2.2：SDP 客户端通过 L2CAP 连接向 SDP 服务器发送请求，服务器从服务记录数据库中查询并返回结果</p>
+    </div>
+
+    <div class="info-box">
+      <strong>关键特性：</strong> SDP 服务器集合相对于 SDP 客户端是<strong>动态变化</strong>的——当服务器变为可用时，需由 SDP 以外的机制（如询问）通知客户端。当服务器离开范围时，SDP 不提供显式通知，但客户端可通过轮询推断服务器是否可用。
+    </div>
+  </div>
+
+  <!-- 2.2 Service Record -->
+  <div id="overview-record">
+    <h3 class="sub-title"><span class="sec-num">§2.2</span>服务记录 (Service Record)</h3>
+    <p>服务是指能够代表另一个实体提供信息、执行动作或控制资源的任何实体，可通过软件、硬件或软硬件组合实现。SDP 服务器中关于某服务的所有信息都包含在单个服务记录中，服务记录仅为服务属性的列表。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">服务记录数据库结构</div>
+      <svg width="100%" height="260" viewBox="0 0 680 260">
+        <rect x="0" y="0" width="680" height="260" fill="#f8fafd" rx="8"/>
+
+        <!-- DB box -->
+        <rect x="10" y="10" width="660" height="240" rx="8" fill="#e8f2fc" stroke="#4a90d9" stroke-width="1.5"/>
+        <text x="340" y="32" font-size="13" font-weight="bold" fill="#003366" text-anchor="middle">SDP 服务记录数据库 (SDP Server)</text>
+
+        <!-- Record 1 -->
+        <rect x="30" y="42" width="190" height="190" rx="6" fill="white" stroke="#0055a5" stroke-width="1.5"/>
+        <rect x="30" y="42" width="190" height="28" rx="6" fill="#0055a5"/>
+        <text x="125" y="60" font-size="11" font-weight="bold" fill="white" text-anchor="middle">服务记录 (Handle: 0x0001)</text>
+        <text x="40" y="88" font-size="11" fill="#1a2233">属性 ID: 0x0000</text>
+        <text x="40" y="104" font-size="10" fill="#5a6a80">ServiceRecordHandle: 0x0001</text>
+        <line x1="30" y1="110" x2="220" y2="110" stroke="#d0dce8" stroke-width="1"/>
+        <text x="40" y="126" font-size="11" fill="#1a2233">属性 ID: 0x0001</text>
+        <text x="40" y="142" font-size="10" fill="#5a6a80">ServiceClassIDList: [PrinterUUID]</text>
+        <line x1="30" y1="148" x2="220" y2="148" stroke="#d0dce8" stroke-width="1"/>
+        <text x="40" y="164" font-size="11" fill="#1a2233">属性 ID: 0x0004</text>
+        <text x="40" y="180" font-size="10" fill="#5a6a80">ProtocolDescriptorList:</text>
+        <text x="40" y="194" font-size="10" fill="#5a6a80">  [L2CAP, RFCOMM(ch=2)]</text>
+        <text x="40" y="216" font-size="10" fill="#5a6a80">ServiceName: "My Printer"</text>
+
+        <!-- Record 2 -->
+        <rect x="244" y="42" width="190" height="190" rx="6" fill="white" stroke="#2e7d32" stroke-width="1.5"/>
+        <rect x="244" y="42" width="190" height="28" rx="6" fill="#2e7d32"/>
+        <text x="339" y="60" font-size="11" font-weight="bold" fill="white" text-anchor="middle">服务记录 (Handle: 0x0002)</text>
+        <text x="254" y="88" font-size="11" fill="#1a2233">属性 ID: 0x0000</text>
+        <text x="254" y="104" font-size="10" fill="#5a6a80">ServiceRecordHandle: 0x0002</text>
+        <line x1="244" y1="110" x2="434" y2="110" stroke="#d0dce8" stroke-width="1"/>
+        <text x="254" y="126" font-size="11" fill="#1a2233">属性 ID: 0x0001</text>
+        <text x="254" y="142" font-size="10" fill="#5a6a80">ServiceClassIDList: [AudioSinkUUID]</text>
+        <line x1="244" y1="148" x2="434" y2="148" stroke="#d0dce8" stroke-width="1"/>
+        <text x="254" y="164" font-size="11" fill="#1a2233">属性 ID: 0x0004</text>
+        <text x="254" y="180" font-size="10" fill="#5a6a80">ProtocolDescriptorList:</text>
+        <text x="254" y="194" font-size="10" fill="#5a6a80">  [L2CAP, AVDTP(v1.3)]</text>
+        <text x="254" y="216" font-size="10" fill="#5a6a80">ServiceName: "BT Speaker"</text>
+
+        <!-- Record 3 (SDP server itself) -->
+        <rect x="458" y="42" width="190" height="190" rx="6" fill="white" stroke="#e65100" stroke-width="1.5"/>
+        <rect x="458" y="42" width="190" height="28" rx="6" fill="#e65100"/>
+        <text x="553" y="60" font-size="11" font-weight="bold" fill="white" text-anchor="middle">SDP 服务器 (Handle: 0x0000)</text>
+        <text x="468" y="88" font-size="11" fill="#1a2233">属性 ID: 0x0000</text>
+        <text x="468" y="104" font-size="10" fill="#5a6a80">ServiceRecordHandle: 0x0000</text>
+        <line x1="458" y1="110" x2="648" y2="110" stroke="#d0dce8" stroke-width="1"/>
+        <text x="468" y="126" font-size="11" fill="#1a2233">属性 ID: 0x0001</text>
+        <text x="468" y="142" font-size="10" fill="#5a6a80">ServiceClassIDList: [SDP Server]</text>
+        <line x1="458" y1="148" x2="648" y2="148" stroke="#d0dce8" stroke-width="1"/>
+        <text x="468" y="164" font-size="11" fill="#1a2233">属性 ID: 0x0200</text>
+        <text x="468" y="180" font-size="10" fill="#5a6a80">VersionNumberList: [(1,2)]</text>
+        <text x="468" y="210" font-size="10" fill="#e65100" font-style="italic">代表 SDP 服务器本身</text>
+      </svg>
+      <p class="diagram-caption">SDP 数据库包含多条服务记录，每条记录由唯一的 32 位句柄标识，Handle 0x00000000 保留给 SDP 服务器自身</p>
+    </div>
+
+    <div class="note">
+      <strong>服务记录句柄规则：</strong> 句柄在单个 SDP 服务器内唯一。在 L2CAP 连接期间，服务器<strong>不得</strong>重用句柄值。若某服务被移除，使用其旧句柄的请求将收到"无效服务记录句柄"错误。
+    </div>
+  </div>
+
+  <!-- 2.3 Attribute -->
+  <div id="overview-attr">
+    <h3 class="sub-title"><span class="sec-num">§2.3</span>服务属性 (Service Attribute)</h3>
+    <p>每个服务属性描述服务的一个单独特征，由两部分组成：<strong>属性 ID</strong>（Attribute ID）和<strong>属性值</strong>（Attribute Value）。</p>
+
+    <table>
+      <thead><tr><th>属性名</th><th>属性含义</th></tr></thead>
+      <tbody>
+        <tr><td>ServiceClassIDList</td><td>标识服务记录所代表的服务类型（服务所属的类列表）</td></tr>
+        <tr><td>ServiceID</td><td>唯一标识某个服务的特定实例</td></tr>
+        <tr><td>ProtocolDescriptorList</td><td>指定可用于利用该服务的协议栈</td></tr>
+        <tr><td>ProviderName</td><td>提供服务的个人或组织的文字名称</td></tr>
+        <tr><td>IconURL</td><td>指向可用于代表该服务的图标图像的 URL</td></tr>
+        <tr><td>ServiceName</td><td>包含服务的人类可读名称的文本字符串</td></tr>
+        <tr><td>ServiceDescription</td><td>描述服务的文本字符串</td></tr>
+      </tbody>
+    </table>
+
+    <div id="overview-attr-id">
+      <h4 class="subsub-title">§2.3.1 属性 ID</h4>
+      <p>属性 ID 是一个 16 位无符号整数，用于在服务记录中区分各个服务属性，并标识相关属性值的语义。属性 ID 仅在每个服务类内部唯一。在 SDP 中，属性 ID 以数据元素的形式表示。</p>
+    </div>
+    <div id="overview-attr-val">
+      <h4 class="subsub-title">§2.3.2 属性值</h4>
+      <p>属性值是一个可变长度字段，其含义由与之关联的属性 ID 以及包含该属性的服务记录的服务类决定。在 SDP 中，属性值以数据元素的形式表示，通常可以是任何类型的数据元素，受服务类定义中规定的约束限制。</p>
+    </div>
+  </div>
+
+  <!-- 2.4 Service Class -->
+  <div id="overview-class">
+    <h3 class="sub-title"><span class="sec-num">§2.4</span>服务类 (Service Class)</h3>
+    <p>每个服务都是某个服务类的实例。服务类定义提供了服务记录中所有属性的定义。每个服务类都被分配一个唯一标识符（UUID），包含在 ServiceClassIDList 属性中。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">服务类继承层次示例（打印机服务）</div>
+      <svg width="100%" height="200" viewBox="0 0 680 200">
+        <rect x="0" y="0" width="680" height="200" fill="#f8fafd" rx="8"/>
+        <!-- Hierarchy boxes -->
+        <rect x="280" y="10" width="140" height="36" rx="6" fill="#6a1b9a"/>
+        <text x="350" y="32" font-size="12" font-weight="bold" fill="white" text-anchor="middle">PrinterServiceClass</text>
+
+        <rect x="210" y="80" width="140" height="36" rx="6" fill="#0055a5"/>
+        <text x="280" y="100" font-size="11" font-weight="bold" fill="white" text-anchor="middle">PostscriptPrinter</text>
+
+        <rect x="370" y="80" width="140" height="36" rx="6" fill="#0055a5"/>
+        <text x="440" y="100" font-size="11" font-weight="bold" fill="white" text-anchor="middle">ColorPrinter</text>
+
+        <rect x="290" y="152" width="180" height="36" rx="6" fill="#2e7d32"/>
+        <text x="380" y="168" font-size="11" font-weight="bold" fill="white" text-anchor="middle">DuplexColorPostscript</text>
+        <text x="380" y="182" font-size="10" fill="white" text-anchor="middle">（继承所有父类属性）</text>
+
+        <!-- Arrows (inheritance) -->
+        <defs>
+          <marker id="arr3" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#6a1b9a"/>
+          </marker>
+        </defs>
+        <line x1="280" y1="116" x2="350" y2="46" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr3)"/>
+        <line x1="440" y1="116" x2="420" y2="46" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr3)"/>
+        <line x1="380" y1="152" x2="290" y2="116" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr3)"/>
+        <line x1="380" y1="152" x2="440" y2="116" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+        <text x="60" y="50" font-size="11" fill="#6a1b9a" font-style="italic">↑ 超类（父类）</text>
+        <text x="60" y="170" font-size="11" fill="#2e7d32" font-style="italic">↓ 子类（继承+扩展属性）</text>
+      </svg>
+      <p class="diagram-caption">子类服务类保留父类的所有属性定义，并可添加特定于子类的新属性</p>
+    </div>
+  </div>
+
+  <!-- 2.5 UUID -->
+  <div id="overview-search">
+    <h3 class="sub-title"><span class="sec-num">§2.5</span>搜索服务 (Searching for Services)</h3>
+    <p>服务搜索事务允许客户端根据服务记录属性中所包含的 UUID 值来检索特定服务记录的句柄。SDP 仅支持基于 UUID 值的属性搜索，不支持任意属性值搜索。</p>
+
+    <div id="overview-uuid">
+      <h4 class="subsub-title">§2.5.1 UUID（通用唯一标识符）</h4>
+      <p>UUID 是一个 128 位的值，预期在所有空间和时间上是唯一的（独立生成的 UUID 相同的概率可忽略不计）。无需中央注册机构即可分布式创建。</p>
+      <p>为减少存储和传输 128 位 UUID 值的负担，蓝牙预分配了一段 UUID 范围，已注册的常用用途使用 16 位或 32 位别名。</p>
+
+      <div class="card">
+        <div class="card-title">Bluetooth Base UUID</div>
+        <div class="uuid-box">
+          <div class="uuid-seg">00000000</div>
+          <div class="uuid-sep">-</div>
+          <div class="uuid-seg">0000</div>
+          <div class="uuid-sep">-</div>
+          <div class="uuid-seg">1000</div>
+          <div class="uuid-sep">-</div>
+          <div class="uuid-seg">8000</div>
+          <div class="uuid-sep">-</div>
+          <div class="uuid-seg">00805F9B34FB</div>
+        </div>
+        <div style="margin-top:12px; font-size:13px; color: #5a6a80;">
+          <strong>16 位 → 128 位转换：</strong>&nbsp;&nbsp;
+          <code style="background:#1a2233;color:#a8d8ff;padding:4px 10px;border-radius:4px;">
+            128bit = 16bit_value × 2<sup>96</sup> + Bluetooth_Base_UUID
+          </code>
+        </div>
+        <div style="margin-top:8px; font-size:13px; color: #5a6a80;">
+          <strong>32 位 → 128 位转换：</strong>&nbsp;&nbsp;
+          <code style="background:#1a2233;color:#a8d8ff;padding:4px 10px;border-radius:4px;">
+            128bit = 32bit_value × 2<sup>96</sup> + Bluetooth_Base_UUID
+          </code>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>比较规则：</strong> 两个不同大小的 UUID 比较时，必须先将较短的 UUID 转换为较长的格式，再进行比较。16 位 UUID 可通过左填充零扩展为 32 位格式。
+      </div>
+    </div>
+
+    <div id="overview-pattern">
+      <h4 class="subsub-title">§2.5.2 服务搜索模式 (Service Search Patterns)</h4>
+      <p>服务搜索模式是一个 UUID 列表，用于定位匹配的服务记录。<strong>当且仅当服务搜索模式中每一个 UUID 都包含在某服务记录的任意属性值中</strong>，该模式才与该服务记录匹配。</p>
+
+      <div class="diagram-wrap">
+        <div class="card-title">搜索匹配逻辑示意</div>
+        <svg width="100%" height="180" viewBox="0 0 680 180">
+          <rect x="0" y="0" width="680" height="180" fill="#f8fafd" rx="8"/>
+          <!-- Pattern -->
+          <rect x="20" y="20" width="180" height="140" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="110" y="42" font-size="12" font-weight="bold" fill="#1565c0" text-anchor="middle">搜索模式</text>
+          <rect x="36" y="52" width="148" height="26" rx="4" fill="#1565c0"/>
+          <text x="110" y="69" font-size="11" fill="white" text-anchor="middle">UUID-A (PrinterClass)</text>
+          <rect x="36" y="84" width="148" height="26" rx="4" fill="#1565c0"/>
+          <text x="110" y="101" font-size="11" fill="white" text-anchor="middle">UUID-B (ColorPrinter)</text>
+          <text x="110" y="148" font-size="10" fill="#1565c0" text-anchor="middle">需同时包含 A AND B</text>
+
+          <!-- Arrow -->
+          <text x="225" y="98" font-size="20" fill="#4a90d9" text-anchor="middle">→</text>
+
+          <!-- Record 1: Match -->
+          <rect x="248" y="20" width="180" height="140" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+          <text x="338" y="42" font-size="12" font-weight="bold" fill="#2e7d32" text-anchor="middle">服务记录 1 ✓</text>
+          <text x="338" y="62" font-size="10" fill="#5a6a80" text-anchor="middle">含有:</text>
+          <rect x="264" y="70" width="148" height="22" rx="4" fill="#2e7d32"/>
+          <text x="338" y="85" font-size="11" fill="white" text-anchor="middle">UUID-A ✓</text>
+          <rect x="264" y="98" width="148" height="22" rx="4" fill="#2e7d32"/>
+          <text x="338" y="113" font-size="11" fill="white" text-anchor="middle">UUID-B ✓</text>
+          <rect x="264" y="126" width="148" height="22" rx="4" fill="#c8e6c9"/>
+          <text x="338" y="141" font-size="11" fill="#1b5e20" text-anchor="middle">UUID-C (其他属性)</text>
+          <text x="338" y="158" font-size="11" font-weight="bold" fill="#2e7d32" text-anchor="middle">→ 匹配！</text>
+
+          <!-- Record 2: No Match -->
+          <rect x="460" y="20" width="180" height="140" rx="8" fill="#ffebee" stroke="#c62828" stroke-width="2"/>
+          <text x="550" y="42" font-size="12" font-weight="bold" fill="#c62828" text-anchor="middle">服务记录 2 ✗</text>
+          <text x="550" y="62" font-size="10" fill="#5a6a80" text-anchor="middle">含有:</text>
+          <rect x="476" y="70" width="148" height="22" rx="4" fill="#2e7d32"/>
+          <text x="550" y="85" font-size="11" fill="white" text-anchor="middle">UUID-A ✓</text>
+          <rect x="476" y="98" width="148" height="22" rx="4" fill="#c62828"/>
+          <text x="550" y="113" font-size="11" fill="white" text-anchor="middle">UUID-B ✗（缺失）</text>
+          <text x="550" y="158" font-size="11" font-weight="bold" fill="#c62828" text-anchor="middle">→ 不匹配！</text>
+        </svg>
+        <p class="diagram-caption">搜索模式是 UUID 的子集匹配：服务记录必须包含搜索模式中的所有 UUID 才算匹配</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.6 Browsing -->
+  <div id="overview-browse">
+    <h3 class="sub-title"><span class="sec-num">§2.6</span>浏览服务 (Browsing for Services)</h3>
+    <p>浏览是指在没有任何关于服务的先验信息的情况下，发现 SDP 服务器服务记录所描述的服务类型。SDP 的浏览机制基于所有服务类共享的 <strong>BrowseGroupList</strong> 属性。</p>
+    <p>每个 UUID 代表一个浏览组，服务通过将根浏览组的 UUID（PublicBrowseRoot）放入自己的 BrowseGroupList 属性，使自身出现在顶级浏览中。SDP 服务器可定义分层浏览组结构，每个 BrowseGroupDescriptor 服务记录通过 GroupID 属性定义一个新的浏览组。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">图 2.3 — 服务浏览层次结构示例</div>
+      <svg width="100%" height="280" viewBox="0 0 680 280">
+        <rect x="0" y="0" width="680" height="280" fill="#f8fafd" rx="8"/>
+
+        <!-- Root -->
+        <rect x="260" y="10" width="160" height="38" rx="8" fill="#6a1b9a"/>
+        <text x="340" y="32" font-size="12" font-weight="bold" fill="white" text-anchor="middle">PublicBrowseRoot</text>
+        <text x="340" y="44" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">（根浏览组）</text>
+
+        <!-- Level 1: Group descriptors -->
+        <rect x="60" y="90" width="130" height="38" rx="6" fill="#0055a5"/>
+        <text x="125" y="108" font-size="11" font-weight="bold" fill="white" text-anchor="middle">娱乐 (G)</text>
+        <text x="125" y="122" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">EntertainmentID</text>
+
+        <rect x="275" y="90" width="130" height="38" rx="6" fill="#0055a5"/>
+        <text x="340" y="108" font-size="11" font-weight="bold" fill="white" text-anchor="middle">新闻 (G)</text>
+        <text x="340" y="122" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">NewsID</text>
+
+        <rect x="490" y="90" width="130" height="38" rx="6" fill="#0055a5"/>
+        <text x="555" y="108" font-size="11" font-weight="bold" fill="white" text-anchor="middle">参考 (G)</text>
+        <text x="555" y="122" font-size="10" fill="rgba(255,255,255,0.8)" text-anchor="middle">ReferenceID</text>
+
+        <!-- Level 2: Services under Entertainment -->
+        <rect x="20" y="180" width="100" height="32" rx="5" fill="#43a047"/>
+        <text x="70" y="196" font-size="10" font-weight="bold" fill="white" text-anchor="middle">游戏 (G)</text>
+        <text x="70" y="208" font-size="9" fill="rgba(255,255,255,0.8)" text-anchor="middle">GamesID</text>
+
+        <rect x="130" y="180" width="90" height="32" rx="5" fill="#00897b"/>
+        <text x="175" y="196" font-size="10" font-weight="bold" fill="white" text-anchor="middle">电影 (S)</text>
+        <text x="175" y="208" font-size="9" fill="rgba(255,255,255,0.8)" text-anchor="middle">服务</text>
+
+        <!-- Services under Games -->
+        <rect x="0" y="252" width="80" height="26" rx="4" fill="#f57f17"/>
+        <text x="40" y="269" font-size="10" font-weight="bold" fill="white" text-anchor="middle">国际象棋 (S)</text>
+
+        <rect x="88" y="252" width="80" height="26" rx="4" fill="#f57f17"/>
+        <text x="128" y="269" font-size="10" font-weight="bold" fill="white" text-anchor="middle">扑克 (S)</text>
+
+        <!-- News services -->
+        <rect x="255" y="180" width="90" height="32" rx="5" fill="#00897b"/>
+        <text x="300" y="196" font-size="10" font-weight="bold" fill="white" text-anchor="middle">体育新闻 (S)</text>
+        <text x="300" y="208" font-size="9" fill="rgba(255,255,255,0.8)" text-anchor="middle">服务</text>
+        <rect x="355" y="180" width="90" height="32" rx="5" fill="#00897b"/>
+        <text x="400" y="196" font-size="10" font-weight="bold" fill="white" text-anchor="middle">财经新闻 (S)</text>
+        <text x="400" y="208" font-size="9" fill="rgba(255,255,255,0.8)" text-anchor="middle">服务</text>
+
+        <!-- Arrows from root to level1 -->
+        <line x1="290" y1="48" x2="165" y2="90" stroke="#4a90d9" stroke-width="1.5"/>
+        <line x1="340" y1="48" x2="340" y2="90" stroke="#4a90d9" stroke-width="1.5"/>
+        <line x1="390" y1="48" x2="520" y2="90" stroke="#4a90d9" stroke-width="1.5"/>
+
+        <!-- Level1 to Level2 -->
+        <line x1="100" y1="128" x2="70" y2="180" stroke="#4a90d9" stroke-width="1.5"/>
+        <line x1="130" y1="128" x2="175" y2="180" stroke="#4a90d9" stroke-width="1.5"/>
+        <line x1="315" y1="128" x2="300" y2="180" stroke="#4a90d9" stroke-width="1.5"/>
+        <line x1="370" y1="128" x2="400" y2="180" stroke="#4a90d9" stroke-width="1.5"/>
+
+        <!-- Games to services -->
+        <line x1="55" y1="212" x2="40" y2="252" stroke="#4a90d9" stroke-width="1.5"/>
+        <line x1="70" y1="212" x2="128" y2="252" stroke="#4a90d9" stroke-width="1.5"/>
+
+        <!-- Legend -->
+        <rect x="540" y="200" width="14" height="14" rx="3" fill="#0055a5"/>
+        <text x="558" y="213" font-size="11" fill="#1a2233">(G) 浏览组描述符</text>
+        <rect x="540" y="222" width="14" height="14" rx="3" fill="#00897b"/>
+        <text x="558" y="235" font-size="11" fill="#1a2233">(S) 具体服务</text>
+      </svg>
+      <p class="diagram-caption">分层浏览结构允许客户端逐步探索服务器提供的服务，适合服务数量众多的场景</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 3: Data Representation ===================== -->
+<div class="section" id="data">
+  <div class="section-badge">Part B · Section 3</div>
+  <h2 class="section-title"><span class="sec-num">§3</span>数据表示 (Data Representation)</h2>
+  <p>SDP 使用统一的数据元素格式来表示所有的属性 ID 和属性值，这是 SDP 协议中信息编码的基础。</p>
+
+  <div id="data-element">
+    <h3 class="sub-title"><span class="sec-num">§3.1</span>数据元素 (Data Element)</h3>
+    <p>数据元素是 SDP 中用于表示信息的基本构建块。每个数据元素由两个主要字段组成：<strong>类型描述符</strong>（Type Descriptor）和<strong>数据</strong>（Data）。类型描述符由类型（type）和大小（size）两个子字段构成。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">数据元素结构（类型描述符字节）</div>
+      <svg width="100%" height="120" viewBox="0 0 680 120">
+        <rect x="0" y="0" width="680" height="120" fill="#f8fafd" rx="8"/>
+        <!-- Byte field -->
+        <rect x="20" y="20" width="640" height="40" rx="6" fill="#e8f2fc" stroke="#4a90d9" stroke-width="1.5"/>
+        <!-- Type (bits 7:3) -->
+        <rect x="20" y="20" width="400" height="40" rx="6" fill="#0055a5"/>
+        <text x="220" y="34" font-size="11" fill="rgba(255,255,255,0.8)" text-anchor="middle">位 7-3（高5位）</text>
+        <text x="220" y="52" font-size="13" font-weight="bold" fill="white" text-anchor="middle">类型 (Type Descriptor)</text>
+        <!-- Size (bits 2:0) -->
+        <rect x="422" y="20" width="238" height="40" rx="0" fill="#2e7d32" stroke="none"/>
+        <rect x="422" y="20" width="238" height="40" rx="6" fill="#2e7d32"/>
+        <rect x="420" y="20" width="10" height="40" fill="#2e7d32"/>
+        <text x="540" y="34" font-size="11" fill="rgba(255,255,255,0.8)" text-anchor="middle">位 2-0（低3位）</text>
+        <text x="540" y="52" font-size="13" font-weight="bold" fill="white" text-anchor="middle">大小索引 (Size Index)</text>
+
+        <!-- Bit numbers -->
+        <text x="28" y="76" font-size="10" fill="#5a6a80">位 7</text>
+        <text x="380" y="76" font-size="10" fill="#5a6a80" text-anchor="end">位 3</text>
+        <text x="428" y="76" font-size="10" fill="#5a6a80">位 2</text>
+        <text x="652" y="76" font-size="10" fill="#5a6a80" text-anchor="end">位 0</text>
+
+        <!-- Size Index explanation -->
+        <text x="20" y="100" font-size="11" fill="#1a2233">大小索引: 0=1字节, 1=2字节, 2=4字节, 3=8字节, 4=16字节, 5=后跟1字节大小, 6=后跟2字节大小, 7=后跟4字节大小</text>
+      </svg>
+    </div>
+  </div>
+
+  <div id="data-types">
+    <h3 class="sub-title"><span class="sec-num">§3.2</span>数据元素类型 (Data Element Types)</h3>
+    <table>
+      <thead><tr><th>类型值 (高5位)</th><th>数据类型</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>0b00000</code> (0)</td><td>Nil</td><td>空类型，仅有一个可能的值（大小索引必须为 0）</td></tr>
+        <tr><td><code>0b00001</code> (1)</td><td>Unsigned Integer</td><td>无符号整数（1/2/4/8/16 字节）</td></tr>
+        <tr><td><code>0b00010</code> (2)</td><td>Signed Integer</td><td>有符号二进制补码整数（1/2/4/8/16 字节）</td></tr>
+        <tr><td><code>0b00011</code> (3)</td><td>UUID</td><td>通用唯一标识符（2/4/16 字节）</td></tr>
+        <tr><td><code>0b00100</code> (4)</td><td>Text String</td><td>文本字符串（可变长度）</td></tr>
+        <tr><td><code>0b00101</code> (5)</td><td>Boolean</td><td>布尔值（1 字节，0=false，非0=true）</td></tr>
+        <tr><td><code>0b00110</code> (6)</td><td>Data Element Sequence</td><td>数据元素序列（其他数据元素的有序序列）</td></tr>
+        <tr><td><code>0b00111</code> (7)</td><td>Data Element Alternative</td><td>数据元素替代（互斥的数据元素集合）</td></tr>
+        <tr><td><code>0b01000</code> (8)</td><td>URL</td><td>统一资源定位符（可变长度）</td></tr>
+        <tr><td><code>0b01001</code>–<code>0b11111</code></td><td>保留</td><td>未来扩展使用</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="data-nil">
+    <h4 class="subsub-title" style="margin-top:18px">§3.3 Nil 类型</h4>
+    <p>Nil 类型仅有一个可能的值（null），大小索引必须为 0，表示一个单字节的数据元素（仅类型描述符字节，无后续数据）。</p>
+  </div>
+  <div id="data-int">
+    <h4 class="subsub-title">§3.4 无符号/有符号整数</h4>
+    <p>整数可以是 1、2、4、8 或 16 字节。大于 1 字节的整数按网络字节序（大端序）存储。有符号整数使用二进制补码表示法。</p>
+  </div>
+  <div id="data-uuid">
+    <h4 class="subsub-title">§3.5 UUID 类型</h4>
+    <p>UUID 有三种长度：16 位（2字节）、32 位（4字节）、128 位（16字节）。在比较前，较短的 UUID 必须扩展到相同长度。</p>
+  </div>
+  <div id="data-text">
+    <h4 class="subsub-title">§3.6 文本字符串</h4>
+    <p>文本字符串为字节序列，使用大小索引 5、6 或 7（后跟 1、2 或 4 字节的长度字段）。字符串编码（UTF-8 等）由服务属性的 LanguageBaseAttributeIDList 属性指定。</p>
+  </div>
+  <div id="data-bool">
+    <h4 class="subsub-title">§3.7 布尔值</h4>
+    <p>布尔值占用 1 字节，0 表示 FALSE，任何非零值表示 TRUE。</p>
+  </div>
+  <div id="data-seq">
+    <h4 class="subsub-title">§3.8 数据元素序列 / 替代</h4>
+    <p><strong>序列（Sequence）</strong>：多个数据元素的有序列表，用于表示 ServiceClassIDList、ProtocolDescriptorList 等复合属性值。<strong>替代（Alternative）</strong>：表示互斥的选项集合，客户端选择其中一个即可。</p>
+  </div>
+  <div id="data-url">
+    <h4 class="subsub-title">§3.9 URL 类型</h4>
+    <p>URL 类型存储统一资源定位符，编码格式遵循 RFC 2396，使用可变长度字段（大小索引 5、6、7）。</p>
+  </div>
+</div>
+
+<!-- ===================== SECTION 4: Protocol Description ===================== -->
+<div class="section" id="protocol">
+  <div class="section-badge">Part B · Section 4</div>
+  <h2 class="section-title"><span class="sec-num">§4</span>协议描述 (Protocol Description)</h2>
+  <p>本节描述 SDP 协议的完整技术细节，包括字节序规定、PDU（协议数据单元）格式，以及各类请求/响应的具体定义。</p>
+
+  <div id="protocol-byteorder">
+    <h3 class="sub-title"><span class="sec-num">§4.1</span>传输字节顺序</h3>
+    <p>除特别说明外，SDP 中所有多字节字段均采用<strong>网络字节序（大端序）</strong>传输，即最高有效字节（MSB）最先传输。</p>
+  </div>
+
+  <div id="protocol-pdu">
+    <h3 class="sub-title"><span class="sec-num">§4.2</span>PDU 格式 (Protocol Data Unit)</h3>
+    <p>所有 SDP 消息都封装在 PDU 中。每个 PDU 都具有相同的头部格式，后跟特定于该 PDU 类型的参数。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">SDP PDU 通用头部格式</div>
+      <div class="pkt-row">
+        <div class="pkt-cell highlight">PDU ID<span class="bits">8 位 (1字节)</span></div>
+        <div class="pkt-cell highlight">TransactionID<span class="bits">16 位 (2字节)</span></div>
+        <div class="pkt-cell highlight">ParameterLength<span class="bits">16 位 (2字节)</span></div>
+        <div class="pkt-cell">Parameters<span class="bits">可变长度</span></div>
+      </div>
+      <p style="font-size:13px; color:#5a6a80; margin-top:8px;">
+        <strong>PDU ID:</strong> 标识 PDU 类型 &nbsp;|&nbsp;
+        <strong>TransactionID:</strong> 请求/响应匹配用的事务 ID（客户端生成，服务器在响应中原样返回）&nbsp;|&nbsp;
+        <strong>ParameterLength:</strong> Parameters 字段的字节长度
+      </p>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="card-title">SDP PDU ID 汇总</div>
+      <table>
+        <thead><tr><th>PDU ID</th><th>PDU 名称</th><th>方向</th><th>作用</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x01</code></td><td>SDP_ERROR_RSP</td><td>服务器 → 客户端</td><td>错误响应，包含错误码</td></tr>
+          <tr><td><code>0x02</code></td><td>SDP_SERVICE_SEARCH_REQ</td><td>客户端 → 服务器</td><td>请求匹配搜索模式的服务记录句柄</td></tr>
+          <tr><td><code>0x03</code></td><td>SDP_SERVICE_SEARCH_RSP</td><td>服务器 → 客户端</td><td>返回服务记录句柄列表</td></tr>
+          <tr><td><code>0x04</code></td><td>SDP_SERVICE_ATTR_REQ</td><td>客户端 → 服务器</td><td>请求特定服务记录的属性值</td></tr>
+          <tr><td><code>0x05</code></td><td>SDP_SERVICE_ATTR_RSP</td><td>服务器 → 客户端</td><td>返回请求的属性值</td></tr>
+          <tr><td><code>0x06</code></td><td>SDP_SERVICE_SEARCH_ATTR_REQ</td><td>客户端 → 服务器</td><td>合并搜索+属性查询：搜索匹配服务并返回属性</td></tr>
+          <tr><td><code>0x07</code></td><td>SDP_SERVICE_SEARCH_ATTR_RSP</td><td>服务器 → 客户端</td><td>返回所有匹配服务的指定属性</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="protocol-error">
+    <h3 class="sub-title"><span class="sec-num">§4.3</span>错误响应 (SDP_ERROR_RSP)</h3>
+    <p>当服务器无法处理请求时，返回 SDP_ERROR_RSP。参数为 16 位错误码。</p>
+    <div class="card">
+      <div class="card-title">常见错误码</div>
+      <table>
+        <thead><tr><th>错误码</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td><code>0x0001</code></td><td>无效/不支持的 SDP 版本</td></tr>
+          <tr><td><code>0x0002</code></td><td>无效的服务记录句柄</td></tr>
+          <tr><td><code>0x0003</code></td><td>无效的请求语法</td></tr>
+          <tr><td><code>0x0004</code></td><td>无效的 PDU 大小</td></tr>
+          <tr><td><code>0x0005</code></td><td>无效的续传状态</td></tr>
+          <tr><td><code>0x0006</code></td><td>请求因资源不足被拒绝</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="protocol-search">
+    <h3 class="sub-title"><span class="sec-num">§4.5 / 4.6</span>服务搜索请求事务</h3>
+    <div class="diagram-wrap">
+      <div class="card-title">SDP_SERVICE_SEARCH_REQ / RSP 流程</div>
+      <svg width="100%" height="280" viewBox="0 0 680 280">
+        <rect x="0" y="0" width="680" height="280" fill="#f8fafd" rx="8"/>
+        <!-- Client -->
+        <rect x="40" y="10" width="120" height="36" rx="6" fill="#0055a5"/>
+        <text x="100" y="32" font-size="13" font-weight="bold" fill="white" text-anchor="middle">SDP 客户端</text>
+        <line x1="100" y1="46" x2="100" y2="270" stroke="#0055a5" stroke-width="2" stroke-dasharray="5,3"/>
+        <!-- Server -->
+        <rect x="520" y="10" width="120" height="36" rx="6" fill="#2e7d32"/>
+        <text x="580" y="32" font-size="13" font-weight="bold" fill="white" text-anchor="middle">SDP 服务器</text>
+        <line x1="580" y1="46" x2="580" y2="270" stroke="#2e7d32" stroke-width="2" stroke-dasharray="5,3"/>
+
+        <!-- Step 1: Request -->
+        <defs>
+          <marker id="r1" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#0055a5"/></marker>
+          <marker id="r2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7d32"/></marker>
+        </defs>
+        <line x1="100" y1="90" x2="572" y2="90" stroke="#0055a5" stroke-width="2" marker-end="url(#r1)"/>
+        <rect x="185" y="70" width="290" height="26" rx="4" fill="white" stroke="#4a90d9" stroke-width="1"/>
+        <text x="330" y="87" font-size="11" font-weight="bold" fill="#0055a5" text-anchor="middle">SDP_SERVICE_SEARCH_REQ (PDU=0x02)</text>
+
+        <!-- Req params -->
+        <rect x="120" y="108" width="440" height="50" rx="4" fill="#e8f2fc" stroke="#4a90d9" stroke-width="1"/>
+        <text x="340" y="124" font-size="11" fill="#1a2233" text-anchor="middle">ServiceSearchPattern: UUID列表（至少1个UUID）</text>
+        <text x="340" y="140" font-size="11" fill="#1a2233" text-anchor="middle">MaximumServiceRecordCount: 最大返回记录数 | ContinuationState</text>
+
+        <!-- Server processing -->
+        <rect x="500" y="168" width="140" height="28" rx="5" fill="#fff9c4" stroke="#ffc107" stroke-width="1.5"/>
+        <text x="570" y="186" font-size="11" fill="#795548" text-anchor="middle">🔍 查询数据库</text>
+
+        <!-- Step 2: Response -->
+        <line x1="580" y1="206" x2="108" y2="206" stroke="#2e7d32" stroke-width="2" marker-end="url(#r2)"/>
+        <rect x="185" y="186" width="290" height="26" rx="4" fill="white" stroke="#43a047" stroke-width="1"/>
+        <text x="330" y="203" font-size="11" font-weight="bold" fill="#2e7d32" text-anchor="middle">SDP_SERVICE_SEARCH_RSP (PDU=0x03)</text>
+
+        <!-- Rsp params -->
+        <rect x="120" y="220" width="440" height="46" rx="4" fill="#e8f5e9" stroke="#43a047" stroke-width="1"/>
+        <text x="340" y="236" font-size="11" fill="#1a2233" text-anchor="middle">TotalServiceRecordCount: 匹配的服务记录总数</text>
+        <text x="340" y="252" font-size="11" fill="#1a2233" text-anchor="middle">CurrentServiceRecordCount: 本次返回数 | ServiceRecordHandleList</text>
+      </svg>
+    </div>
+  </div>
+
+  <div id="protocol-attr">
+    <h3 class="sub-title"><span class="sec-num">§4.6 / 4.7</span>服务属性请求事务</h3>
+    <div class="diagram-wrap">
+      <div class="card-title">SDP_SERVICE_ATTR_REQ / RSP — 用于获取已知服务的属性</div>
+      <svg width="100%" height="240" viewBox="0 0 680 240">
+        <rect x="0" y="0" width="680" height="240" fill="#f8fafd" rx="8"/>
+        <rect x="40" y="10" width="120" height="36" rx="6" fill="#0055a5"/>
+        <text x="100" y="32" font-size="13" font-weight="bold" fill="white" text-anchor="middle">SDP 客户端</text>
+        <line x1="100" y1="46" x2="100" y2="232" stroke="#0055a5" stroke-width="2" stroke-dasharray="5,3"/>
+        <rect x="520" y="10" width="120" height="36" rx="6" fill="#2e7d32"/>
+        <text x="580" y="32" font-size="13" font-weight="bold" fill="white" text-anchor="middle">SDP 服务器</text>
+        <line x1="580" y1="46" x2="580" y2="232" stroke="#2e7d32" stroke-width="2" stroke-dasharray="5,3"/>
+
+        <defs>
+          <marker id="ra1" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#0055a5"/></marker>
+          <marker id="ra2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7d32"/></marker>
+        </defs>
+
+        <line x1="100" y1="84" x2="572" y2="84" stroke="#0055a5" stroke-width="2" marker-end="url(#ra1)"/>
+        <rect x="185" y="66" width="290" height="24" rx="4" fill="white" stroke="#4a90d9" stroke-width="1"/>
+        <text x="330" y="82" font-size="11" font-weight="bold" fill="#0055a5" text-anchor="middle">SDP_SERVICE_ATTR_REQ (PDU=0x04)</text>
+
+        <rect x="120" y="98" width="440" height="44" rx="4" fill="#e8f2fc" stroke="#4a90d9" stroke-width="1"/>
+        <text x="340" y="114" font-size="11" fill="#1a2233" text-anchor="middle">ServiceRecordHandle: 目标服务句柄</text>
+        <text x="340" y="130" font-size="11" fill="#1a2233" text-anchor="middle">AttributeIDList: 请求的属性ID列表 | MaximumAttributeByteCount</text>
+
+        <line x1="580" y1="162" x2="108" y2="162" stroke="#2e7d32" stroke-width="2" marker-end="url(#ra2)"/>
+        <rect x="185" y="146" width="290" height="24" rx="4" fill="white" stroke="#43a047" stroke-width="1"/>
+        <text x="330" y="162" font-size="11" font-weight="bold" fill="#2e7d32" text-anchor="middle">SDP_SERVICE_ATTR_RSP (PDU=0x05)</text>
+
+        <rect x="120" y="178" width="440" height="44" rx="4" fill="#e8f5e9" stroke="#43a047" stroke-width="1"/>
+        <text x="340" y="194" font-size="11" fill="#1a2233" text-anchor="middle">AttributeListByteCount: 本次返回属性数据字节数</text>
+        <text x="340" y="210" font-size="11" fill="#1a2233" text-anchor="middle">AttributeList: 属性ID/值对的数据元素序列 | ContinuationState</text>
+      </svg>
+    </div>
+  </div>
+
+  <div id="protocol-searchattr">
+    <h3 class="sub-title"><span class="sec-num">§4.7</span>服务搜索属性请求 (SDP_SERVICE_SEARCH_ATTR)</h3>
+    <p>此事务将"服务搜索"和"属性获取"合二为一。客户端指定搜索模式和所需属性 ID，服务器返回所有匹配服务记录的指定属性。这是实际应用中最常用的 SDP 事务类型。</p>
+
+    <div class="flex-grid">
+      <div class="grid-card" style="border-left: 4px solid #0055a5;">
+        <div class="icon">🔍</div>
+        <div class="label">ServiceSearchPattern</div>
+        <div class="desc">UUID 列表，用于筛选服务（同 SERVICE_SEARCH_REQ）</div>
+      </div>
+      <div class="grid-card" style="border-left: 4px solid #2e7d32;">
+        <div class="icon">📋</div>
+        <div class="label">AttributeIDList</div>
+        <div class="desc">请求的属性 ID 或 ID 范围（同 SERVICE_ATTR_REQ）</div>
+      </div>
+      <div class="grid-card" style="border-left: 4px solid #e65100;">
+        <div class="icon">📦</div>
+        <div class="label">AttributeLists</div>
+        <div class="desc">返回：所有匹配服务的属性列表的数据元素序列</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="protocol-cont">
+    <h3 class="sub-title"><span class="sec-num">§4.8</span>续传状态 (Continuation State)</h3>
+    <p>当服务器的响应数据超过单个 PDU 所能承载的大小时，使用续传机制将大响应分成多个 PDU 传输。续传状态参数允许客户端在后续请求中通知服务器从上次中断处继续。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">续传机制流程（多 PDU 响应）</div>
+      <svg width="100%" height="310" viewBox="0 0 680 310">
+        <rect x="0" y="0" width="680" height="310" fill="#f8fafd" rx="8"/>
+        <rect x="20" y="10" width="120" height="32" rx="6" fill="#0055a5"/>
+        <text x="80" y="30" font-size="12" font-weight="bold" fill="white" text-anchor="middle">客户端</text>
+        <line x1="80" y1="42" x2="80" y2="295" stroke="#0055a5" stroke-width="2" stroke-dasharray="4,3"/>
+        <rect x="540" y="10" width="120" height="32" rx="6" fill="#2e7d32"/>
+        <text x="600" y="30" font-size="12" font-weight="bold" fill="white" text-anchor="middle">服务器</text>
+        <line x1="600" y1="42" x2="600" y2="295" stroke="#2e7d32" stroke-width="2" stroke-dasharray="4,3"/>
+
+        <defs>
+          <marker id="c1" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#0055a5"/></marker>
+          <marker id="c2" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7d32"/></marker>
+          <marker id="c3" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#e65100"/></marker>
+        </defs>
+
+        <!-- Request 1 -->
+        <line x1="80" y1="70" x2="592" y2="70" stroke="#0055a5" stroke-width="2" marker-end="url(#c1)"/>
+        <rect x="168" y="56" width="296" height="20" rx="4" fill="white" stroke="#4a90d9"/>
+        <text x="316" y="70" font-size="11" fill="#0055a5" text-anchor="middle" font-weight="bold">请求 (ContinuationState = 0x00 无续传)</text>
+
+        <!-- Response 1 -->
+        <line x1="600" y1="110" x2="88" y2="110" stroke="#2e7d32" stroke-width="2" marker-end="url(#c2)"/>
+        <rect x="168" y="96" width="296" height="20" rx="4" fill="white" stroke="#43a047"/>
+        <text x="316" y="110" font-size="11" fill="#2e7d32" text-anchor="middle" font-weight="bold">部分响应 + ContinuationState = 0x08 [续传标记]</text>
+        <rect x="400" y="90" width="190" height="30" rx="4" fill="#fff9c4" stroke="#ffc107"/>
+        <text x="495" y="109" font-size="10" fill="#795548" text-anchor="middle">数据太大，只返回部分</text>
+
+        <!-- Request 2 -->
+        <line x1="80" y1="155" x2="592" y2="155" stroke="#0055a5" stroke-width="2" marker-end="url(#c1)"/>
+        <rect x="168" y="141" width="296" height="20" rx="4" fill="white" stroke="#4a90d9"/>
+        <text x="316" y="155" font-size="11" fill="#0055a5" text-anchor="middle" font-weight="bold">重复请求 + ContinuationState = 0x08 [继续]</text>
+
+        <!-- Response 2 -->
+        <line x1="600" y1="195" x2="88" y2="195" stroke="#2e7d32" stroke-width="2" marker-end="url(#c2)"/>
+        <rect x="168" y="181" width="296" height="20" rx="4" fill="white" stroke="#43a047"/>
+        <text x="316" y="195" font-size="11" fill="#2e7d32" text-anchor="middle" font-weight="bold">剩余响应 + ContinuationState = 0x00 [完成]</text>
+
+        <!-- Rule box -->
+        <rect x="40" y="225" width="600" height="70" rx="6" fill="#fff3e0" stroke="#ffc107" stroke-width="1.5"/>
+        <text x="340" y="244" font-size="12" font-weight="bold" fill="#e65100" text-anchor="middle">续传状态规则</text>
+        <text x="340" y="262" font-size="11" fill="#1a2233" text-anchor="middle">• ContinuationState 第一个字节 = 后续状态信息字节数（0 = 无续传）</text>
+        <text x="340" y="278" font-size="11" fill="#1a2233" text-anchor="middle">• 最大 16 字节状态信息 | 客户端必须原样返回服务器的续传状态</text>
+        <text x="340" y="294" font-size="11" fill="#1a2233" text-anchor="middle">• 服务器不要求维护状态，可将状态编码进续传信息本身</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SECTION 5: Service Attributes ===================== -->
+<div class="section" id="attributes">
+  <div class="section-badge">Part B · Section 5</div>
+  <h2 class="section-title"><span class="sec-num">§5</span>服务属性定义 (Service Attribute Definitions)</h2>
+  <p>本节定义了 SDP 中使用的标准服务属性。分为三组：通用属性（所有服务共用）、SDP 服务器专用属性，以及浏览组描述符属性。</p>
+
+  <div id="attr-universal">
+    <h3 class="sub-title"><span class="sec-num">§5.1</span>通用属性定义 (Universal Attributes)</h3>
+    <p>所有服务记录都可以包含以下通用属性，这些属性的 ID 和语义对所有服务类都相同。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">通用属性 ID 映射</div>
+      <svg width="100%" height="340" viewBox="0 0 680 340">
+        <rect x="0" y="0" width="680" height="340" fill="#f8fafd" rx="8"/>
+        <!-- Header -->
+        <rect x="10" y="10" width="120" height="30" rx="4" fill="#0055a5"/>
+        <text x="70" y="29" font-size="12" font-weight="bold" fill="white" text-anchor="middle">属性 ID</text>
+        <rect x="140" y="10" width="200" height="30" rx="4" fill="#0055a5"/>
+        <text x="240" y="29" font-size="12" font-weight="bold" fill="white" text-anchor="middle">属性名称</text>
+        <rect x="350" y="10" width="320" height="30" rx="4" fill="#0055a5"/>
+        <text x="510" y="29" font-size="12" font-weight="bold" fill="white" text-anchor="middle">说明</text>
+
+        <!-- Rows -->
+        <rect x="10" y="46" width="120" height="26" rx="3" fill="#e8f2fc"/><text x="70" y="63" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0000</text>
+        <rect x="140" y="46" width="200" height="26" rx="3" fill="#e8f2fc"/><text x="240" y="63" font-size="11" fill="#1a2233" text-anchor="middle">ServiceRecordHandle</text>
+        <rect x="350" y="46" width="320" height="26" rx="3" fill="#e8f2fc"/><text x="510" y="63" font-size="10" fill="#5a6a80" text-anchor="middle">32位句柄，唯一标识此服务记录</text>
+
+        <rect x="10" y="76" width="120" height="26" rx="3" fill="white"/><text x="70" y="93" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0001</text>
+        <rect x="140" y="76" width="200" height="26" rx="3" fill="white"/><text x="240" y="93" font-size="11" fill="#1a2233" text-anchor="middle">ServiceClassIDList</text>
+        <rect x="350" y="76" width="320" height="26" rx="3" fill="white"/><text x="510" y="93" font-size="10" fill="#5a6a80" text-anchor="middle">服务类 UUID 列表，最重要的属性</text>
+
+        <rect x="10" y="106" width="120" height="26" rx="3" fill="#e8f2fc"/><text x="70" y="123" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0002</text>
+        <rect x="140" y="106" width="200" height="26" rx="3" fill="#e8f2fc"/><text x="240" y="123" font-size="11" fill="#1a2233" text-anchor="middle">ServiceRecordState</text>
+        <rect x="350" y="106" width="320" height="26" rx="3" fill="#e8f2fc"/><text x="510" y="123" font-size="10" fill="#5a6a80" text-anchor="middle">32位值，记录变化时递增，用于缓存</text>
+
+        <rect x="10" y="136" width="120" height="26" rx="3" fill="white"/><text x="70" y="153" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0003</text>
+        <rect x="140" y="136" width="200" height="26" rx="3" fill="white"/><text x="240" y="153" font-size="11" fill="#1a2233" text-anchor="middle">ServiceID</text>
+        <rect x="350" y="136" width="320" height="26" rx="3" fill="white"/><text x="510" y="153" font-size="10" fill="#5a6a80" text-anchor="middle">唯一标识服务实例的 UUID</text>
+
+        <rect x="10" y="166" width="120" height="26" rx="3" fill="#e8f2fc"/><text x="70" y="183" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0004</text>
+        <rect x="140" y="166" width="200" height="26" rx="3" fill="#e8f2fc"/><text x="240" y="183" font-size="11" fill="#1a2233" text-anchor="middle">ProtocolDescriptorList</text>
+        <rect x="350" y="166" width="320" height="26" rx="3" fill="#e8f2fc"/><text x="510" y="183" font-size="10" fill="#5a6a80" text-anchor="middle">访问该服务的协议栈描述</text>
+
+        <rect x="10" y="196" width="120" height="26" rx="3" fill="white"/><text x="70" y="213" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0005</text>
+        <rect x="140" y="196" width="200" height="26" rx="3" fill="white"/><text x="240" y="213" font-size="11" fill="#1a2233" text-anchor="middle">BrowseGroupList</text>
+        <rect x="350" y="196" width="320" height="26" rx="3" fill="white"/><text x="510" y="213" font-size="10" fill="#5a6a80" text-anchor="middle">服务所属的浏览组 UUID 列表</text>
+
+        <rect x="10" y="226" width="120" height="26" rx="3" fill="#e8f2fc"/><text x="70" y="243" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0006</text>
+        <rect x="140" y="226" width="200" height="26" rx="3" fill="#e8f2fc"/><text x="240" y="243" font-size="11" fill="#1a2233" text-anchor="middle">LanguageBaseAttrIDList</text>
+        <rect x="350" y="226" width="320" height="26" rx="3" fill="#e8f2fc"/><text x="510" y="243" font-size="10" fill="#5a6a80" text-anchor="middle">语言/编码/基础属性 ID 三元组列表</text>
+
+        <rect x="10" y="256" width="120" height="26" rx="3" fill="white"/><text x="70" y="273" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0007</text>
+        <rect x="140" y="256" width="200" height="26" rx="3" fill="white"/><text x="240" y="273" font-size="11" fill="#1a2233" text-anchor="middle">ServiceInfoTimeToLive</text>
+        <rect x="350" y="256" width="320" height="26" rx="3" fill="white"/><text x="510" y="273" font-size="10" fill="#5a6a80" text-anchor="middle">服务信息有效时长（秒）</text>
+
+        <rect x="10" y="286" width="120" height="26" rx="3" fill="#e8f2fc"/><text x="70" y="303" font-size="11" fill="#003366" text-anchor="middle" font-family="monospace">0x0008</text>
+        <rect x="140" y="286" width="200" height="26" rx="3" fill="#e8f2fc"/><text x="240" y="303" font-size="11" fill="#1a2233" text-anchor="middle">ServiceAvailability</text>
+        <rect x="350" y="286" width="320" height="26" rx="3" fill="#e8f2fc"/><text x="510" y="303" font-size="10" fill="#5a6a80" text-anchor="middle">0x00=完全忙碌，0xFF=完全可用</text>
+
+        <rect x="10" y="316" width="120" height="20" rx="3" fill="white"/><text x="70" y="330" font-size="10" fill="#5a6a80" text-anchor="middle">0x0009–0x000F</text>
+        <rect x="140" y="316" width="200" height="20" rx="3" fill="white"/><text x="240" y="330" font-size="10" fill="#5a6a80" text-anchor="middle">（其他通用属性）</text>
+        <rect x="350" y="316" width="320" height="20" rx="3" fill="white"/><text x="510" y="330" font-size="10" fill="#5a6a80" text-anchor="middle">ServiceName/Description/ProviderName 等（语言偏移）</text>
+      </svg>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="card-title">ProtocolDescriptorList 结构示例</div>
+      <svg width="100%" height="180" viewBox="0 0 680 180">
+        <rect x="0" y="0" width="680" height="180" fill="#f8fafd" rx="8"/>
+        <text x="10" y="22" font-size="12" font-weight="bold" fill="#003366">ProtocolDescriptorList = [L2CAP, RFCOMM(ch=2), PostscriptStream]</text>
+
+        <!-- L2CAP -->
+        <rect x="10" y="34" width="190" height="56" rx="6" fill="#0055a5"/>
+        <text x="105" y="54" font-size="11" font-weight="bold" fill="white" text-anchor="middle">L2CAP 层</text>
+        <text x="105" y="70" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">UUID: 0x0100 (L2CAP)</text>
+        <text x="105" y="84" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">（无额外参数）</text>
+
+        <!-- RFCOMM -->
+        <rect x="214" y="34" width="220" height="56" rx="6" fill="#2e7d32"/>
+        <text x="324" y="54" font-size="11" font-weight="bold" fill="white" text-anchor="middle">RFCOMM 层</text>
+        <text x="324" y="70" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">UUID: 0x0003 (RFCOMM)</text>
+        <text x="324" y="84" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">参数: ServerChannel = 2</text>
+
+        <!-- PostscriptStream -->
+        <rect x="448" y="34" width="220" height="56" rx="6" fill="#6a1b9a"/>
+        <text x="558" y="54" font-size="11" font-weight="bold" fill="white" text-anchor="middle">PostscriptStream 层</text>
+        <text x="558" y="70" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">UUID: (自定义)</text>
+        <text x="558" y="84" font-size="10" fill="rgba(255,255,255,0.85)" text-anchor="middle">（应用层协议）</text>
+
+        <!-- Arrow -->
+        <text x="202" y="68" font-size="18" fill="#4a90d9" text-anchor="middle">→</text>
+        <text x="436" y="68" font-size="18" fill="#4a90d9" text-anchor="middle">→</text>
+
+        <text x="340" y="114" font-size="12" fill="#5a6a80" text-anchor="middle">协议栈（从底层到高层排列），各层之间用大端序描述</text>
+        <text x="340" y="134" font-size="12" fill="#5a6a80" text-anchor="middle">每个协议描述符 = [UUID, 参数1, 参数2, ...]</text>
+        <text x="340" y="154" font-size="12" fill="#0055a5" text-anchor="middle">此示例表示：蓝牙打印机可通过 L2CAP→RFCOMM(ch2)→PostscriptStream 访问</text>
+      </svg>
+    </div>
+  </div>
+
+  <div id="attr-sdp">
+    <h3 class="sub-title"><span class="sec-num">§5.2</span>SDP 服务器属性 (SDP Server Service Record)</h3>
+    <p>SDP 服务器本身在其数据库中维护一条服务记录（句柄 0x00000000），包含描述 SDP 服务器自身能力的属性。</p>
+    <table>
+      <thead><tr><th>属性 ID</th><th>属性名</th><th>类型</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x0001</code></td><td>ServiceClassIDList</td><td>UUID 序列</td><td>值为 SDP Server Service Class UUID</td></tr>
+        <tr><td><code>0x0200</code></td><td>VersionNumberList</td><td>16位整数序列</td><td>服务器支持的 SDP 版本列表（高字节主版本，低字节次版本）</td></tr>
+        <tr><td><code>0x0201</code></td><td>ServiceDatabaseState</td><td>32位无符号整数</td><td>每当服务记录被添加或删除时递增，用于客户端缓存验证</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="attr-browse">
+    <h3 class="sub-title"><span class="sec-num">§5.3</span>浏览组描述符属性 (Browse Group Descriptor)</h3>
+    <p>BrowseGroupDescriptor 服务类用于定义新的浏览组，其服务记录包含以下特定属性：</p>
+    <table>
+      <thead><tr><th>属性 ID</th><th>属性名</th><th>类型</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>0x0001</code></td><td>ServiceClassIDList</td><td>UUID 序列</td><td>值为 BrowseGroupDescriptorServiceClassID</td></tr>
+        <tr><td><code>0x0200</code></td><td>GroupID</td><td>UUID</td><td>定义新浏览组的 UUID，其他服务可在 BrowseGroupList 中引用此 UUID 加入该组</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== SECTION 6: Security ===================== -->
+<div class="section" id="security">
+  <div class="section-badge">Part B · Section 6</div>
+  <h2 class="section-title"><span class="sec-num">§6</span>安全 (Security)</h2>
+  <p>在安全模式 4（Security Mode 4）中，SDP 默认不使用安全机制，但可以使用安全（经过认证或未认证的链路密钥加上加密）。具体安全策略见 [Vol 3] Part C, Section 5.2.2。</p>
+
+  <div class="flex-grid">
+    <div class="grid-card" style="border-left:4px solid #2e7d32">
+      <div class="icon">🔓</div>
+      <div class="label">默认：无安全</div>
+      <div class="desc">SDP 通常以明文运行，不加密，因为其服务信息本身是公开的</div>
+    </div>
+    <div class="grid-card" style="border-left:4px solid #0055a5">
+      <div class="icon">🔐</div>
+      <div class="label">可选：加密链路</div>
+      <div class="desc">可使用已认证或未认证的链路密钥 + 加密来保护 SDP 通信</div>
+    </div>
+    <div class="grid-card" style="border-left:4px solid #e65100">
+      <div class="icon">🛡️</div>
+      <div class="label">安全模式 4</div>
+      <div class="desc">服务级别强制安全，在 SDP 发现后的实际服务连接中执行认证</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== Appendix B: Examples ===================== -->
+<div class="section" id="appendix-b">
+  <div class="section-badge">Part B · Appendix B</div>
+  <h2 class="section-title"><span class="sec-num">附录 B</span>SDP 事务示例</h2>
+  <p>以下是典型 SDP 事务的简单示例，用于说明 SDP 协议的实际消息流程。示例假设已建立 L2CAP 连接，不考虑缓存、服务可用性、SDP 版本和错误响应。</p>
+
+  <div id="example1">
+    <h3 class="sub-title"><span class="sec-num">B.1</span>示例 1 — ServiceSearchRequest（服务搜索）</h3>
+    <p>场景：SDP 客户端搜索通用打印服务。服务器上有两个打印服务可用。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">ServiceSearch 消息流</div>
+      <svg width="100%" height="200" viewBox="0 0 680 200">
+        <rect x="0" y="0" width="680" height="200" fill="#f8fafd" rx="8"/>
+        <rect x="10" y="10" width="100" height="32" rx="6" fill="#0055a5"/>
+        <text x="60" y="30" font-size="12" font-weight="bold" fill="white" text-anchor="middle">客户端</text>
+        <line x1="60" y1="42" x2="60" y2="190" stroke="#0055a5" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <rect x="570" y="10" width="100" height="32" rx="6" fill="#2e7d32"/>
+        <text x="620" y="30" font-size="12" font-weight="bold" fill="white" text-anchor="middle">服务器</text>
+        <line x1="620" y1="42" x2="620" y2="190" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <defs>
+          <marker id="e1a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#0055a5"/></marker>
+          <marker id="e1b" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7d32"/></marker>
+        </defs>
+
+        <line x1="60" y1="74" x2="612" y2="74" stroke="#0055a5" stroke-width="2" marker-end="url(#e1a)"/>
+        <rect x="100" y="58" width="420" height="22" rx="4" fill="#e8f2fc" stroke="#4a90d9"/>
+        <text x="310" y="73" font-size="11" fill="#003366" text-anchor="middle">PDU=0x02 | TX=tttt | Pattern=[PrinterServiceClassID(32bit)] | Max=3 | Cont=0x00</text>
+
+        <line x1="620" y1="130" x2="68" y2="130" stroke="#2e7d32" stroke-width="2" marker-end="url(#e1b)"/>
+        <rect x="100" y="114" width="420" height="22" rx="4" fill="#e8f5e9" stroke="#43a047"/>
+        <text x="310" y="129" font-size="11" fill="#1b5e20" text-anchor="middle">PDU=0x03 | TX=tttt | Total=2 | Current=2 | Handles=[qqqq, rrrr] | Cont=0x00</text>
+
+        <text x="310" y="165" font-size="12" fill="#0055a5" text-anchor="middle" font-weight="bold">结果：客户端获得两个打印服务的句柄 (qqqq 和 rrrr)</text>
+        <text x="310" y="183" font-size="11" fill="#5a6a80" text-anchor="middle">TransactionID 在请求和响应中保持一致，用于匹配</text>
+      </svg>
+    </div>
+
+    <pre><code><span class="cmt">/* 客户端 → 服务器: 搜索打印服务 */</span>
+SDP_SERVICE_SEARCH_REQ[15] {
+  PDUID[1]         { <span class="val">0x02</span> }              <span class="cmt">/* ServiceSearch 请求 */</span>
+  TransactionID[2] { <span class="val">0xtttt</span> }
+  ParameterLength[2] { <span class="val">0x000A</span> }
+  ServiceSearchPattern[7] {
+    DataElementSequence[7] {
+      <span class="val">0b00110 0b101</span> <span class="val">0x05</span>  <span class="cmt">/* 序列，5字节 */</span>
+      UUID[5] {
+        <span class="val">0b00011 0b010</span>      <span class="cmt">/* 32位UUID */</span>
+        <span class="val">0xpppppppp</span>         <span class="cmt">/* PrinterServiceClassID */</span>
+      }
+    }
+  }
+  MaximumServiceRecordCount[2] { <span class="val">0x0003</span> }
+  ContinuationState[1] { <span class="val">0x00</span> }         <span class="cmt">/* 无续传 */</span>
+}
+
+<span class="cmt">/* 服务器 → 客户端: 返回两个打印服务句柄 */</span>
+SDP_SERVICE_SEARCH_RSP[18] {
+  PDUID[1]              { <span class="val">0x03</span> }
+  TransactionID[2]      { <span class="val">0xtttt</span> }
+  ParameterLength[2]    { <span class="val">0x000D</span> }
+  TotalServiceRecordCount[2]   { <span class="val">0x0002</span> }
+  CurrentServiceRecordCount[2] { <span class="val">0x0002</span> }
+  ServiceRecordHandleList[8] {
+    <span class="val">0xqqqqqqqq</span>  <span class="cmt">/* 打印服务 1 句柄 */</span>
+    <span class="val">0xrrrrrrrr</span>  <span class="cmt">/* 打印服务 2 句柄 */</span>
+  }
+  ContinuationState[1] { <span class="val">0x00</span> }
+}</code></pre>
+  </div>
+
+  <div id="example2">
+    <h3 class="sub-title"><span class="sec-num">B.2</span>示例 2 — ServiceAttributeRequest（属性查询）</h3>
+    <p>场景：使用示例 1 获得的句柄 (qqqq)，查询该打印服务的 ProtocolDescriptorList 属性（属性 ID = 0x0004）。</p>
+
+    <pre><code><span class="cmt">/* 客户端 → 服务器: 查询打印服务1的协议描述列表 */</span>
+SDP_SERVICE_ATTR_REQ[17] {
+  PDUID[1]         { <span class="val">0x04</span> }
+  TransactionID[2] { <span class="val">0xuuuu</span> }
+  ParameterLength[2] { <span class="val">0x000C</span> }
+  ServiceRecordHandle[4]        { <span class="val">0xqqqqqqqq</span> }
+  MaximumAttributeByteCount[2]  { <span class="val">0x0080</span> }
+  AttributeIDList[5] {
+    DataElementSequence[5] {
+      <span class="val">0b00110 0b101 0x03</span>
+      AttributeID[3] { <span class="val">0b00001 0b001 0x0004</span> }  <span class="cmt">/* ProtocolDescriptorList */</span>
+    }
+  }
+  ContinuationState[1] { <span class="val">0x00</span> }
+}
+
+<span class="cmt">/* 服务器 → 客户端: 返回协议栈 (L2CAP → RFCOMM(ch=2) → PostscriptStream) */</span>
+SDP_SERVICE_ATTR_RSP[38] {
+  PDUID[1]             { <span class="val">0x05</span> }
+  TransactionID[2]     { <span class="val">0xuuuu</span> }
+  AttributeListByteCount[2] { <span class="val">0x001E</span> }
+  AttributeList[30] {
+    DataElementSequence {
+      Attribute { ID=<span class="val">0x0004</span>, Value=ProtocolDescriptorList[
+        [L2CAP_UUID],
+        [RFCOMM_UUID, ServerChannel=<span class="val">2</span>],
+        [PostscriptStream_UUID]
+      ]}
+    }
+  }
+  ContinuationState[1] { <span class="val">0x00</span> }
+}</code></pre>
+  </div>
+
+  <div id="example3">
+    <h3 class="sub-title"><span class="sec-num">B.3</span>示例 3 — ServiceSearchAttributeRequest（含续传）</h3>
+    <p>场景：客户端搜索所有同步服务并获取其展示属性。服务器有 3 个同步服务，响应超过单个 PDU 容量（400字节），需要多次请求。</p>
+
+    <div class="diagram-wrap">
+      <div class="card-title">多 PDU 续传流程（SearchAttribute with Continuation）</div>
+      <svg width="100%" height="290" viewBox="0 0 680 290">
+        <rect x="0" y="0" width="680" height="290" fill="#f8fafd" rx="8"/>
+        <rect x="10" y="10" width="100" height="32" rx="6" fill="#0055a5"/>
+        <text x="60" y="30" font-size="12" font-weight="bold" fill="white" text-anchor="middle">客户端</text>
+        <line x1="60" y1="42" x2="60" y2="278" stroke="#0055a5" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <rect x="570" y="10" width="100" height="32" rx="6" fill="#2e7d32"/>
+        <text x="620" y="30" font-size="12" font-weight="bold" fill="white" text-anchor="middle">服务器</text>
+        <line x1="620" y1="42" x2="620" y2="278" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <defs>
+          <marker id="e3a" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#0055a5"/></marker>
+          <marker id="e3b" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#2e7d32"/></marker>
+        </defs>
+
+        <!-- Part 1 req -->
+        <line x1="60" y1="66" x2="612" y2="66" stroke="#0055a5" stroke-width="2" marker-end="url(#e3a)"/>
+        <rect x="100" y="52" width="380" height="20" rx="4" fill="#e8f2fc" stroke="#4a90d9"/>
+        <text x="290" y="65" font-size="10" fill="#003366" text-anchor="middle">PDU=0x06 | TX=vvvv | Pattern=[SyncClassID] | Attrs=[...] | Cont=0x00</text>
+
+        <!-- Part 2 rsp -->
+        <line x1="620" y1="108" x2="68" y2="108" stroke="#2e7d32" stroke-width="2" marker-end="url(#e3b)"/>
+        <rect x="100" y="94" width="380" height="20" rx="4" fill="#fff3e0" stroke="#ffc107"/>
+        <text x="290" y="107" font-size="10" fill="#795548" text-anchor="middle">部分响应(368/487字节) | Cont=0x08 [zzzzzzzzzzzzzzzz] ← 续传标记</text>
+
+        <!-- Annotation -->
+        <rect x="498" y="90" width="174" height="26" rx="4" fill="#fff9c4" stroke="#ffc107"/>
+        <text x="585" y="107" font-size="10" fill="#795548" text-anchor="middle">⚠ 总487字节，只返回368</text>
+
+        <!-- Part 3 req -->
+        <line x1="60" y1="150" x2="612" y2="150" stroke="#0055a5" stroke-width="2" marker-end="url(#e3a)"/>
+        <rect x="100" y="136" width="380" height="20" rx="4" fill="#e8f2fc" stroke="#4a90d9"/>
+        <text x="290" y="149" font-size="10" fill="#003366" text-anchor="middle">PDU=0x06 | TX=wwww | 同上 | Cont=0x08 [zzzz...] ← 原样返回续传</text>
+
+        <!-- Part 4 rsp -->
+        <line x1="620" y1="192" x2="68" y2="192" stroke="#2e7d32" stroke-width="2" marker-end="url(#e3b)"/>
+        <rect x="100" y="178" width="380" height="20" rx="4" fill="#e8f5e9" stroke="#43a047"/>
+        <text x="290" y="191" font-size="10" fill="#1b5e20" text-anchor="middle">剩余响应(107字节) | Cont=0x00 ← 传输完成</text>
+
+        <!-- Summary -->
+        <rect x="30" y="222" width="620" height="56" rx="6" fill="#e8f2fc" stroke="#4a90d9"/>
+        <text x="340" y="240" font-size="12" font-weight="bold" fill="#003366" text-anchor="middle">返回了 3 个同步服务的属性：</text>
+        <text x="340" y="258" font-size="11" fill="#1a2233" text-anchor="middle">① 地址簿同步 (vCard2.1) ② 日历同步 (vCal1.0) ③ 第二个日历同步 (不同供应商)</text>
+        <text x="340" y="274" font-size="11" fill="#5a6a80" text-anchor="middle">每个服务属性包含: Handle | ServiceClassID | IconURL | ServiceName | Description | ProviderName | SupportedDataStore</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== Appendix C ===================== -->
+<div class="section" id="appendix-c">
+  <div class="section-badge">Part B · Appendix C</div>
+  <h2 class="section-title"><span class="sec-num">附录 C</span>PDU 名称变更</h2>
+  <p>蓝牙规范的早期版本对本规范 §4 中定义的 PDU 使用了不同的名称，以下为变更对照表：</p>
+
+  <table>
+    <thead><tr><th>旧名称</th><th>新名称（当前）</th></tr></thead>
+    <tbody>
+      <tr><td>SDP_ErrorResponse</td><td>SDP_ERROR_RSP</td></tr>
+      <tr><td>SDP_ServiceAttributeRequest</td><td>SDP_SERVICE_ATTR_REQ</td></tr>
+      <tr><td>SDP_ServiceAttributeResponse</td><td>SDP_SERVICE_ATTR_RSP</td></tr>
+      <tr><td>SDP_ServiceSearchAttributeRequest</td><td>SDP_SERVICE_SEARCH_ATTR_REQ</td></tr>
+      <tr><td>SDP_ServiceSearchAttributeResponse</td><td>SDP_SERVICE_SEARCH_ATTR_RSP</td></tr>
+      <tr><td>SDP_ServiceSearchRequest</td><td>SDP_SERVICE_SEARCH_REQ</td></tr>
+      <tr><td>SDP_ServiceSearchResponse</td><td>SDP_SERVICE_SEARCH_RSP</td></tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 40px; padding: 20px; background: var(--blue-pale); border-radius: 10px; border: 1px solid var(--border);">
+    <div style="font-size: 13px; color: var(--text-light); text-align: center;">
+      <strong>参考文献</strong><br>
+      本文档依据 Bluetooth Core Specification 6.0 · Part B: Service Discovery Protocol (SDP) Specification 编写<br>
+      UUID 格式规范参见 ITU-T Rec. X.667(10/2012) / ISO/IEC 9834-8:2014<br>
+      <span style="color: var(--blue-mid);">© Bluetooth SIG — 本页仅供学习参考</span>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+  const SCROLL_OFFSET = () => {
+    const h = document.querySelector('header');
+    return (h ? h.offsetHeight : 56) + 16;
+  };
+
+  const navItems = document.querySelectorAll('.nav-item');
+  const scrollTargets = Array.from(document.querySelectorAll('#main [id]'));
+
+  /** 勿命名为 scrollTo，会与 window.scrollTo 冲突导致跳转异常 */
+  function scrollToSection(id, navEl) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (window.btScrollToEl) window.btScrollToEl(el, SCROLL_OFFSET());
+    else {
+      const top = el.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET();
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+    navItems.forEach(n => n.classList.remove('active'));
+    const active = navEl || document.querySelector('.nav-item[onclick*="\'' + id + '\'"]');
+    if (active) active.classList.add('active');
+    if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+  }
+
+  function anchorDocTop(el) {
+    return el.getBoundingClientRect().top + window.scrollY;
+  }
+
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = window.scrollY + SCROLL_OFFSET() + 24;
+      let currentId = scrollTargets[0]?.id || '';
+      scrollTargets.forEach(t => {
+        if (anchorDocTop(t) <= y) currentId = t.id;
+      });
+      if (currentId) {
+        navItems.forEach(n => {
+          n.classList.remove('active');
+          const onclick = n.getAttribute('onclick') || '';
+          if (onclick.includes("scrollToSection('" + currentId + "')")) {
+            n.classList.add('active');
+          }
+        });
+      }
+      ticking = false;
+    });
+  });
+
+  if (location.hash) {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (document.getElementById(id)) {
+      requestAnimationFrame(() => scrollToSection(id));
+    }
+  }
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bluetooth GATT 协议规范解读 (Core 6.0)</title>
+<style>
+  :root {
+    --nav-width: 280px;
+    --header-h: 56px;
+    --blue-deep: #003087;
+    --blue-mid: #0052cc;
+    --blue-light: #e8f0fe;
+    --blue-accent: #1a73e8;
+    --teal: #00897b;
+    --orange: #f57c00;
+    --red: #c62828;
+    --green: #2e7d32;
+    --gray-bg: #f5f7fa;
+    --gray-border: #dde3ed;
+    --text-main: #1a1f36;
+    --text-sub: #4a5568;
+    --nav-bg: #0a1628;
+    --nav-text: #c8d6f0;
+    --nav-hover: #1e3a5f;
+    --nav-active: #1a73e8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif;
+    background: var(--gray-bg);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--header-h);
+    background: linear-gradient(135deg, #003087 0%, #005ecb 100%);
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 20px;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  header .logo {
+    width: 34px; height: 34px;
+    background: white; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; color: #003087; font-size: 18px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    color: white; font-size: 17px; font-weight: 700; line-height: 1.2;
+  }
+  header .badge {
+    margin-left: auto;
+    background: rgba(255,255,255,0.18);
+    color: #cce0ff;
+    padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ===== LAYOUT ===== */
+  .layout {
+    display: flex;
+    margin-top: var(--header-h);
+    min-height: calc(100vh - var(--header-h));
+  }
+
+  /* ===== NAV ===== */
+  nav {
+    width: var(--nav-width);
+    min-width: var(--nav-width);
+    background: var(--nav-bg);
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 900;
+    scrollbar-width: thin;
+    scrollbar-color: #2a4a7f #0a1628;
+  }
+  nav::-webkit-scrollbar { width: 5px; }
+  nav::-webkit-scrollbar-track { background: #0a1628; }
+  nav::-webkit-scrollbar-thumb { background: #2a4a7f; border-radius: 3px; }
+  nav .nav-section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    color: #4a6fa5; padding: 16px 16px 6px; text-transform: uppercase;
+  }
+  nav a {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 14px 8px 16px;
+    color: var(--nav-text);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.4;
+    border-left: 3px solid transparent;
+    transition: all 0.18s;
+  }
+  nav a:hover { background: var(--nav-hover); color: #fff; }
+  nav a.active { background: rgba(26,115,232,0.18); border-left-color: var(--nav-active); color: #fff; font-weight: 600; }
+  nav a .num { color: #5a7fb5; font-size: 11px; min-width: 24px; flex-shrink: 0; padding-top: 1px; }
+  nav a.sub { padding-left: 32px; font-size: 12px; color: #8aa8d4; }
+  nav a.sub:hover { color: #fff; }
+  nav a.sub2 { padding-left: 46px; font-size: 11.5px; color: #6a8ab4; }
+  nav a.sub2:hover { color: #fff; }
+
+  /* ===== MAIN ===== */
+  main {
+    margin-left: var(--nav-width);
+    flex: 1;
+    padding: 32px 24px 60px;
+    max-width: 960px;
+  }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    border: 1px solid var(--gray-border);
+  }
+  .section-title {
+    font-size: 20px; font-weight: 800; color: var(--blue-deep);
+    margin-bottom: 6px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .section-subtitle {
+    font-size: 14px; color: var(--text-sub); margin-bottom: 18px;
+    padding-bottom: 14px; border-bottom: 2px solid var(--blue-light);
+    font-style: italic;
+  }
+  h2.sub { font-size: 16px; font-weight: 700; color: #0052cc; margin: 20px 0 10px; }
+  h3.sub2 { font-size: 14px; font-weight: 700; color: #1a73e8; margin: 16px 0 8px; }
+  p { font-size: 14px; line-height: 1.8; color: var(--text-sub); margin-bottom: 10px; }
+  ul.spec-list { margin: 8px 0 12px 20px; }
+  ul.spec-list li { font-size: 14px; line-height: 1.8; color: var(--text-sub); margin-bottom: 4px; }
+  ul.spec-list li strong { color: var(--text-main); }
+
+  /* ===== DIAGRAM BOXES ===== */
+  .diagram {
+    background: var(--gray-bg);
+    border: 1.5px solid var(--gray-border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 16px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 12px; font-weight: 700; color: #4a5568; margin-bottom: 14px;
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .diagram-title::before { content: ''; width: 4px; height: 14px; background: var(--blue-accent); border-radius: 2px; }
+
+  /* Stack diagram */
+  .stack {
+    display: flex; flex-direction: column; align-items: center; gap: 0; width: 100%;
+  }
+  .stack-layer {
+    width: 100%; max-width: 420px;
+    padding: 10px 16px; text-align: center; font-size: 13px; font-weight: 600;
+    border: 2px solid;
+    cursor: default;
+    transition: transform 0.15s;
+  }
+  .stack-layer:hover { transform: scale(1.01); }
+  .stack-arrow { font-size: 20px; color: #aaa; line-height: 1; margin: 0; }
+
+  /* Flowchart */
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .flow-box {
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    border: 2px solid; text-align: center; min-width: 90px;
+  }
+  .flow-arr { font-size: 20px; color: #aaa; }
+
+  /* Table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  .spec-table th { background: var(--blue-deep); color: white; padding: 9px 12px; text-align: left; font-weight: 600; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid var(--gray-border); }
+  .spec-table tr:nth-child(even) td { background: var(--blue-light); }
+  .spec-table tr:hover td { background: #ddeeff; }
+
+  /* Grid cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 14px 0; }
+  .card {
+    border: 1.5px solid; border-radius: 10px; padding: 14px;
+    background: white;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+  .card .card-icon { font-size: 22px; margin-bottom: 6px; }
+  .card .card-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .card .card-desc { font-size: 12px; color: var(--text-sub); line-height: 1.5; }
+
+  /* Note box */
+  .note {
+    background: #fff8e1; border: 1.5px solid #ffca28;
+    border-radius: 8px; padding: 12px 16px; margin: 12px 0;
+    font-size: 13px; color: #5d4037; line-height: 1.7;
+    display: flex; gap: 10px;
+  }
+  .note .note-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* Attribute diagram */
+  .attr-struct {
+    display: flex; gap: 0; margin: 12px 0;
+    border: 2px solid var(--blue-mid); border-radius: 8px; overflow: hidden;
+  }
+  .attr-field {
+    flex: 1; padding: 10px 8px; text-align: center;
+    border-right: 2px solid var(--blue-mid); font-size: 12px; font-weight: 600;
+  }
+  .attr-field:last-child { border-right: none; }
+  .attr-field .label { color: #0052cc; margin-bottom: 4px; }
+  .attr-field .size { color: #888; font-size: 11px; font-weight: 400; }
+
+  /* PDU format */
+  .pdu-box {
+    display: flex; gap: 0; border: 2px solid #333; border-radius: 8px;
+    overflow: hidden; margin: 12px 0;
+  }
+  .pdu-field {
+    flex: 1; padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 700;
+    border-right: 2px solid #555;
+  }
+  .pdu-field:last-child { border-right: none; }
+  .pdu-field .pdu-size { font-size: 10px; font-weight: 400; margin-top: 4px; }
+
+  /* State diagram */
+  .state-diag { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; }
+  .state-node {
+    padding: 10px 18px; border-radius: 24px; font-size: 13px; font-weight: 700;
+    border: 2.5px solid; text-align: center;
+  }
+  .state-arr { font-size: 22px; color: #888; }
+
+  /* Timeline */
+  .timeline { border-left: 3px solid var(--blue-mid); margin: 12px 0 12px 10px; }
+  .tl-item { padding: 8px 16px; position: relative; }
+  .tl-item::before {
+    content: ''; position: absolute; left: -8px; top: 13px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--blue-accent); border: 2px solid white;
+    box-shadow: 0 0 0 2px var(--blue-mid);
+  }
+  .tl-item .tl-title { font-size: 13px; font-weight: 700; color: var(--blue-deep); margin-bottom: 2px; }
+  .tl-item .tl-desc { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
+
+  /* Procedure matrix */
+  .proc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 12px 0; }
+  .proc-item {
+    background: white; border: 1.5px solid var(--gray-border); border-radius: 8px;
+    padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .proc-num {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--blue-accent);
+    color: white; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .proc-info .proc-name { font-size: 13px; font-weight: 700; color: var(--text-main); }
+  .proc-info .proc-desc { font-size: 12px; color: var(--text-sub); line-height: 1.5; margin-top: 2px; }
+
+  /* Handle table */
+  .handle-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: monospace; margin: 10px 0; }
+  .handle-table th { background: #263238; color: #eceff1; padding: 8px; text-align: center; }
+  .handle-table td { padding: 7px 10px; border: 1px solid #cfd8dc; text-align: center; }
+  .handle-table .svc { background: #e3f2fd; font-weight: 700; }
+  .handle-table .char { background: #f3e5f5; }
+  .handle-table .desc { background: #e8f5e9; }
+
+  /* Highlight spans */
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11.5px; font-weight: 700; margin: 2px;
+  }
+  .tag-blue { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+  .tag-green { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
+  .tag-orange { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+  .tag-red { background: #ffebee; color: #b71c1c; border: 1px solid #ef9a9a; }
+  .tag-purple { background: #f3e5f5; color: #4a148c; border: 1px solid #ce93d8; }
+  .tag-teal { background: #e0f2f1; color: #004d40; border: 1px solid #80cbc4; }
+
+  /* Code block */
+  .code-block {
+    background: #1e272e; color: #ecf0f1; border-radius: 8px;
+    padding: 14px 16px; font-family: 'Courier New', monospace; font-size: 12px;
+    line-height: 1.7; overflow-x: auto; margin: 12px 0;
+  }
+  .code-block .c-comment { color: #636e72; }
+  .code-block .c-key { color: #74b9ff; }
+  .code-block .c-val { color: #55efc4; }
+  .code-block .c-str { color: #fdcb6e; }
+
+  .ham {
+    display: none;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    color: #fff;
+    font-size: 22px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 820px) {
+    main { margin-left: 0; padding: 16px 12px 40px; }
+    .ham { display: flex; }
+    .proc-grid { grid-template-columns: 1fr; }
+    .attr-struct { flex-direction: column; }
+    .attr-field { border-right: none; border-bottom: 2px solid var(--blue-mid); }
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<header>
+  <button type="button" class="ham" aria-label="菜单">☰</button>
+  <div class="logo">&#x1F4F6;</div>
+  <h1>Bluetooth GATT 通用属性协议规范 <br><span style="font-size:12px;font-weight:400;opacity:.8">Generic Attribute Profile · Core Spec 6.0 · Part G</span></h1>
+  <span class="badge">Core 6.0</span>
+</header>
+
+<div class="layout">
+
+<!-- ===== NAV ===== -->
+<nav id="sidebar">
+  <div class="nav-section-label">目录导航</div>
+
+  <a href="#s1" data-target="s1"><span class="num">1</span>引言 Introduction</a>
+  <a href="#s1-1" class="sub" data-target="s1-1"><span class="num">1.1</span>范围 Scope</a>
+  <a href="#s1-2" class="sub" data-target="s1-2"><span class="num">1.2</span>Profile 依赖</a>
+  <a href="#s1-5" class="sub" data-target="s1-5"><span class="num">1.5</span>约定 Conventions</a>
+
+  <a href="#s2" data-target="s2"><span class="num">2</span>Profile 概述</a>
+  <a href="#s2-1" class="sub" data-target="s2-1"><span class="num">2.1</span>协议栈</a>
+  <a href="#s2-2" class="sub" data-target="s2-2"><span class="num">2.2</span>角色与配置</a>
+  <a href="#s2-3" class="sub" data-target="s2-3"><span class="num">2.3</span>用户场景</a>
+  <a href="#s2-4" class="sub" data-target="s2-4"><span class="num">2.4</span>Profile 基础</a>
+  <a href="#s2-5" class="sub" data-target="s2-5"><span class="num">2.5</span>Attribute 协议</a>
+  <a href="#s2-5-1" class="sub2" data-target="s2-5-1"><span class="num">2.5.1</span>概述 & PDU</a>
+  <a href="#s2-5-2" class="sub2" data-target="s2-5-2"><span class="num">2.5.2</span>属性缓存</a>
+  <a href="#s2-5-3" class="sub2" data-target="s2-5-3"><span class="num">2.5.3</span>属性分组</a>
+  <a href="#s2-6" class="sub" data-target="s2-6"><span class="num">2.6</span>服务定义</a>
+  <a href="#s2-7" class="sub" data-target="s2-7"><span class="num">2.7</span>特征定义</a>
+
+  <a href="#s3" data-target="s3"><span class="num">3</span>服务交互要求</a>
+
+  <a href="#s4" data-target="s4"><span class="num">4</span>GATT 功能与过程</a>
+  <a href="#s4-1" class="sub" data-target="s4-1"><span class="num">4.1</span>服务发现</a>
+  <a href="#s4-2" class="sub" data-target="s4-2"><span class="num">4.2</span>特征发现</a>
+  <a href="#s4-3" class="sub" data-target="s4-3"><span class="num">4.3</span>特征值读写</a>
+  <a href="#s4-4" class="sub" data-target="s4-4"><span class="num">4.4</span>通知与指示</a>
+  <a href="#s4-5" class="sub" data-target="s4-5"><span class="num">4.5</span>过程映射表</a>
+
+  <a href="#s5" data-target="s5"><span class="num">5</span>认证与授权</a>
+
+  <a href="#s6" data-target="s6"><span class="num">6</span>GAP 互操作</a>
+
+  <a href="#s7" data-target="s7"><span class="num">7</span>GATT 服务特征</a>
+  <a href="#s7-1" class="sub" data-target="s7-1"><span class="num">7.1</span>Service Changed</a>
+  <a href="#s7-2" class="sub" data-target="s7-2"><span class="num">7.2</span>Client Supported Features</a>
+  <a href="#s7-3" class="sub" data-target="s7-3"><span class="num">7.3</span>Database Hash</a>
+  <a href="#s7-4" class="sub" data-target="s7-4"><span class="num">7.4</span>Server Supported Features</a>
+
+  <a href="#s8" data-target="s8"><span class="num">8</span>LE 物理链路要求</a>
+
+  <a href="#s9" data-target="s9"><span class="num">9</span>BR/EDR 物理链路</a>
+
+  <a href="#s10" data-target="s10"><span class="num">10</span>参考资料</a>
+
+  <a href="#appendA" data-target="appendA"><span class="num">A</span>附录 A：ATT 服务器示例</a>
+  <a href="#appendB" data-target="appendB"><span class="num">B</span>附录 B：Database Hash 示例</a>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ====== SECTION 1 ====== -->
+<div class="section" id="s1">
+  <div class="section-title">
+    <div class="icon" style="background:#e8f0fe;">📘</div>
+    第 1 章 · 引言 Introduction
+  </div>
+  <div class="section-subtitle">定义 GATT 协议的背景与适用范围</div>
+
+  <div id="s1-1">
+    <h2 class="sub">1.1 范围 Scope</h2>
+    <p>通用属性协议（Generic Attribute Profile，GATT）基于属性协议（ATT）定义了一套<strong>服务框架</strong>，描述了服务（Service）及其特征（Characteristic）的格式与过程，包括：</p>
+    <ul class="spec-list">
+      <li>🔍 <strong>发现（Discovering）</strong>：发现服务和特征</li>
+      <li>📖 <strong>读取（Reading）</strong>：读取特征值</li>
+      <li>✏️ <strong>写入（Writing）</strong>：写入特征值</li>
+      <li>🔔 <strong>通知（Notifying）</strong>：服务端主动推送更新</li>
+      <li>📣 <strong>指示（Indicating）</strong>：带确认的服务端推送</li>
+      <li>📡 <strong>广播（Broadcasting）</strong>：配置特征广播</li>
+    </ul>
+
+    <div class="diagram">
+      <div class="diagram-title">GATT 核心功能全景</div>
+      <div class="cards">
+        <div class="card" style="border-color:#1a73e8;background:#f0f7ff;">
+          <div class="card-icon">🔍</div>
+          <div class="card-title" style="color:#1a73e8;">服务发现</div>
+          <div class="card-desc">客户端查询服务端上有哪些 Primary/Secondary Service 及其 Characteristic</div>
+        </div>
+        <div class="card" style="border-color:#00897b;background:#f0faf8;">
+          <div class="card-icon">📖</div>
+          <div class="card-title" style="color:#00897b;">特征读取</div>
+          <div class="card-desc">通过 ATT_READ_REQ 读取服务端的特征值，获取传感器等数据</div>
+        </div>
+        <div class="card" style="border-color:#f57c00;background:#fff8f0;">
+          <div class="card-icon">✏️</div>
+          <div class="card-title" style="color:#f57c00;">特征写入</div>
+          <div class="card-desc">通过 ATT_WRITE_REQ 或 ATT_WRITE_CMD 向服务端写入控制命令</div>
+        </div>
+        <div class="card" style="border-color:#7b1fa2;background:#fdf0ff;">
+          <div class="card-icon">🔔</div>
+          <div class="card-title" style="color:#7b1fa2;">通知与指示</div>
+          <div class="card-desc">服务端主动推送数据变化，Notification 无需确认，Indication 需要确认</div>
+        </div>
+        <div class="card" style="border-color:#c62828;background:#fff5f5;">
+          <div class="card-icon">📡</div>
+          <div class="card-title" style="color:#c62828;">广播配置</div>
+          <div class="card-desc">允许设备通过广播包发送特征值（Server Characteristic Configuration）</div>
+        </div>
+        <div class="card" style="border-color:#455a64;background:#f5f7f8;">
+          <div class="card-icon">⚡</div>
+          <div class="card-title" style="color:#455a64;">ATT Bearer</div>
+          <div class="card-desc">基于 L2CAP 信道承载，可建立多条 ATT Bearer 提升并发性能</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s1-2">
+    <h2 class="sub">1.2 Profile 依赖关系</h2>
+    <p>GATT 位于蓝牙协议栈的 Profile 层，依赖于通用访问协议（GAP）和属性协议（ATT）。</p>
+    <div class="diagram">
+      <div class="diagram-title">图 1.1：Profile 依赖关系</div>
+      <div class="stack">
+        <div class="stack-layer" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;">应用程序 / 应用层 Profile<br><span style="font-size:11px;font-weight:400;">Application / Higher-level Profiles</span></div>
+        <div class="stack-arrow">↕</div>
+        <div class="stack-layer" style="background:#fff3e0;border-color:#e65100;color:#e65100;">GATT（通用属性协议）<br><span style="font-size:11px;font-weight:400;">Generic Attribute Profile</span></div>
+        <div class="stack-arrow">↕</div>
+        <div class="stack-layer" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;">GAP（通用访问协议）<br><span style="font-size:11px;font-weight:400;">Generic Access Profile</span></div>
+        <div class="stack-arrow">↕</div>
+        <div class="stack-layer" style="background:#f3e5f5;border-color:#6a1b9a;color:#6a1b9a;">ATT（属性协议）<br><span style="font-size:11px;font-weight:400;">Attribute Protocol</span></div>
+        <div class="stack-arrow">↕</div>
+        <div class="stack-layer" style="background:#e0f2f1;border-color:#00695c;color:#00695c;">L2CAP / SM（安全管理）<br><span style="font-size:11px;font-weight:400;">Logical Link Control &amp; Adaptation</span></div>
+        <div class="stack-arrow">↕</div>
+        <div class="stack-layer" style="background:#fce4ec;border-color:#880e4f;color:#880e4f;">LE Controller / BR/EDR Controller<br><span style="font-size:11px;font-weight:400;">Physical Layer</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s1-5">
+    <h2 class="sub">1.5 约定 Conventions</h2>
+    <ul class="spec-list">
+      <li>过程名、PDU、Opcode 等专有名称使用 <em>斜体</em> 表示</li>
+      <li>«Primary Service» 双尖括号表示 UUID 类型</li>
+      <li>ATT 错误码使用斜体并附带十六进制数值，如 <em>Database Out Of Sync</em> (0x12)</li>
+      <li>多字节字段采用<strong>小端序</strong>（LSB 优先）传输，Characteristic Value 字段除外</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ====== SECTION 2 ====== -->
+<div class="section" id="s2">
+  <div class="section-title">
+    <div class="icon" style="background:#e8f5e9;">🏗️</div>
+    第 2 章 · Profile 概述
+  </div>
+  <div class="section-subtitle">GATT 的整体架构、角色定义与核心通信机制</div>
+
+  <div id="s2-1">
+    <h2 class="sub">2.1 协议栈 Protocol Stack</h2>
+    <p>GATT 使用 ATT 协议作为传输层。ATT 运行在 L2CAP 信道（称为 ATT Bearer）上，使 Client 与 Server 之间可以进行属性操作。</p>
+    <div class="diagram">
+      <div class="diagram-title">图 2.1：GATT 协议栈模型</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;">
+        <div style="flex:1;min-width:180px;">
+          <div style="text-align:center;font-size:12px;font-weight:700;color:#888;margin-bottom:6px;">CLIENT 设备</div>
+          <div class="stack">
+            <div class="stack-layer" style="background:#fff3e0;border-color:#e65100;color:#e65100;font-size:12px;">应用层</div>
+            <div class="stack-arrow" style="font-size:14px;">↕</div>
+            <div class="stack-layer" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;font-size:12px;">GATT</div>
+            <div class="stack-arrow" style="font-size:14px;">↕</div>
+            <div class="stack-layer" style="background:#f3e5f5;border-color:#6a1b9a;color:#6a1b9a;font-size:12px;">ATT</div>
+            <div class="stack-arrow" style="font-size:14px;">↕</div>
+            <div class="stack-layer" style="background:#e0f2f1;border-color:#00695c;color:#00695c;font-size:12px;">L2CAP</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 10px;">
+          <div style="font-size:11px;color:#888;margin-bottom:4px;">ATT Bearer</div>
+          <div style="font-size:28px;color:#1a73e8;">⟺</div>
+          <div style="font-size:11px;color:#888;margin-top:4px;">请求/响应</div>
+        </div>
+        <div style="flex:1;min-width:180px;">
+          <div style="text-align:center;font-size:12px;font-weight:700;color:#888;margin-bottom:6px;">SERVER 设备</div>
+          <div class="stack">
+            <div class="stack-layer" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;font-size:12px;">属性数据库</div>
+            <div class="stack-arrow" style="font-size:14px;">↕</div>
+            <div class="stack-layer" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;font-size:12px;">GATT</div>
+            <div class="stack-arrow" style="font-size:14px;">↕</div>
+            <div class="stack-layer" style="background:#f3e5f5;border-color:#6a1b9a;color:#6a1b9a;font-size:12px;">ATT</div>
+            <div class="stack-arrow" style="font-size:14px;">↕</div>
+            <div class="stack-layer" style="background:#e0f2f1;border-color:#00695c;color:#00695c;font-size:12px;">L2CAP</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s2-2">
+    <h2 class="sub">2.2 配置与角色 Configurations and Roles</h2>
+    <div class="diagram">
+      <div class="diagram-title">图 2.2：客户端/服务端角色示意</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:stretch;justify-content:center;">
+        <div style="flex:1;min-width:150px;background:#e3f2fd;border:2px solid #1565c0;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:32px;">💻</div>
+          <div style="font-weight:700;color:#1565c0;font-size:14px;margin-top:6px;">Client（客户端）</div>
+          <div style="font-size:12px;color:#555;margin-top:6px;line-height:1.6;">
+            发起命令和请求<br>接收响应/通知/指示<br><em>如：手机、电脑</em>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:0 8px;">
+          <div style="font-size:12px;color:#888;">读/写请求 →</div>
+          <div style="font-size:20px;">⟺</div>
+          <div style="font-size:12px;color:#888;">← 响应/通知</div>
+        </div>
+        <div style="flex:1;min-width:150px;background:#e8f5e9;border:2px solid #2e7d32;border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:32px;">🌡️</div>
+          <div style="font-weight:700;color:#2e7d32;font-size:14px;margin-top:6px;">Server（服务端）</div>
+          <div style="font-size:12px;color:#555;margin-top:6px;line-height:1.6;">
+            接受命令和请求<br>发送响应/通知/指示<br><em>如：温度传感器</em>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <span class="note-icon">💡</span>
+      <span>角色不固定于设备本身，由过程发起方决定。同一设备可以同时扮演 Client 和 Server 两种角色。</span>
+    </div>
+  </div>
+
+  <div id="s2-3">
+    <h2 class="sub">2.3 用户需求与场景</h2>
+    <div class="proc-grid">
+      <div class="proc-item">
+        <div class="proc-num">1</div>
+        <div class="proc-info">
+          <div class="proc-name">交换配置</div>
+          <div class="proc-desc">设备间协商 MTU、特性支持等参数</div>
+        </div>
+      </div>
+      <div class="proc-item">
+        <div class="proc-num">2</div>
+        <div class="proc-info">
+          <div class="proc-name">服务与特征发现</div>
+          <div class="proc-desc">Client 查询 Server 暴露哪些服务和特征</div>
+        </div>
+      </div>
+      <div class="proc-item">
+        <div class="proc-num">3</div>
+        <div class="proc-info">
+          <div class="proc-name">读取特征值</div>
+          <div class="proc-desc">按需读取传感器数值或配置状态</div>
+        </div>
+      </div>
+      <div class="proc-item">
+        <div class="proc-num">4</div>
+        <div class="proc-info">
+          <div class="proc-name">写入特征值</div>
+          <div class="proc-desc">向设备发送控制命令或配置参数</div>
+        </div>
+      </div>
+      <div class="proc-item">
+        <div class="proc-num">5</div>
+        <div class="proc-info">
+          <div class="proc-name">通知特征值</div>
+          <div class="proc-desc">Server 主动推送变化数据，无需 Client 确认</div>
+        </div>
+      </div>
+      <div class="proc-item">
+        <div class="proc-num">6</div>
+        <div class="proc-info">
+          <div class="proc-name">指示特征值</div>
+          <div class="proc-desc">Server 推送数据并等待 Client 确认收到</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s2-4">
+    <h2 class="sub">2.4 Profile 基础</h2>
+    <p>GATT 可运行于任意物理链路上，通过 ATT Bearer（L2CAP 信道）承载通信：</p>
+    <ul class="spec-list">
+      <li>⚡ <strong>ATT Bearer</strong>：通过"信道建立"过程（见第 6 节）建立</li>
+      <li>🔄 <strong>角色独立</strong>：GATT 角色（Client/Server）不绑定到控制器角色（Central/Peripheral）</li>
+      <li>🔒 <strong>安全可选</strong>：LE 链路上安全特性（授权/认证/加密）可选；BR/EDR 链路强制加密</li>
+      <li>📦 <strong>字节序</strong>：多字节字段采用<strong>小端序</strong>（LSB 优先），Characteristic Value 字段除外</li>
+      <li>🔗 <strong>多 Bearer</strong>：Client 与 Server 间可建立多条 ATT Bearer 以提升并发</li>
+    </ul>
+    <div class="diagram">
+      <div class="diagram-title">多 ATT Bearer 并发通信</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;">
+        <div style="background:#e3f2fd;border:2px solid #1565c0;border-radius:8px;padding:14px 20px;text-align:center;">
+          <div style="font-size:20px;">💻</div>
+          <div style="font-size:13px;font-weight:700;color:#1565c0;">Client</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="background:#fff3e0;border:1.5px dashed #e65100;border-radius:6px;padding:4px 12px;font-size:12px;color:#e65100;font-weight:700;">ATT Bearer 1 (EATT)</div>
+          <div style="background:#f3e5f5;border:1.5px dashed #6a1b9a;border-radius:6px;padding:4px 12px;font-size:12px;color:#6a1b9a;font-weight:700;">ATT Bearer 2 (EATT)</div>
+          <div style="background:#e8f5e9;border:1.5px dashed #2e7d32;border-radius:6px;padding:4px 12px;font-size:12px;color:#2e7d32;font-weight:700;">ATT Bearer 3 (Legacy)</div>
+        </div>
+        <div style="background:#e8f5e9;border:2px solid #2e7d32;border-radius:8px;padding:14px 20px;text-align:center;">
+          <div style="font-size:20px;">🌡️</div>
+          <div style="font-size:13px;font-weight:700;color:#2e7d32;">Server</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s2-5">
+    <h2 class="sub">2.5 Attribute 协议 (ATT)</h2>
+
+    <div id="s2-5-1">
+      <h3 class="sub2">2.5.1 ATT PDU 结构</h3>
+      <p>GATT 使用 ATT PDU 在设备间传输数据。每个 PDU 的结构如下：</p>
+      <div class="diagram">
+        <div class="diagram-title">图 2.3：ATT PDU 格式</div>
+        <div class="pdu-box">
+          <div class="pdu-field" style="background:#e3f2fd;color:#0d47a1;">
+            Opcode
+            <div class="pdu-size">1 字节</div>
+          </div>
+          <div class="pdu-field" style="background:#e8f5e9;color:#1b5e20;">
+            Attribute Parameters
+            <div class="pdu-size">可变长度</div>
+          </div>
+          <div class="pdu-field" style="background:#fff3e0;color:#e65100;">
+            Auth Signature
+            <div class="pdu-size">12 字节（可选）</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#666;line-height:1.8;">
+          <strong>Opcode</strong>：包含具体的操作码（命令/请求/响应/指示/通知/确认）以及认证标志位<br>
+          <strong>Attribute Parameters</strong>：针对具体操作的数据内容或响应结果<br>
+          <strong>Authentication Signature</strong>：可选的 12 字节签名，用于命令认证（ATT_SIGN_FLAG=1 时有效）
+        </div>
+      </div>
+
+      <p>服务端上的每个 Attribute（属性）由四个部分组成：</p>
+      <div class="diagram">
+        <div class="diagram-title">图 2.4：Attribute 逻辑结构</div>
+        <div class="attr-struct">
+          <div class="attr-field" style="background:#e3f2fd;">
+            <div class="label">Attribute Handle</div>
+            <div class="size">2 字节，唯一索引<br>0x0001–0xFFFF</div>
+          </div>
+          <div class="attr-field" style="background:#e8f5e9;">
+            <div class="label">Attribute Type</div>
+            <div class="size">UUID（16位或128位）<br>描述属性类型</div>
+          </div>
+          <div class="attr-field" style="background:#fff3e0;">
+            <div class="label">Attribute Value</div>
+            <div class="size">可变长度<br>实际数据内容</div>
+          </div>
+          <div class="attr-field" style="background:#f3e5f5;">
+            <div class="label">Attribute Permissions</div>
+            <div class="size">不可经 ATT 读写<br>访问控制由服务端管理</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:#555;line-height:1.8;">
+          💡 <strong>Attribute Handle</strong>：服务端上属性的唯一标识索引，Handle 值随地址递增排列（允许有间隙）<br>
+          💡 <strong>Attribute Type</strong>：UUID 描述该属性的类型（如 Primary Service = 0x2800）<br>
+          💡 <strong>Attribute Permissions</strong>：读/写权限控制，不能通过 ATT 协议直接读写，由 GATT 或高层 Profile 定义
+        </div>
+      </div>
+    </div>
+
+    <div id="s2-5-2">
+      <h3 class="sub2">2.5.2 属性缓存 Attribute Caching</h3>
+      <p>属性缓存允许 Client 在发现 Attribute 信息后，在重新连接时复用缓存数据，无需重复发现，大幅节省时间和数据包交换。</p>
+      <div class="diagram">
+        <div class="diagram-title">缓存有效性状态机</div>
+        <div class="state-diag">
+          <div class="state-node" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;">缓存有效<br><small>Change-Aware</small></div>
+          <div class="state-arr">→</div>
+          <div style="text-align:center;">
+            <div style="font-size:11px;color:#888;margin-bottom:4px;">服务发生变化<br>（添加/修改/删除服务）</div>
+          </div>
+          <div class="state-arr">→</div>
+          <div class="state-node" style="background:#ffebee;border-color:#c62828;color:#c62828;">缓存失效<br><small>Change-Unaware</small></div>
+        </div>
+        <div class="timeline" style="margin-top:14px;">
+          <div class="tl-item">
+            <div class="tl-title">1. 服务变化时</div>
+            <div class="tl-desc">Server 发送 ATT_HANDLE_VALUE_IND（包含受影响的 Handle 范围），通知 Client 缓存失效范围</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-title">2. Client 收到指示</div>
+            <div class="tl-desc">Client 将受影响范围的缓存标记为无效，发送 ATT_HANDLE_VALUE_CFM 确认</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-title">3. 恢复缓存</div>
+            <div class="tl-desc">Client 重新执行服务发现，或读取 Database Hash 特征以更新缓存（使用 Robust Caching 特性）</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-title">4. Bonded 设备</div>
+            <div class="tl-desc">对于有信任关系（Bond）的设备，断开连接后缓存保持有效；非 Bond 设备仅在单次连接期间有效</div>
+          </div>
+        </div>
+      </div>
+      <div class="note">
+        <span class="note-icon">⚠️</span>
+        <span><strong>Robust Caching（强健缓存）</strong>：若 Server 支持 Database Hash + Service Changed 特征，则必须支持 Robust Caching。当 Client 处于 Change-Unaware 状态时，Server 返回 ATT_ERROR_RSP（Error Code = Database Out Of Sync = 0x12），直到 Client 读取 Database Hash 后重新变为 Change-Aware 状态。</span>
+      </div>
+    </div>
+
+    <div id="s2-5-3">
+      <h3 class="sub2">2.5.3 属性分组 Attribute Grouping</h3>
+      <p>GATT 将属性按服务和特征进行逻辑分组，形成有层次的数据库结构：</p>
+      <div class="diagram">
+        <div class="diagram-title">GATT 属性数据库层次结构</div>
+        <div style="font-family:monospace;font-size:13px;line-height:2;background:#1e272e;color:#ecf0f1;border-radius:8px;padding:16px;">
+          <span style="color:#74b9ff;">Primary Service</span> «Temperature Service» [Handle: 0x0010–0x001F]<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│</span><br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">├─</span> <span style="color:#55efc4;">Characteristic Declaration</span> [Handle: 0x0011]<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│&nbsp;&nbsp;</span> Properties: Read|Notify<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│&nbsp;&nbsp;</span> Value Handle: 0x0012<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│&nbsp;&nbsp;</span> UUID: «Temperature Measurement»<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│</span><br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">├─</span> <span style="color:#fdcb6e;">Characteristic Value</span> [Handle: 0x0012]<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│&nbsp;&nbsp;</span> Value: 0x028A (= 6.5°C)<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│</span><br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">├─</span> <span style="color:#fd79a8;">CCCD Descriptor</span> [Handle: 0x0013]<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│&nbsp;&nbsp;</span> UUID: 0x2902 (Client Characteristic Config)<br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">│</span><br>
+          &nbsp;&nbsp;<span style="color:#a29bfe;">└─</span> <span style="color:#fd79a8;">User Description</span> [Handle: 0x0014]<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "Outside Temperature"
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s2-6">
+    <h2 class="sub">2.6 服务定义 Service Definition</h2>
+    <p>GATT 定义了两类服务：</p>
+    <div class="cards">
+      <div class="card" style="border-color:#1565c0;background:#e3f2fd;">
+        <div class="card-icon">🔵</div>
+        <div class="card-title" style="color:#1565c0;">Primary Service（主服务）</div>
+        <div class="card-desc">UUID = 0x2800。设备对外暴露的主要功能服务。Client 通过发现主服务来了解设备能力。</div>
+      </div>
+      <div class="card" style="border-color:#6a1b9a;background:#f3e5f5;">
+        <div class="card-icon">🟣</div>
+        <div class="card-title" style="color:#6a1b9a;">Secondary Service（次级服务）</div>
+        <div class="card-desc">UUID = 0x2801。不直接对外，由其他服务通过 Include 引用，提供共享功能模块。</div>
+      </div>
+    </div>
+    <p style="margin-top:8px;">服务可以通过 <strong>«Include»</strong>（UUID = 0x2802）引用其他服务，实现服务复用。</p>
+  </div>
+
+  <div id="s2-7">
+    <h2 class="sub">2.7 特征定义 Characteristic Definition</h2>
+    <p>每个特征（Characteristic）由以下属性组成：</p>
+    <table class="spec-table">
+      <tr>
+        <th>组成部分</th>
+        <th>UUID</th>
+        <th>说明</th>
+      </tr>
+      <tr>
+        <td><strong>Characteristic Declaration</strong></td>
+        <td>0x2803</td>
+        <td>包含 Properties（属性标志位）、Value Handle、UUID</td>
+      </tr>
+      <tr>
+        <td><strong>Characteristic Value</strong></td>
+        <td>特征专属 UUID</td>
+        <td>实际存储特征数据的属性</td>
+      </tr>
+      <tr>
+        <td><strong>Descriptor（描述符）</strong></td>
+        <td>各种 0x29xx</td>
+        <td>补充元数据，如 CCCD(0x2902)、格式(0x2904)、用户描述(0x2901)</td>
+      </tr>
+    </table>
+    <div class="diagram">
+      <div class="diagram-title">Characteristic Properties 标志位</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <span class="tag tag-blue">Broadcast (0x01)</span>
+        <span class="tag tag-green">Read (0x02)</span>
+        <span class="tag tag-orange">Write Without Response (0x04)</span>
+        <span class="tag tag-red">Write (0x08)</span>
+        <span class="tag tag-purple">Notify (0x10)</span>
+        <span class="tag tag-teal">Indicate (0x20)</span>
+        <span class="tag tag-blue">Authenticated Signed Writes (0x40)</span>
+        <span class="tag tag-orange">Extended Properties (0x80)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 3 ====== -->
+<div class="section" id="s3">
+  <div class="section-title">
+    <div class="icon" style="background:#fff3e0;">🔧</div>
+    第 3 章 · 服务交互要求
+  </div>
+  <div class="section-subtitle">Client 与 Server 在交互过程中必须遵守的行为规范</div>
+  <p>本章规定了 GATT Client 和 Server 的基本行为要求：</p>
+  <div class="diagram">
+    <div class="diagram-title">Client / Server 行为规范</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div style="font-weight:700;color:#1565c0;font-size:13px;margin-bottom:8px;">📱 Client 要求</div>
+        <ul class="spec-list">
+          <li>每次连接只能发出一个未完成的请求事务</li>
+          <li>必须处理来自 Server 的错误响应</li>
+          <li>必须支持 MTU 交换过程</li>
+          <li>对于绑定设备，应缓存 Attribute 信息避免重复发现</li>
+          <li>收到 Service Changed 指示后必须执行服务重发现</li>
+        </ul>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <div style="font-weight:700;color:#2e7d32;font-size:13px;margin-bottom:8px;">🌡️ Server 要求</div>
+        <ul class="spec-list">
+          <li>对于不支持的操作返回 ATT_ERROR_RSP</li>
+          <li>Handle 值一经分配不应随意改变</li>
+          <li>服务变化时须存储 Service Changed 信息（针对已绑定设备）</li>
+          <li>支持 Robust Caching 时须正确管理 Change-Aware 状态</li>
+          <li>Database Hash 变化时须更新对应特征值</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <span class="note-icon">📋</span>
+    <span>如果服务端的 GATT 服务在设备生命周期内<strong>不会改变</strong>，则不需要包含 Service Changed 特征，Client 也无需在初次服务发现后重复发现。</span>
+  </div>
+</div>
+
+<!-- ====== SECTION 4 ====== -->
+<div class="section" id="s4">
+  <div class="section-title">
+    <div class="icon" style="background:#f3e5f5;">⚙️</div>
+    第 4 章 · GATT 功能与过程
+  </div>
+  <div class="section-subtitle">所有 GATT 标准过程的定义、流程与 ATT 操作码映射</div>
+
+  <div id="s4-1">
+    <h2 class="sub">4.1 服务发现 Service Discovery</h2>
+    <p>Client 通过以下过程发现 Server 上的服务：</p>
+    <div class="diagram">
+      <div class="diagram-title">主服务发现流程（Primary Service Discovery）</div>
+      <div class="flow">
+        <div class="flow-box" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;">Client<br>发起请求</div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box" style="background:#fff3e0;border-color:#e65100;color:#e65100;">ATT_READ_BY_<br>GROUP_TYPE_REQ<br><small>Type=0x2800</small></div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;">Server<br>返回</div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box" style="background:#f3e5f5;border-color:#6a1b9a;color:#6a1b9a;">ATT_READ_BY_<br>GROUP_TYPE_RSP<br><small>Handle范围+UUID</small></div>
+      </div>
+      <div style="margin-top:12px;">
+        <table class="spec-table">
+          <tr>
+            <th>过程</th>
+            <th>ATT PDU（Client → Server）</th>
+            <th>ATT PDU（Server → Client）</th>
+          </tr>
+          <tr>
+            <td>发现所有主服务</td>
+            <td>ATT_READ_BY_GROUP_TYPE_REQ (0x2800)</td>
+            <td>ATT_READ_BY_GROUP_TYPE_RSP</td>
+          </tr>
+          <tr>
+            <td>按 UUID 发现主服务</td>
+            <td>ATT_FIND_BY_TYPE_VALUE_REQ</td>
+            <td>ATT_FIND_BY_TYPE_VALUE_RSP</td>
+          </tr>
+          <tr>
+            <td>发现所有次级服务</td>
+            <td>ATT_READ_BY_GROUP_TYPE_REQ (0x2801)</td>
+            <td>ATT_READ_BY_GROUP_TYPE_RSP</td>
+          </tr>
+          <tr>
+            <td>发现包含服务（Include）</td>
+            <td>ATT_READ_BY_TYPE_REQ (0x2802)</td>
+            <td>ATT_READ_BY_TYPE_RSP</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="s4-2">
+    <h2 class="sub">4.2 特征发现 Characteristic Discovery</h2>
+    <p>在发现服务后，Client 进一步发现服务内的特征和描述符：</p>
+    <div class="diagram">
+      <div class="diagram-title">特征发现流程</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-title">Step 1：发现所有特征</div>
+          <div class="tl-desc">ATT_READ_BY_TYPE_REQ，Type = «Characteristic» (0x2803)，在服务 Handle 范围内查询</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-title">Step 2：按 UUID 发现特征</div>
+          <div class="tl-desc">ATT_READ_BY_TYPE_REQ，Type = 目标特征 UUID，精确定位特定特征</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-title">Step 3：发现特征描述符</div>
+          <div class="tl-desc">ATT_FIND_INFORMATION_REQ，在相邻两个特征 Declaration Handle 之间查询描述符</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s4-3">
+    <h2 class="sub">4.3 特征值读写 Read / Write</h2>
+    <div class="diagram">
+      <div class="diagram-title">读取操作类型对比</div>
+      <table class="spec-table">
+        <tr>
+          <th>过程</th>
+          <th>ATT PDU</th>
+          <th>特点</th>
+        </tr>
+        <tr>
+          <td>读特征值</td>
+          <td>ATT_READ_REQ / ATT_READ_RSP</td>
+          <td>按 Handle 读取单个 Attribute Value</td>
+        </tr>
+        <tr>
+          <td>按 UUID 读</td>
+          <td>ATT_READ_BY_TYPE_REQ / RSP</td>
+          <td>在一个 Handle 范围内按 UUID 读取，适合一次读多个相同类型属性</td>
+        </tr>
+        <tr>
+          <td>读长属性值</td>
+          <td>ATT_READ_BLOB_REQ / RSP</td>
+          <td>值长度超过 MTU 时使用 Offset 分段读取</td>
+        </tr>
+        <tr>
+          <td>读多个属性值</td>
+          <td>ATT_READ_MULTIPLE_REQ / RSP</td>
+          <td>一次请求读取多个已知 Handle 的值，结果拼接返回</td>
+        </tr>
+      </table>
+      <div class="diagram-title" style="margin-top:16px;">写入操作类型对比</div>
+      <table class="spec-table">
+        <tr>
+          <th>过程</th>
+          <th>ATT PDU</th>
+          <th>特点</th>
+        </tr>
+        <tr>
+          <td>写特征值（有响应）</td>
+          <td>ATT_WRITE_REQ / ATT_WRITE_RSP</td>
+          <td>Server 确认写入成功，可靠写入</td>
+        </tr>
+        <tr>
+          <td>写特征值（无响应）</td>
+          <td>ATT_WRITE_CMD</td>
+          <td>单向命令，Server 不响应，延迟低</td>
+        </tr>
+        <tr>
+          <td>认证写入</td>
+          <td>ATT_SIGNED_WRITE_CMD</td>
+          <td>携带 CSRK 签名，无需加密链路也能验证来源</td>
+        </tr>
+        <tr>
+          <td>长特征值写入</td>
+          <td>ATT_PREPARE_WRITE_REQ + ATT_EXECUTE_WRITE_REQ</td>
+          <td>分段缓存写入，最后原子性执行或取消</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div id="s4-4">
+    <h2 class="sub">4.4 通知与指示 Notification &amp; Indication</h2>
+    <p>Server 主动向 Client 推送数据。Client 需通过 CCCD（0x2902）订阅：</p>
+    <div class="diagram">
+      <div class="diagram-title">Notification vs Indication 流程对比</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;background:#e3f2fd;border:2px solid #1565c0;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;color:#1565c0;margin-bottom:8px;">🔔 Notification（通知）</div>
+          <div class="flow" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <div class="flow-box" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;width:100%;">Client: CCCD 写入 0x0001</div>
+            <div class="flow-arr" style="margin-left:20px;">↓</div>
+            <div class="flow-box" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;width:100%;">Server: ATT_HANDLE_VALUE_NTF</div>
+            <div class="flow-arr" style="margin-left:20px;">↓（无需确认）</div>
+            <div class="flow-box" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;width:100%;">Client: 处理数据</div>
+          </div>
+          <div style="font-size:12px;color:#888;margin-top:8px;">✅ 低延迟，不保证可靠性</div>
+        </div>
+        <div style="flex:1;min-width:200px;background:#fff3e0;border:2px solid #e65100;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;color:#e65100;margin-bottom:8px;">📣 Indication（指示）</div>
+          <div class="flow" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <div class="flow-box" style="background:#fff3e0;border-color:#e65100;color:#e65100;width:100%;">Client: CCCD 写入 0x0002</div>
+            <div class="flow-arr" style="margin-left:20px;">↓</div>
+            <div class="flow-box" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;width:100%;">Server: ATT_HANDLE_VALUE_IND</div>
+            <div class="flow-arr" style="margin-left:20px;">↓（必须确认）</div>
+            <div class="flow-box" style="background:#fff3e0;border-color:#e65100;color:#e65100;width:100%;">Client: ATT_HANDLE_VALUE_CFM</div>
+          </div>
+          <div style="font-size:12px;color:#888;margin-top:8px;">✅ 可靠，下一条等待确认后发送</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="s4-5">
+    <h2 class="sub">4.5 GATT 过程与 ATT 操作码映射</h2>
+    <div class="diagram">
+      <div class="diagram-title">完整 GATT 过程 → ATT Opcode 映射表</div>
+      <table class="spec-table">
+        <tr>
+          <th>GATT 过程分类</th>
+          <th>过程名称</th>
+          <th>ATT Opcode（请求）</th>
+        </tr>
+        <tr><td rowspan="2">交换</td><td>MTU 交换</td><td>ATT_EXCHANGE_MTU_REQ (0x02)</td></tr>
+        <tr><td>Feature Exchange</td><td>ATT_READ_REQ on GATT features</td></tr>
+        <tr><td rowspan="3">服务发现</td><td>发现所有主服务</td><td>ATT_READ_BY_GROUP_TYPE_REQ (0x10)</td></tr>
+        <tr><td>按 UUID 发现主服务</td><td>ATT_FIND_BY_TYPE_VALUE_REQ (0x06)</td></tr>
+        <tr><td>发现 Include 服务</td><td>ATT_READ_BY_TYPE_REQ (0x08)</td></tr>
+        <tr><td rowspan="2">特征发现</td><td>发现所有特征</td><td>ATT_READ_BY_TYPE_REQ (0x08)</td></tr>
+        <tr><td>发现特征描述符</td><td>ATT_FIND_INFORMATION_REQ (0x04)</td></tr>
+        <tr><td rowspan="4">特征值读</td><td>读特征值</td><td>ATT_READ_REQ (0x0A)</td></tr>
+        <tr><td>按 UUID 读</td><td>ATT_READ_BY_TYPE_REQ (0x08)</td></tr>
+        <tr><td>读长值</td><td>ATT_READ_BLOB_REQ (0x0C)</td></tr>
+        <tr><td>读多个值</td><td>ATT_READ_MULTIPLE_REQ (0x0E)</td></tr>
+        <tr><td rowspan="4">特征值写</td><td>写特征值（有响应）</td><td>ATT_WRITE_REQ (0x12)</td></tr>
+        <tr><td>写特征值（无响应）</td><td>ATT_WRITE_CMD (0x52)</td></tr>
+        <tr><td>准备写入</td><td>ATT_PREPARE_WRITE_REQ (0x16)</td></tr>
+        <tr><td>执行写入</td><td>ATT_EXECUTE_WRITE_REQ (0x18)</td></tr>
+        <tr><td rowspan="2">服务端推送</td><td>通知 Notification</td><td>ATT_HANDLE_VALUE_NTF (0x1B)</td></tr>
+        <tr><td>指示 Indication</td><td>ATT_HANDLE_VALUE_IND (0x1D)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 5 ====== -->
+<div class="section" id="s5">
+  <div class="section-title">
+    <div class="icon" style="background:#ffebee;">🔐</div>
+    第 5 章 · 认证与授权
+  </div>
+  <div class="section-subtitle">GATT 操作的安全访问控制机制</div>
+  <p>GATT 的安全访问控制分为三个层次：</p>
+  <div class="cards">
+    <div class="card" style="border-color:#c62828;background:#ffebee;">
+      <div class="card-icon">🔑</div>
+      <div class="card-title" style="color:#c62828;">授权 Authorization</div>
+      <div class="card-desc">特定属性需要应用层明确授权才能访问，与配对/绑定无关</div>
+    </div>
+    <div class="card" style="border-color:#1565c0;background:#e3f2fd;">
+      <div class="card-icon">🛡️</div>
+      <div class="card-title" style="color:#1565c0;">认证 Authentication</div>
+      <div class="card-desc">要求设备已完成认证配对（使用 MITM 保护），可信身份访问</div>
+    </div>
+    <div class="card" style="border-color:#2e7d32;background:#e8f5e9;">
+      <div class="card-icon">🔒</div>
+      <div class="card-title" style="color:#2e7d32;">加密 Encryption</div>
+      <div class="card-desc">要求连接已建立加密链路，防止数据被窃听（LE 可选，BR/EDR 必选）</div>
+    </div>
+  </div>
+  <div class="diagram">
+    <div class="diagram-title">安全访问决策流程</div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-title">Client 发送 ATT 请求</div>
+        <div class="tl-desc">尝试读取或写入某个 Attribute</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-title">Server 检查 Attribute Permissions</div>
+        <div class="tl-desc">验证当前连接安全等级是否满足该 Attribute 的访问权限</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-title">权限不足 → 返回错误码</div>
+        <div class="tl-desc">Insufficient Authorization (0x08)、Insufficient Authentication (0x05)、Insufficient Encryption (0x0F)</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-title">权限满足 → 正常执行</div>
+        <div class="tl-desc">执行读/写操作，返回正常响应</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <span class="note-icon">💡</span>
+    <span>ATT 认证签名（Authentication Signature）允许在未加密链路上对 ATT 命令进行签名验证，使用 CSRK（Connection Signature Resolving Key）和签名计数器，防止重放攻击。</span>
+  </div>
+</div>
+
+<!-- ====== SECTION 6 ====== -->
+<div class="section" id="s6">
+  <div class="section-title">
+    <div class="icon" style="background:#e0f2f1;">🔗</div>
+    第 6 章 · GAP 互操作要求
+  </div>
+  <div class="section-subtitle">GATT 与通用访问协议 (GAP) 的协同工作规范</div>
+  <p>GATT 依赖 GAP 提供的信道建立机制来创建 ATT Bearer：</p>
+  <div class="diagram">
+    <div class="diagram-title">ATT Bearer 建立方式（LE）</div>
+    <table class="spec-table">
+      <tr>
+        <th>Bearer 类型</th>
+        <th>L2CAP Channel</th>
+        <th>建立方式</th>
+        <th>特点</th>
+      </tr>
+      <tr>
+        <td><strong>Fixed ATT Bearer</strong></td>
+        <td>CID = 0x0004</td>
+        <td>LE 连接建立后自动创建</td>
+        <td>每连接一条，顺序请求/响应</td>
+      </tr>
+      <tr>
+        <td><strong>EATT Bearer</strong></td>
+        <td>动态 CID</td>
+        <td>L2CAP CoC（Credit-based）连接</td>
+        <td>支持并发多条，PSM = 0x0027</td>
+      </tr>
+    </table>
+  </div>
+  <p>GATT 的 Client/Server 角色与 GAP 的 Central/Peripheral 角色无绑定关系：</p>
+  <div class="diagram">
+    <div class="diagram-title">GAP 角色与 GATT 角色独立性</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">
+      <div style="background:#e3f2fd;border:1.5px solid #1565c0;border-radius:8px;padding:12px;">
+        <div style="font-weight:700;color:#1565c0;">GAP Central</div>
+        <div style="color:#555;margin-top:4px;">可以是 GATT Client 也可以是 GATT Server</div>
+      </div>
+      <div style="background:#e8f5e9;border:1.5px solid #2e7d32;border-radius:8px;padding:12px;">
+        <div style="font-weight:700;color:#2e7d32;">GAP Peripheral</div>
+        <div style="color:#555;margin-top:4px;">可以是 GATT Server 也可以是 GATT Client</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 7 ====== -->
+<div class="section" id="s7">
+  <div class="section-title">
+    <div class="icon" style="background:#f3e5f5;">📋</div>
+    第 7 章 · GATT 服务特征定义
+  </div>
+  <div class="section-subtitle">GATT 服务本身包含的几个关键特征详解</div>
+
+  <div id="s7-1">
+    <h2 class="sub">7.1 Service Changed（服务已变更）</h2>
+    <p>UUID = 0x2A05，Properties = Indicate (0x20)。当服务端的 GATT 数据库发生变化时，通过此特征通知客户端：</p>
+    <div class="diagram">
+      <div class="diagram-title">Service Changed 通知流程</div>
+      <div class="flow">
+        <div class="flow-box" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;">Server<br>服务变化</div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box" style="background:#fff3e0;border-color:#e65100;color:#e65100;">ATT_HANDLE_VALUE_IND<br>值=[Start Handle, End Handle]<br>4字节小端序</div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;">Client<br>缓存失效</div>
+        <div class="flow-arr">→</div>
+        <div class="flow-box" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;">ATT_HANDLE_VALUE_CFM<br>确认收到</div>
+      </div>
+    </div>
+    <div class="note">
+      <span class="note-icon">📌</span>
+      <span>对于已绑定（bonded）设备，Server 需要存储 Service Changed 信息，并在下次连接时发送。Handle 范围 0x0001–0xFFFF 表示通知 Client 重新发现全部属性。</span>
+    </div>
+  </div>
+
+  <div id="s7-2">
+    <h2 class="sub">7.2 Client Supported Features（客户端支持特性）</h2>
+    <p>UUID = 0x2B29，Properties = Read/Write (0x0A)。Client 向 Server 声明自己支持的可选 GATT 特性：</p>
+    <table class="spec-table">
+      <tr><th>Bit</th><th>特性名称</th><th>含义</th></tr>
+      <tr><td>0</td><td>Robust Caching</td><td>Client 支持强健缓存机制，接受 Database Out Of Sync 错误响应</td></tr>
+      <tr><td>1</td><td>Enhanced ATT Bearer</td><td>Client 支持 EATT（增强型 ATT Bearer）并发传输</td></tr>
+      <tr><td>2</td><td>Multiple Handle Value Notifications</td><td>Client 支持在单个 NTF PDU 中接收多个 Handle 的值</td></tr>
+    </table>
+  </div>
+
+  <div id="s7-3">
+    <h2 class="sub">7.3 Database Hash（数据库哈希）</h2>
+    <p>UUID = 0x2B2A，Properties = Read (0x02)。128 位（16字节）AES-CMAC 哈希值，反映当前 GATT 数据库的状态：</p>
+    <div class="diagram">
+      <div class="diagram-title">Database Hash 计算方法</div>
+      <div style="font-size:13px;color:#555;line-height:1.8;">
+        <p>将所有属性的 <strong>[Handle + Type + Value]</strong>（按规则选择性包含）拼接为字节流 <em>m</em>，然后：</p>
+        <div class="code-block">
+          <span class="c-comment">// Hash key k = 固定 128-bit 全零密钥</span><br>
+          <span class="c-key">Database Hash</span> = <span class="c-val">AES-CMAC</span>(<span class="c-str">k</span> = 0x00...00, <span class="c-str">m</span> = 属性数据拼接)<br>
+          <br>
+          <span class="c-comment">// 示例结果（见附录B）：</span><br>
+          <span class="c-key">Hash</span> = <span class="c-val">F1 CA 2D 48 EC F5 8B AC 8A 88 30 BB B9 FB A9 90</span>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:13px;color:#555;">
+        Client 可以通过比较缓存的 Hash 与当前读取到的 Hash 来判断数据库是否变化，无需重新完整发现。
+      </div>
+    </div>
+    <div class="note">
+      <span class="note-icon">🔏</span>
+      <span>Database Hash 中<strong>不包含</strong>特征值本身（只包含声明和描述符），也不包含 Service Changed 特征值和 Client Supported Features 特征值。Hash 变化时 Server 必须更新此特征。</span>
+    </div>
+  </div>
+
+  <div id="s7-4">
+    <h2 class="sub">7.4 Server Supported Features（服务端支持特性）</h2>
+    <p>UUID = 0x2B3A，Properties = Read (0x02)。Server 声明自己支持的可选 GATT 特性：</p>
+    <table class="spec-table">
+      <tr><th>Bit</th><th>特性名称</th><th>含义</th></tr>
+      <tr><td>0</td><td>Enhanced ATT Bearer</td><td>Server 支持 EATT 并发 ATT Bearer</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ====== SECTION 8 ====== -->
+<div class="section" id="s8">
+  <div class="section-title">
+    <div class="icon" style="background:#e0f7fa;">📡</div>
+    第 8 章 · LE 物理链路要求
+  </div>
+  <div class="section-subtitle">GATT 在低功耗蓝牙（BLE）物理链路上的具体要求</div>
+  <p>在 LE 物理链路上使用 GATT 时需满足以下要求：</p>
+  <div class="diagram">
+    <div class="diagram-title">LE 链路 GATT 参数规范</div>
+    <table class="spec-table">
+      <tr><th>参数</th><th>要求</th><th>说明</th></tr>
+      <tr><td>ATT_MTU 默认值</td><td>23 字节</td><td>LE Legacy ATT Bearer 默认 MTU，通过 MTU Exchange 协商扩大</td></tr>
+      <tr><td>ATT_MTU 最大值</td><td>517 字节</td><td>基于 LE Data Length Extension 支持的最大有效载荷</td></tr>
+      <tr><td>加密</td><td>可选</td><td>LE 链路加密为可选项，具体由 Attribute Permissions 决定</td></tr>
+      <tr><td>安全模式</td><td>LE Security Mode 1/2</td><td>Mode 1 基于加密，Mode 2 基于签名</td></tr>
+      <tr><td>EATT</td><td>需协商</td><td>Enhanced ATT Bearer 需双方均支持 EATT 特性</td></tr>
+      <tr><td>Fixed ATT Bearer CID</td><td>0x0004</td><td>LE 连接建立后自动存在的默认 ATT 信道</td></tr>
+    </table>
+  </div>
+  <div class="diagram">
+    <div class="diagram-title">LE MTU 协商过程</div>
+    <div class="flow">
+      <div class="flow-box" style="background:#e3f2fd;border-color:#1565c0;color:#1565c0;">Client<br>ATT_EXCHANGE_MTU_REQ<br>ClientRxMTU</div>
+      <div class="flow-arr">→</div>
+      <div class="flow-box" style="background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;">Server<br>ATT_EXCHANGE_MTU_RSP<br>ServerRxMTU</div>
+      <div class="flow-arr">→</div>
+      <div class="flow-box" style="background:#fff3e0;border-color:#e65100;color:#e65100;">协商结果<br>ATT_MTU = min(ClientRxMTU,<br>ServerRxMTU)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SECTION 9 ====== -->
+<div class="section" id="s9">
+  <div class="section-title">
+    <div class="icon" style="background:#fce4ec;">📶</div>
+    第 9 章 · BR/EDR 物理链路要求
+  </div>
+  <div class="section-subtitle">GATT 在经典蓝牙（BR/EDR）链路上的特殊规范</div>
+  <p>GATT 也可运行于 BR/EDR 物理链路上，有以下不同之处：</p>
+  <div class="diagram">
+    <div class="diagram-title">BR/EDR 与 LE 对比</div>
+    <table class="spec-table">
+      <tr><th>对比项</th><th>LE 物理链路</th><th>BR/EDR 物理链路</th></tr>
+      <tr><td>加密要求</td><td>可选</td><td><strong>强制加密</strong></td></tr>
+      <tr><td>ATT Bearer</td><td>CID = 0x0004（固定）</td><td>L2CAP 信道（PSM = ATT 或 EATT）</td></tr>
+      <tr><td>PSM</td><td>N/A</td><td>ATT = 0x001F，EATT = 0x0027</td></tr>
+      <tr><td>SDP 注册</td><td>不需要</td><td><strong>必须</strong>注册 SDP 记录</td></tr>
+      <tr><td>服务发现</td><td>GATT 过程</td><td>需先通过 SDP 找到 GATT Handle 范围</td></tr>
+    </table>
+  </div>
+  <div class="diagram">
+    <div class="diagram-title">BR/EDR SDP 记录结构（仅支持 ATT 时）</div>
+    <table class="spec-table">
+      <tr><th>Attribute ID</th><th>类型</th><th>值</th><th>含义</th></tr>
+      <tr><td>0x0001</td><td>UUID</td><td>«GATT Service»</td><td>ServiceClassIDList</td></tr>
+      <tr><td>0x0004</td><td>序列</td><td>«L2CAP» PSM=0x001F + «ATT»</td><td>ProtocolDescriptorList</td></tr>
+      <tr><td>0x0004→ATT</td><td>uint16</td><td>0xHHHH (Start), 0xHHHH (End)</td><td>GATT 服务 Handle 范围</td></tr>
+      <tr><td>0x0005</td><td>UUID</td><td>«PublicBrowseRoot»</td><td>BrowseGroupList</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ====== SECTION 10 ====== -->
+<div class="section" id="s10">
+  <div class="section-title">
+    <div class="icon" style="background:#f5f5f5;">📚</div>
+    第 10 章 · 参考资料
+  </div>
+  <div class="section-subtitle">规范中引用的标准文档</div>
+  <div class="cards">
+    <div class="card" style="border-color:#1565c0;">
+      <div class="card-icon">📄</div>
+      <div class="card-title">[Vol 3] Part F – ATT</div>
+      <div class="card-desc">属性协议（Attribute Protocol）完整规范，定义全部 ATT Opcode 和 PDU 格式</div>
+    </div>
+    <div class="card" style="border-color:#2e7d32;">
+      <div class="card-icon">📄</div>
+      <div class="card-title">[Vol 3] Part H – SM</div>
+      <div class="card-desc">安全管理规范，定义配对、绑定和签名算法（用于 Auth Signature）</div>
+    </div>
+    <div class="card" style="border-color:#6a1b9a;">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Core Spec Supplement Part A</div>
+      <div class="card-desc">广告数据类型规范，用于 Service UUID 广播等</div>
+    </div>
+    <div class="card" style="border-color:#e65100;">
+      <div class="card-icon">📄</div>
+      <div class="card-title">Assigned Numbers</div>
+      <div class="card-desc">UUID 分配表，定义所有标准 Service/Characteristic/Descriptor 的 UUID 值</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== APPENDIX A ====== -->
+<div class="section" id="appendA">
+  <div class="section-title">
+    <div class="icon" style="background:#e8f5e9;">📊</div>
+    附录 A · ATT 服务器内容示例
+  </div>
+  <div class="section-subtitle">一个真实 ATT 服务器数据库的完整示例（包含10个服务）</div>
+  <p>下表展示了一个位于瑞典北部某温度传感器设备的完整 ATT 服务器数据库：</p>
+  <div class="diagram">
+    <div class="diagram-title">服务概览</div>
+    <div class="cards">
+      <div class="card" style="border-color:#1565c0;background:#e3f2fd;">
+        <div class="card-title" style="color:#1565c0;">GAP Service (0x0001)</div>
+        <div class="card-desc">Device Name = "Example Device"</div>
+      </div>
+      <div class="card" style="border-color:#0d47a1;background:#e8eaf6;">
+        <div class="card-title" style="color:#0d47a1;">GATT Service (0x0010)</div>
+        <div class="card-desc">Service Changed 特征，支持所有 ATT opcode</div>
+      </div>
+      <div class="card" style="border-color:#2e7d32;background:#e8f5e9;">
+        <div class="card-title" style="color:#2e7d32;">Battery State Service (0x0100)</div>
+        <div class="card-desc">Battery State = 0x04（正在放电）</div>
+      </div>
+      <div class="card" style="border-color:#e65100;background:#fff3e0;">
+        <div class="card-title" style="color:#e65100;">Thermometer Humidity (0x0200)</div>
+        <div class="card-desc">温度 6.5°C，湿度 39%</div>
+      </div>
+      <div class="card" style="border-color:#6a1b9a;background:#f3e5f5;">
+        <div class="card-title" style="color:#6a1b9a;">Weight Service (0x0280)</div>
+        <div class="card-desc">重量 21.89 kg（背包重量）</div>
+      </div>
+      <div class="card" style="border-color:#00695c;background:#e0f2f1;">
+        <div class="card-title" style="color:#00695c;">Position Service (0x0300)</div>
+        <div class="card-desc">纬度68.3585444°N，经度18.7830222°E，海拔374m</div>
+      </div>
+      <div class="card" style="border-color:#c62828;background:#ffebee;">
+        <div class="card-title" style="color:#c62828;">Alert Service (0x0400)</div>
+        <div class="card-desc">Alert Enumeration = 0x00</div>
+      </div>
+      <div class="card" style="border-color:#455a64;background:#f5f7f8;">
+        <div class="card-title" style="color:#455a64;">Manufacturer Services (×2)</div>
+        <div class="card-desc">ACME Temperature Sensor / ACME Weighing Scales</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Table A.1：完整 ATT Server 属性表（部分）</div>
+    <table class="handle-table">
+      <tr>
+        <th>Handle</th>
+        <th>Attribute Type</th>
+        <th>Attribute Value</th>
+      </tr>
+      <tr class="svc"><td>0x0001</td><td>«Primary Service»</td><td>«GAP Service»</td></tr>
+      <tr class="char"><td>0x0004</td><td>«Characteristic»</td><td>{0x02, 0x0006, «Device Name»}</td></tr>
+      <tr><td>0x0006</td><td>«Device Name»</td><td>"Example Device"</td></tr>
+      <tr class="svc"><td>0x0010</td><td>«Primary Service»</td><td>«GATT Service»</td></tr>
+      <tr class="char"><td>0x0011</td><td>«Characteristic»</td><td>{0x26, 0x0012, «Service Changed»}</td></tr>
+      <tr><td>0x0012</td><td>«Service Changed»</td><td>0x0000, 0x0000</td></tr>
+      <tr class="svc"><td>0x0100</td><td>«Primary Service»</td><td>«Battery State Service»</td></tr>
+      <tr class="char"><td>0x0106</td><td>«Characteristic»</td><td>{0x02, 0x0110, «Battery State»}</td></tr>
+      <tr><td>0x0110</td><td>«Battery State»</td><td>0x04（放电中）</td></tr>
+      <tr class="svc"><td>0x0200</td><td>«Primary Service»</td><td>«Thermometer Humidity Service»</td></tr>
+      <tr><td>0x0201</td><td>«Include»</td><td>{0x0500, 0x0504, «Manufacturer Service»}</td></tr>
+      <tr class="char"><td>0x0203</td><td>«Characteristic»</td><td>{0x02, 0x0204, «Temperature»}</td></tr>
+      <tr><td>0x0204</td><td>«Temperature»</td><td>0x028A (= 6.5 °C)</td></tr>
+      <tr class="desc"><td>0x0205</td><td>«Characteristic Presentation Format»</td><td>{0x0E, 0xFE, «degrees Celsius», 0x01, «Outside»}</td></tr>
+      <tr class="desc"><td>0x0206</td><td>«Characteristic User Description»</td><td>"Outside Temperature"</td></tr>
+      <tr class="char"><td>0x0210</td><td>«Characteristic»</td><td>{0x02, 0x0212, «Relative Humidity»}</td></tr>
+      <tr><td>0x0212</td><td>«Relative Humidity»</td><td>0x27 (= 39%)</td></tr>
+      <tr class="svc"><td>0x0280</td><td>«Primary Service»</td><td>«Weight Service»</td></tr>
+      <tr class="char"><td>0x0282</td><td>«Characteristic»</td><td>{0x02, 0x0283, «Weight kg»}</td></tr>
+      <tr><td>0x0283</td><td>«Weight kg»</td><td>0x00005582 (= 21.89 kg)</td></tr>
+      <tr class="svc"><td>0x0300</td><td>«Primary Service»</td><td>«Position Service»</td></tr>
+      <tr class="char"><td>0x0301</td><td>«Characteristic»</td><td>{0x02, 0x0302, «Latitude Longitude»}</td></tr>
+      <tr><td>0x0302</td><td>«Latitude Longitude»</td><td>0x28BEAFA40B320FCE</td></tr>
+      <tr class="svc"><td>0x0500</td><td>«Secondary Service»</td><td>«Manufacturer Service»</td></tr>
+      <tr class="char"><td>0x0501</td><td>«Characteristic»</td><td>{0x02, 0x0502, «Manufacturer Name»}</td></tr>
+      <tr><td>0x0502</td><td>«Manufacturer Name»</td><td>"ACME Temperature Sensor"</td></tr>
+    </table>
+    <div style="font-size:12px;color:#888;margin-top:8px;">
+      🟦 蓝色 = Service 声明 &nbsp;|&nbsp; 🟪 紫色 = Characteristic 声明 &nbsp;|&nbsp; 🟩 绿色 = Descriptor
+    </div>
+  </div>
+</div>
+
+<!-- ====== APPENDIX B ====== -->
+<div class="section" id="appendB">
+  <div class="section-title">
+    <div class="icon" style="background:#e8eaf6;">🔢</div>
+    附录 B · Database Hash 计算示例
+  </div>
+  <div class="section-subtitle">演示如何从 GATT 数据库计算 AES-CMAC Database Hash 值</div>
+  <p>Database Hash 将数据库中的特定属性数据按规则拼接为字节流 <em>m</em>，再计算 AES-CMAC：</p>
+
+  <div class="diagram">
+    <div class="diagram-title">哪些属性字段参与 Hash 计算</div>
+    <table class="spec-table">
+      <tr>
+        <th>属性类型</th>
+        <th>H（Handle）</th>
+        <th>T（Type/UUID）</th>
+        <th>V（Value）</th>
+      </tr>
+      <tr><td>Primary/Secondary Service 声明</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Characteristic 声明</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Include 声明</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Characteristic Value</td><td>❌</td><td>❌</td><td>❌</td></tr>
+      <tr><td>CCCD 描述符</td><td>✅</td><td>✅</td><td>❌（不含值）</td></tr>
+      <tr><td>Extended Properties 描述符</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    </table>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Table B.1：示例数据库及 Hash 数据拼接</div>
+    <table class="handle-table">
+      <tr>
+        <th>Handle</th>
+        <th>Type</th>
+        <th>含义</th>
+        <th>参与 Hash</th>
+        <th>数据 m（十六进制）</th>
+      </tr>
+      <tr class="svc"><td>0x0001</td><td>0x2800</td><td>Primary Service: GAP</td><td>HTV</td><td>01 00 00 28 00 18</td></tr>
+      <tr class="char"><td>0x0002</td><td>0x2803</td><td>Characteristic: Device Name</td><td>HTV</td><td>02 00 03 28 0A 03 00 00 2A</td></tr>
+      <tr><td>0x0003</td><td>0x2A00</td><td>Characteristic Value: Device Name</td><td>❌ 不含</td><td>—</td></tr>
+      <tr class="svc"><td>0x0006</td><td>0x2800</td><td>Primary Service: GATT</td><td>HTV</td><td>06 00 00 28 01 18</td></tr>
+      <tr class="char"><td>0x0007</td><td>0x2803</td><td>Characteristic: Service Changed</td><td>HTV</td><td>07 00 03 28 20 08 00 05 2A</td></tr>
+      <tr class="desc"><td>0x0009</td><td>0x2902</td><td>CCCD</td><td>HT（不含V）</td><td>09 00 02 29</td></tr>
+      <tr class="char"><td>0x000A</td><td>0x2803</td><td>Characteristic: Client Supported Features</td><td>HTV</td><td>0A 00 03 28 0A 0B 00 29 2B</td></tr>
+      <tr class="char"><td>0x000C</td><td>0x2803</td><td>Characteristic: Database Hash</td><td>HTV</td><td>0C 00 03 28 02 0D 00 2A 2B</td></tr>
+    </table>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">最终 Database Hash 计算结果</div>
+    <div class="code-block">
+      <span class="c-comment">// 拼接后的数据块 m（分为 M0–M6）：</span><br>
+      <span class="c-key">M0:</span> <span class="c-val">01000028 00180200 03280A03 00002A04</span><br>
+      <span class="c-key">M1:</span> <span class="c-val">00032802 0500012A 06000028 01180700</span><br>
+      <span class="c-key">M2:</span> <span class="c-val">03282008 00052A09 0002290A 0003280A</span><br>
+      <span class="c-key">M3:</span> <span class="c-val">0B00292B 0C000328 020D002A 2B0E0000</span><br>
+      <span class="c-key">M4:</span> <span class="c-val">2808180F 00022814 0016000F 18100003</span><br>
+      <span class="c-key">M5:</span> <span class="c-val">28A21100 182A1200 02291300 00290000</span><br>
+      <span class="c-key">M6:</span> <span class="c-val">14000128 0F181500 03280216 00192A</span><br>
+      <br>
+      <span class="c-comment">// Key k = 0x00000000000000000000000000000000</span><br>
+      <span class="c-key">Database Hash</span> = <span class="c-val">AES-CMAC</span>(<span class="c-str">k</span>, <span class="c-str">m</span>)<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <span class="c-str">F1 CA 2D 48 EC F5 8B AC 8A 88 30 BB B9 FB A9 90</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="note-icon">📌</span>
+    <span>数据块 M0–M6 和 Database Hash 均按从高位到低位（MSB→LSB）的顺序排列。Key 固定为全零 128 位值（非会话密钥）。</span>
+  </div>
+
+  <!-- Overall Summary -->
+  <div style="margin-top:28px;background:linear-gradient(135deg,#003087 0%,#005ecb 100%);border-radius:12px;padding:24px 28px;color:white;">
+    <div style="font-size:17px;font-weight:800;margin-bottom:12px;">🎯 GATT 协议核心要点总结</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;font-size:13px;">
+      <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:4px;">🏗️ 基础架构</div>
+        <div style="opacity:.85;line-height:1.6;">基于 ATT，分为 Client/Server 角色，运行于 L2CAP ATT Bearer</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:4px;">📂 数据模型</div>
+        <div style="opacity:.85;line-height:1.6;">服务→特征→描述符三层结构，每个属性由 Handle+Type+Value+Permission 构成</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:4px;">⚡ 高效通信</div>
+        <div style="opacity:.85;line-height:1.6;">支持属性缓存、Robust Caching、EATT 并发、MTU 协商等优化手段</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:4px;">🔔 数据推送</div>
+        <div style="opacity:.85;line-height:1.6;">Notification（无确认）和 Indication（需确认）实现服务端主动推送</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:4px;">🔒 安全机制</div>
+        <div style="opacity:.85;line-height:1.6;">三层安全（授权/认证/加密），LE 可选，BR/EDR 强制加密</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;">
+        <div style="font-weight:700;margin-bottom:4px;">🔄 缓存管理</div>
+        <div style="opacity:.85;line-height:1.6;">Database Hash 快速验证数据库变化，Service Changed 指示精确通知范围</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+  // ===== Navigation scroll spy =====
+  const sections = document.querySelectorAll('[id]');
+  const navLinks = document.querySelectorAll('nav a[data-target]');
+  const nav = document.getElementById('sidebar');
+
+  function getOffset(el) {
+    const rect = el.getBoundingClientRect();
+    return rect.top + window.scrollY;
+  }
+
+  function updateActive() {
+    let current = '';
+    const scrollY = window.scrollY + 80;
+    sections.forEach(sec => {
+      if (sec.id && getOffset(sec) <= scrollY) {
+        current = sec.id;
+      }
+    });
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.dataset.target === current) {
+        link.classList.add('active');
+        // Scroll nav to keep active link visible
+        const linkTop = link.offsetTop;
+        const navHeight = nav.clientHeight;
+        const navScroll = nav.scrollTop;
+        if (linkTop < navScroll + 50 || linkTop > navScroll + navHeight - 80) {
+          nav.scrollTo({ top: linkTop - navHeight / 2 + 40, behavior: 'smooth' });
+        }
+      }
+    });
+  }
+
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+
+  // ===== Smooth scroll on nav click =====
+  navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.getElementById(this.dataset.target);
+      if (target) {
+        if (window.btScrollToEl) window.btScrollToEl(target, 70);
+        else window.scrollTo({ top: getOffset(target) - 70, behavior: 'smooth' });
+      }
+      if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+    });
+  });
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLE 控制器 Link Layer 报文解析流程</title>
+  <style>
+    :root {
+      --bg: #eef6f8;
+      --text: #2c3e50;
+      --line: #bdc3c7;
+      --radio: #e74c3c;
+      --ll: #0891b2;
+      --llcp: #7c3aed;
+      --l2cap: #059669;
+      --hci: #d97706;
+      --adv: #2563eb;
+    }
+    body {
+      font-family: "Segoe UI", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 32px 20px 64px;
+      overflow-x: hidden;
+    }
+    .header { text-align: center; margin-bottom: 36px; max-width: 920px; margin-left: auto; margin-right: auto; }
+    .header h1 { margin: 0 0 12px; color: #0f766e; }
+    .header p { color: #64748b; line-height: 1.65; margin: 8px 0; }
+    .refs { font-size: 13px; margin-top: 16px; padding: 12px 16px; background: #fff; border-radius: 10px; border: 1px solid #cbd5e1; text-align: left; }
+    .refs a { color: #0369a1; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin: 0 auto 22px;
+      max-width: 1100px;
+      box-shadow: 0 4px 20px rgba(15,23,42,.05);
+      overflow: hidden;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 19px; color: #0f766e; }
+    .card h3 { margin: 18px 0 8px; font-size: 15px; color: #334155; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+    th, td { border: 1px solid #e2e8f0; padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+
+    /* 宽树状图：限制在卡片内横向滚动，不撑破整页 */
+    .tree-scroll-hint {
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+      margin: 0 0 10px;
+      line-height: 1.5;
+    }
+    .tree-scroll {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 0 4px;
+      padding: 14px 12px 18px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+    .tree-scroll::-webkit-scrollbar { height: 8px; }
+    .tree-scroll::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .tree-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: max-content;
+      min-width: 900px;
+      margin: 0 auto;
+    }
+    .tree ul { padding-top: 18px; position: relative; display: flex; justify-content: center; flex-wrap: nowrap; padding-left: 0; margin: 0; }
+    .tree li { list-style: none; text-align: center; position: relative; padding: 18px 5px 0; flex: 0 0 auto; }
+    .tree li::before, .tree li::after {
+      content: ''; position: absolute; top: 0; right: 50%; border-top: 2px solid var(--line); width: 50%; height: 18px;
+    }
+    .tree li::after { right: auto; left: 50%; border-left: 2px solid var(--line); }
+    .tree li:only-child::after, .tree li:only-child::before { display: none; }
+    .tree li:only-child { padding-top: 0; }
+    .tree li:first-child::before, .tree li:last-child::after { border: 0; }
+    .tree li:last-child::before { border-right: 2px solid var(--line); border-radius: 0 5px 0 0; }
+    .tree li:first-child::after { border-radius: 5px 0 0 0; }
+    .tree ul ul::before {
+      content: ''; position: absolute; top: 0; left: 50%; border-left: 2px solid var(--line);
+      width: 0; height: 18px; margin-left: -1px;
+    }
+
+    .node {
+      background: #fff; border: 2px solid var(--line); border-radius: 10px;
+      padding: 12px 14px; min-width: 168px; max-width: 280px;
+      box-shadow: 0 4px 8px rgba(0,0,0,.04); text-align: left; display: inline-block;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .tree .packet-wrapper { max-width: 100%; }
+    .tree .packet-diagram { flex-wrap: wrap; }
+    .tree .pkt-field { min-width: 0; font-size: 10px; padding: 6px 2px; }
+    .node-title { font-weight: 700; text-align: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #ecf0f1; }
+    .node-desc { font-size: 13px; color: #555; line-height: 1.55; }
+    .label-edge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: #fff; border: 2px solid var(--line); border-radius: 12px;
+      padding: 2px 10px; font-size: 12px; font-weight: 700; color: #c0392b; white-space: nowrap; z-index: 2;
+    }
+    .bg-radio { border-top: 5px solid var(--radio); }
+    .bg-ll { border-top: 5px solid var(--ll); }
+    .bg-llcp { border-top: 5px solid var(--llcp); }
+    .bg-l2 { border-top: 5px solid var(--l2cap); }
+    .bg-hci { border-top: 5px solid var(--hci); }
+    .bg-adv { border-top: 5px solid var(--adv); }
+
+    .tag {
+      display: inline-block; background: #ecfeff; color: #0e7490;
+      padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 600;
+    }
+
+    .packet-wrapper { background: #f8fafc; border: 1px solid #d1d8e0; border-radius: 8px; padding: 10px; margin-top: 10px; }
+    .packet-title { font-size: 12px; font-weight: 700; color: #64748b; text-align: center; margin-bottom: 6px; }
+    .packet-diagram { display: flex; border-radius: 4px; overflow: hidden; font-size: 11px; font-family: ui-monospace, monospace; text-align: center; }
+    .pkt-field {
+      padding: 8px 4px; color: #fff; border-right: 1px solid rgba(255,255,255,.3);
+      display: flex; align-items: center; justify-content: center; flex: 1;
+    }
+    .pkt-highlight { box-shadow: inset 0 0 0 2px #fbbf24; }
+    .packet-legend { margin: 8px 0 0; padding-left: 16px; font-size: 12px; color: #475569; line-height: 1.5; text-align: left; }
+
+    /* 分流树下方字段说明框（避免节点内长文重叠） */
+    .tree-field-notes {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .tree-field-notes > h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f766e;
+    }
+    .field-note-box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px 12px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    }
+    .field-note-head {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 0 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .field-note-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .field-note-list li {
+      font-size: 13px;
+      line-height: 1.65;
+      color: #475569;
+      padding: 8px 0;
+      border-bottom: 1px dashed #eef2f7;
+      word-break: break-word;
+    }
+    .field-note-list li:last-child { border-bottom: none; padding-bottom: 0; }
+    .field-note-list .fn-term {
+      display: block;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+    .field-note-adv { border-left: 4px solid var(--adv); }
+    .field-note-data { border-left: 4px solid var(--ll); }
+    .field-note-llcp { border-left: 4px solid var(--llcp); }
+    .field-note-connect { border-left: 4px solid #7c3aed; margin-top: -6px; }
+    .tree .node-note-ref {
+      margin: 8px 0 0;
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .hex {
+      background: #0f172a; color: #e2e8f0; border-radius: 8px; padding: 12px 14px;
+      font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.7;
+      overflow-x: auto; margin: 10px 0;
+    }
+    .hex .hl { color: #fbbf24; font-weight: 700; }
+    .hex .op { color: #a78bfa; }
+    .hex .crc { color: #94a3b8; }
+
+    .mermaid-wrap { background: #f8fafc; border-radius: 10px; padding: 16px; overflow-x: auto; margin: 14px 0; }
+    nav.top { text-align: center; margin-bottom: 20px; }
+    nav.top a {
+      display: inline-block; margin: 4px 8px; padding: 6px 14px;
+      background: #fff; border: 1px solid #cbd5e1; border-radius: 999px;
+      text-decoration: none; color: #0369a1; font-size: 13px;
+    }
+  </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+    /* ── 左侧目录导航（misc 专题，样式同 packet）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+      overflow-x: hidden;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar),
+    .packet-page > .header {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card,
+    .packet-page .scenario-card,
+    .packet-page .layer-card,
+    .packet-page .role-card,
+    .packet-page .phase-title,
+    .packet-page h2[id],
+    .packet-page .tree,
+    .packet-page .deep-dive {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+      .tree { min-width: 720px; }
+      .node { min-width: 140px; max-width: 260px; padding: 10px 12px; }
+      .tree li { padding: 14px 3px 0; }
+    }
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+    <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">BLE 控制器 Link Layer 报文解析</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">专题 · Misc</div>
+    <div class="doc-name">BLE 控制器 Link Layer 报文解析</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#compare">1. 与经典蓝牙（baseband_parse）的分层对照</a>
+  <a class="packet-nav-link" href="#pipeline">2. 控制器内解析流水线（Connected 态为主）</a>
+  <a class="packet-nav-link" href="#tree">3. Link Layer 硬核分流树（对齐 baseband_parse 风格）</a>
+  <a class="packet-nav-link" href="#adv">4. 广播信道：CONNECT_IND 解析要点</a>
+  <a class="packet-nav-link" href="#data">5. 数据信道：LL 头 + LLCP 载荷拆解（抓包可验证）</a>
+  <a class="packet-nav-link" href="#capture">6. honor50 抓包中的命名层级（.btt / CSV 对照）</a>
+  <a class="packet-nav-link" href="#7-小结">7. 小结</a>
+  <a class="packet-nav-link" href="#page-intro">页首说明</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc current-doc" href="ble_ll_controller_parse.html">BLE 控制器 Link Layer 报文解析</a>
+  <a class="packet-nav-link doc" href="rf_workflow.html">射频与基带交互架构</a>
+  <a class="packet-nav-link doc" href="lmp_ssp_deepdive.html">LMP 职责与 SSP 深度剖析</a>
+  <a class="packet-nav-link doc" href="sdp_database_structure.html">SDP 数据库结构</a>
+  <a class="packet-nav-link doc" href="bt_packet_parse_flow.html">经典蓝牙报文解析流水线</a>
+  <a class="packet-nav-link doc" href="bt_bb_flow.html">基带核心职责与处理流水线</a>
+  <a class="packet-nav-link doc" href="l2cap_classic_part.html">经典 L2CAP 报文与建连</a>
+  <a class="packet-nav-link doc" href="bt_timing.html">BR/EDR 时序与时间轴</a>
+  <a class="packet-nav-link doc" href="bt_baseband_packet_types.html">基带报文类型大全</a>
+  <a class="packet-nav-link doc" href="bt_acl_create_process.html">ACL 链路建立全过程</a>
+  <a class="packet-nav-link doc" href="bluetooth_rf_flow.html">蓝牙射频 TX/RX 流程</a>
+  <a class="packet-nav-link doc" href="ble_stack_parser.html">BLE 协议栈自底向上解析</a>
+  <a class="packet-nav-link doc" href="baseband_packet_parse_flow.html">经典蓝牙底层报文分流引擎</a>
+  <a class="packet-nav-link doc" href="att_protocol.html">ATT 协议指令分类</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<div class="packet-main">
+<div id="page-intro" class="header">
+    <h1>BLE 控制器 Link Layer 报文解析与分流</h1>
+    <p>
+      对照 <b>Bluetooth Core v4.2 — Controller Volume（Link Layer / Vol 6 Part B）</b> 与
+      <code>honor50_sunmi_ble_ota</code> 抓包，说明控制器在收到空口比特后如何解析并分流。
+      结构参考 <a href="baseband_packet_parse_flow.html">经典蓝牙基带分流图</a>，将 BR/EDR 的「基带头 TYPE / 载荷 L_CH」
+      映射为 LE 的「信道类型 + Data PDU 头 LLID / LLCP Opcode」。
+    </p>
+    <div class="refs">
+      <strong>参考材料</strong><br>
+      · 规范：<code>Core_v4.2-Core System Package [Low Energy Controller volume].pdf</code>（Link Layer 第 2 章 PDU、第 2.4 节 LLCP）<br>
+      · 抓包：<code>honor50_sunmi_ble_ota.csv</code>（与 <code>.btt</code> 同场景；工作区未检出 .btt 时以 CSV 中 <code>Data</code> 列为准）<br>
+      · 图示范式：<a href="baseband_packet_parse_flow.html">baseband_packet_parse_flow.html</a><br>
+      · 关联流程：<a href="../packet/ble_first_connection_packet_flow.html">BLE 首次连接业务流</a>
+    </div>
+  </div>
+
+  <nav class="top">
+    <a href="#compare">与 BR/EDR 对照</a>
+    <a href="#pipeline">总流水线</a>
+    <a href="#tree">分流树</a>
+    <a href="#adv">广播信道</a>
+    <a href="#data">数据信道</a>
+    <a href="#capture">抓包对照</a>
+    <a href="baseband_packet_parse_flow.html">BR/EDR 基带图</a>
+    <a href="../overview/bt_lmp_overview.html">BR/EDR LMP 参考</a>
+  </nav>
+
+  <section class="card" id="compare">
+    <h2>1. 与经典蓝牙（baseband_parse）的分层对照</h2>
+    <table>
+      <tr><th>阶段</th><th>BR/EDR 控制器</th><th>BLE 控制器（本页）</th></tr>
+      <tr>
+        <td>空口同步</td>
+        <td>72-bit Access Code + 18-bit 基带头</td>
+        <td>Advertising：Access Address 固定；Connected：Access Address 由 CONNECT 分配（如 <code>0x93F4E4CB</code>）</td>
+      </tr>
+      <tr>
+        <td>一级分流</td>
+        <td>基带头 <span class="tag">TYPE</span>（NULL/SCO/ACL）</td>
+        <td>物理信道：<b>Advertising Channel</b> vs <b>Data Channel</b>（由当前状态机决定监听哪类信道）</td>
+      </tr>
+      <tr>
+        <td>二级分流</td>
+        <td>ACL 载荷头 <span class="tag">L_CH</span>（LMP / L2CAP）</td>
+        <td>Data Channel PDU 头 <span class="tag">LLID</span>（LL Data vs LL Control）</td>
+      </tr>
+      <tr>
+        <td>控制面</td>
+        <td>LMP（固件内部，HCI 不可见或仅事件）</td>
+        <td><b>LLCP</b>（LL Control PDU，Opcode 分流；Wireshark 称 LLCP）</td>
+      </tr>
+      <tr>
+        <td>数据面</td>
+        <td>L2CAP → Host</td>
+        <td>LL Data PDU → <b>L2CAP/ATT</b> → Host（HCI ACL Data / LE Meta）</td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="card" id="pipeline">
+    <h2>2. 控制器内解析流水线（Connected 态为主）</h2>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TB
+  RF[射频解调] --> WHITEN[白化 + CRC 校验]
+  WHITEN --> CH{当前信道类型?}
+  CH -->|Adv 37/38/39| ADV_PDU[解析 Adv PDU Header<br/>PDU Type 4b + Length]
+  CH -->|Data 0-36| DATA_HDR[解析 Data Channel PDU Header<br/>2 字节: LLID/NESN/SN/MD/Length]
+  ADV_PDU --> ADV_ACT[CONNECT_IND / ADV_IND 等<br/>更新 Link Layer 状态机]
+  DATA_HDR --> LLID{LLID?}
+  LLID -->|01 或 10| LL_DATA[LL Data PDU<br/>去 MIC 若加密]
+  LLID -->|11| LL_CTRL[LL Control PDU<br/>按 Opcode 进 LLCP]
+  LLID -->|00| DROP[保留/丢弃]
+  LL_CTRL --> LLCP[Feature/Length/ConnUpdate/PHY/ChMap...]
+  LL_DATA --> L2CAP[L2CAP 重组]
+  L2CAP --> ATT[ATT / SMP 上 Host]
+  LLCP --> HCI_E[可选: HCI LE Meta Event<br/>或控制器内部消化]
+  ATT --> HCI_A[HCI ACL Data 上报]
+      </pre>
+    </div>
+    <p style="font-size:14px;color:#64748b;margin:0;">
+      抓包工具中的 <code>LE-C Packet</code> = 已在控制器侧完成 CRC 校验后的 <b>Data Channel PDU（含 2 字节 LL 头 + 载荷 + 3 字节 CRC）</b>；
+      <code>LLCP xxx</code> 行通常仅显示 <b>LL Control 载荷</b>（无 LL 头与 CRC）。
+    </p>
+  </section>
+
+  <section class="card" id="tree">
+    <h2>3. Link Layer 硬核分流树（对齐 baseband_parse 风格）</h2>
+    <p class="tree-scroll-hint">分流树横向较宽，请在下方灰色区域内左右滑动查看完整结构。</p>
+    <div class="tree-scroll" aria-label="Link Layer 分流树（可横向滚动）">
+    <div id="parse-tree" class="tree">
+      <ul>
+        <li>
+          <div class="node bg-radio">
+            <div class="node-title">1. 空口捕获 &amp; 前处理</div>
+            <div class="node-desc">
+              匹配连接态 <span class="tag">Access Address</span>（4 字节，小端空中序）<br>
+              反白化、<span class="tag">CRC-24</span> 校验 → 失败则丢包
+            </div>
+          </div>
+          <ul>
+            <li>
+              <div class="node bg-adv">
+                <div class="label-edge">未连接 / Scan</div>
+                <div class="node-title">广播信道 PDU（37/38/39）</div>
+                <div class="node-desc">一级字段：<span class="tag">PDU Type</span>（4 bit）</div>
+                <div class="packet-wrapper">
+                  <div class="packet-title">Advertising Channel PDU Header（2 字节）</div>
+                  <div class="packet-diagram">
+                    <div class="pkt-field pkt-highlight" style="flex:4;background:#2563eb;">PDU Type</div>
+                    <div class="pkt-field" style="flex:1;background:#64748b;">RFU</div>
+                    <div class="pkt-field" style="flex:2;background:#94a3b8;">ChSel</div>
+                    <div class="pkt-field" style="flex:2;background:#f59e0b;">TxAdd/RxAdd</div>
+                    <div class="pkt-field" style="flex:6;background:#7c3aed;">Length</div>
+                  </div>
+                  <p class="node-note-ref">字段释义 ↓ 说明框 A</p>
+                </div>
+              </div>
+            </li>
+            <li>
+              <div class="node bg-ll">
+                <div class="label-edge">已连接</div>
+                <div class="node-title">2. 数据信道 PDU 头（2 字节）</div>
+                <div class="node-desc">一级分流核心：<span class="tag">LLID</span>（2 bit）</div>
+                <div class="packet-wrapper">
+                  <div class="packet-title">Data Channel PDU Header（Core v4.2 §2.4）</div>
+                  <div class="packet-diagram">
+                    <div class="pkt-field pkt-highlight" style="flex:2;background:#e74c3c;">LLID</div>
+                    <div class="pkt-field" style="flex:1;background:#0891b2;">NESN</div>
+                    <div class="pkt-field" style="flex:1;background:#0891b2;">SN</div>
+                    <div class="pkt-field" style="flex:1;background:#0891b2;">MD</div>
+                    <div class="pkt-field pkt-highlight" style="flex:8;background:#7c3aed;">Length</div>
+                  </div>
+                  <p class="node-note-ref">字段释义 ↓ 说明框 B</p>
+                </div>
+              </div>
+              <ul>
+                <li>
+                  <div class="node bg-ll" style="opacity:.9;">
+                    <div class="label-edge">LLID = 01, Len=0</div>
+                    <div class="node-title">空 PDU / 链路维持</div>
+                    <div class="node-desc" style="text-align:center;">
+                      抓包常见 <code>Empty LE Packet</code><br>
+                      仅更新 NESN/SN/ACK 状态机，无上层载荷
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div class="node bg-llcp">
+                    <div class="label-edge">LLID = 11</div>
+                    <div class="node-title">3. LL Control → LLCP</div>
+                    <div class="node-desc">
+                      首字节 <span class="tag">Opcode</span> 决定控制过程<br>
+                      在控制器 <b>Link Layer 状态机</b> 内处理，不递交 L2CAP
+                    </div>
+                    <p class="node-note-ref">Opcode 列表 ↓ 说明框 C</p>
+                  </div>
+                </li>
+                <li>
+                  <div class="node bg-l2">
+                    <div class="label-edge">LLID = 10 / 01 + Len&gt;0</div>
+                    <div class="node-title">4. LL Data → L2CAP → ATT</div>
+                    <div class="node-desc">
+                      若已加密：控制器先 AES-CCM 解密 + 验 MIC<br>
+                      重组后递交 Host：<span class="tag">HCI LE Data</span> / Wireshark <code>L2CAP/ATT</code>
+                    </div>
+                  </div>
+                  <ul>
+                    <li>
+                      <div class="node bg-hci">
+                        <div class="label-edge">L2CAP CID=0x0004</div>
+                        <div class="node-title">5. 上报 Host（HCI）</div>
+                        <div class="node-desc">
+                          ATT Read/Write/Notify 等对应用可见<br>
+                          与 LLCP 路径分离——应用层只看到 GATT，看不到 Feature/Length 协商
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    </div>
+
+    <div class="tree-field-notes">
+      <h3>字段说明（对应分流树内报文头）</h3>
+
+      <div class="field-note-box field-note-adv">
+        <div class="field-note-head">说明框 A · 广播信道 PDU Header（2 字节）</div>
+        <ul class="field-note-list">
+          <li><span class="fn-term">PDU Type（4 bit）</span>一级分流字段；如 ADV_IND、SCAN_REQ、CONNECT_IND 等。</li>
+          <li><span class="fn-term">RFU / ChSel / TxAdd / RxAdd</span>按 PDU 类型解释；CONNECT_IND 中 TxAdd/RxAdd 标识 InitA/AdvA 地址类型。</li>
+          <li><span class="fn-term">Length（6 bit）</span>载荷长度（字节）；CONNECT_IND 后随固定格式连接参数。</li>
+        </ul>
+      </div>
+
+      <div class="field-note-box field-note-connect">
+        <div class="field-note-head">CONNECT_IND 载荷主要字段</div>
+        <ul class="field-note-list">
+          <li><span class="fn-term">InitA / AdvA</span>发起方与广播方设备地址（各 6 字节）。</li>
+          <li><span class="fn-term">AA（Access Address）</span>连接态 4 字节接入地址，数据信道 thereafter 使用。</li>
+          <li><span class="fn-term">CRCInit</span>连接态 CRC 初始化（3 字节）。</li>
+          <li><span class="fn-term">WinOffset / Interval / Latency / Timeout</span>首个连接事件窗口、间隔、从机延迟、监督超时。</li>
+          <li><span class="fn-term">ChM / Hop / SCA</span>信道图、跳频增量、睡眠时钟精度。</li>
+          <li><span class="fn-term">解析结果</span>建立连接态，跳转到 Data Channel 调度。</li>
+        </ul>
+      </div>
+
+      <div class="field-note-box field-note-data">
+        <div class="field-note-head">说明框 B · 数据信道 PDU Header（LLID 分流）</div>
+        <ul class="field-note-list">
+          <li><span class="fn-term">LLID = 11</span>LL Control PDU → 首字节 <span class="tag">Opcode</span> 二级分流（LLCP），在链路层状态机内处理。</li>
+          <li><span class="fn-term">LLID = 10</span>LL Data 起始分片 → 上送 L2CAP（可能经 HCI 重组）。</li>
+          <li><span class="fn-term">LLID = 01</span>LL Data 延续分片；若 Length=0 则为 Empty PDU，仅维持 ACK/序列号。</li>
+          <li><span class="fn-term">LLID = 00</span>保留。</li>
+          <li><span class="fn-term">NESN / SN / MD</span>序列号与 More Data；配合硬件 ACK 与分片重组。</li>
+          <li><span class="fn-term">Length</span>载荷长度（字节），不含 2 字节 LL 头与 3 字节 CRC。</li>
+        </ul>
+      </div>
+
+      <div class="field-note-box field-note-llcp">
+        <div class="field-note-head">说明框 C · 常见 LLCP Opcode（honor50 首次连接可见）</div>
+        <ul class="field-note-list">
+          <li><span class="fn-term"><span class="tag">0x08</span> / <span class="tag">0x09</span></span>LL_FEATURE_REQ / LL_FEATURE_RSP — 特性交换。</li>
+          <li><span class="fn-term"><span class="tag">0x14</span> / <span class="tag">0x15</span></span>LL_LENGTH_REQ / LL_LENGTH_RSP — 最大 PDU 长度协商。</li>
+          <li><span class="fn-term"><span class="tag">0x00</span></span>LL_CONNECTION_PARAM_REQ / UPDATE — 连接参数更新。</li>
+          <li><span class="fn-term"><span class="tag">0x18</span>–<span class="tag">0x1A</span></span>PHY REQ / RSP / UPDATE（BLE 5.x）。</li>
+          <li><span class="fn-term"><span class="tag">0x01</span></span>LL_CHANNEL_MAP_IND — 信道图更新。</li>
+          <li><span class="fn-term"><span class="tag">0x02</span></span>LL_TERMINATE_IND — 断开（如原因 0x13）。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="adv">
+    <h2>4. 广播信道：CONNECT_IND 解析要点</h2>
+    <p style="font-size:14px;color:#555;">
+      首次连接 <code>35.325s</code>，Central HONOR → Peripheral CloudPrint，ChSel #2，AA=<code>0x93F4E4CB</code>。
+    </p>
+    <div class="hex">
+<span class="a">/* honor50 CSV 行 3366 — CONNECT_IND 相关 Data（分析器已拼接入行，含链路层语义） */</span>
+65 22 20 43 E2 A9 54 59  C1 70 23 8C 50 68  <span class="hl">CB E4 F4 93</span>  ...
+<span class="a">  │← Initiator 地址 (LE 空中序)     AdvA →│  │← Access Address 4B →│</span>
+
+解析步骤（控制器固件）：
+1. PDU Type = CONNECT_IND → 进入「连接建立」子过程
+2. 提取 AdvA / InitA → 与白名单/地址类型匹配
+3. 写入 AA、CRCInit、connInterval、latency、timeout、channel map、hop
+4. 下一连接事件起仅在 Data Channel 上调度，不再解析 Adv PDU（除非断开回广播态）
+    </div>
+  </section>
+
+  <section class="card" id="data">
+    <h2>5. 数据信道：LL 头 + LLCP 载荷拆解（抓包可验证）</h2>
+
+    <h3>5.1 LL_FEATURE_REQ（LLCP 0x08）</h3>
+    <table>
+      <tr><th>层级</th><th>十六进制</th><th>含义</th></tr>
+      <tr><td>LE-C 整帧</td><td><code>03 09 08 FF F9 01 07 00 00 00 00 F7 A2 1F</code></td><td>含 LL 头 + LLCP + CRC</td></tr>
+      <tr><td>LL Header</td><td><code class="hl">03 09</code></td><td>LLID=11(Control), Length=9</td></tr>
+      <tr><td>LLCP Opcode</td><td><code class="op">08</code></td><td>LL_FEATURE_REQ</td></tr>
+      <tr><td>FeatureSet</td><td><code>FF F9 01 07 00 00 00 00</code></td><td>Enc/ParReq/FeatEx/Ping…（Wireshark 位域展开）</td></tr>
+      <tr><td>CRC</td><td><code class="crc">F7 A2 1F</code></td><td>链路层 CRC-24</td></tr>
+    </table>
+    <div class="hex">
+03 09  <span class="hl">← LLID=11, Len=9</span>
+08     <span class="op">← Opcode FEATURE_REQ</span>
+FF F9 01 07 00 00 00 00
+F7 A2 1F  <span class="crc">← CRC</span>
+    </div>
+
+    <h3>5.2 LL_LENGTH_REQ（LLCP 0x14）</h3>
+    <table>
+      <tr><th>层级</th><th>十六进制</th><th>含义</th></tr>
+      <tr><td>LE-C 整帧</td><td><code>0F 09 14 FB 00 48 08 1B 00 48 01 9D 84 2D</code></td><td>35.412s 首次连接</td></tr>
+      <tr><td>LL Header</td><td><code class="hl">0F 09</code></td><td>Control, Length=9</td></tr>
+      <tr><td>LLCP</td><td><code class="op">14</code> + <code>FB 00 48 08 1B 00 48 01</code></td><td>MaxRx/MaxTx 时长与字节数 → 协商至 251 B</td></tr>
+    </table>
+
+    <h3>5.3 Empty LE（LLID=01, Length=0）</h3>
+    <div class="hex">
+0D 00  <span class="hl">← LLID=01 (Continuation), Length=0</span>
+80 AF 8E  <span class="crc">← 可能含 CRC / 或分析器附加字段</span>
+    </div>
+    <p style="font-size:14px;color:#64748b;">
+      连接保持期大量 <code>Empty LE</code>（约每 15ms 连接事件）：控制器只跑 ARQ/流控，不上报 ATT。
+      第二次连接抓包几乎全是此类 PDU，故 Wireshark 无 ATT 行。
+    </p>
+
+    <h3>5.4 从 LL 头解析 LLID/Length 的位运算（与 BR/EDR 读 TYPE 同级）</h3>
+    <div class="hex">
+/* 设 Octet0 = B0, Octet1 = B1 */
+LLID  = B0 & 0x03;
+NESN  = (B0 >> 2) & 1;
+SN    = (B0 >> 3) & 1;
+MD    = (B0 >> 4) & 1;
+Length = ((B0 >> 5) & 0x07) | ((B1 & 0x1F) << 3);   /* 共 8 bit，最大 255 */
+
+if (LLID == 3)  → 解析 Payload[0] 为 Opcode，查表分发 LLCP；
+if (LLID == 2)  → L2CAP 片起始；if (LLID == 1) → 延续或空载荷。
+    </div>
+  </section>
+
+  <section class="card" id="capture">
+    <h2>6. honor50 抓包中的命名层级（.btt / CSV 对照）</h2>
+    <table>
+      <tr><th>显示名称</th><th>控制器内实际层级</th><th>本页分流节点</th></tr>
+      <tr><td><code>Connection Indication</code></td><td>Adv Channel · CONNECT_IND</td><td>广播信道分支</td></tr>
+      <tr><td><code>LE-C Packet (...)</code></td><td>Data Channel 完整 PDU</td><td>先读 LL 头 → LLID</td></tr>
+      <tr><td><code>LLCP Feature Request</code></td><td>LL Control 载荷（已剥头/CRC）</td><td>LLID=11 → Opcode=0x08</td></tr>
+      <tr><td><code>Empty LE Packet</code></td><td>LL Data 空载荷</td><td>LLID=01, Len=0</td></tr>
+      <tr><td><code>L2CAP / ATT</code></td><td>Host 或控制器 L2CAP 重组后</td><td>LLID=10/01 数据面</td></tr>
+      <tr><td><code>LLCP Termination</code></td><td>Opcode 0x02 + Reason</td><td>控制面 → 断开 → 常回 Adv</td></tr>
+    </table>
+
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+sequenceDiagram
+  participant Air as 空口
+  participant LL as LL 控制器
+  participant LLCP as LLCP 状态机
+  participant L2 as L2CAP
+  participant H as Host/抓包显示
+
+  Air->>LL: Data PDU 03 09 08 FF...
+  LL->>LL: 校验 CRC, 解析 LLID=11
+  LL->>LLCP: Opcode 0x08 FEATURE_REQ
+  LLCP-->>LL: 更新 feature 位图
+  Note over H: Wireshark: LLCP Feature Request
+
+  Air->>LL: Data PDU 52 2A 00 AA 55...
+  LL->>LL: LLID=10/01, 解密(若已加密)
+  LL->>L2: L2CAP SDU
+  L2->>H: ATT Write Command 0x993F
+      </pre>
+    </div>
+  </section>
+
+  <section id="7-小结" class="card">
+    <h2>7. 小结</h2>
+    <ul style="line-height:1.75;color:#475569;font-size:14px;">
+      <li>BLE 控制器与 BR/EDR 一样，核心都是<b>用头部位域做硬件/固件分流</b>；LE 用 <span class="tag">LLID</span> 代替 ACL 的 <span class="tag">L_CH</span>。</li>
+      <li><b>LLCP</b> 仅在 LLID=11 时进入，在控制器内终结；<b>ATT</b> 只在 LL Data 路径出现。</li>
+      <li>分析 <code>honor50_sunmi_ble_ota</code> 时：看到 <code>LE-C</code> 先拆 <b>2 字节 LL 头</b>，再看 Opcode 或 L2CAP；<code>LLCP xxx</code> 行已是控制载荷视图。</li>
+      <li>规范细节（CTE、CIS、扩展长度等）以 Core v4.2 Controller PDF 第 2 章为准；本页覆盖 honor50 OTA 场景中最常见的 Adv + LLCP + Empty + ATT 路径。</li>
+    </ul>
+  </section>
+</div>
+</div>
+
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+  </script>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

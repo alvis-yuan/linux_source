@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典蓝牙射频(RF)工作流程图解</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --primary-blue: #0056b3;
+            --tx-color: #e65c00;
+            --rx-color: #008080;
+            --baseband-color: #4a4e69;
+            --text-main: #333333;
+            --text-muted: #666666;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            color: var(--primary-blue);
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .section {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tx-title { color: var(--tx-color); }
+        .rx-title { color: var(--rx-color); }
+
+        /* SVG Container */
+        .svg-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 30px;
+            background: #fafcff;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 15px 0;
+        }
+
+        svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Step Grids */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .step-card {
+            background: #fdfdfd;
+            border-left: 4px solid #ccc;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .tx-card { border-left-color: var(--tx-color); }
+        .rx-card { border-left-color: var(--rx-color); }
+
+        .step-num {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .tx-num { color: var(--tx-color); }
+        .rx-num { color: var(--rx-color); }
+
+        .tech-highlight {
+            background: #eef2f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #d12a2a;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .section { padding: 20px; }
+        }
+    </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+    /* ── 左侧目录导航（misc 专题，样式同 packet）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar),
+    .packet-page > .header {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card,
+    .packet-page .scenario-card,
+    .packet-page .layer-card,
+    .packet-page .role-card,
+    .packet-page .phase-title,
+    .packet-page h2[id],
+    .packet-page .tree,
+    .packet-page .deep-dive {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">蓝牙射频 TX/RX 流程</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">专题 · Misc</div>
+    <div class="doc-name">蓝牙射频 TX/RX 流程</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#doc-top">经典蓝牙射频(RF)工作流程图解</a>
+  <a class="packet-nav-link" href="#class-section-title-rx-title">📡 接收流程 (RX)：从微弱电磁波到数字比特</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="ble_ll_controller_parse.html">BLE 控制器 Link Layer 报文解析</a>
+  <a class="packet-nav-link doc" href="rf_workflow.html">射频与基带交互架构</a>
+  <a class="packet-nav-link doc" href="lmp_ssp_deepdive.html">LMP 职责与 SSP 深度剖析</a>
+  <a class="packet-nav-link doc" href="sdp_database_structure.html">SDP 数据库结构</a>
+  <a class="packet-nav-link doc" href="bt_packet_parse_flow.html">经典蓝牙报文解析流水线</a>
+  <a class="packet-nav-link doc" href="bt_bb_flow.html">基带核心职责与处理流水线</a>
+  <a class="packet-nav-link doc" href="l2cap_classic_part.html">经典 L2CAP 报文与建连</a>
+  <a class="packet-nav-link doc" href="bt_timing.html">BR/EDR 时序与时间轴</a>
+  <a class="packet-nav-link doc" href="bt_baseband_packet_types.html">基带报文类型大全</a>
+  <a class="packet-nav-link doc" href="bt_acl_create_process.html">ACL 链路建立全过程</a>
+  <a class="packet-nav-link doc current-doc" href="bluetooth_rf_flow.html">蓝牙射频 TX/RX 流程</a>
+  <a class="packet-nav-link doc" href="ble_stack_parser.html">BLE 协议栈自底向上解析</a>
+  <a class="packet-nav-link doc" href="baseband_packet_parse_flow.html">经典蓝牙底层报文分流引擎</a>
+  <a class="packet-nav-link doc" href="att_protocol.html">ATT 协议指令分类</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<div class="packet-main container">
+    <header id="doc-top">
+        <h1>经典蓝牙射频(RF)工作流程图解</h1>
+        <p>基带(战术指挥部) ⇌ 射频(通信前线) 的数据与电磁波转换之旅</p>
+    </header>
+
+    <!-- 发射流程 (TX) -->
+    <div class="section">
+        <h2 id="class-section-title-tx-title" class="section-title tx-title">📡 发射流程 (TX)：从数字比特到空中电磁波</h2>
+        
+        <div class="svg-container">
+            <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow-tx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#e65c00" />
+                    </marker>
+                    <marker id="arrow-control" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a4e69" />
+                    </marker>
+                    <!-- Wave -->
+                    <path id="radio-wave" d="M0,0 Q10,-15 20,0 T40,0 T60,0" fill="none" stroke="#e65c00" stroke-width="2"/>
+                </defs>
+
+                <!-- Baseband -->
+                <rect x="20" y="80" width="120" height="60" rx="8" fill="#4a4e69" />
+                <text x="80" y="110" fill="white" font-size="16" text-anchor="middle" font-weight="bold">基带 (BB)</text>
+                <text x="80" y="130" fill="#ddd" font-size="12" text-anchor="middle">010110...比特流</text>
+
+                <!-- Baseband to Modulator line -->
+                <line x1="140" y1="110" x2="190" y2="110" stroke="#e65c00" stroke-width="3" marker-end="url(#arrow-tx)" />
+
+                <!-- Modulator -->
+                <rect x="200" y="80" width="110" height="60" rx="5" fill="#ffebd6" stroke="#e65c00" stroke-width="2" />
+                <text x="255" y="105" fill="#e65c00" font-size="14" text-anchor="middle" font-weight="bold">调制器</text>
+                <text x="255" y="125" fill="#555" font-size="12" text-anchor="middle">(GFSK/PSK)</text>
+
+                <line x1="310" y1="110" x2="350" y2="110" stroke="#e65c00" stroke-width="3" marker-end="url(#arrow-tx)" />
+
+                <!-- Mixer -->
+                <circle cx="380" cy="110" r="30" fill="#fff" stroke="#e65c00" stroke-width="2" />
+                <text x="380" y="115" fill="#e65c00" font-size="14" text-anchor="middle" font-weight="bold">混频器</text>
+
+                <!-- PLL -->
+                <rect x="340" y="200" width="80" height="40" rx="5" fill="#e8eaed" stroke="#4a4e69" stroke-width="2" />
+                <text x="380" y="225" fill="#4a4e69" font-size="14" text-anchor="middle" font-weight="bold">PLL锁相环</text>
+                <line x1="380" y1="200" x2="380" y2="150" stroke="#4a4e69" stroke-width="3" marker-end="url(#arrow-control)" stroke-dasharray="4,4" />
+                
+                <!-- Baseband Control to PLL -->
+                <line x1="80" y1="140" x2="80" y2="220" stroke="#4a4e69" stroke-width="2" />
+                <line x1="80" y1="220" x2="330" y2="220" stroke="#4a4e69" stroke-width="2" marker-end="url(#arrow-control)" />
+                <text x="180" y="215" fill="#4a4e69" font-size="12">跳频指令 (控制频率合成)</text>
+
+                <line x1="410" y1="110" x2="450" y2="110" stroke="#e65c00" stroke-width="3" marker-end="url(#arrow-tx)" />
+
+                <!-- PA -->
+                <polygon points="460,80 460,140 520,110" fill="#ffebd6" stroke="#e65c00" stroke-width="2" />
+                <text x="480" y="115" fill="#e65c00" font-size="14" text-anchor="middle" font-weight="bold">PA</text>
+                <text x="480" y="130" fill="#555" font-size="10" text-anchor="middle">功率放大</text>
+
+                <line x1="530" y1="110" x2="570" y2="110" stroke="#e65c00" stroke-width="3" marker-end="url(#arrow-tx)" />
+
+                <!-- BPF -->
+                <rect x="580" y="80" width="80" height="60" rx="5" fill="#ffebd6" stroke="#e65c00" stroke-width="2" />
+                <text x="620" y="105" fill="#e65c00" font-size="14" text-anchor="middle" font-weight="bold">带通滤波</text>
+                <text x="620" y="125" fill="#555" font-size="12" text-anchor="middle">(BPF)</text>
+
+                <line x1="660" y1="110" x2="710" y2="110" stroke="#e65c00" stroke-width="3" />
+
+                <!-- Antenna -->
+                <line x1="710" y1="110" x2="710" y2="60" stroke="#333" stroke-width="4" />
+                <polygon points="710,60 690,40 730,40" fill="#333" />
+                <text x="710" y="30" fill="#333" font-size="14" text-anchor="middle" font-weight="bold">天线</text>
+
+                <!-- Radio Waves (Air) -->
+                <use href="#radio-wave" x="740" y="50" />
+                <use href="#radio-wave" x="760" y="70" />
+                <use href="#radio-wave" x="780" y="90" />
+                <text x="820" y="75" fill="#e65c00" font-size="14" font-weight="bold">高频电磁波</text>
+                <text x="820" y="95" fill="#555" font-size="12">(2.4GHz)</text>
+            </svg>
+        </div>
+
+        <div class="steps-grid">
+            <div id="card" class="step-card tx-card">
+                <span class="step-num tx-num">1. 调制成型 (Modulation)</span>
+                <p>基带输出纯数字比特(0101)。射频接收后，使用 <span class="tech-highlight">GFSK</span> (基础率) 或 <span class="tech-highlight">PSK</span> (增强率) 对信号进行高斯滤波并调制，将其变为具备频率或相位变化的低频模拟波形。</p>
+            </div>
+            <div id="接收流程-rx-从微弱电磁波到数字比特" class="step-card tx-card">
+                <span class="step-num tx-num">2. 上变频与跳频 (Up-Conversion)</span>
+                <p>基带下达跳频指令控制 <span class="tech-highlight">PLL锁相环</span> 产生指定频率(如2437MHz)。混频器将低频调制信号与PLL载波混合，将信号“搬运”到2.4GHz对应的物理信道上。</p>
+            </div>
+            <div id="接收流程-rx-从微弱电磁波到数字比特-2" class="step-card tx-card">
+                <span class="step-num tx-num">3. 功率放大 (PA)</span>
+                <p>上变频后的信号极为微弱。信号进入 <span class="tech-highlight">PA (功率放大器)</span> 进行能量放大，提升发射功率（比如达到+4dBm），确保信号能飞行到远处的设备。</p>
+            </div>
+            <div id="接收流程-rx-从微弱电磁波到数字比特-3" class="step-card tx-card">
+                <span class="step-num tx-num">4. 滤波发射 (BPF & Antenna)</span>
+                <p>放大后产生的杂散谐波会被 <span class="tech-highlight">BPF (带通滤波器)</span> 滤除。最后纯净的高频交流电送入天线，激发电子振荡，转变为无线电波辐射到空中。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 接收流程 (RX) -->
+    <div class="section">
+        <h2 id="class-section-title-rx-title" class="section-title rx-title">📡 接收流程 (RX)：从微弱电磁波到数字比特</h2>
+        
+        <div class="svg-container">
+            <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrow-rx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#008080" />
+                    </marker>
+                    <!-- Wave -->
+                    <path id="radio-wave-rx" d="M0,0 Q10,15 20,0 T40,0 T60,0" fill="none" stroke="#008080" stroke-width="2"/>
+                </defs>
+
+                <!-- Radio Waves (Air) -->
+                <use href="#radio-wave-rx" x="20" y="50" />
+                <use href="#radio-wave-rx" x="40" y="70" />
+                <use href="#radio-wave-rx" x="60" y="90" />
+                <text x="40" y="35" fill="#008080" font-size="14" font-weight="bold">微弱电磁波</text>
+
+                <!-- Antenna -->
+                <line x1="120" y1="110" x2="120" y2="60" stroke="#333" stroke-width="4" />
+                <polygon points="120,60 100,40 140,40" fill="#333" />
+                <text x="120" y="30" fill="#333" font-size="14" text-anchor="middle" font-weight="bold">天线</text>
+
+                <line x1="120" y1="110" x2="160" y2="110" stroke="#008080" stroke-width="3" marker-end="url(#arrow-rx)" />
+
+                <!-- BPF -->
+                <rect x="170" y="80" width="70" height="60" rx="5" fill="#e6f2f2" stroke="#008080" stroke-width="2" />
+                <text x="205" y="105" fill="#008080" font-size="14" text-anchor="middle" font-weight="bold">BPF</text>
+                <text x="205" y="125" fill="#555" font-size="12" text-anchor="middle">除杂波</text>
+
+                <line x1="250" y1="110" x2="290" y2="110" stroke="#008080" stroke-width="3" marker-end="url(#arrow-rx)" />
+
+                <!-- LNA -->
+                <polygon points="300,80 300,140 360,110" fill="#e6f2f2" stroke="#008080" stroke-width="2" />
+                <text x="325" y="115" fill="#008080" font-size="14" text-anchor="middle" font-weight="bold">LNA</text>
+                <text x="320" y="135" fill="#555" font-size="10" text-anchor="middle">低噪放大</text>
+
+                <line x1="370" y1="110" x2="410" y2="110" stroke="#008080" stroke-width="3" marker-end="url(#arrow-rx)" />
+
+                <!-- Mixer -->
+                <circle cx="440" cy="110" r="30" fill="#fff" stroke="#008080" stroke-width="2" />
+                <text x="440" y="115" fill="#008080" font-size="14" text-anchor="middle" font-weight="bold">混频器</text>
+
+                <!-- PLL -->
+                <rect x="400" y="200" width="80" height="40" rx="5" fill="#e8eaed" stroke="#4a4e69" stroke-width="2" />
+                <text x="440" y="225" fill="#4a4e69" font-size="14" text-anchor="middle" font-weight="bold">PLL锁相环</text>
+                <line x1="440" y1="200" x2="440" y2="150" stroke="#4a4e69" stroke-width="3" marker-end="url(#arrow-control)" stroke-dasharray="4,4" />
+
+                <line x1="470" y1="110" x2="510" y2="110" stroke="#008080" stroke-width="3" marker-end="url(#arrow-rx)" />
+
+                <!-- Channel Filter & AGC -->
+                <rect x="520" y="80" width="80" height="60" rx="5" fill="#e6f2f2" stroke="#008080" stroke-width="2" />
+                <text x="560" y="105" fill="#008080" font-size="14" text-anchor="middle" font-weight="bold">信道滤波</text>
+                <text x="560" y="125" fill="#555" font-size="12" text-anchor="middle">+ AGC</text>
+
+                <line x1="610" y1="110" x2="650" y2="110" stroke="#008080" stroke-width="3" marker-end="url(#arrow-rx)" />
+
+                <!-- Demodulator -->
+                <rect x="660" y="80" width="80" height="60" rx="5" fill="#e6f2f2" stroke="#008080" stroke-width="2" />
+                <text x="700" y="105" fill="#008080" font-size="14" text-anchor="middle" font-weight="bold">解调/ADC</text>
+                <text x="700" y="125" fill="#555" font-size="12" text-anchor="middle">鉴频数字化</text>
+
+                <line x1="750" y1="110" x2="790" y2="110" stroke="#008080" stroke-width="3" marker-end="url(#arrow-rx)" />
+
+                <!-- Baseband -->
+                <rect x="800" y="80" width="80" height="60" rx="8" fill="#4a4e69" />
+                <text x="840" y="110" fill="white" font-size="16" text-anchor="middle" font-weight="bold">基带</text>
+                <text x="840" y="130" fill="#ddd" font-size="12" text-anchor="middle">鉴权解析</text>
+
+                <!-- Baseband Control to PLL (RX) -->
+                <line x1="840" y1="140" x2="840" y2="220" stroke="#4a4e69" stroke-width="2" />
+                <line x1="840" y1="220" x2="490" y2="220" stroke="#4a4e69" stroke-width="2" marker-end="url(#arrow-control)" />
+                <text x="660" y="215" fill="#4a4e69" font-size="12">跳频指令 (追踪频率)</text>
+
+            </svg>
+        </div>
+
+        <div class="steps-grid">
+            <div id="card-2" class="step-card rx-card">
+                <span class="step-num rx-num">1. 天线与前置滤波 (Antenna & BPF)</span>
+                <p>天线捕获空中复杂的电磁波，将其转化为微弱交流电。<span class="tech-highlight">带通滤波器(BPF)</span>充当门卫，直接砍掉2.4GHz频段以外的所有无关信号（如FM广播、5G）。</p>
+            </div>
+            <div id="card-3" class="step-card rx-card">
+                <span class="step-num rx-num">2. 极低噪声放大 (LNA)</span>
+                <p>长途跋涉的蓝牙信号极其微弱，进入 <span class="tech-highlight">LNA (低噪声放大器)</span>。LNA必须在不引入自身内部杂音的前提下，将这丝微弱的信号放大到后续电路可处理的级别。</p>
+            </div>
+            <div id="card-4" class="step-card rx-card">
+                <span class="step-num rx-num">3. 下变频 (Down-Conversion)</span>
+                <p>基带控制锁相环(PLL)产生与对方发射端一致的高频信号。混频器将接收信号与PLL信号相减，剥离2.4GHz的高频外衣，还原出易于处理的低频/中频信号。</p>
+            </div>
+            <div id="card-5" class="step-card rx-card">
+                <span class="step-num rx-num">4. 精准过滤与解调 (Filter & Demod)</span>
+                <p><span class="tech-highlight">信道滤波器</span>剔除邻近频道干扰，<span class="tech-highlight">AGC</span>自动调节信号强弱。最后经过解调器和ADC，将模拟波形转换回 0 和 1 的数字比特流，交给基带比对“接入码”。</p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

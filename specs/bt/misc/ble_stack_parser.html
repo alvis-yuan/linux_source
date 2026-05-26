@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLE 协议栈自底向上报文解析全景图 (Core v5.2)</title>
+    <style>
+        :root {
+            --bg-body: #f0f4f8;
+            --text-main: #333;
+            --border-color: #d1d9e6;
+            
+            /* Layer Colors */
+            --color-controller: #3498db; /* PHY, LL */
+            --color-hci: #9b59b6;        /* HCI */
+            --color-host: #2ecc71;       /* L2CAP, ATT */
+            --color-app: #e67e22;        /* GATT, GAP */
+            
+            --color-payload: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header-title {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #2c3e50;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #2c3e50;
+        }
+
+        .layer-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .layer-header {
+            padding: 15px 25px;
+            color: white;
+            font-size: 1.25em;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .layer-body {
+            padding: 25px;
+        }
+
+        /* Packet Structure Diagram */
+        .packet-diagram {
+            display: flex;
+            background: var(--bg-body);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            text-align: center;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .packet-field {
+            padding: 15px 10px;
+            border-right: 1px solid #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .packet-field:last-child {
+            border-right: none;
+        }
+
+        .field-size {
+            font-size: 0.75em;
+            font-weight: normal;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        /* Routing Logic Block */
+        .routing-logic {
+            background: #fdfdfd;
+            border-left: 5px solid #34495e;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+        }
+
+        .routing-title {
+            font-weight: bold;
+            color: #34495e;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .routing-step {
+            margin-bottom: 8px;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .routing-step::before {
+            content: '➤';
+            position: absolute;
+            left: 0;
+            color: #7f8c8d;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        /* Tag Highlights */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #eee;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .arrow-up {
+            text-align: center;
+            font-size: 2em;
+            color: #95a5a6;
+            margin: -20px 0 20px 0;
+        }
+
+    </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+    /* ── 左侧目录导航（misc 专题，样式同 packet）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar),
+    .packet-page > .header {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card,
+    .packet-page .scenario-card,
+    .packet-page .layer-card,
+    .packet-page .role-card,
+    .packet-page .phase-title,
+    .packet-page h2[id],
+    .packet-page .tree,
+    .packet-page .deep-dive {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">BLE 协议栈自底向上解析</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">专题 · Misc</div>
+    <div class="doc-name">BLE 协议栈自底向上解析</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#第一层-物理层-phy-空口信号捕获">第一层：物理层 (PHY) - 空口信号捕获</a>
+  <a class="packet-nav-link" href="#第二层-链路层-ll-链路维护与逻辑路由">第二层：链路层 (LL) - 链路维护与逻辑路由</a>
+  <a class="packet-nav-link" href="#第三层-主机控制器接口-hci-物理总线桥梁">第三层：主机控制器接口 (HCI) - 物理总线桥梁</a>
+  <a class="packet-nav-link" href="#第四层-逻辑链路控制与适配协议-l2cap-通道复用">第四层：逻辑链路控制与适配协议 (L2CAP) - 通道复用</a>
+  <a class="packet-nav-link" href="#第五层-属性协议-att-数据交互方法">第五层：属性协议 (ATT) - 数据交互方法</a>
+  <a class="packet-nav-link" href="#第六层-应用层-gatt-profile-业务语义赋予">第六层：应用层 (GATT / Profile) - 业务语义赋予</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="ble_ll_controller_parse.html">BLE 控制器 Link Layer 报文解析</a>
+  <a class="packet-nav-link doc" href="rf_workflow.html">射频与基带交互架构</a>
+  <a class="packet-nav-link doc" href="lmp_ssp_deepdive.html">LMP 职责与 SSP 深度剖析</a>
+  <a class="packet-nav-link doc" href="sdp_database_structure.html">SDP 数据库结构</a>
+  <a class="packet-nav-link doc" href="bt_packet_parse_flow.html">经典蓝牙报文解析流水线</a>
+  <a class="packet-nav-link doc" href="bt_bb_flow.html">基带核心职责与处理流水线</a>
+  <a class="packet-nav-link doc" href="l2cap_classic_part.html">经典 L2CAP 报文与建连</a>
+  <a class="packet-nav-link doc" href="bt_timing.html">BR/EDR 时序与时间轴</a>
+  <a class="packet-nav-link doc" href="bt_baseband_packet_types.html">基带报文类型大全</a>
+  <a class="packet-nav-link doc" href="bt_acl_create_process.html">ACL 链路建立全过程</a>
+  <a class="packet-nav-link doc" href="bluetooth_rf_flow.html">蓝牙射频 TX/RX 流程</a>
+  <a class="packet-nav-link doc current-doc" href="ble_stack_parser.html">BLE 协议栈自底向上解析</a>
+  <a class="packet-nav-link doc" href="baseband_packet_parse_flow.html">经典蓝牙底层报文分流引擎</a>
+  <a class="packet-nav-link doc" href="att_protocol.html">ATT 协议指令分类</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<div class="packet-main container">
+    <h1 class="header-title">📶 BLE 协议栈自底向上报文解析流程 (Core v5.2)</h1>
+
+    <div style="text-align: center; margin-bottom: 30px; color: #7f8c8d;">
+        <p>当一个 BLE 空口射频信号抵达天线时，它经历了怎样的层层“剥壳”与“路由”，最终变成应用层的业务数据？<br>以下按照自底向上（Bottom-Up）的顺序详细解析。</p>
+    </div>
+
+    <!-- 1. Physical Layer -->
+    <div id="第一层-物理层-phy-空口信号捕获" class="layer-card">
+        <div class="layer-header" style="background-color: var(--color-controller);">
+            <span>第一层：物理层 (PHY) - 空口信号捕获</span>
+            <span style="font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px;">Controller</span>
+        </div>
+        <div class="layer-body">
+            <div class="packet-diagram">
+                <div class="packet-field" style="background: #a9cce3; flex: 1;">前导码<div class="field-size">1-2 Bytes</div></div>
+                <div class="packet-field" style="background: #7fb3d5; flex: 2;">接入地址 (Access Address)<div class="field-size">4 Bytes</div></div>
+                <div class="packet-field" style="background: var(--color-payload); flex: 6; color: #7f8c8d;">PDU + CRC<div class="field-size">传递给上层</div></div>
+            </div>
+
+            <div class="routing-logic" style="border-color: var(--color-controller);">
+                <div class="routing-title">🎯 PHY 层解析与过滤逻辑：</div>
+                <div class="routing-step">射频前端捕获电磁波，通过检查 <span class="tag">前导码(Preamble)</span> 完成频率同步与 AGC（自动增益控制）。</div>
+                <div class="routing-step">提取 <span class="tag">接入地址</span> 进行第一道硬件过滤：广播包匹配固定地址 `0x8E89BED6`；连接包匹配协商好的 32 位随机地址。</div>
+                <div class="routing-step">若地址匹配，剥离 PHY 头部，将后续比特流推送到链路层。</div>
+            </div>
+
+            <table>
+                <tr><th>字段</th><th>作用说明</th></tr>
+                <tr><td><b>Preamble</b></td><td>交替的 0/1 序列，用于接收端硬件时钟同步。1M PHY 固定 1 字节，2M PHY 固定 2 字节。</td></tr>
+                <tr><td><b>Access Address</b></td><td>区分不同物理信道的核心标识。决定了该报文是发给自己的还是旁路的干扰包。</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="arrow-up">⬆</div>
+
+    <!-- 2. Link Layer -->
+    <div id="第二层-链路层-ll-链路维护与逻辑路由" class="layer-card">
+        <div class="layer-header" style="background-color: var(--color-controller);">
+            <span>第二层：链路层 (LL) - 链路维护与逻辑路由</span>
+            <span style="font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px;">Controller</span>
+        </div>
+        <div class="layer-body">
+            <div class="packet-diagram">
+                <div class="packet-field" style="background: #85c1e9; flex: 2;">PDU 报头<br>(含 LLID, Length)<div class="field-size">2 Bytes</div></div>
+                <div class="packet-field" style="background: var(--color-payload); flex: 5;">载荷 (Payload)<br>[ Opcode+Data | L2CAP PDU ]<div class="field-size">0 ~ 251 Bytes</div></div>
+                <div class="packet-field" style="background: #d4e6f1; flex: 1;">MIC<div class="field-size">4 Bytes (加密)</div></div>
+                <div class="packet-field" style="background: #e74c3c; color: white; flex: 1;">CRC<div class="field-size">3 Bytes</div></div>
+            </div>
+
+            <div class="routing-logic" style="border-color: var(--color-controller);">
+                <div class="routing-title">🔀 LL 层解析与路由逻辑：</div>
+                <div class="routing-step">执行硬件 <span class="tag">CRC 校验</span> 和 <span class="tag">MIC 解密校验</span>，失败则丢弃并请求重传 (ARQ)。</div>
+                <div class="routing-step">读取报头中的 <span class="tag">LLID (逻辑链路标识符)</span> 决定路由方向：</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 若 <b>LLID = 0b11</b>：识别为 <b>LL 控制包</b>。直接读取载荷第1字节的 <b>Opcode</b>（如连接更新），本层截留消化，不上报。</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 若 <b>LLID = 0b01/0b10</b>：识别为 <b>用户数据 (ACL-U)</b>。剥离 LL 头尾，将载荷封装通过 HCI 上送。</div>
+            </div>
+
+            <table>
+                <tr><th>字段</th><th>作用说明</th></tr>
+                <tr><td><b>LLID</b></td><td>2 bits。`01`: 延续分片；`10`: 起始分片；`11`: 控制 PDU。</td></tr>
+                <tr><td><b>SN / NESN</b></td><td>各 1 bit。序列号与预期下一序列号，用于底层包的确认与重传机制。</td></tr>
+                <tr><td><b>Opcode (仅控制PDU)</b></td><td>载荷首字节。定义具体的链路层控制操作（如 `LL_FEATURE_REQ`）。</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="arrow-up">⬆</div>
+
+    <!-- 3. HCI Layer -->
+    <div id="第三层-主机控制器接口-hci-物理总线桥梁" class="layer-card">
+        <div class="layer-header" style="background-color: var(--color-hci);">
+            <span>第三层：主机控制器接口 (HCI) - 物理总线桥梁</span>
+            <span style="font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px;">Bridge (UART/USB)</span>
+        </div>
+        <div class="layer-body">
+            <div class="packet-diagram">
+                <div class="packet-field" style="background: #c39bd3; flex: 1;">HCI Packet Type<div class="field-size">1 Byte (如 0x02 ACL)</div></div>
+                <div class="packet-field" style="background: #bb8fce; flex: 2;">Handle + Flags(PB,BC)<div class="field-size">2 Bytes</div></div>
+                <div class="packet-field" style="background: #d2b4de; flex: 1;">Data Length<div class="field-size">2 Bytes</div></div>
+                <div class="packet-field" style="background: var(--color-payload); flex: 5;">载荷 (L2CAP 帧分片)<div class="field-size">Variable</div></div>
+            </div>
+
+            <div class="routing-logic" style="border-color: var(--color-hci);">
+                <div class="routing-title">🌉 HCI 层解析与组装逻辑 (Host 端)：</div>
+                <div class="routing-step">Host 接收到串口/USB数据，首先读取包类型（指令/事件/ACL数据/同步数据）。对于用户数据，通常是 <b>ACL Data (0x02)</b>。</div>
+                <div class="routing-step">提取 <span class="tag">Connection Handle</span> 匹配对应的逻辑链路。</div>
+                <div class="routing-step">检查 <span class="tag">PB Flag (封包边界标志)</span>：若为首包(First packet)，准备接收；若为延续包(Continuation)，则将载荷与前包拼接。</div>
+                <div class="routing-step">依据 <span class="tag">Data Length</span> 接收完毕后，将完整的 L2CAP 报文上抛。</div>
+            </div>
+
+            <table>
+                <tr><th>字段</th><th>作用说明</th></tr>
+                <tr><td><b>Connection Handle</b></td><td>12 bits。控制器分配给主机的连接句柄，标识数据属于哪个设备的哪条链路。</td></tr>
+                <tr><td><b>PB Flag</b></td><td>2 bits。标识 L2CAP PDU 的边界（起始分片、延续分片），用于 Host 端的重组。</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="arrow-up">⬆</div>
+
+    <!-- 4. L2CAP Layer -->
+    <div id="第四层-逻辑链路控制与适配协议-l2cap-通道复用" class="layer-card">
+        <div class="layer-header" style="background-color: var(--color-host);">
+            <span>第四层：逻辑链路控制与适配协议 (L2CAP) - 通道复用</span>
+            <span style="font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px;">Host</span>
+        </div>
+        <div class="layer-body">
+            <div class="packet-diagram">
+                <div class="packet-field" style="background: #82e0aa; flex: 1;">PDU Length<div class="field-size">2 Bytes</div></div>
+                <div class="packet-field" style="background: #58d68d; flex: 1;">通道 ID (CID)<div class="field-size">2 Bytes</div></div>
+                <div class="packet-field" style="background: #d5f5e3; flex: 1; border: 2px dashed #27ae60;">控制字段(可选)<div class="field-size">流控模式存在</div></div>
+                <div class="packet-field" style="background: var(--color-payload); flex: 4;">载荷 (ATT / SMP Data)<div class="field-size">Variable</div></div>
+            </div>
+
+            <div class="routing-logic" style="border-color: var(--color-host);">
+                <div class="routing-title">🛤️ L2CAP 层解析与分发逻辑：</div>
+                <div class="routing-step">提取报头 <span class="tag">CID (Channel ID)</span> 进行协议解复用（路由多路分离）：</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 若 <b>CID = 0x0004</b>：将载荷送往 <b>ATT (属性协议)</b> 模块。</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 若 <b>CID = 0x0006</b>：将载荷送往 <b>SMP (安全管理器)</b> 处理配对加密。</div>
+                <div class="routing-step">若处于增强重传模式 (ERTM) 或基于信用的流控模式，还会解析可选的 <span class="tag">控制字段</span> 处理序列号及 SDU 重组。</div>
+            </div>
+
+            <table>
+                <tr><th>字段</th><th>作用说明</th></tr>
+                <tr><td><b>Length</b></td><td>指示后续载荷（不含 Header）的字节总长度。</td></tr>
+                <tr><td><b>CID</b></td><td>通道终点标识。0x0004(ATT), 0x0006(SMP), 0x0005(L2CAP信令通道)。</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="arrow-up">⬆</div>
+
+    <!-- 5. ATT Layer -->
+    <div id="第五层-属性协议-att-数据交互方法" class="layer-card">
+        <div class="layer-header" style="background-color: var(--color-host);">
+            <span>第五层：属性协议 (ATT) - 数据交互方法</span>
+            <span style="font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px;">Host</span>
+        </div>
+        <div class="layer-body">
+            <div class="packet-diagram">
+                <div class="packet-field" style="background: #73c6b6; flex: 1;">操作码 (Opcode)<div class="field-size">1 Byte</div></div>
+                <div class="packet-field" style="background: #a2d9ce; flex: 1;">属性句柄 (Handle)<div class="field-size">2 Bytes</div></div>
+                <div class="packet-field" style="background: var(--color-payload); flex: 4;">属性值 (Value) / 错误码<div class="field-size">Variable</div></div>
+            </div>
+
+            <div class="routing-logic" style="border-color: var(--color-host);">
+                <div class="routing-title">⚙️ ATT 层解析与执行逻辑：</div>
+                <div class="routing-step">解析首字节 <span class="tag">Opcode</span>，确定客户端发来的指令意图。</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 如 `0x0A` (Read Req)：提取 <span class="tag">Handle</span>，在本地数据库查找对应数据并组装 Response 发回。</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 如 `0x12` (Write Req)：提取 <span class="tag">Handle</span> 和 <span class="tag">Value</span>，覆盖本地数据库，触发上层应用回调。</div>
+                <div class="routing-step" style="margin-left: 20px;">➔ 如 `0x1B` (Notify)：客户端接收到通知，直接提取数据抛给 GATT/App。</div>
+            </div>
+
+            <table>
+                <tr><th>字段</th><th>作用说明</th></tr>
+                <tr><td><b>Opcode</b></td><td>定义六种 PDU 类型：请求(REQ)、响应(RSP)、命令(CMD)、通知(NTF)、指示(IND)、确认(CFM)。</td></tr>
+                <tr><td><b>Handle</b></td><td>0x0001 - 0xFFFF，属性在数据库中的唯一内存索引地址。</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <div class="arrow-up">⬆</div>
+
+    <!-- 6. GATT / App Layer -->
+    <div id="第六层-应用层-gatt-profile-业务语义赋予" class="layer-card">
+        <div class="layer-header" style="background-color: var(--color-app);">
+            <span>第六层：应用层 (GATT / Profile) - 业务语义赋予</span>
+            <span style="font-size: 0.8em; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px;">Application</span>
+        </div>
+        <div class="layer-body">
+            <div class="packet-diagram" style="border-color: #f39c12;">
+                <div class="packet-field" style="background: #f8c471; flex: 1; color: #d35400;">(逻辑结构无固定包头，完全依赖 Profile 规范解析二进制 Value)</div>
+            </div>
+
+            <div class="routing-logic" style="border-color: var(--color-app); background: #fdfae6;">
+                <div class="routing-title">💡 业务解析逻辑（以心率服务为例）：</div>
+                <div class="routing-step">ATT 层上报 Handle 0x0012 更新了数据 <code>[0x06, 0x4B]</code>。</div>
+                <div class="routing-step">GATT 查表得知 Handle 0x0012 对应 UUID <b>0x2A37 (心率测量特征)</b>。</div>
+                <div class="routing-step">App 按照《心率 Profile 规范》解析原始字节：<br>
+                    - Byte 0 (<code>0x06</code> -> `0000 0110`)：Flags 字段，指示格式为 uint8，且传感器接触正常。<br>
+                    - Byte 1 (<code>0x4B</code> -> `75`)：心率值为 75 bpm。
+                </div>
+                <div class="routing-step">UI 界面更新心率数字，完成整个从物理电磁波到用户视觉感知的闭环流转。</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

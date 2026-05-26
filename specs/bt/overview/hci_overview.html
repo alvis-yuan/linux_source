@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙 HCI 功能规范解析 · Core 6.0</title>
+<style>
+  :root {
+    --blue-deep: #0a1628;
+    --blue-mid:  #0d2d5c;
+    --blue-accent: #1565c0;
+    --blue-light: #1976d2;
+    --blue-glow:  #42a5f5;
+    --cyan: #00b8d9;
+    --teal: #00897b;
+    --amber: #ffc107;
+    --pink: #e91e63;
+    --green: #43a047;
+    --surface: #0f1c35;
+    --surface2: #162040;
+    --surface3: #1a2a50;
+    --text-main: #e8eaf6;
+    --text-sub:  #90a4ae;
+    --text-muted: #546e7a;
+    --border: rgba(66,165,245,0.18);
+    --nav-w: 280px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; height: 100%; }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--blue-deep);
+    color: var(--text-main);
+    display: flex;
+    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+    overflow-x: hidden;
+  }
+
+  /* ======= SIDEBAR ======= */
+  #sidebar {
+    width: var(--nav-w);
+    min-width: var(--nav-w);
+    background: var(--surface2);
+    border-right: 1px solid var(--border);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: var(--blue-accent) transparent;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--blue-accent); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--blue-mid), var(--surface2));
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .sidebar-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .bt-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, #1976d2, #42a5f5);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(66,165,245,0.4);
+  }
+  .sidebar-header h1 { font-size: 13px; font-weight: 700; color: var(--blue-glow); line-height: 1.3; }
+  .sidebar-header p  { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  .nav-section { padding: 8px 0; }
+  .nav-group-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 18px 4px;
+  }
+  .nav-item {
+    display: block;
+    padding: 7px 18px 7px 22px;
+    font-size: 12px;
+    color: var(--text-sub);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+    line-height: 1.4;
+    position: relative;
+  }
+  .nav-item:hover {
+    color: var(--blue-glow);
+    background: rgba(66,165,245,0.06);
+    border-left-color: var(--blue-glow);
+  }
+  .nav-item.active {
+    color: var(--cyan);
+    background: rgba(0,184,217,0.1);
+    border-left-color: var(--cyan);
+    font-weight: 600;
+  }
+  .nav-item.sub {
+    padding-left: 34px;
+    font-size: 11px;
+  }
+  .nav-item.sub2 {
+    padding-left: 46px;
+    font-size: 11px;
+  }
+
+  /* ======= MAIN ======= */
+  #main {
+    flex: 1;
+    min-height: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* ======= TOP BAR ======= */
+  .topbar {
+    background: linear-gradient(90deg, var(--blue-mid) 0%, var(--surface) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .topbar h2 { font-size: 15px; font-weight: 600; color: var(--text-main); }
+  .topbar .badge {
+    font-size: 10px;
+    background: linear-gradient(90deg, var(--blue-accent), var(--cyan));
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+  }
+
+  /* ======= SECTIONS ======= */
+  .content-wrap { padding: 40px; max-width: 1100px; }
+
+  .spec-section {
+    margin-bottom: 56px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .section-num {
+    background: linear-gradient(135deg, var(--blue-accent), var(--blue-glow));
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    margin-top: 3px;
+    box-shadow: 0 2px 10px rgba(21,101,192,0.4);
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--blue-glow);
+    line-height: 1.3;
+  }
+  .section-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: var(--text-sub);
+    line-height: 1.8;
+    margin-bottom: 22px;
+    padding-left: 4px;
+  }
+  .section-desc strong { color: var(--cyan); }
+
+  /* ======= SUBSECTION ======= */
+  .subsection {
+    margin-top: 32px;
+    margin-bottom: 16px;
+  }
+  .subsection-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #90caf9;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .subsection-title::before {
+    content: '';
+    display: block;
+    width: 4px; height: 18px;
+    background: linear-gradient(180deg, var(--cyan), var(--blue-accent));
+    border-radius: 2px;
+  }
+  .subsection-desc {
+    font-size: 13.5px;
+    color: var(--text-sub);
+    line-height: 1.8;
+  }
+
+  /* ======= CARDS ======= */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+  .card {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .card:hover { border-color: var(--blue-glow); transform: translateY(-2px); }
+  .card .card-icon { font-size: 24px; margin-bottom: 8px; }
+  .card .card-title { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 4px; }
+  .card .card-desc { font-size: 12px; color: var(--text-sub); line-height: 1.6; }
+
+  /* ======= DIAGRAM SVG AREAS ======= */
+  .diagram-box {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 10px;
+    font-style: italic;
+  }
+  svg text { font-family: 'Segoe UI', sans-serif; }
+
+  /* ======= TABLE ======= */
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin: 16px 0;
+  }
+  .spec-table th {
+    background: var(--blue-mid);
+    color: var(--blue-glow);
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 2px solid var(--blue-accent);
+    white-space: nowrap;
+  }
+  .spec-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(66,165,245,0.1);
+    color: var(--text-sub);
+    vertical-align: top;
+    line-height: 1.6;
+  }
+  .spec-table tr:hover td { background: rgba(66,165,245,0.04); }
+  .badge-m { background: #1b5e20; color: #a5d6a7; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge-o { background: #1a237e; color: #90caf9; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge-c { background: #4a148c; color: #ce93d8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge-e { background: #263238; color: #78909c; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+
+  /* ======= PACKET FORMAT ======= */
+  .packet-row {
+    display: flex;
+    margin: 14px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .packet-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 6px;
+    min-width: 60px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    flex: 1;
+    font-size: 11px;
+  }
+  .packet-field:last-child { border-right: none; }
+  .packet-field .pf-name { font-weight: 700; font-size: 12px; }
+  .packet-field .pf-size { color: var(--text-muted); font-size: 10px; margin-top: 2px; }
+  .pf-hdr { background: linear-gradient(135deg, #0d2d5c, #1565c0); color: var(--blue-glow); }
+  .pf-len { background: linear-gradient(135deg, #00695c, #00897b); color: #80cbc4; }
+  .pf-data { background: linear-gradient(135deg, #1a237e, #283593); color: #9fa8da; }
+  .pf-extra { background: linear-gradient(135deg, #4a148c, #6a1b9a); color: #ce93d8; }
+  .pf-flag { background: linear-gradient(135deg, #bf360c, #e64a19); color: #ffccbc; }
+  .pf-handle { background: linear-gradient(135deg, #33691e, #558b2f); color: #dcedc8; }
+
+  /* ======= CODE BLOCK ======= */
+  .code-block {
+    background: #060e1f;
+    border: 1px solid rgba(66,165,245,0.2);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12.5px;
+    color: #a5d6a7;
+    overflow-x: auto;
+    margin: 14px 0;
+    line-height: 1.7;
+  }
+  .code-block .kw { color: #80cbc4; }
+  .code-block .cm { color: #546e7a; font-style: italic; }
+  .code-block .nm { color: #ffcc80; }
+  .code-block .vl { color: #f48fb1; }
+
+  /* ======= FLOW CHART ======= */
+  .flow-wrap { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; margin: 18px 0; }
+  .flow-box {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 160px;
+    text-align: center;
+    position: relative;
+  }
+  .flow-box .fb-title { font-size: 13px; font-weight: 700; color: var(--text-main); }
+  .flow-box .fb-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    color: var(--cyan);
+    font-size: 22px;
+    margin-top: 20px;
+  }
+
+  /* ======= CALLOUT ======= */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .callout.info  { background: rgba(21,101,192,0.15); border: 1px solid rgba(21,101,192,0.4); }
+  .callout.warn  { background: rgba(255,193,7,0.1);   border: 1px solid rgba(255,193,7,0.3); color: #ffe082; }
+  .callout.tip   { background: rgba(67,160,71,0.12);  border: 1px solid rgba(67,160,71,0.3); color: #a5d6a7; }
+  .callout-icon  { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ======= LEGEND ======= */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-sub); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* ======= PROGRESS BAR ======= */
+  .progress-bar-wrap { margin: 8px 0; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sub); margin-bottom: 4px; }
+  .progress-track { background: var(--surface3); border-radius: 4px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 1s; }
+
+  /* ======= DIVIDER ======= */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* ======= RESPONSIVE ======= */
+  .topbar-ham {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    color: var(--text-main);
+    font-size: 22px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+  }
+
+  @media (max-width: 820px) {
+    .content-wrap { padding: 20px; }
+    .topbar { padding: 12px 16px; gap: 8px; }
+    .topbar-ham { display: flex; }
+    #main { margin-left: 0; }
+  }
+
+  /* ======= SCROLLBAR MAIN ======= */
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: var(--surface); }
+  #main::-webkit-scrollbar-thumb { background: var(--blue-accent); border-radius: 3px; }
+
+  /* ======= HIGHLIGHT ======= */
+  .hl-cyan { color: var(--cyan); font-weight: 600; }
+  .hl-amber { color: var(--amber); font-weight: 600; }
+  .hl-green { color: var(--green); font-weight: 600; }
+  .hl-pink { color: var(--pink); font-weight: 600; }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+  .tag-br { background: rgba(0,137,123,0.3); color: #80cbc4; }
+  .tag-le { background: rgba(13,45,92,0.6); color: #90caf9; }
+  .tag-both { background: rgba(74,20,140,0.3); color: #ce93d8; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* highlight active section in nav */
+  .section-anchor {
+    display: block;
+    height: 0;
+    overflow: hidden;
+    scroll-margin-top: 72px;
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="bt-icon">&#x2767;</div>
+      <div>
+        <h1>蓝牙 HCI 功能规范</h1>
+        <p>Bluetooth Core 6.0 · Part E</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">概述</div>
+    <a class="nav-item active" onclick="navScrollTo('s0')">📋 规范简介</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 1 节</div>
+    <a class="nav-item" onclick="navScrollTo('s1')">1. 引言 Introduction</a>
+    <a class="nav-item sub" onclick="navScrollTo('s1-1')">1.1 蓝牙软件栈下层</a>
+    <a class="nav-item sub" onclick="navScrollTo('s1-2')">1.2 跨版本兼容性</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 2 节</div>
+    <a class="nav-item" onclick="navScrollTo('s2')">2. 传输层概述</a>
+    <a class="nav-item sub" onclick="navScrollTo('s2-1')">2.1 传输层目标</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 3 节</div>
+    <a class="nav-item" onclick="navScrollTo('s3')">3. 命令与事件概览</a>
+    <a class="nav-item sub" onclick="navScrollTo('s3-1')">3.1 命令版本机制</a>
+    <a class="nav-item sub" onclick="navScrollTo('s3-2')">3.2 支持要求</a>
+    <a class="nav-item sub" onclick="navScrollTo('s3-3')">3.3 典型命令分类</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 4 节</div>
+    <a class="nav-item" onclick="navScrollTo('s4')">4. HCI 流控制</a>
+    <a class="nav-item sub" onclick="navScrollTo('s4-1')">4.1 Host → Controller</a>
+    <a class="nav-item sub" onclick="navScrollTo('s4-2')">4.2 Controller → Host</a>
+    <a class="nav-item sub" onclick="navScrollTo('s4-3')">4.3 数据包计数</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 5 节</div>
+    <a class="nav-item" onclick="navScrollTo('s5')">5. HCI 数据格式</a>
+    <a class="nav-item sub" onclick="navScrollTo('s5-1')">5.1 命令包</a>
+    <a class="nav-item sub" onclick="navScrollTo('s5-2')">5.2 事件包</a>
+    <a class="nav-item sub" onclick="navScrollTo('s5-3')">5.3 ACL 数据包</a>
+    <a class="nav-item sub" onclick="navScrollTo('s5-4')">5.4 SCO/eSCO 数据包</a>
+    <a class="nav-item sub" onclick="navScrollTo('s5-5')">5.5 ISO 数据包</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 6 节</div>
+    <a class="nav-item" onclick="navScrollTo('s6')">6. HCI 配置参数</a>
+    <a class="nav-item sub" onclick="navScrollTo('s6-1')">6.1 扫描参数</a>
+    <a class="nav-item sub" onclick="navScrollTo('s6-2')">6.2 连接参数</a>
+    <a class="nav-item sub" onclick="navScrollTo('s6-3')">6.3 TX 功率</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-group-title">第 7 节</div>
+    <a class="nav-item" onclick="navScrollTo('s7')">7. HCI 命令与事件详解</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-1')">7.1 链路控制命令</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-2')">7.2 链路策略命令</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-3')">7.3 控制器基带命令</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-4')">7.4 信息参数命令</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-5')">7.5 状态参数命令</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-6')">7.6 测试命令</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-7')">7.7 事件</a>
+    <a class="nav-item sub" onclick="navScrollTo('s7-8')">7.8 LE 控制器命令</a>
+  </div>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<div id="main">
+
+  <div class="topbar">
+    <button type="button" class="topbar-ham menu-btn" aria-label="菜单">☰</button>
+    <h2>HCI 功能规范解析</h2>
+    <span class="badge">Core 6.0 · Part E</span>
+    <span style="margin-left:auto;font-size:12px;color:var(--text-muted);">Host Controller Interface Functional Specification</span>
+  </div>
+
+  <div class="content-wrap">
+
+    <!-- ===== INTRO OVERVIEW ===== -->
+    <a id="s0" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">概览</span>
+        <div>
+          <div class="section-title">蓝牙 HCI 规范 — 总体结构</div>
+          <div class="section-subtitle">Bluetooth Core Specification 6.0 · Volume 4 · Part E</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        <strong>HCI（Host Controller Interface，主机控制器接口）</strong>是蓝牙协议栈中连接 <strong>Host（主机）</strong> 与 <strong>Controller（控制器）</strong> 的标准化接口层。它为 Host 提供统一的命令方法，用于访问 Controller 的能力并控制与其他蓝牙设备的连接。本规范适用于 BR/EDR 控制器、LE 控制器以及 BR/EDR/LE 双模控制器。
+      </p>
+
+      <!-- Architecture Diagram -->
+      <div class="diagram-box">
+        <svg width="100%" viewBox="0 0 860 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gHost" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#0d2d5c"/>
+              <stop offset="100%" style="stop-color:#1565c0"/>
+            </linearGradient>
+            <linearGradient id="gCtrl" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#00695c"/>
+              <stop offset="100%" style="stop-color:#00897b"/>
+            </linearGradient>
+            <linearGradient id="gHCI" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#4a148c"/>
+              <stop offset="100%" style="stop-color:#7b1fa2"/>
+            </linearGradient>
+            <linearGradient id="gTrans" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#bf360c"/>
+              <stop offset="100%" style="stop-color:#e64a19"/>
+            </linearGradient>
+            <marker id="arrowB" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#42a5f5"/>
+            </marker>
+            <marker id="arrowW" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#00b8d9"/>
+            </marker>
+          </defs>
+
+          <!-- HOST side -->
+          <rect x="20" y="20" width="380" height="270" rx="12" fill="url(#gHost)" stroke="#42a5f5" stroke-width="1.5" opacity="0.9"/>
+          <text x="210" y="48" text-anchor="middle" fill="#90caf9" font-size="13" font-weight="700">HOST（主机）</text>
+
+          <rect x="44" y="62" width="330" height="44" rx="8" fill="#1a2a50" stroke="#42a5f5" stroke-width="1"/>
+          <text x="209" y="88" text-anchor="middle" fill="#e8eaf6" font-size="12" font-weight="600">应用程序 Application</text>
+
+          <rect x="44" y="116" width="330" height="44" rx="8" fill="#1a2a50" stroke="#42a5f5" stroke-width="1"/>
+          <text x="209" y="142" text-anchor="middle" fill="#e8eaf6" font-size="12" font-weight="600">L2CAP / SMP / ATT / RFCOMM</text>
+
+          <rect x="44" y="170" width="330" height="44" rx="8" fill="#162040" stroke="#90caf9" stroke-width="1.5"/>
+          <text x="209" y="196" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">Upper HCI（上层 HCI 驱动）</text>
+
+          <rect x="44" y="224" width="330" height="50" rx="8" fill="#1e3050" stroke="#5c6bc0" stroke-width="1"/>
+          <text x="209" y="251" text-anchor="middle" fill="#c5cae9" font-size="11" font-weight="600">Host Controller Transport Layer</text>
+          <text x="209" y="267" text-anchor="middle" fill="#7986cb" font-size="10">（UART / USB / SPI / SDIO）</text>
+
+          <!-- CONTROLLER side -->
+          <rect x="460" y="20" width="380" height="270" rx="12" fill="url(#gCtrl)" stroke="#80cbc4" stroke-width="1.5" opacity="0.9"/>
+          <text x="650" y="48" text-anchor="middle" fill="#80cbc4" font-size="13" font-weight="700">CONTROLLER（控制器）</text>
+
+          <rect x="484" y="62" width="330" height="44" rx="8" fill="#1b3a37" stroke="#80cbc4" stroke-width="1"/>
+          <text x="649" y="88" text-anchor="middle" fill="#e8eaf6" font-size="12" font-weight="600">Link Manager (LM) / Link Layer (LL)</text>
+
+          <rect x="484" y="116" width="330" height="44" rx="8" fill="#1b3a37" stroke="#80cbc4" stroke-width="1"/>
+          <text x="649" y="142" text-anchor="middle" fill="#e8eaf6" font-size="12" font-weight="600">Baseband / Radio</text>
+
+          <rect x="484" y="170" width="330" height="44" rx="8" fill="#163530" stroke="#a5d6a7" stroke-width="1.5"/>
+          <text x="649" y="196" text-anchor="middle" fill="#a5d6a7" font-size="12" font-weight="700">Lower HCI（下层 HCI 驱动）</text>
+
+          <rect x="484" y="224" width="330" height="50" rx="8" fill="#1e4040" stroke="#4db6ac" stroke-width="1"/>
+          <text x="649" y="251" text-anchor="middle" fill="#80cbc4" font-size="11" font-weight="600">Host Controller Transport Layer</text>
+          <text x="649" y="267" text-anchor="middle" fill="#4db6ac" font-size="10">（物理传输接口）</text>
+
+          <!-- HCI INTERFACE arrows -->
+          <line x1="374" y1="192" x2="484" y2="192" stroke="#42a5f5" stroke-width="2" marker-end="url(#arrowB)" stroke-dasharray="none"/>
+          <line x1="484" y1="204" x2="374" y2="204" stroke="#00b8d9" stroke-width="2" marker-end="url(#arrowW)"/>
+          <rect x="390" y="176" width="78" height="44" rx="6" fill="#4a148c" stroke="#ce93d8" stroke-width="1.5"/>
+          <text x="429" y="198" text-anchor="middle" fill="#e1bee7" font-size="11" font-weight="800">HCI</text>
+          <text x="429" y="212" text-anchor="middle" fill="#ba68c8" font-size="9">命令/事件/数据</text>
+
+          <text x="350" y="188" text-anchor="middle" fill="#90caf9" font-size="9">Commands</text>
+          <text x="350" y="210" text-anchor="middle" fill="#00b8d9" font-size="9">Events</text>
+        </svg>
+        <div class="diagram-title">图 0-1: 蓝牙协议栈整体架构 — HCI 位于 Host 与 Controller 边界</div>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-icon">📡</div>
+          <div class="card-title">统一命令接口</div>
+          <div class="card-desc">HCI 为 Host 提供与底层 Controller 无关的统一 API，屏蔽硬件差异。</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🔄</div>
+          <div class="card-title">双向通信</div>
+          <div class="card-desc">Host 向 Controller 发送命令；Controller 通过事件异步通知 Host。</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">🛡️</div>
+          <div class="card-title">流控制机制</div>
+          <div class="card-desc">内置双向流控，防止缓冲区溢出，确保数据可靠传输。</div>
+        </div>
+        <div class="card">
+          <div class="card-icon">📦</div>
+          <div class="card-title">标准数据格式</div>
+          <div class="card-desc">定义命令包、事件包、ACL/SCO/ISO 数据包的精确格式。</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 1 ===== -->
+    <a id="s1" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 1</span>
+        <div>
+          <div class="section-title">引言 · Introduction</div>
+          <div class="section-subtitle">HCI 的定义、角色划分与适用范围</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        本节定义了 HCI 的基本概念：HCI 提供 Host 访问 Controller 能力并控制蓝牙连接的统一命令方法。对于 BR/EDR 或 LE 控制器，这些命令通常涉及 <strong>Link Manager（链路管理器）</strong> 通过 LMP 命令或 <strong>Link Layer（链路层）</strong> 通过 LL 控制包与远程设备交换信息。HCI 层跨越 Host 与 Controller 的边界，分为上层 HCI（位于 Host）和下层 HCI（位于 Controller）两个角色。
+      </p>
+
+      <a id="s1-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">1.1 蓝牙软件栈下层结构</div>
+        <p class="subsection-desc">蓝牙协议栈下层由多个层次组成，HCI 作为分界线，上面是 Host 驱动栈，下面是 Controller 硬件。中间的传输层（Host Controller Transport Layer）负责透明传输，无需了解数据内容。</p>
+
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="gL1" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" style="stop-color:#0d47a1"/>
+                <stop offset="100%" style="stop-color:#1565c0"/>
+              </linearGradient>
+            </defs>
+            <!-- Device A -->
+            <g transform="translate(30,20)">
+              <rect width="360" height="340" rx="12" fill="#0f1c35" stroke="#42a5f5" stroke-width="1.5"/>
+              <text x="180" y="28" text-anchor="middle" fill="#42a5f5" font-size="13" font-weight="700">设备 A（Device A）</text>
+
+              <!-- layers -->
+              <rect x="20" y="40" width="320" height="36" rx="7" fill="#1a237e"/>
+              <text x="180" y="63" text-anchor="middle" fill="#9fa8da" font-size="12" font-weight="600">上层协议 (L2CAP/ATT/SMP…)</text>
+
+              <rect x="20" y="86" width="320" height="36" rx="7" fill="#162040" stroke="#90caf9" stroke-width="1.5"/>
+              <text x="180" y="109" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">Upper HCI</text>
+
+              <rect x="20" y="132" width="320" height="36" rx="7" fill="#1e1e2e" stroke="#7c4dff" stroke-width="1"/>
+              <text x="180" y="155" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="600">Transport Layer（UART/USB/SDIO）</text>
+
+              <rect x="20" y="178" width="320" height="36" rx="7" fill="#1e1e2e" stroke="#7c4dff" stroke-width="1"/>
+              <text x="180" y="201" text-anchor="middle" fill="#b39ddb" font-size="11">物理传输介质</text>
+
+              <rect x="20" y="224" width="320" height="36" rx="7" fill="#163530" stroke="#80cbc4" stroke-width="1.5"/>
+              <text x="180" y="247" text-anchor="middle" fill="#80cbc4" font-size="12" font-weight="700">Lower HCI</text>
+
+              <rect x="20" y="270" width="320" height="36" rx="7" fill="#0d2d2d"/>
+              <text x="180" y="293" text-anchor="middle" fill="#4db6ac" font-size="11">Link Manager / Link Layer</text>
+
+              <rect x="20" y="316" width="320" height="16" rx="4" fill="#263238"/>
+              <text x="180" y="329" text-anchor="middle" fill="#546e7a" font-size="10">Baseband / Radio</text>
+            </g>
+
+            <!-- arrows between devices -->
+            <text x="430" y="180" text-anchor="middle" fill="#42a5f5" font-size="10" font-weight="700">HCI Commands ▶</text>
+            <text x="430" y="200" text-anchor="middle" fill="#00b8d9" font-size="10" font-weight="700">◀ HCI Events</text>
+            <line x1="395" y1="175" x2="460" y2="175" stroke="#42a5f5" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <line x1="460" y1="195" x2="395" y2="195" stroke="#00b8d9" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+            <!-- Air interface -->
+            <text x="430" y="320" text-anchor="middle" fill="#78909c" font-size="10">无线电波 ↔</text>
+            <line x1="395" y1="310" x2="465" y2="310" stroke="#546e7a" stroke-width="1" stroke-dasharray="6,4"/>
+
+            <!-- Device B -->
+            <g transform="translate(465,20)">
+              <rect width="360" height="340" rx="12" fill="#0f1c35" stroke="#80cbc4" stroke-width="1.5"/>
+              <text x="180" y="28" text-anchor="middle" fill="#80cbc4" font-size="13" font-weight="700">设备 B（Device B）</text>
+
+              <rect x="20" y="40" width="320" height="36" rx="7" fill="#1a237e"/>
+              <text x="180" y="63" text-anchor="middle" fill="#9fa8da" font-size="12" font-weight="600">上层协议 (L2CAP/ATT/SMP…)</text>
+
+              <rect x="20" y="86" width="320" height="36" rx="7" fill="#162040" stroke="#90caf9" stroke-width="1.5"/>
+              <text x="180" y="109" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">Upper HCI</text>
+
+              <rect x="20" y="132" width="320" height="36" rx="7" fill="#1e1e2e" stroke="#7c4dff" stroke-width="1"/>
+              <text x="180" y="155" text-anchor="middle" fill="#b39ddb" font-size="11" font-weight="600">Transport Layer</text>
+
+              <rect x="20" y="178" width="320" height="36" rx="7" fill="#1e1e2e" stroke="#7c4dff" stroke-width="1"/>
+              <text x="180" y="201" text-anchor="middle" fill="#b39ddb" font-size="11">物理传输介质</text>
+
+              <rect x="20" y="224" width="320" height="36" rx="7" fill="#163530" stroke="#80cbc4" stroke-width="1.5"/>
+              <text x="180" y="247" text-anchor="middle" fill="#80cbc4" font-size="12" font-weight="700">Lower HCI</text>
+
+              <rect x="20" y="270" width="320" height="36" rx="7" fill="#0d2d2d"/>
+              <text x="180" y="293" text-anchor="middle" fill="#4db6ac" font-size="11">Link Manager / Link Layer</text>
+
+              <rect x="20" y="316" width="320" height="16" rx="4" fill="#263238"/>
+              <text x="180" y="329" text-anchor="middle" fill="#546e7a" font-size="10">Baseband / Radio</text>
+            </g>
+          </svg>
+          <div class="diagram-title">图 1-1: 端到端蓝牙软件栈 — HCI 跨越 Host 与 Controller 边界，传输层透明传递数据</div>
+        </div>
+      </div>
+
+      <a id="s1-2" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">1.2 跨版本兼容性（Cross-version Issues）</div>
+        <p class="subsection-desc">Host 与 Controller 不要求支持相同版本的规范。版本不匹配时，规范规定了明确的处理原则：</p>
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <span>若 Controller 版本新于 Host：事件中可能出现 Host 版本中标记为"保留"的值。对于 HCI_Command_Status / HCI_Command_Complete 事件中 Status 参数的"保留"值，必须视同错误码 <strong>Unspecified Error（0x1F）</strong> 处理。</span>
+        </div>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <span>若 Host 版本新于 Controller：Host 使用了旧版控制器不支持的命令特性时，Controller 将返回错误。Host 必须妥善处理这类错误，否则可能导致意外行为。</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 2 ===== -->
+    <a id="s2" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 2</span>
+        <div>
+          <div class="section-title">Host Controller 传输层概述</div>
+          <div class="section-subtitle">Overview of Host Controller Transport Layer</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        传输层存在于 HCI 驱动和 Host 之间，其核心目标是 <strong>透明性（Transparency）</strong>：HCI 驱动无需了解底层传输技术；传输层也无需理解传递的数据内容。这使得 HCI 逻辑接口或 Controller 可以独立升级，不影响传输层。
+      </p>
+
+      <a id="s2-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">2.1 传输层设计目标</div>
+        <div class="card-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr));">
+          <div class="card">
+            <div class="card-icon">🔍</div>
+            <div class="card-title">透明性</div>
+            <div class="card-desc">传输层不解析、不修改 HCI 数据，只做透明转发。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔌</div>
+            <div class="card-title">多传输介质</div>
+            <div class="card-desc">支持 UART（H4）、USB、SDIO、SPI 等多种物理传输方式，在 Vol.4 其他 Part 中定义。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚙️</div>
+            <div class="card-title">独立演进</div>
+            <div class="card-desc">HCI 协议与传输层解耦，两者可独立升级，互不影响。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">📨</div>
+            <div class="card-title">异步事件</div>
+            <div class="card-desc">Host 异步接收来自 Controller 的 HCI 事件通知，无论使用哪种传输层。</div>
+          </div>
+        </div>
+
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 760 130" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="arr1" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#42a5f5"/>
+              </marker>
+              <marker id="arr2" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto">
+                <path d="M8,0 L0,4 L8,8 z" fill="#00b8d9"/>
+              </marker>
+            </defs>
+            <rect x="10" y="30" width="160" height="60" rx="8" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="90" y="60" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">HCI Driver</text>
+            <text x="90" y="78" text-anchor="middle" fill="#546e7a" font-size="10">（Upper HCI）</text>
+
+            <rect x="220" y="30" width="160" height="60" rx="8" fill="#1e1e2e" stroke="#7c4dff" stroke-width="1.5"/>
+            <text x="300" y="60" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">Transport Layer</text>
+            <text x="300" y="78" text-anchor="middle" fill="#546e7a" font-size="10">UART / USB / SPI / SDIO</text>
+
+            <rect x="430" y="30" width="160" height="60" rx="8" fill="#1e1e2e" stroke="#7c4dff" stroke-width="1.5"/>
+            <text x="510" y="60" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">Transport Layer</text>
+            <text x="510" y="78" text-anchor="middle" fill="#546e7a" font-size="10">（Controller 侧）</text>
+
+            <rect x="600" y="30" width="150" height="60" rx="8" fill="#163530" stroke="#80cbc4" stroke-width="1.5"/>
+            <text x="675" y="60" text-anchor="middle" fill="#a5d6a7" font-size="12" font-weight="700">Controller</text>
+            <text x="675" y="78" text-anchor="middle" fill="#546e7a" font-size="10">（Lower HCI）</text>
+
+            <line x1="170" y1="55" x2="220" y2="55" stroke="#42a5f5" stroke-width="2" marker-end="url(#arr1)"/>
+            <line x1="220" y1="70" x2="170" y2="70" stroke="#00b8d9" stroke-width="2" marker-end="url(#arr2)"/>
+            <line x1="380" y1="55" x2="430" y2="55" stroke="#42a5f5" stroke-width="2" marker-end="url(#arr1)"/>
+            <line x1="430" y1="70" x2="380" y2="70" stroke="#00b8d9" stroke-width="2" marker-end="url(#arr2)"/>
+            <line x1="590" y1="55" x2="600" y2="55" stroke="#42a5f5" stroke-width="2" marker-end="url(#arr1)"/>
+            <line x1="600" y1="70" x2="590" y2="70" stroke="#00b8d9" stroke-width="2" marker-end="url(#arr2)"/>
+
+            <text x="195" y="48" text-anchor="middle" fill="#78909c" font-size="9">Commands</text>
+            <text x="195" y="82" text-anchor="middle" fill="#78909c" font-size="9">Events</text>
+          </svg>
+          <div class="diagram-title">图 2-1: 传输层透明传递 HCI 命令与事件</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 3 ===== -->
+    <a id="s3" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 3</span>
+        <div>
+          <div class="section-title">命令与事件概览</div>
+          <div class="section-subtitle">Overview of Commands and Events</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        HCI 命令和事件在 Host 与 Controller 之间传递。规范通过一张总表（按字母顺序）列出所有 HCI 命令和事件，包含：<strong>规范版本号</strong>、<strong>功能摘要</strong>、<strong>BR/EDR 支持要求</strong>、<strong>LE 支持要求</strong>。
+      </p>
+
+      <a id="s3-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">3.1 命令版本机制</div>
+        <p class="subsection-desc">一条命令或事件可能有多个版本（v1、v2 等）。各版本实现相同的基础功能，但在细节上有差异（如附加参数以支持新特性）。版本信息用 [v1]、[v2] 等标注；未注明版本号时，引用适用于所有版本。</p>
+      </div>
+
+      <a id="s3-2" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">3.2 支持要求标记说明</div>
+        <div class="legend" style="margin-bottom:14px;">
+          <div class="legend-item"><div class="legend-dot" style="background:#43a047;"></div> M = Mandatory（强制支持）</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1976d2;"></div> O = Optional（可选支持）</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7b1fa2;"></div> C = Conditional（条件支持）</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#37474f;"></div> E = Excluded（不适用）</div>
+        </div>
+        <p class="subsection-desc">Controller 对某命令的支持要求取决于其实现类型（BR/EDR / LE / 双模）。满足至少一种传输类型的强制要求时，Controller 必须支持该命令。</p>
+      </div>
+
+      <a id="s3-3" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">3.3 典型命令分类与支持要求示例</div>
+        <div style="overflow-x:auto;">
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>命令 / 事件名称</th>
+              <th>引入版本</th>
+              <th>功能摘要</th>
+              <th>BR/EDR</th>
+              <th>LE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>HCI_Accept_Connection_Request</td>
+              <td>1.1</td>
+              <td>接受新的 BR/EDR 入向连接请求</td>
+              <td><span class="badge-m">M</span></td>
+              <td><span class="badge-e">E</span></td>
+            </tr>
+            <tr>
+              <td>HCI_LE_Set_Advertising_Parameters</td>
+              <td>4.0</td>
+              <td>设置 LE 广播参数（间隔、类型、地址等）</td>
+              <td><span class="badge-e">E</span></td>
+              <td><span class="badge-m">M</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Authentication_Requested</td>
+              <td>1.1</td>
+              <td>请求对指定连接句柄建立认证</td>
+              <td><span class="badge-o">O</span></td>
+              <td><span class="badge-e">E</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Authenticated_Payload_Timeout_Expired event</td>
+              <td>4.1</td>
+              <td>指示在 authenticatedPayloadTO 内未收到含有效 MIC 的数据包</td>
+              <td><span class="badge-c">C.155</span></td>
+              <td><span class="badge-c">C.155</span></td>
+            </tr>
+            <tr>
+              <td>HCI_LE_Create_Connection</td>
+              <td>4.0</td>
+              <td>创建 LE 连接到已知设备</td>
+              <td><span class="badge-e">E</span></td>
+              <td><span class="badge-c">C.59</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Reset</td>
+              <td>1.1</td>
+              <td>重置控制器和链路管理器，清除全部连接和配置</td>
+              <td><span class="badge-m">M</span></td>
+              <td><span class="badge-m">M</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Read_Local_Version_Information</td>
+              <td>1.1</td>
+              <td>读取本地控制器版本信息（HCI/LMP/LL 版本）</td>
+              <td><span class="badge-m">M</span></td>
+              <td><span class="badge-m">M</span></td>
+            </tr>
+            <tr>
+              <td>HCI_LE_Set_Extended_Advertising_Enable</td>
+              <td>5.0</td>
+              <td>启用或禁用扩展广播（Extended Advertising）</td>
+              <td><span class="badge-e">E</span></td>
+              <td><span class="badge-c">C.17</span></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Command categories chart -->
+      <div class="diagram-box">
+        <svg width="100%" viewBox="0 0 860 240" xmlns="http://www.w3.org/2000/svg">
+          <!-- Bar chart for command groups -->
+          <text x="430" y="22" text-anchor="middle" fill="#90a4ae" font-size="13" font-weight="700">HCI 命令分类及数量分布（Core 6.0）</text>
+
+          <!-- Bars -->
+          <g transform="translate(60,40)">
+            <!-- x axis -->
+            <line x1="0" y1="160" x2="740" y2="160" stroke="#546e7a" stroke-width="1"/>
+            <!-- y axis -->
+            <line x1="0" y1="0" x2="0" y2="160" stroke="#546e7a" stroke-width="1"/>
+
+            <!-- grid -->
+            <line x1="0" y1="120" x2="740" y2="120" stroke="#1a2a50" stroke-width="1" stroke-dasharray="4,4"/>
+            <line x1="0" y1="80" x2="740" y2="80" stroke="#1a2a50" stroke-width="1" stroke-dasharray="4,4"/>
+            <line x1="0" y1="40" x2="740" y2="40" stroke="#1a2a50" stroke-width="1" stroke-dasharray="4,4"/>
+
+            <text x="-8" y="164" text-anchor="end" fill="#546e7a" font-size="9">0</text>
+            <text x="-8" y="124" text-anchor="end" fill="#546e7a" font-size="9">25</text>
+            <text x="-8" y="84" text-anchor="end" fill="#546e7a" font-size="9">50</text>
+            <text x="-8" y="44" text-anchor="end" fill="#546e7a" font-size="9">75</text>
+
+            <!-- bars: group width=90, gap=14 -->
+            <!-- Link Control: ~29 -->
+            <rect x="14" y="113" width="72" height="47" rx="4" fill="#1565c0" opacity="0.9"/>
+            <text x="50" y="108" text-anchor="middle" fill="#90caf9" font-size="11" font-weight="700">29</text>
+            <text x="50" y="177" text-anchor="middle" fill="#78909c" font-size="9">链路控制</text>
+            <text x="50" y="188" text-anchor="middle" fill="#546e7a" font-size="8">Link Control</text>
+
+            <!-- Link Policy: ~13 -->
+            <rect x="118" y="135" width="72" height="25" rx="4" fill="#0288d1" opacity="0.9"/>
+            <text x="154" y="130" text-anchor="middle" fill="#90caf9" font-size="11" font-weight="700">13</text>
+            <text x="154" y="177" text-anchor="middle" fill="#78909c" font-size="9">链路策略</text>
+            <text x="154" y="188" text-anchor="middle" fill="#546e7a" font-size="8">Link Policy</text>
+
+            <!-- Controller Baseband: ~66 -->
+            <rect x="222" y="26" width="72" height="134" rx="4" fill="#7c4dff" opacity="0.9"/>
+            <text x="258" y="21" text-anchor="middle" fill="#e1bee7" font-size="11" font-weight="700">66</text>
+            <text x="258" y="177" text-anchor="middle" fill="#78909c" font-size="9">控制器基带</text>
+            <text x="258" y="188" text-anchor="middle" fill="#546e7a" font-size="8">Ctrl &amp; Baseband</text>
+
+            <!-- Info params: ~10 -->
+            <rect x="326" y="140" width="72" height="20" rx="4" fill="#00897b" opacity="0.9"/>
+            <text x="362" y="135" text-anchor="middle" fill="#a5d6a7" font-size="11" font-weight="700">10</text>
+            <text x="362" y="177" text-anchor="middle" fill="#78909c" font-size="9">信息参数</text>
+            <text x="362" y="188" text-anchor="middle" fill="#546e7a" font-size="8">Info Params</text>
+
+            <!-- Status params: ~10 -->
+            <rect x="430" y="140" width="72" height="20" rx="4" fill="#00695c" opacity="0.9"/>
+            <text x="466" y="135" text-anchor="middle" fill="#b2dfdb" font-size="11" font-weight="700">10</text>
+            <text x="466" y="177" text-anchor="middle" fill="#78909c" font-size="9">状态参数</text>
+            <text x="466" y="188" text-anchor="middle" fill="#546e7a" font-size">Status Params</text>
+
+            <!-- Testing: ~5 -->
+            <rect x="534" y="150" width="72" height="10" rx="4" fill="#f4511e" opacity="0.9"/>
+            <text x="570" y="145" text-anchor="middle" fill="#ffccbc" font-size="11" font-weight="700">5</text>
+            <text x="570" y="177" text-anchor="middle" fill="#78909c" font-size="9">测试</text>
+            <text x="570" y="188" text-anchor="middle" fill="#546e7a" font-size="8">Testing</text>
+
+            <!-- LE: ~100+ -->
+            <rect x="638" y="0" width="72" height="160" rx="4" fill="#e91e63" opacity="0.9"/>
+            <text x="674" y="-6" text-anchor="middle" fill="#f8bbd9" font-size="11" font-weight="700">100+</text>
+            <text x="674" y="177" text-anchor="middle" fill="#78909c" font-size="9">LE 控制器</text>
+            <text x="674" y="188" text-anchor="middle" fill="#546e7a" font-size="8">LE Controller</text>
+          </g>
+        </svg>
+        <div class="diagram-title">图 3-1: HCI 命令按功能分类的数量分布（示意，Core 6.0 共计 200+ 条命令/事件）</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 4 ===== -->
+    <a id="s4" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 4</span>
+        <div>
+          <div class="section-title">HCI 流控制</div>
+          <div class="section-subtitle">HCI Flow Control — 防止缓冲区溢出的双向机制</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        流控制确保 Host 发送的数据不超过 Controller 的缓冲能力，同时也允许 Controller 向 Host 反馈已完成的数据包数量。规范定义了两个方向的流控制机制，以及共享/独立缓冲区的处理方式。
+      </p>
+
+      <a id="s4-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">4.1 Host → Controller 流控制</div>
+        <p class="subsection-desc">Host 通过 HCI_Read_Buffer_Size 命令读取 Controller 的缓冲区大小，然后跟踪已发送但尚未被 Controller 确认的数据包数量。Controller 通过 <span class="hl-cyan">HCI_Number_Of_Completed_Packets</span> 事件通知 Host 已完成处理的数据包数，Host 据此更新计数器，决定何时可以继续发送。</p>
+
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#42a5f5"/>
+              </marker>
+              <marker id="a4" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#ffc107"/>
+              </marker>
+              <marker id="a5" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#43a047"/>
+              </marker>
+            </defs>
+
+            <!-- Host box -->
+            <rect x="20" y="30" width="200" height="220" rx="10" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="120" y="58" text-anchor="middle" fill="#90caf9" font-size="13" font-weight="700">Host</text>
+            <rect x="40" y="70" width="160" height="50" rx="6" fill="#162040" stroke="#546e7a" stroke-width="1"/>
+            <text x="120" y="98" text-anchor="middle" fill="#78909c" font-size="11">数据包计数器</text>
+            <text x="120" y="112" text-anchor="middle" fill="#42a5f5" font-size="16" font-weight="700" id="counterHost">≤ Buffer_Size</text>
+            <rect x="40" y="136" width="160" height="40" rx="6" fill="#162040"/>
+            <text x="120" y="162" text-anchor="middle" fill="#b39ddb" font-size="11">Read_Buffer_Size()</text>
+            <rect x="40" y="188" width="160" height="40" rx="6" fill="#162040"/>
+            <text x="120" y="214" text-anchor="middle" fill="#a5d6a7" font-size="11">Num_Completed_Pkts ↑</text>
+
+            <!-- Controller box -->
+            <rect x="540" y="30" width="200" height="220" rx="10" fill="#163530" stroke="#80cbc4" stroke-width="1.5"/>
+            <text x="640" y="58" text-anchor="middle" fill="#a5d6a7" font-size="13" font-weight="700">Controller</text>
+            <rect x="560" y="70" width="160" height="90" rx="6" fill="#0d2d2d" stroke="#4db6ac" stroke-width="1"/>
+            <text x="640" y="95" text-anchor="middle" fill="#80cbc4" font-size="11">ACL Buffer</text>
+            <rect x="570" y="102" width="30" height="40" rx="3" fill="#1565c0" opacity="0.8"/>
+            <rect x="606" y="102" width="30" height="40" rx="3" fill="#1565c0" opacity="0.6"/>
+            <rect x="642" y="102" width="30" height="40" rx="3" fill="#1565c0" opacity="0.4"/>
+            <rect x="678" y="102" width="30" height="40" rx="3" fill="#263238" stroke="#37474f" stroke-width="1" stroke-dasharray="3,2"/>
+            <text x="640" y="155" text-anchor="middle" fill="#546e7a" font-size="10">已用 / 剩余 slots</text>
+            <rect x="560" y="175" width="160" height="40" rx="6" fill="#0d2d2d"/>
+            <text x="640" y="201" text-anchor="middle" fill="#ffc107" font-size="11">发送 Num_Completed_Pkts 事件</text>
+
+            <!-- arrows -->
+            <!-- data packets -->
+            <line x1="220" y1="100" x2="540" y2="100" stroke="#42a5f5" stroke-width="2" marker-end="url(#a3)"/>
+            <text x="380" y="92" text-anchor="middle" fill="#42a5f5" font-size="11" font-weight="600">ACL / SCO / ISO 数据包 ▶</text>
+
+            <!-- Read Buffer Size -->
+            <line x1="220" y1="155" x2="540" y2="155" stroke="#78909c" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a3)"/>
+            <text x="380" y="148" text-anchor="middle" fill="#78909c" font-size="10">HCI_Read_Buffer_Size 命令</text>
+
+            <!-- Completed packets event -->
+            <line x1="540" y1="200" x2="220" y2="200" stroke="#ffc107" stroke-width="2" marker-end="url(#a4)"/>
+            <text x="380" y="218" text-anchor="middle" fill="#ffc107" font-size="11" font-weight="600">◀ HCI_Number_Of_Completed_Packets 事件</text>
+          </svg>
+          <div class="diagram-title">图 4-1: Host → Controller 流控制机制 — 基于缓冲区大小和已完成包数量</div>
+        </div>
+      </div>
+
+      <a id="s4-2" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">4.2 Controller → Host 流控制</div>
+        <p class="subsection-desc">默认情况下，Controller → Host 方向的流控制是关闭的。当 Host 需要启用时，通过 <span class="hl-cyan">HCI_Set_Controller_To_Host_Flow_Control</span> 命令激活，并使用 <span class="hl-amber">HCI_Host_Buffer_Size</span> 命令告知 Controller 自身的缓冲区大小，此后 Host 通过 <span class="hl-green">HCI_Host_Number_Of_Completed_Packets</span> 命令向 Controller 报告消费情况。</p>
+      </div>
+
+      <a id="s4-3" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">4.3 BR/EDR 与 LE 缓冲区配置</div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-icon">📊</div>
+            <div class="card-title">共享缓冲区模式</div>
+            <div class="card-desc">BR/EDR 和 LE 共用同一套 ACL 数据缓冲区。通过 HCI_Read_Buffer_Size 读取统一的缓冲区参数，流控计数器统一管理。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">📦</div>
+            <div class="card-title">独立缓冲区模式</div>
+            <div class="card-desc">BR/EDR 和 LE 各有独立缓冲区。LE 缓冲区通过 HCI_LE_Read_Buffer_Size 单独读取，各自独立计数。若 LE 缓冲区大小为 0，则复用 BR/EDR 缓冲区。</div>
+          </div>
+        </div>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <span>Controller 的具体缓冲区配置方式通过 HCI 命令在运行时动态确定，Host 不得假设默认配置。</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 5 ===== -->
+    <a id="s5" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 5</span>
+        <div>
+          <div class="section-title">HCI 数据格式</div>
+          <div class="section-subtitle">HCI Data Formats — 各类数据包的精确二进制结构</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        本节定义 HCI 在传输层上交换的所有数据包格式。共有四种基本包类型：<strong>命令包（Command Packet）</strong>、<strong>事件包（Event Packet）</strong>、<strong>ACL 数据包</strong>、<strong>同步数据包（SCO/eSCO）</strong>，以及 Bluetooth 5.2 引入的 <strong>ISO 数据包</strong>。
+      </p>
+
+      <a id="s5-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">5.1 HCI 命令包（Command Packet）</div>
+        <p class="subsection-desc">命令包由 Host 发送给 Controller。每个命令包包含一个 OpCode（操作码，由 OGF 和 OCF 组成）、参数总长度字段，以及可变长度的命令参数。</p>
+        <div class="packet-row">
+          <div class="packet-field pf-hdr">
+            <div class="pf-name">Packet Indicator</div>
+            <div class="pf-size">1 byte · 0x01</div>
+          </div>
+          <div class="packet-field pf-hdr">
+            <div class="pf-name">OpCode</div>
+            <div class="pf-size">2 bytes</div>
+          </div>
+          <div class="packet-field pf-len">
+            <div class="pf-name">Parameter Total Length</div>
+            <div class="pf-size">1 byte</div>
+          </div>
+          <div class="packet-field pf-data">
+            <div class="pf-name">Command Parameters</div>
+            <div class="pf-size">0–255 bytes</div>
+          </div>
+        </div>
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 700 120" xmlns="http://www.w3.org/2000/svg">
+            <text x="350" y="18" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">OpCode 字段结构（16 bit）</text>
+            <!-- OpCode bit field -->
+            <rect x="20" y="30" width="330" height="50" rx="6" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="185" y="52" text-anchor="middle" fill="#90caf9" font-size="11" font-weight="700">OCF（OpCode Command Field）</text>
+            <text x="185" y="68" text-anchor="middle" fill="#546e7a" font-size="10">Bits [9:0] — 10 bits — 具体命令编号</text>
+            <rect x="360" y="30" width="320" height="50" rx="6" fill="#163530" stroke="#80cbc4" stroke-width="1.5"/>
+            <text x="520" y="52" text-anchor="middle" fill="#80cbc4" font-size="11" font-weight="700">OGF（OpCode Group Field）</text>
+            <text x="520" y="68" text-anchor="middle" fill="#546e7a" font-size="10">Bits [15:10] — 6 bits — 命令组别</text>
+            <!-- OGF values -->
+            <text x="350" y="105" text-anchor="middle" fill="#546e7a" font-size="10">OGF: 0x01=链路控制 · 0x02=链路策略 · 0x03=控制器基带 · 0x04=信息 · 0x05=状态 · 0x06=测试 · 0x08=LE</text>
+          </svg>
+          <div class="diagram-title">图 5-1: HCI 命令包 OpCode 位域分解</div>
+        </div>
+      </div>
+
+      <a id="s5-2" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">5.2 HCI 事件包（Event Packet）</div>
+        <p class="subsection-desc">事件包由 Controller 异步发送给 Host，用于通知各种状态变化和命令完成情况。包含事件码（Event Code）、参数总长度和事件参数。</p>
+        <div class="packet-row">
+          <div class="packet-field pf-hdr">
+            <div class="pf-name">Packet Indicator</div>
+            <div class="pf-size">1 byte · 0x04</div>
+          </div>
+          <div class="packet-field pf-flag">
+            <div class="pf-name">Event Code</div>
+            <div class="pf-size">1 byte</div>
+          </div>
+          <div class="packet-field pf-len">
+            <div class="pf-name">Parameter Total Length</div>
+            <div class="pf-size">1 byte</div>
+          </div>
+          <div class="packet-field pf-extra">
+            <div class="pf-name">Event Parameters</div>
+            <div class="pf-size">0–255 bytes</div>
+          </div>
+        </div>
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <span>最常用的两个事件：<strong>HCI_Command_Complete（0x0E）</strong> 表示命令已执行完毕并携带返回参数；<strong>HCI_Command_Status（0x0F）</strong> 表示命令已被接受并在处理中（结果将通过后续事件通知）。</span>
+        </div>
+      </div>
+
+      <a id="s5-3" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">5.3 HCI ACL 数据包（异步无连接数据）</div>
+        <p class="subsection-desc">用于传输 L2CAP 数据等异步数据流。包含连接句柄（Connection Handle）、包边界标志（PB Flag）、广播标志（BC Flag）和数据长度。</p>
+        <div class="packet-row">
+          <div class="packet-field pf-hdr">
+            <div class="pf-name">Packet Indicator</div>
+            <div class="pf-size">1 byte · 0x02</div>
+          </div>
+          <div class="packet-field pf-handle">
+            <div class="pf-name">Handle [11:0]</div>
+            <div class="pf-size">12 bits</div>
+          </div>
+          <div class="packet-field pf-flag">
+            <div class="pf-name">PB Flag [1:0]</div>
+            <div class="pf-size">2 bits</div>
+          </div>
+          <div class="packet-field pf-flag">
+            <div class="pf-name">BC Flag [1:0]</div>
+            <div class="pf-size">2 bits</div>
+          </div>
+          <div class="packet-field pf-len">
+            <div class="pf-name">Data Total Length</div>
+            <div class="pf-size">2 bytes</div>
+          </div>
+          <div class="packet-field pf-data">
+            <div class="pf-name">Data</div>
+            <div class="pf-size">可变长</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="spec-table" style="margin-top:12px;">
+          <thead><tr><th>PB Flag 值</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>0b00</td><td>L2CAP 数据包的第一个分段（来自 Host）</td></tr>
+            <tr><td>0b01</td><td>续行片段（Continuing Fragment）</td></tr>
+            <tr><td>0b10</td><td>完整的 L2CAP PDU（不分段）或第一个分段（来自 Controller）</td></tr>
+            <tr><td>0b11</td><td>保留（Reserved for future use）</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <a id="s5-4" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">5.4 HCI 同步数据包（SCO / eSCO）</div>
+        <p class="subsection-desc">用于传输语音等同步数据（BR/EDR 专用）。包头格式与 ACL 类似，但使用同步连接句柄，且数据长度字段为 1 字节（最大 255 字节）。Packet_Status_Flag 用于指示数据接收状态（正确/部分错误/无数据）。</p>
+        <div class="packet-row">
+          <div class="packet-field pf-hdr">
+            <div class="pf-name">Packet Indicator</div>
+            <div class="pf-size">1 byte · 0x03</div>
+          </div>
+          <div class="packet-field pf-handle">
+            <div class="pf-name">Handle [11:0]</div>
+            <div class="pf-size">12 bits</div>
+          </div>
+          <div class="packet-field pf-flag">
+            <div class="pf-name">Status Flag [1:0]</div>
+            <div class="pf-size">2 bits</div>
+          </div>
+          <div class="packet-field pf-extra">
+            <div class="pf-name">RFU [1:0]</div>
+            <div class="pf-size">2 bits</div>
+          </div>
+          <div class="packet-field pf-len">
+            <div class="pf-name">Data Length</div>
+            <div class="pf-size">1 byte</div>
+          </div>
+          <div class="packet-field pf-data">
+            <div class="pf-name">Data（语音/音频）</div>
+            <div class="pf-size">0–255 bytes</div>
+          </div>
+        </div>
+      </div>
+
+      <a id="s5-5" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">5.5 HCI ISO 数据包（Bluetooth 5.2+）</div>
+        <p class="subsection-desc">ISO 数据包用于传输 LE 音频（CIS/BIS）等等时流数据。引入了时间戳（Timestamp）、序列号（Sequence Number）和 ISO SDU 长度字段，以支持精确的时间同步。</p>
+        <div class="packet-row">
+          <div class="packet-field pf-hdr">
+            <div class="pf-name">Packet Indicator</div>
+            <div class="pf-size">1 byte · 0x05</div>
+          </div>
+          <div class="packet-field pf-handle">
+            <div class="pf-name">Handle [11:0]</div>
+            <div class="pf-size">12 bits</div>
+          </div>
+          <div class="packet-field pf-flag">
+            <div class="pf-name">PB / TS Flags</div>
+            <div class="pf-size">4 bits</div>
+          </div>
+          <div class="packet-field pf-len">
+            <div class="pf-name">ISO Data Load Length</div>
+            <div class="pf-size">14 bits</div>
+          </div>
+          <div class="packet-field pf-extra">
+            <div class="pf-name">Timestamp（可选）</div>
+            <div class="pf-size">4 bytes</div>
+          </div>
+          <div class="packet-field pf-extra">
+            <div class="pf-name">Seq. Number</div>
+            <div class="pf-size">2 bytes</div>
+          </div>
+          <div class="packet-field pf-len">
+            <div class="pf-name">ISO SDU Length</div>
+            <div class="pf-size">12 bits</div>
+          </div>
+          <div class="packet-field pf-data">
+            <div class="pf-name">ISO SDU Data</div>
+            <div class="pf-size">可变长</div>
+          </div>
+        </div>
+        <div class="callout tip">
+          <span class="callout-icon">🎵</span>
+          <span>ISO 数据包是 LE Audio（LC3 编解码器、广播音频、助听器等）的基础，时间戳字段保证了多流音频的精准同步，这是蓝牙 5.2 的核心创新之一。</span>
+        </div>
+      </div>
+
+      <!-- Packet type comparison -->
+      <div class="diagram-box">
+        <svg width="100%" viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg">
+          <text x="430" y="20" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">HCI 数据包类型对比</text>
+
+          <!-- header row -->
+          <text x="110" y="44" text-anchor="middle" fill="#546e7a" font-size="11">包类型</text>
+          <text x="270" y="44" text-anchor="middle" fill="#546e7a" font-size="11">包指示字节</text>
+          <text x="430" y="44" text-anchor="middle" fill="#546e7a" font-size="11">方向</text>
+          <text x="590" y="44" text-anchor="middle" fill="#546e7a" font-size="11">最大数据长</text>
+          <text x="750" y="44" text-anchor="middle" fill="#546e7a" font-size="11">主要用途</text>
+          <line x1="20" y1="48" x2="840" y2="48" stroke="#1a2a50" stroke-width="1"/>
+
+          <!-- rows -->
+          <rect x="20" y="54" width="820" height="28" rx="4" fill="rgba(21,101,192,0.1)"/>
+          <text x="110" y="72" text-anchor="middle" fill="#90caf9" font-size="11">Command Packet</text>
+          <text x="270" y="72" text-anchor="middle" fill="#42a5f5" font-size="11">0x01</text>
+          <text x="430" y="72" text-anchor="middle" fill="#78909c" font-size="11">Host → Controller</text>
+          <text x="590" y="72" text-anchor="middle" fill="#78909c" font-size="11">255 bytes 参数</text>
+          <text x="750" y="72" text-anchor="middle" fill="#78909c" font-size="11">控制命令</text>
+
+          <rect x="20" y="86" width="820" height="28" rx="4" fill="rgba(74,20,140,0.1)"/>
+          <text x="110" y="104" text-anchor="middle" fill="#ce93d8" font-size="11">ACL Data Packet</text>
+          <text x="270" y="104" text-anchor="middle" fill="#ba68c8" font-size="11">0x02</text>
+          <text x="430" y="104" text-anchor="middle" fill="#78909c" font-size="11">双向</text>
+          <text x="590" y="104" text-anchor="middle" fill="#78909c" font-size="11">65535 bytes</text>
+          <text x="750" y="104" text-anchor="middle" fill="#78909c" font-size="11">L2CAP / 普通数据</text>
+
+          <rect x="20" y="118" width="820" height="28" rx="4" fill="rgba(0,137,123,0.1)"/>
+          <text x="110" y="136" text-anchor="middle" fill="#80cbc4" font-size="11">SCO/eSCO Packet</text>
+          <text x="270" y="136" text-anchor="middle" fill="#4db6ac" font-size="11">0x03</text>
+          <text x="430" y="136" text-anchor="middle" fill="#78909c" font-size="11">双向</text>
+          <text x="590" y="136" text-anchor="middle" fill="#78909c" font-size="11">255 bytes</text>
+          <text x="750" y="136" text-anchor="middle" fill="#78909c" font-size="11">语音（BR/EDR）</text>
+
+          <rect x="20" y="150" width="820" height="28" rx="4" fill="rgba(229,57,53,0.08)"/>
+          <text x="110" y="168" text-anchor="middle" fill="#ef9a9a" font-size="11">Event Packet</text>
+          <text x="270" y="168" text-anchor="middle" fill="#e57373" font-size="11">0x04</text>
+          <text x="430" y="168" text-anchor="middle" fill="#78909c" font-size="11">Controller → Host</text>
+          <text x="590" y="168" text-anchor="middle" fill="#78909c" font-size="11">255 bytes 参数</text>
+          <text x="750" y="168" text-anchor="middle" fill="#78909c" font-size="11">状态通知/事件</text>
+
+          <rect x="20" y="182" width="820" height="14" rx="4" fill="rgba(233,30,99,0.1)"/>
+          <text x="110" y="192" text-anchor="middle" fill="#f48fb1" font-size="10">ISO Data Packet</text>
+          <text x="270" y="192" text-anchor="middle" fill="#f06292" font-size="10">0x05</text>
+          <text x="430" y="192" text-anchor="middle" fill="#78909c" font-size="10">双向</text>
+          <text x="590" y="192" text-anchor="middle" fill="#78909c" font-size="10">16383 bytes</text>
+          <text x="750" y="192" text-anchor="middle" fill="#78909c" font-size="10">LE Audio / 等时流</text>
+        </svg>
+        <div class="diagram-title">图 5-2: HCI 五种数据包类型对比</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 6 ===== -->
+    <a id="s6" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 6</span>
+        <div>
+          <div class="section-title">HCI 配置参数</div>
+          <div class="section-subtitle">HCI Configuration Parameters — 多命令共用的通用参数说明</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        本节进一步说明多个命令共用的参数定义，避免在每条命令中重复说明。主要包括：扫描参数（扫描间隔与窗口）、连接参数（连接间隔、延迟、超时）、发送功率等。
+      </p>
+
+      <a id="s6-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">6.1 扫描参数（Scan Parameters）</div>
+        <p class="subsection-desc">扫描间隔（Scan_Interval）和扫描窗口（Scan_Window）共同决定了设备发现的效率与功耗之间的平衡。</p>
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 760 120" xmlns="http://www.w3.org/2000/svg">
+            <!-- timeline -->
+            <line x1="20" y1="60" x2="740" y2="60" stroke="#546e7a" stroke-width="1.5"/>
+            <!-- intervals -->
+            <!-- Interval 1 -->
+            <rect x="20" y="40" width="200" height="40" rx="0" fill="none" stroke="#42a5f5" stroke-width="1" stroke-dasharray="4,3"/>
+            <rect x="20" y="40" width="80" height="40" rx="4" fill="#1565c0" opacity="0.8"/>
+            <text x="60" y="64" text-anchor="middle" fill="#e8eaf6" font-size="11" font-weight="700">Scan Window</text>
+            <text x="160" y="58" text-anchor="middle" fill="#546e7a" font-size="10">idle</text>
+
+            <!-- Interval 2 -->
+            <rect x="220" y="40" width="200" height="40" rx="0" fill="none" stroke="#42a5f5" stroke-width="1" stroke-dasharray="4,3"/>
+            <rect x="220" y="40" width="80" height="40" rx="4" fill="#1565c0" opacity="0.8"/>
+            <text x="260" y="64" text-anchor="middle" fill="#e8eaf6" font-size="11" font-weight="700">Scan Window</text>
+            <text x="360" y="58" text-anchor="middle" fill="#546e7a" font-size="10">idle</text>
+
+            <!-- Interval 3 -->
+            <rect x="420" y="40" width="200" height="40" rx="0" fill="none" stroke="#42a5f5" stroke-width="1" stroke-dasharray="4,3"/>
+            <rect x="420" y="40" width="80" height="40" rx="4" fill="#1565c0" opacity="0.8"/>
+            <text x="460" y="64" text-anchor="middle" fill="#e8eaf6" font-size="11" font-weight="700">Scan Window</text>
+
+            <!-- arrows -->
+            <line x1="20" y1="92" x2="220" y2="92" stroke="#ffc107" stroke-width="1.5"/>
+            <line x1="20" y1="88" x2="20" y2="96" stroke="#ffc107" stroke-width="1.5"/>
+            <line x1="220" y1="88" x2="220" y2="96" stroke="#ffc107" stroke-width="1.5"/>
+            <text x="120" y="108" text-anchor="middle" fill="#ffc107" font-size="10">Scan_Interval（0.625ms × N, N=4~16384）</text>
+
+            <line x1="20" y1="28" x2="100" y2="28" stroke="#42a5f5" stroke-width="1.5"/>
+            <line x1="20" y1="24" x2="20" y2="32" stroke="#42a5f5" stroke-width="1.5"/>
+            <line x1="100" y1="24" x2="100" y2="32" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="60" y="20" text-anchor="middle" fill="#42a5f5" font-size="10">Scan_Window ≤ Scan_Interval</text>
+          </svg>
+          <div class="diagram-title">图 6-1: 扫描间隔与扫描窗口的时序关系（扫描窗口不得超过扫描间隔）</div>
+        </div>
+      </div>
+
+      <a id="s6-2" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">6.2 连接参数（Connection Parameters）</div>
+        <p class="subsection-desc">LE 连接的核心参数，决定连接的能耗、延迟和可靠性：</p>
+        <div style="overflow-x:auto;">
+        <table class="spec-table">
+          <thead>
+            <tr><th>参数名</th><th>范围</th><th>单位</th><th>作用说明</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Connection_Interval</td>
+              <td>6 – 3200</td>
+              <td>× 1.25 ms（7.5ms – 4s）</td>
+              <td>两次连接事件之间的时间间隔，影响延迟与功耗</td>
+            </tr>
+            <tr>
+              <td>Peripheral_Latency</td>
+              <td>0 – 499</td>
+              <td>连接事件数</td>
+              <td>外设（Peripheral）可以跳过的最大连接事件数（省电）</td>
+            </tr>
+            <tr>
+              <td>Supervision_Timeout</td>
+              <td>10 – 3200</td>
+              <td>× 10 ms（100ms – 32s）</td>
+              <td>超过此时间未收到数据包则认为连接已断开</td>
+            </tr>
+            <tr>
+              <td>CE_Length</td>
+              <td>0 – 0xFFFF</td>
+              <td>× 0.625 ms</td>
+              <td>连接事件的期望长度（仅供 Controller 参考调度）</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <a id="s6-3" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">6.3 TX 功率配置</div>
+        <p class="subsection-desc">通过 <span class="hl-cyan">HCI_LE_Read_Transmit_Power</span> 命令可读取 Controller 支持的最小/最大 TX 功率（范围 -127 dBm 至 +20 dBm）。通过 RF 路径补偿参数（RF_TX_Path_Compensation / RF_RX_Path_Compensation）可修正天线/走线带来的增益或损耗，精度为 0.1 dB。</p>
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 700 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- TX Power scale -->
+            <text x="350" y="18" text-anchor="middle" fill="#90a4ae" font-size="11">TX 功率范围（dBm）</text>
+            <rect x="60" y="30" width="580" height="24" rx="4" fill="#0f1c35" stroke="#546e7a" stroke-width="1"/>
+            <!-- gradient fill -->
+            <defs>
+              <linearGradient id="pwrG" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" style="stop-color:#1a237e"/>
+                <stop offset="30%" style="stop-color:#0288d1"/>
+                <stop offset="70%" style="stop-color:#43a047"/>
+                <stop offset="100%" style="stop-color:#e53935"/>
+              </linearGradient>
+            </defs>
+            <rect x="60" y="30" width="580" height="24" rx="4" fill="url(#pwrG)" opacity="0.7"/>
+            <text x="60" y="70" text-anchor="middle" fill="#78909c" font-size="10">-127</text>
+            <text x="234" y="70" text-anchor="middle" fill="#78909c" font-size="10">-60</text>
+            <text x="408" y="70" text-anchor="middle" fill="#78909c" font-size="10">0</text>
+            <text x="640" y="70" text-anchor="middle" fill="#78909c" font-size="10">+20</text>
+            <line x1="408" y1="28" x2="408" y2="56" stroke="#ffc107" stroke-width="1.5" stroke-dasharray="3,2"/>
+            <text x="408" y="84" text-anchor="middle" fill="#ffc107" font-size="9">0 dBm 参考</text>
+            <text x="350" y="96" text-anchor="middle" fill="#546e7a" font-size="9">典型蓝牙设备功率：Class 1 = +20 dBm · Class 2 = +4 dBm · Class 3 = 0 dBm</text>
+          </svg>
+          <div class="diagram-title">图 6-2: LE 控制器 TX 功率范围及典型值</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ===== SECTION 7 ===== -->
+    <a id="s7" class="section-anchor"></a>
+    <div class="spec-section">
+      <div class="section-header">
+        <span class="section-num">§ 7</span>
+        <div>
+          <div class="section-title">HCI 命令与事件详解</div>
+          <div class="section-subtitle">HCI Commands and Events — 规范核心章节</div>
+        </div>
+      </div>
+      <p class="section-desc">
+        本节是规范中最庞大的部分，详细描述了每一条 HCI 命令和每一种 HCI 事件，包括：命令参数定义、返回参数、关联事件，以及完整的数值取值范围说明。按功能分为 7.1 至 7.8 八个子分组。
+      </p>
+
+      <!-- Commands overview diagram -->
+      <div class="diagram-box">
+        <svg width="100%" viewBox="0 0 860 340" xmlns="http://www.w3.org/2000/svg">
+          <text x="430" y="22" text-anchor="middle" fill="#90a4ae" font-size="13" font-weight="700">§7 命令分组结构总览</text>
+
+          <!-- Groups as hexagonal/card layout -->
+          <g>
+            <!-- 7.1 Link Control -->
+            <rect x="20" y="36" width="185" height="90" rx="10" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="112" y="62" text-anchor="middle" fill="#42a5f5" font-size="12" font-weight="800">§ 7.1</text>
+            <text x="112" y="80" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">链路控制命令</text>
+            <text x="112" y="96" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x01</text>
+            <text x="112" y="112" text-anchor="middle" fill="#78909c" font-size="10">Inquiry / Connect / Auth / Encrypt…</text>
+
+            <!-- 7.2 Link Policy -->
+            <rect x="220" y="36" width="185" height="90" rx="10" fill="#0d2d5c" stroke="#0288d1" stroke-width="1.5"/>
+            <text x="312" y="62" text-anchor="middle" fill="#0288d1" font-size="12" font-weight="800">§ 7.2</text>
+            <text x="312" y="80" text-anchor="middle" fill="#81d4fa" font-size="12" font-weight="700">链路策略命令</text>
+            <text x="312" y="96" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x02</text>
+            <text x="312" y="112" text-anchor="middle" fill="#78909c" font-size="10">Hold / Sniff / Park / QoS…</text>
+
+            <!-- 7.3 Controller Baseband -->
+            <rect x="420" y="36" width="185" height="90" rx="10" fill="#1a1a4e" stroke="#7c4dff" stroke-width="1.5"/>
+            <text x="512" y="62" text-anchor="middle" fill="#7c4dff" font-size="12" font-weight="800">§ 7.3</text>
+            <text x="512" y="80" text-anchor="middle" fill="#b39ddb" font-size="12" font-weight="700">控制器基带命令</text>
+            <text x="512" y="96" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x03</text>
+            <text x="512" y="112" text-anchor="middle" fill="#78909c" font-size="10">Reset / Filter / Scan Enable / Event Mask…</text>
+
+            <!-- 7.4 Informational -->
+            <rect x="620" y="36" width="220" height="90" rx="10" fill="#0d2d2d" stroke="#00897b" stroke-width="1.5"/>
+            <text x="730" y="62" text-anchor="middle" fill="#00897b" font-size="12" font-weight="800">§ 7.4</text>
+            <text x="730" y="80" text-anchor="middle" fill="#80cbc4" font-size="12" font-weight="700">信息参数命令</text>
+            <text x="730" y="96" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x04</text>
+            <text x="730" y="112" text-anchor="middle" fill="#78909c" font-size="10">Read Local Version / BD_ADDR / Features…</text>
+
+            <!-- 7.5 Status -->
+            <rect x="20" y="144" width="185" height="90" rx="10" fill="#1a2000" stroke="#8bc34a" stroke-width="1.5"/>
+            <text x="112" y="170" text-anchor="middle" fill="#8bc34a" font-size="12" font-weight="800">§ 7.5</text>
+            <text x="112" y="188" text-anchor="middle" fill="#dce775" font-size="12" font-weight="700">状态参数命令</text>
+            <text x="112" y="204" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x05</text>
+            <text x="112" y="220" text-anchor="middle" fill="#78909c" font-size="10">Read RSSI / Clock / Link Quality…</text>
+
+            <!-- 7.6 Testing -->
+            <rect x="220" y="144" width="185" height="90" rx="10" fill="#1a0a00" stroke="#f4511e" stroke-width="1.5"/>
+            <text x="312" y="170" text-anchor="middle" fill="#f4511e" font-size="12" font-weight="800">§ 7.6</text>
+            <text x="312" y="188" text-anchor="middle" fill="#ffccbc" font-size="12" font-weight="700">测试命令</text>
+            <text x="312" y="204" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x06</text>
+            <text x="312" y="220" text-anchor="middle" fill="#78909c" font-size="10">Enable Device Under Test Mode / Loop…</text>
+
+            <!-- 7.7 Events -->
+            <rect x="420" y="144" width="185" height="90" rx="10" fill="#1a0010" stroke="#e91e63" stroke-width="1.5"/>
+            <text x="512" y="170" text-anchor="middle" fill="#e91e63" font-size="12" font-weight="800">§ 7.7</text>
+            <text x="512" y="188" text-anchor="middle" fill="#f48fb1" font-size="12" font-weight="700">事件（Events）</text>
+            <text x="512" y="204" text-anchor="middle" fill="#546e7a" font-size="10">Event Code 0x01 – 0xFF</text>
+            <text x="512" y="220" text-anchor="middle" fill="#78909c" font-size="10">Command_Complete / Status / Connect…</text>
+
+            <!-- 7.8 LE Controller -->
+            <rect x="620" y="144" width="220" height="90" rx="10" fill="#1a0020" stroke="#ce93d8" stroke-width="2"/>
+            <text x="730" y="170" text-anchor="middle" fill="#ce93d8" font-size="12" font-weight="800">§ 7.8</text>
+            <text x="730" y="188" text-anchor="middle" fill="#f3e5f5" font-size="12" font-weight="700">LE 控制器命令</text>
+            <text x="730" y="204" text-anchor="middle" fill="#546e7a" font-size="10">OGF = 0x08（100+ 条命令）</text>
+            <text x="730" y="220" text-anchor="middle" fill="#78909c" font-size="10">Advertise / Scan / Connect / Encrypt / ISO…</text>
+
+            <!-- Command flow -->
+            <rect x="20" y="260" width="820" height="70" rx="10" fill="#0a1628" stroke="#546e7a" stroke-width="1" stroke-dasharray="4,3"/>
+            <text x="430" y="284" text-anchor="middle" fill="#546e7a" font-size="11" font-weight="700">每条命令的描述格式（固定结构）</text>
+            <text x="120" y="306" text-anchor="middle" fill="#42a5f5" font-size="10">① OpCode (OGF+OCF)</text>
+            <text x="280" y="306" text-anchor="middle" fill="#80cbc4" font-size="10">② 功能描述</text>
+            <text x="430" y="306" text-anchor="middle" fill="#b39ddb" font-size="10">③ 命令参数（名称/大小/取值）</text>
+            <text x="600" y="306" text-anchor="middle" fill="#f48fb1" font-size="10">④ 返回参数</text>
+            <text x="740" y="306" text-anchor="middle" fill="#ffc107" font-size="10">⑤ 关联事件</text>
+          </g>
+        </svg>
+        <div class="diagram-title">图 7-0: §7 命令与事件分组结构总览</div>
+      </div>
+
+      <!-- 7.1 -->
+      <a id="s7-1" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.1 链路控制命令（Link Control Commands · OGF 0x01）</div>
+        <p class="subsection-desc">控制蓝牙连接的建立、接受、拒绝和断开，以及设备发现（Inquiry）、认证和加密等操作。这些命令主要针对 BR/EDR，是最基础的连接管理命令集。</p>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🔍</div>
+            <div class="card-title">HCI_Inquiry</div>
+            <div class="card-desc">开始查询周边 BR/EDR 设备，获取其地址和时钟偏移。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔗</div>
+            <div class="card-title">HCI_Create_Connection</div>
+            <div class="card-desc">向指定 BD_ADDR 设备发起 BR/EDR 连接请求。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">✅</div>
+            <div class="card-title">HCI_Accept_Connection_Request</div>
+            <div class="card-desc">接受来自远程设备的入向连接请求，可指定角色（Central/Peripheral）。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">❌</div>
+            <div class="card-title">HCI_Reject_Connection_Request</div>
+            <div class="card-desc">拒绝入向连接请求，需提供拒绝原因错误码。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔒</div>
+            <div class="card-title">HCI_Authentication_Requested</div>
+            <div class="card-desc">请求对指定连接句柄建立双向认证。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔐</div>
+            <div class="card-title">HCI_Set_Connection_Encryption</div>
+            <div class="card-desc">启用或禁用指定连接的链路层加密。</div>
+          </div>
+        </div>
+
+        <!-- Connection Flow -->
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="af" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#42a5f5"/>
+              </marker>
+              <marker id="ag" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto">
+                <path d="M8,0 L0,4 L8,8 z" fill="#00b8d9"/>
+              </marker>
+            </defs>
+            <text x="380" y="18" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">BR/EDR 典型连接建立流程（链路控制命令序列）</text>
+
+            <!-- Initiator side -->
+            <line x1="160" y1="30" x2="160" y2="250" stroke="#42a5f5" stroke-width="1.5" stroke-dasharray="none"/>
+            <text x="160" y="28" text-anchor="middle" fill="#90caf9" font-size="11" font-weight="700">发起方 Host</text>
+
+            <!-- Acceptor side -->
+            <line x1="600" y1="30" x2="600" y2="250" stroke="#80cbc4" stroke-width="1.5"/>
+            <text x="600" y="28" text-anchor="middle" fill="#a5d6a7" font-size="11" font-weight="700">接受方 Host</text>
+
+            <!-- Step 1: Create Connection -->
+            <line x1="160" y1="55" x2="600" y2="75" stroke="#42a5f5" stroke-width="1.5" marker-end="url(#af)"/>
+            <rect x="230" y="42" width="220" height="20" rx="4" fill="#0d2d5c"/>
+            <text x="340" y="56" text-anchor="middle" fill="#90caf9" font-size="10">HCI_Create_Connection → (via LMP)</text>
+
+            <!-- Step 2: Connection Request event at acceptor -->
+            <rect x="530" y="70" width="80" height="28" rx="4" fill="#163530" stroke="#80cbc4" stroke-width="1"/>
+            <text x="570" y="88" text-anchor="middle" fill="#a5d6a7" font-size="9">Connect Request Event</text>
+
+            <!-- Step 3: Accept Connection -->
+            <line x1="600" y1="105" x2="600" y2="118" stroke="#80cbc4" stroke-width="1"/>
+            <rect x="530" y="104" width="140" height="24" rx="4" fill="#163530"/>
+            <text x="600" y="120" text-anchor="middle" fill="#80cbc4" font-size="10">HCI_Accept_Connection_Request</text>
+
+            <!-- Step 4: Connection Complete at both -->
+            <rect x="80" y="148" width="160" height="24" rx="4" fill="#1a237e" stroke="#42a5f5" stroke-width="1"/>
+            <text x="160" y="164" text-anchor="middle" fill="#90caf9" font-size="10">Connection_Complete Event</text>
+            <rect x="520" y="148" width="160" height="24" rx="4" fill="#163530" stroke="#80cbc4" stroke-width="1"/>
+            <text x="600" y="164" text-anchor="middle" fill="#a5d6a7" font-size="10">Connection_Complete Event</text>
+            <line x1="240" y1="160" x2="520" y2="160" stroke="#ffc107" stroke-width="1" stroke-dasharray="4,3"/>
+
+            <!-- Step 5: Authentication -->
+            <line x1="160" y1="190" x2="600" y2="200" stroke="#42a5f5" stroke-width="1" marker-end="url(#af)" stroke-dasharray="5,3"/>
+            <text x="380" y="200" text-anchor="middle" fill="#78909c" font-size="10">HCI_Authentication_Requested（可选）</text>
+
+            <!-- Step 6: Encryption -->
+            <line x1="160" y1="220" x2="600" y2="230" stroke="#42a5f5" stroke-width="1" marker-end="url(#af)" stroke-dasharray="5,3"/>
+            <text x="380" y="230" text-anchor="middle" fill="#78909c" font-size="10">HCI_Set_Connection_Encryption（可选）</text>
+          </svg>
+          <div class="diagram-title">图 7-1: BR/EDR 连接建立的 HCI 命令/事件时序</div>
+        </div>
+      </div>
+
+      <!-- 7.2 -->
+      <a id="s7-2" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.2 链路策略命令（Link Policy Commands · OGF 0x02）</div>
+        <p class="subsection-desc">控制链路管理器（LM）的行为策略，主要用于 BR/EDR 的省电模式管理和服务质量（QoS）设置。</p>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">💤</div>
+            <div class="card-title">Sniff Mode</div>
+            <div class="card-desc">使设备进入 Sniff 低功耗模式，仅在特定时隙醒来接收数据，大幅降低功耗。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🎯</div>
+            <div class="card-title">QoS Setup</div>
+            <div class="card-desc">为连接设置服务质量参数（带宽、延迟、抖动），确保关键数据流的传输保障。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔄</div>
+            <div class="card-title">Role Switch</div>
+            <div class="card-desc">在 Central 和 Peripheral 角色之间切换，改变连接的调度主控方。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">⚙️</div>
+            <div class="card-title">Write Link Policy Settings</div>
+            <div class="card-desc">配置允许链路管理器使用哪些低功耗模式（Hold / Sniff / Park）。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7.3 -->
+      <a id="s7-3" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.3 控制器与基带命令（Controller & Baseband Commands · OGF 0x03）</div>
+        <p class="subsection-desc">数量最多的命令组（约 66 条），用于读写 Controller 的各种配置参数，包括事件过滤、本地名称、扫描使能、安全模式等。适用于 BR/EDR 和 LE 两种控制器。</p>
+        <div style="overflow-x:auto;">
+        <table class="spec-table">
+          <thead><tr><th>重要命令</th><th>功能说明</th><th>支持类型</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>HCI_Reset</td>
+              <td>软复位控制器，清除所有连接、事件过滤器、配置参数</td>
+              <td><span class="tag tag-both">BR/EDR + LE</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Set_Event_Mask</td>
+              <td>设置哪些事件需要上报给 Host（位图掩码）</td>
+              <td><span class="tag tag-both">BR/EDR + LE</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Write_Local_Name</td>
+              <td>写入本地设备名（UTF-8，最长 248 字节）</td>
+              <td><span class="tag tag-br">BR/EDR</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Write_Scan_Enable</td>
+              <td>控制 Inquiry Scan 和 Page Scan 的开关</td>
+              <td><span class="tag tag-br">BR/EDR</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Write_Class_Of_Device</td>
+              <td>设置设备类型（CoD），决定设备图标和主要用途</td>
+              <td><span class="tag tag-br">BR/EDR</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Write_Default_Link_Policy</td>
+              <td>为所有新建连接设置默认链路策略</td>
+              <td><span class="tag tag-br">BR/EDR</span></td>
+            </tr>
+            <tr>
+              <td>HCI_Read_Authenticated_Payload_Timeout</td>
+              <td>读取已认证负载超时阈值（用于防 MitM 检测）</td>
+              <td><span class="tag tag-both">BR/EDR + LE</span></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- 7.4 -->
+      <a id="s7-4" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.4 信息参数命令（Informational Parameters Commands · OGF 0x04）</div>
+        <p class="subsection-desc">只读命令组，用于查询 Controller 的固有属性和能力。这些参数由 Controller 固件决定，Host 无法修改。</p>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🏷️</div>
+            <div class="card-title">Read_Local_Version_Information</div>
+            <div class="card-desc">返回 HCI 版本、修订号、LMP/LL 版本及制造商 ID。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">📍</div>
+            <div class="card-title">Read_BD_ADDR</div>
+            <div class="card-desc">读取本地设备的蓝牙地址（6 字节，全球唯一）。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🛠️</div>
+            <div class="card-title">Read_Local_Supported_Features</div>
+            <div class="card-desc">读取本地 LMP 特性位图，了解硬件支持的能力集合。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">💾</div>
+            <div class="card-title">Read_Buffer_Size</div>
+            <div class="card-desc">读取 Controller ACL/SCO 缓冲区大小和数量，用于流控初始化。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7.5 -->
+      <a id="s7-5" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.5 状态参数命令（Status Parameters Commands · OGF 0x05）</div>
+        <p class="subsection-desc">用于在运行时读取 Controller 和连接的动态状态信息，如信号强度、链路质量、时钟等。</p>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">📶</div>
+            <div class="card-title">HCI_Read_RSSI</div>
+            <div class="card-desc">读取指定连接的接收信号强度（RSSI），单位 dBm，用于链路质量评估和测距。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">🔗</div>
+            <div class="card-title">HCI_Read_Link_Quality</div>
+            <div class="card-desc">读取链路质量指标（0–255），数值越大表示链路质量越好。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">⏱️</div>
+            <div class="card-title">HCI_Read_Clock</div>
+            <div class="card-desc">读取本地或连接的蓝牙时钟值（312.5μs 精度），用于时间同步和测距。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">📊</div>
+            <div class="card-title">HCI_Read_AFH_Channel_Map</div>
+            <div class="card-desc">读取当前自适应跳频（AFH）使用的信道图，可了解哪些 2.4GHz 信道被回避。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7.6 -->
+      <a id="s7-6" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.6 测试命令（Testing Commands · OGF 0x06）</div>
+        <p class="subsection-desc">用于生产测试和一致性测试（RF 认证）。这些命令在正常使用中不会调用。</p>
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <span>测试命令会使 Controller 进入特殊测试模式（如 DUT 模式、直接 TX/RX 测试），此时正常的蓝牙功能将被暂停。生产环境中禁止调用这些命令。</span>
+        </div>
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-icon">🧪</div>
+            <div class="card-title">Enable_Device_Under_Test_Mode</div>
+            <div class="card-desc">使 Controller 进入 DUT 测试模式，配合测试设备进行 RF 一致性测试。</div>
+          </div>
+          <div class="card">
+            <div class="card-icon">📡</div>
+            <div class="card-title">LE_Transmitter/Receiver_Test</div>
+            <div class="card-desc">LE 直接 RF 测试命令，在指定信道持续发送或接收测试数据包。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7.7 -->
+      <a id="s7-7" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.7 HCI 事件（Events）</div>
+        <p class="subsection-desc">Controller 通过事件异步通知 Host 各种状态变化和操作结果。每个事件有唯一的 Event Code，并携带相应的参数。重要事件一览：</p>
+        <div style="overflow-x:auto;">
+        <table class="spec-table">
+          <thead>
+            <tr><th>事件名称</th><th>Event Code</th><th>触发条件</th><th>关键参数</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>HCI_Command_Complete</td>
+              <td>0x0E</td>
+              <td>命令执行完毕（同步返回结果）</td>
+              <td>Num_HCI_Commands, Command_Opcode, Return_Parameters</td>
+            </tr>
+            <tr>
+              <td>HCI_Command_Status</td>
+              <td>0x0F</td>
+              <td>命令已被接受，但执行异步进行</td>
+              <td>Status, Num_HCI_Commands, Command_Opcode</td>
+            </tr>
+            <tr>
+              <td>HCI_Connection_Complete</td>
+              <td>0x03</td>
+              <td>BR/EDR 连接建立完成（成功或失败）</td>
+              <td>Status, Connection_Handle, BD_ADDR, Link_Type, Encryption</td>
+            </tr>
+            <tr>
+              <td>HCI_Disconnection_Complete</td>
+              <td>0x05</td>
+              <td>连接断开完成</td>
+              <td>Status, Connection_Handle, Reason</td>
+            </tr>
+            <tr>
+              <td>HCI_LE_Meta event</td>
+              <td>0x3E</td>
+              <td>所有 LE 子事件的统一入口（通过 Subevent_Code 区分）</td>
+              <td>Subevent_Code, [各子事件参数]</td>
+            </tr>
+            <tr>
+              <td>HCI_Number_Of_Completed_Packets</td>
+              <td>0x13</td>
+              <td>Controller 完成数据包发送时通知 Host</td>
+              <td>Num_Handles, [Handle, Num_Completed_Packets]×N</td>
+            </tr>
+            <tr>
+              <td>HCI_Hardware_Error</td>
+              <td>0x10</td>
+              <td>Controller 硬件故障</td>
+              <td>Hardware_Code</td>
+            </tr>
+            <tr>
+              <td>HCI_Authenticated_Payload_Timeout_Expired</td>
+              <td>0x57</td>
+              <td>在超时时间内未收到含有效 MIC 的包</td>
+              <td>Connection_Handle</td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#42a5f5"/>
+              </marker>
+              <marker id="ai" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                <path d="M0,0 L8,4 L0,8 z" fill="#ffc107"/>
+              </marker>
+            </defs>
+            <text x="380" y="18" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">HCI 命令与事件交互时序（同步 vs 异步）</text>
+
+            <!-- Host timeline -->
+            <line x1="120" y1="30" x2="120" y2="190" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="120" y="28" text-anchor="middle" fill="#90caf9" font-size="10">Host</text>
+
+            <!-- Controller timeline -->
+            <line x1="640" y1="30" x2="640" y2="190" stroke="#80cbc4" stroke-width="1.5"/>
+            <text x="640" y="28" text-anchor="middle" fill="#a5d6a7" font-size="10">Controller</text>
+
+            <!-- Command -->
+            <line x1="120" y1="55" x2="640" y2="55" stroke="#42a5f5" stroke-width="1.5" marker-end="url(#ah)"/>
+            <rect x="240" y="44" width="250" height="18" rx="3" fill="#0d2d5c"/>
+            <text x="365" y="56" text-anchor="middle" fill="#90caf9" font-size="10">HCI_Command（OpCode + Params）</text>
+
+            <!-- Synchronous: Command Complete -->
+            <rect x="560" y="70" width="120" height="24" rx="4" fill="#163530" stroke="#80cbc4" stroke-width="1"/>
+            <text x="620" y="86" text-anchor="middle" fill="#80cbc4" font-size="9">Execute (sync)</text>
+            <line x1="560" y1="100" x2="120" y2="100" stroke="#ffc107" stroke-width="1.5" marker-end="url(#ai)"/>
+            <rect x="220" y="90" width="250" height="18" rx="3" fill="#1a1500"/>
+            <text x="345" y="102" text-anchor="middle" fill="#ffc107" font-size="10">HCI_Command_Complete (0x0E) ← 同步返回</text>
+
+            <!-- Async: Command Status + later event -->
+            <line x1="120" y1="130" x2="640" y2="130" stroke="#42a5f5" stroke-width="1.5" marker-end="url(#ah)"/>
+            <rect x="240" y="119" width="250" height="18" rx="3" fill="#0d2d5c"/>
+            <text x="365" y="131" text-anchor="middle" fill="#90caf9" font-size="10">HCI_Command（异步操作）</text>
+
+            <line x1="640" y1="148" x2="120" y2="148" stroke="#ffc107" stroke-width="1.5" marker-end="url(#ai)"/>
+            <text x="380" y="144" text-anchor="middle" fill="#ffc107" font-size="9">HCI_Command_Status (0x0F) ← 立即确认</text>
+
+            <line x1="640" y1="172" x2="120" y2="172" stroke="#e91e63" stroke-width="1.5" marker-end="url(#ai)"/>
+            <text x="380" y="168" text-anchor="middle" fill="#e91e63" font-size="9">HCI_Specific_Event ← 异步结果（稍后）</text>
+          </svg>
+          <div class="diagram-title">图 7-7: HCI 命令的同步（Command_Complete）与异步（Command_Status + Event）响应模式</div>
+        </div>
+      </div>
+
+      <!-- 7.8 -->
+      <a id="s7-8" class="section-anchor"></a>
+      <div class="subsection">
+        <div class="subsection-title">7.8 LE 控制器命令（LE Controller Commands · OGF 0x08）</div>
+        <p class="subsection-desc">数量最多的命令组（100+ 条），涵盖 LE 蓝牙所有功能。从基础广播/扫描/连接，到加密、PHY 选择、扩展广播（AE）、周期广播、等时流（CIS/BIS）等最新特性。</p>
+
+        <!-- LE Command Categories -->
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 860 360" xmlns="http://www.w3.org/2000/svg">
+            <text x="430" y="20" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">§7.8 LE 命令功能分类（按蓝牙版本演进）</text>
+
+            <!-- BT 4.0 -->
+            <rect x="20" y="34" width="820" height="50" rx="8" fill="#0d2d5c" stroke="#1565c0" stroke-width="1.5"/>
+            <text x="40" y="56" fill="#42a5f5" font-size="11" font-weight="700">Bluetooth 4.0（LE 初始版本）</text>
+            <text x="40" y="74" fill="#78909c" font-size="10">Set_Advertising_Parameters · Set_Advertising_Data · Set_Advertise_Enable · Set_Scan_Parameters · Set_Scan_Enable · Create_Connection</text>
+            <text x="660" y="56" fill="#42a5f5" font-size="10">OCF</text>
+            <text x="660" y="72" fill="#546e7a" font-size="10">0x0001–0x001D</text>
+
+            <!-- BT 4.1 -->
+            <rect x="20" y="96" width="820" height="44" rx="8" fill="#0a2010" stroke="#2e7d32" stroke-width="1.5"/>
+            <text x="40" y="116" fill="#66bb6a" font-size="11" font-weight="700">Bluetooth 4.1</text>
+            <text x="40" y="130" fill="#78909c" font-size="10">Remote_Connection_Parameter_Request_Reply · Negative_Reply · Set_Data_Length · Read_Suggested_Default_Data_Length</text>
+            <text x="660" y="116" fill="#66bb6a" font-size="10">省电 + 数据长度扩展</text>
+
+            <!-- BT 4.2 -->
+            <rect x="20" y="152" width="820" height="44" rx="8" fill="#0a1020" stroke="#0288d1" stroke-width="1.5"/>
+            <text x="40" y="172" fill="#4fc3f7" font-size="11" font-weight="700">Bluetooth 4.2</text>
+            <text x="40" y="186" fill="#78909c" font-size="10">Read_Local_P-256_Public_Key · Generate_DHKey · Add/Remove_Device_From_Resolving_List · Set_Privacy_Mode · LE_Encrypt / LE_Rand（增强）</text>
+            <text x="660" y="172" fill="#4fc3f7" font-size="10">隐私 + LL 加密</text>
+
+            <!-- BT 5.0 -->
+            <rect x="20" y="208" width="820" height="44" rx="8" fill="#1a0020" stroke="#7b1fa2" stroke-width="1.5"/>
+            <text x="40" y="228" fill="#ce93d8" font-size="11" font-weight="700">Bluetooth 5.0</text>
+            <text x="40" y="242" fill="#78909c" font-size="10">Set_Extended_Advertising_Parameters · Set_Extended_Advertising_Data · Set_Extended_Scan_Parameters · Extended_Create_Connection · Set_Default_PHY</text>
+            <text x="660" y="228" fill="#ce93d8" font-size="10">扩展广播 + 2M/Coded PHY</text>
+
+            <!-- BT 5.1 -->
+            <rect x="20" y="264" width="390" height="44" rx="8" fill="#1a1000" stroke="#f57f17" stroke-width="1.5"/>
+            <text x="40" y="284" fill="#ffb74d" font-size="11" font-weight="700">Bluetooth 5.1</text>
+            <text x="40" y="298" fill="#78909c" font-size="10">Set_Connectionless_IQ_Sampling_Enable · Receiver_IQ_Sampling（AoA/AoD 测向）</text>
+
+            <!-- BT 5.2 -->
+            <rect x="430" y="264" width="410" height="44" rx="8" fill="#100020" stroke="#e91e63" stroke-width="1.5"/>
+            <text x="450" y="284" fill="#f48fb1" font-size="11" font-weight="700">Bluetooth 5.2（LE Audio）</text>
+            <text x="450" y="298" fill="#78909c" font-size="10">Create_CIS · Setup_ISO_Data_Path · Create_BIG · Terminate_BIG · ISO 相关命令集</text>
+
+            <!-- BT 5.3/6.0 -->
+            <rect x="20" y="320" width="820" height="32" rx="8" fill="#080810" stroke="#546e7a" stroke-width="1" stroke-dasharray="4,3"/>
+            <text x="40" y="340" fill="#546e7a" font-size="11" font-weight="700">Bluetooth 5.3 / 6.0</text>
+            <text x="150" y="340" fill="#37474f" font-size="10">Enhanced Connection Update · Subrating · PAST（Periodic Advertising Sync Transfer）· LE Power Control · Channel Sounding（6.0）</text>
+          </svg>
+          <div class="diagram-title">图 7-8: LE 命令随蓝牙版本的演进路径（Bluetooth 4.0 → 6.0）</div>
+        </div>
+
+        <div class="subsection" style="margin-top:20px;">
+          <div class="subsection-title" style="font-size:14px;">典型 LE 操作命令详解</div>
+
+          <div class="two-col">
+            <div>
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:700;">📡 广播（Advertising）相关命令</p>
+              <table class="spec-table">
+                <thead><tr><th>命令（OCF）</th><th>作用</th></tr></thead>
+                <tbody>
+                  <tr><td>Set_Advertising_Parameters (0x0006)</td><td>设置广播间隔、类型、地址类型、信道等</td></tr>
+                  <tr><td>Set_Advertising_Data (0x0008)</td><td>设置广播包内容（最大 31 字节）</td></tr>
+                  <tr><td>Set_Scan_Response_Data (0x0009)</td><td>设置扫描响应包内容</td></tr>
+                  <tr><td>Set_Advertise_Enable (0x000A)</td><td>启用/禁用广播</td></tr>
+                  <tr><td>Set_Extended_Advertising_Data (0x0037)</td><td>扩展广播数据（可超 31 字节）</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:700;">🔍 扫描与连接相关命令</p>
+              <table class="spec-table">
+                <thead><tr><th>命令（OCF）</th><th>作用</th></tr></thead>
+                <tbody>
+                  <tr><td>Set_Scan_Parameters (0x000B)</td><td>设置扫描间隔、窗口、类型</td></tr>
+                  <tr><td>Set_Scan_Enable (0x000C)</td><td>开始/停止扫描</td></tr>
+                  <tr><td>Create_Connection (0x000D)</td><td>向指定设备发起连接</td></tr>
+                  <tr><td>Connection_Update (0x0013)</td><td>更新连接参数（间隔/延迟/超时）</td></tr>
+                  <tr><td>Extended_Create_Connection (0x0043)</td><td>使用扩展广播集发起连接</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top:16px;">
+            <div>
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:700;">🔐 安全与加密命令</p>
+              <table class="spec-table">
+                <thead><tr><th>命令</th><th>作用</th></tr></thead>
+                <tbody>
+                  <tr><td>LE_Encrypt (0x0017)</td><td>AES-128 加密（用于 SMP 配对）</td></tr>
+                  <tr><td>LE_Rand (0x0018)</td><td>生成 8 字节随机数（密码学安全）</td></tr>
+                  <tr><td>LE_Start_Encryption (0x0019)</td><td>启动 LE 链路层加密</td></tr>
+                  <tr><td>Generate_DHKey (0x0026)</td><td>计算 P-256 Diffie-Hellman 密钥</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:700;">🎵 LE Audio / ISO 等时流命令（BT 5.2+）</p>
+              <table class="spec-table">
+                <thead><tr><th>命令</th><th>作用</th></tr></thead>
+                <tbody>
+                  <tr><td>Set_CIG_Parameters (0x0062)</td><td>配置连接等时组（CIG）参数</td></tr>
+                  <tr><td>Create_CIS (0x0064)</td><td>创建连接等时流（CIS，双向音频）</td></tr>
+                  <tr><td>Create_BIG (0x0068)</td><td>创建广播等时组（BIG，单向广播音频）</td></tr>
+                  <tr><td>Setup_ISO_Data_Path (0x006E)</td><td>配置 ISO 数据路径（HCI 或内部编解码器）</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- LE Connection lifecycle -->
+        <div class="diagram-box">
+          <svg width="100%" viewBox="0 0 860 280" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="ak" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                <path d="M0,0 L7,3.5 L0,7 z" fill="#42a5f5"/>
+              </marker>
+              <marker id="al" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+                <path d="M0,0 L7,3.5 L0,7 z" fill="#e91e63"/>
+              </marker>
+            </defs>
+            <text x="430" y="20" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">LE 设备状态机 &amp; 主要命令触发路径</text>
+
+            <!-- States -->
+            <rect x="360" y="36" width="140" height="40" rx="8" fill="#263238" stroke="#546e7a" stroke-width="1.5"/>
+            <text x="430" y="61" text-anchor="middle" fill="#90a4ae" font-size="12" font-weight="700">Standby 待机</text>
+
+            <rect x="40" y="136" width="160" height="40" rx="8" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="120" y="161" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">Advertising 广播</text>
+
+            <rect x="240" y="136" width="160" height="40" rx="8" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="320" y="161" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">Scanning 扫描</text>
+
+            <rect x="460" y="136" width="160" height="40" rx="8" fill="#0d2d5c" stroke="#42a5f5" stroke-width="1.5"/>
+            <text x="540" y="161" text-anchor="middle" fill="#90caf9" font-size="12" font-weight="700">Initiating 发起</text>
+
+            <rect x="280" y="226" width="200" height="40" rx="8" fill="#163530" stroke="#80cbc4" stroke-width="1.5"/>
+            <text x="380" y="251" text-anchor="middle" fill="#a5d6a7" font-size="12" font-weight="700">Connection 已连接</text>
+
+            <!-- Arrows -->
+            <line x1="360" y1="62" x2="200" y2="136" stroke="#42a5f5" stroke-width="1.5" marker-end="url(#ak)"/>
+            <text x="252" y="108" text-anchor="middle" fill="#546e7a" font-size="9">Set_Advertise_Enable(ON)</text>
+
+            <line x1="400" y1="76" x2="340" y2="136" stroke="#42a5f5" stroke-width="1.5" marker-end="url(#ak)"/>
+            <text x="378" y="115" text-anchor="middle" fill="#546e7a" font-size="9">Set_Scan_Enable(ON)</text>
+
+            <line x1="460" y1="62" x2="540" y2="136" stroke="#42a5f5" stroke-width="1.5" marker-end="url(#ak)"/>
+            <text x="520" y="100" text-anchor="middle" fill="#546e7a" font-size="9">Create_Connection</text>
+
+            <line x1="120" y1="176" x2="300" y2="226" stroke="#e91e63" stroke-width="1.5" marker-end="url(#al)"/>
+            <text x="188" y="215" text-anchor="middle" fill="#546e7a" font-size="9">连接请求被接受</text>
+
+            <line x1="540" y1="176" x2="460" y2="226" stroke="#e91e63" stroke-width="1.5" marker-end="url(#al)"/>
+            <text x="520" y="215" text-anchor="middle" fill="#546e7a" font-size="9">连接建立成功</text>
+
+            <line x1="380" y1="266" x2="430" y2="76" stroke="#e57373" stroke-width="1.5" marker-end="url(#al)" stroke-dasharray="5,3"/>
+            <text x="450" y="200" text-anchor="middle" fill="#e57373" font-size="9">Disconnect</text>
+          </svg>
+          <div class="diagram-title">图 7-8b: LE 设备状态机及主要 HCI 命令触发的状态转换</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Footer summary -->
+    <div class="spec-section" style="margin-bottom:20px;">
+      <div class="section-header">
+        <span class="section-num">总结</span>
+        <div>
+          <div class="section-title">HCI 规范要点速览</div>
+        </div>
+      </div>
+      <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+        <div class="card" style="border-color:rgba(66,165,245,0.4);">
+          <div class="card-icon">🏗️</div>
+          <div class="card-title">§1–§2 架构与传输</div>
+          <div class="card-desc">定义 HCI 的角色（Upper/Lower HCI）、软件栈层次、传输层透明性原则和跨版本兼容规则。</div>
+        </div>
+        <div class="card" style="border-color:rgba(0,184,217,0.4);">
+          <div class="card-icon">📋</div>
+          <div class="card-title">§3 命令/事件总表</div>
+          <div class="card-desc">完整列出所有 HCI 命令和事件（200+ 条），含版本信息、功能摘要、BR/EDR 和 LE 的支持要求（M/O/C/E）。</div>
+        </div>
+        <div class="card" style="border-color:rgba(255,193,7,0.4);">
+          <div class="card-icon">🌊</div>
+          <div class="card-title">§4 流控制</div>
+          <div class="card-desc">双向流控机制：Host 通过 Num_Completed_Packets 事件跟踪 Controller 缓冲使用情况，支持共享或独立缓冲区模式。</div>
+        </div>
+        <div class="card" style="border-color:rgba(233,30,99,0.4);">
+          <div class="card-icon">📦</div>
+          <div class="card-title">§5 数据格式</div>
+          <div class="card-desc">精确定义 5 种 HCI 数据包的二进制格式：命令包(0x01)、ACL(0x02)、SCO(0x03)、事件(0x04)、ISO(0x05)。</div>
+        </div>
+        <div class="card" style="border-color:rgba(124,77,255,0.4);">
+          <div class="card-icon">⚙️</div>
+          <div class="card-title">§6 配置参数</div>
+          <div class="card-desc">扫描间隔/窗口、连接间隔/延迟/超时、TX 功率范围及 RF 路径补偿等多命令通用参数的规范化定义。</div>
+        </div>
+        <div class="card" style="border-color:rgba(67,160,71,0.4);">
+          <div class="card-icon">📖</div>
+          <div class="card-title">§7 命令详解</div>
+          <div class="card-desc">8 个命令子组（7.1–7.8），LE 命令组（7.8）随蓝牙版本从 4.0 演进至 6.0，新增 ISO/Audio/测向/信道探测等能力。</div>
+        </div>
+      </div>
+
+      <div class="callout info" style="margin-top:20px;">
+        <span class="callout-icon">📌</span>
+        <div>
+          <strong style="color:var(--cyan);">规范参考：</strong> Bluetooth Core Specification 6.0, Volume 4, Part E — Host Controller Interface Functional Specification.
+          所有命令 OpCode、参数范围及支持要求以官方文档为准。本页面为结构化学习辅助资料，严格遵循原始规范章节顺序。
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content-wrap -->
+</div><!-- /main -->
+
+<script>
+  const main = document.getElementById('main');
+  const anchors = Array.from(document.querySelectorAll('.section-anchor'));
+  const navItems = document.querySelectorAll('.nav-item');
+
+  function getTopbarOffset() {
+    const topbar = main.querySelector('.topbar');
+    return (topbar ? topbar.offsetHeight : 0) + 12;
+  }
+
+  /** 锚点在 #main 滚动容器内的绝对 top（px） */
+  function anchorTopInMain(el) {
+    return el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+  }
+
+  function setActiveNav(id) {
+    navItems.forEach(item => {
+      item.classList.remove('active');
+      const onclick = item.getAttribute('onclick') || '';
+      if (onclick.includes("navScrollTo('" + id + "')")) {
+        item.classList.add('active');
+      }
+    });
+  }
+
+  function navScrollTo(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (window.btScrollToEl) {
+      window.btScrollToEl(el, getTopbarOffset());
+    } else {
+      const top = Math.max(0, anchorTopInMain(el) - getTopbarOffset());
+      main.scrollTo({ top, behavior: 'smooth' });
+    }
+    setActiveNav(id);
+    if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+  }
+
+  let scrollTicking = false;
+  main.addEventListener('scroll', () => {
+    if (scrollTicking) return;
+    scrollTicking = true;
+    requestAnimationFrame(() => {
+      const y = main.scrollTop + getTopbarOffset() + 20;
+      let currentId = anchors[0]?.id || '';
+      anchors.forEach(anchor => {
+        if (anchorTopInMain(anchor) <= y) {
+          currentId = anchor.id;
+        }
+      });
+      if (currentId) setActiveNav(currentId);
+      scrollTicking = false;
+    });
+  });
+
+  if (location.hash) {
+    const id = location.hash.slice(1);
+    if (document.getElementById(id)) {
+      requestAnimationFrame(() => navScrollTo(id));
+    }
+  }
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

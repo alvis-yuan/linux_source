@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙安全管理规范 (Part H) - BT Core 6.0</title>
+<style>
+  :root {
+    --blue-deep: #0a1628;
+    --blue-mid: #0d2137;
+    --blue-accent: #0078d4;
+    --blue-bright: #00a8ff;
+    --blue-light: #e8f4fd;
+    --green: #00c875;
+    --orange: #ff7b25;
+    --purple: #7c3aed;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --border: #e2e8f0;
+    --nav-width: 280px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f8fafc; color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
+
+  /* ===== NAV ===== */
+  #sidebar {
+    width: var(--nav-width);
+    background: var(--blue-deep);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+  #sidebar-header {
+    background: linear-gradient(135deg, #0078d4, #0d47a1);
+    padding: 18px 16px;
+    flex-shrink: 0;
+  }
+  #sidebar-header h1 { color: #fff; font-size: 13px; font-weight: 700; line-height: 1.4; }
+  #sidebar-header p { color: rgba(255,255,255,0.6); font-size: 11px; margin-top: 4px; }
+  #nav-search {
+    padding: 10px 12px;
+    background: #0d2137;
+    flex-shrink: 0;
+  }
+  #nav-search input {
+    width: 100%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px; padding: 7px 10px; color: #fff; font-size: 12px; outline: none;
+  }
+  #nav-search input::placeholder { color: rgba(255,255,255,0.4); }
+  #nav-tree {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0 20px;
+  }
+  #nav-tree::-webkit-scrollbar { width: 4px; }
+  #nav-tree::-webkit-scrollbar-track { background: transparent; }
+  #nav-tree::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+  .nav-section { margin-bottom: 2px; }
+  .nav-group-title {
+    color: rgba(255,255,255,0.4);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 12px 16px 4px;
+  }
+  .nav-item {
+    display: block;
+    padding: 7px 16px 7px 20px;
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    text-decoration: none;
+    line-height: 1.4;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; border-left-color: rgba(0,168,255,0.5); }
+  .nav-item.active { background: rgba(0,120,212,0.25); color: #00a8ff; border-left-color: #00a8ff; font-weight: 600; }
+  .nav-item.sub { padding-left: 32px; font-size: 11.5px; }
+  .nav-item.subsub { padding-left: 44px; font-size: 11px; color: rgba(255,255,255,0.5); }
+  .nav-item.subsub:hover { color: rgba(255,255,255,0.85); }
+  .nav-num { color: rgba(255,255,255,0.35); margin-right: 5px; font-size: 10px; }
+  .nav-item.active .nav-num { color: rgba(0,168,255,0.7); }
+
+  /* ===== MAIN ===== */
+  #main {
+    flex: 1;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+  #main::-webkit-scrollbar { width: 6px; }
+  #main::-webkit-scrollbar-track { background: #f1f5f9; }
+  #main::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+  /* ===== HERO ===== */
+  #hero {
+    background: linear-gradient(135deg, var(--blue-deep) 0%, #0d47a1 50%, #0078d4 100%);
+    padding: 60px 48px 50px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+  #hero::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(0,168,255,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  #hero::after {
+    content: '';
+    position: absolute; bottom: -40px; left: 200px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  #hero .badge {
+    display: inline-block;
+    background: rgba(0,168,255,0.2);
+    border: 1px solid rgba(0,168,255,0.4);
+    color: #00a8ff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  #hero h1 { font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 12px; }
+  #hero p { font-size: 15px; color: rgba(255,255,255,0.75); max-width: 600px; line-height: 1.6; }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .hero-tag {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.85);
+    font-size: 11px; padding: 4px 10px; border-radius: 4px;
+  }
+
+  /* ===== CONTENT ===== */
+  .content-wrap { padding: 0 48px 60px; max-width: 1000px; }
+
+  /* Section headings */
+  .sec { margin-top: 56px; scroll-margin-top: 20px; }
+  .sec-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--blue-accent); color: #fff;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 3px 10px; border-radius: 4px; margin-bottom: 12px;
+  }
+  h2.sec-title { font-size: 24px; font-weight: 800; color: var(--blue-deep); border-bottom: 3px solid var(--blue-accent); padding-bottom: 10px; margin-bottom: 16px; }
+  h3.sub-title { font-size: 18px; font-weight: 700; color: #1e3a5f; margin: 32px 0 10px; display: flex; align-items: center; gap: 8px; }
+  h3.sub-title .num { background: var(--blue-accent); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 12px; }
+  h4.subsub-title { font-size: 15px; font-weight: 600; color: #334155; margin: 22px 0 8px; padding-left: 12px; border-left: 3px solid var(--blue-bright); }
+  p.desc { font-size: 14px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 12px; }
+  p.desc strong { color: var(--text-primary); }
+
+  /* Cards */
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 16px 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .card-blue { border-left: 4px solid var(--blue-accent); }
+  .card-green { border-left: 4px solid var(--green); }
+  .card-orange { border-left: 4px solid var(--orange); }
+  .card-purple { border-left: 4px solid var(--purple); }
+  .card-red { border-left: 4px solid var(--red); }
+
+  .note-box {
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #92400e;
+    margin: 12px 0;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .note-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 16px 0; }
+  @media (max-width: 700px) { .grid-2,.grid-3 { grid-template-columns: 1fr; } }
+
+  /* ===== SVG DIAGRAMS ===== */
+  .diagram-wrap {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 12px; font-weight: 700; color: var(--text-secondary);
+    text-align: center; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  svg { display: block; margin: 0 auto; overflow: visible; }
+
+  /* Table */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 14px 0; }
+  .spec-table th { background: #f1f5f9; color: #334155; font-weight: 700; padding: 10px 14px; text-align: left; border-bottom: 2px solid #e2e8f0; font-size: 12px; }
+  .spec-table td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; color: var(--text-secondary); vertical-align: top; }
+  .spec-table tr:hover td { background: #f8fafc; }
+  .spec-table code { background: #f1f5f9; border-radius: 4px; padding: 1px 6px; font-size: 12px; color: #0078d4; font-family: 'Consolas','Courier New',monospace; }
+
+  /* Tags */
+  .tag { display: inline-block; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 2px 8px; }
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-green { background: #d1fae5; color: #065f46; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+  .tag-orange { background: #ffedd5; color: #9a3412; }
+  .tag-purple { background: #ede9fe; color: #5b21b6; }
+  .tag-yellow { background: #fef9c3; color: #854d0e; }
+
+  /* Code block */
+  .code-block {
+    background: #0f172a;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'Consolas','Courier New',monospace;
+    font-size: 12.5px;
+    color: #94a3b8;
+    margin: 12px 0;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code-block .kw { color: #7dd3fc; }
+  .code-block .fn { color: #fbbf24; }
+  .code-block .val { color: #86efac; }
+  .code-block .cm { color: #475569; font-style: italic; }
+
+  /* Progress / step list */
+  .step-list { list-style: none; margin: 12px 0; }
+  .step-list li {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 10px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .step-list li:last-child { border-bottom: none; }
+  .step-num {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    background: var(--blue-accent); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; margin-top: 1px;
+  }
+  .step-content { font-size: 13.5px; line-height: 1.7; color: var(--text-secondary); }
+  .step-content strong { color: var(--text-primary); }
+
+  /* Formula */
+  .formula {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-family: 'Consolas','Courier New',monospace;
+    font-size: 13px;
+    color: #0c4a6e;
+    margin: 12px 0;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* Phases bar */
+  .phases-bar {
+    display: flex;
+    gap: 4px;
+    margin: 20px 0;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 48px;
+  }
+  .phase-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+    padding: 0 8px;
+    text-align: center;
+    line-height: 1.3;
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body class="bt-layout-flex">
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <h1>🔵 蓝牙安全管理规范</h1>
+    <p>Bluetooth Core 6.0 · Part H</p>
+  </div>
+  <div id="nav-search"><input type="text" id="search-input" placeholder="🔍 搜索章节..." oninput="filterNav(this.value)"></div>
+  <div id="nav-tree">
+
+    <div class="nav-group-title">概览</div>
+    <a class="nav-item" onclick="goTo('intro')"><span class="nav-num">1</span>Introduction 简介</a>
+    <a class="nav-item sub" onclick="goTo('scope')"><span class="nav-num">1.1</span>Scope 范围</a>
+    <a class="nav-item sub" onclick="goTo('conventions')"><span class="nav-num">1.2</span>Conventions 约定</a>
+    <a class="nav-item subsub" onclick="goTo('bit-order')"><span class="nav-num">1.2.1</span>位与字节顺序</a>
+    <a class="nav-item subsub" onclick="goTo('random-num')"><span class="nav-num">1.2.2</span>随机数</a>
+
+    <div class="nav-group-title">核心机制</div>
+    <a class="nav-item" onclick="goTo('sm')"><span class="nav-num">2</span>Security Manager 安全管理器</a>
+    <a class="nav-item sub" onclick="goTo('sm-intro')"><span class="nav-num">2.1</span>简介 - 配对流程</a>
+    <a class="nav-item sub" onclick="goTo('crypto')"><span class="nav-num">2.2</span>密码学工具箱</a>
+    <a class="nav-item subsub" onclick="goTo('fn-e')"><span class="nav-num">2.2.1</span>安全函数 e</a>
+    <a class="nav-item subsub" onclick="goTo('fn-ah')"><span class="nav-num">2.2.2</span>地址哈希 ah</a>
+    <a class="nav-item subsub" onclick="goTo('fn-c1')"><span class="nav-num">2.2.3</span>确认值函数 c1</a>
+    <a class="nav-item subsub" onclick="goTo('fn-s1')"><span class="nav-num">2.2.4</span>密钥生成 s1</a>
+    <a class="nav-item subsub" onclick="goTo('fn-aescmac')"><span class="nav-num">2.2.5</span>AES-CMAC</a>
+    <a class="nav-item subsub" onclick="goTo('fn-f4')"><span class="nav-num">2.2.6</span>确认函数 f4 (SC)</a>
+    <a class="nav-item subsub" onclick="goTo('fn-f5')"><span class="nav-num">2.2.7</span>密钥生成 f5 (SC)</a>
+    <a class="nav-item subsub" onclick="goTo('fn-f6')"><span class="nav-num">2.2.8</span>校验函数 f6 (SC)</a>
+    <a class="nav-item subsub" onclick="goTo('fn-g2')"><span class="nav-num">2.2.9</span>数字比较 g2 (SC)</a>
+    <a class="nav-item subsub" onclick="goTo('fn-h6')"><span class="nav-num">2.2.10</span>密钥转换 h6</a>
+    <a class="nav-item subsub" onclick="goTo('fn-h7')"><span class="nav-num">2.2.11</span>密钥转换 h7</a>
+    <a class="nav-item sub" onclick="goTo('pairing')"><span class="nav-num">2.3</span>配对算法</a>
+    <a class="nav-item subsub" onclick="goTo('phase1')"><span class="nav-num">2.3.1</span>Phase 1: 功能交换</a>
+    <a class="nav-item subsub" onclick="goTo('phase2-legacy')"><span class="nav-num">2.3.2</span>Phase 2: LE Legacy Pairing</a>
+    <a class="nav-item subsub" onclick="goTo('phase2-sc')"><span class="nav-num">2.3.3</span>Phase 2: LE Secure Connections</a>
+    <a class="nav-item subsub" onclick="goTo('phase3')"><span class="nav-num">2.3.4</span>Phase 3: 密钥分发</a>
+    <a class="nav-item subsub" onclick="goTo('assoc')"><span class="nav-num">2.3.5</span>关联模型</a>
+    <a class="nav-item sub" onclick="goTo('key-dist')"><span class="nav-num">2.4</span>密钥分发</a>
+    <a class="nav-item sub" onclick="goTo('key-size')"><span class="nav-num">2.5</span>密钥大小</a>
+
+    <div class="nav-group-title">协议层</div>
+    <a class="nav-item" onclick="goTo('smp')"><span class="nav-num">3</span>SM Protocol (SMP)</a>
+    <a class="nav-item sub" onclick="goTo('smp-commands')"><span class="nav-num">3.1</span>SMP 命令列表</a>
+    <a class="nav-item sub" onclick="goTo('pairing-req')"><span class="nav-num">3.2</span>Pairing Request/Response</a>
+    <a class="nav-item sub" onclick="goTo('confirm-random')"><span class="nav-num">3.3</span>Confirm & Random</a>
+    <a class="nav-item sub" onclick="goTo('dhkey')"><span class="nav-num">3.4</span>DHKey Check & Public Key</a>
+    <a class="nav-item sub" onclick="goTo('pairing-failed')"><span class="nav-num">3.5</span>Pairing Failed</a>
+    <a class="nav-item sub" onclick="goTo('key-exchange')"><span class="nav-num">3.6</span>密钥交换命令</a>
+    <a class="nav-item sub" onclick="goTo('sec-req')"><span class="nav-num">3.7</span>Security Request</a>
+    <a class="nav-item sub" onclick="goTo('keypress')"><span class="nav-num">3.8</span>Keypress Notification</a>
+
+    <div class="nav-group-title">安全策略</div>
+    <a class="nav-item" onclick="goTo('security-modes')"><span class="nav-num">4</span>Security Modes 安全模式</a>
+    <a class="nav-item sub" onclick="goTo('le-security')"><span class="nav-num">4.1</span>LE 安全模式</a>
+    <a class="nav-item sub" onclick="goTo('bredr-security')"><span class="nav-num">4.2</span>BR/EDR 安全模式</a>
+
+    <div class="nav-group-title">附录</div>
+    <a class="nav-item" onclick="goTo('appendix-c')"><span class="nav-num">C</span>消息序列图 (MSC)</a>
+    <a class="nav-item sub" onclick="goTo('msc-legacy')"><span class="nav-num">C.1</span>Legacy Pairing 流程</a>
+    <a class="nav-item sub" onclick="goTo('msc-sc')"><span class="nav-num">C.2</span>Secure Connections 流程</a>
+    <a class="nav-item sub" onclick="goTo('msc-fail')"><span class="nav-num">C.5</span>失败场景</a>
+    <a class="nav-item" onclick="goTo('appendix-d')"><span class="nav-num">D</span>Sample Data 测试向量</a>
+  </div>
+</nav>
+
+<!-- ===== MAIN CONTENT ===== -->
+<main id="main">
+
+  <!-- HERO -->
+  <div id="hero">
+    <div class="badge">Bluetooth Core 6.0 · Part H</div>
+    <h1>Security Manager Specification<br>蓝牙安全管理规范</h1>
+    <p>定义 LE-only 及 BR/EDR/LE 设备之间的配对、认证与加密协议。规定安全管理器 (SM) 的密钥分发方法、协议流程与密码学工具箱。</p>
+    <div class="hero-tags">
+      <span class="hero-tag">⚡ LE Legacy Pairing</span>
+      <span class="hero-tag">🔐 LE Secure Connections</span>
+      <span class="hero-tag">🔑 密钥分发</span>
+      <span class="hero-tag">🛡️ AES-CMAC</span>
+      <span class="hero-tag">📡 SMP 协议</span>
+      <span class="hero-tag">🔗 BR/EDR 跨传输</span>
+    </div>
+  </div>
+
+  <div class="content-wrap">
+
+    <!-- ==================== SECTION 1 ==================== -->
+    <div class="sec" id="intro">
+      <div class="sec-badge">Section 1</div>
+      <h2 class="sec-title">1. Introduction — 简介</h2>
+      <p class="desc">安全管理器 (Security Manager, SM) 定义了 LE-only 或 BR/EDR/LE 设备之间进行<strong>配对</strong>、<strong>认证</strong>和<strong>加密</strong>的协议与行为。它处于蓝牙协议栈的 Host 层，向上为 GAP/应用层提供安全服务，向下通过 HCI 与 Controller 通信。</p>
+
+      <div class="diagram-wrap">
+        <div class="diagram-title">图 1.1 — 安全管理器在 LE 蓝牙架构中的位置</div>
+        <svg width="640" height="320" viewBox="0 0 640 320">
+          <defs>
+            <linearGradient id="gApp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#5b21b6"/></linearGradient>
+            <linearGradient id="gHost" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0078d4"/><stop offset="100%" stop-color="#005fa3"/></linearGradient>
+            <linearGradient id="gHCI" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0ea5e9"/><stop offset="100%" stop-color="#0284c7"/></linearGradient>
+            <linearGradient id="gCtrl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0f766e"/><stop offset="100%" stop-color="#0d9488"/></linearGradient>
+            <linearGradient id="gSM" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+          </defs>
+          <!-- Application Layer -->
+          <rect x="40" y="20" width="560" height="44" rx="8" fill="url(#gApp)" opacity="0.9"/>
+          <text x="320" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Application / GAP / GATT / Profiles</text>
+          <!-- HOST Layer label -->
+          <text x="15" y="145" fill="#475569" font-size="11" transform="rotate(-90,15,145)" text-anchor="middle">HOST</text>
+          <!-- L2CAP -->
+          <rect x="40" y="80" width="260" height="44" rx="8" fill="url(#gHost)" opacity="0.9"/>
+          <text x="170" y="107" text-anchor="middle" fill="white" font-size="13" font-weight="bold">L2CAP</text>
+          <!-- ATT/SMP -->
+          <rect x="40" y="140" width="120" height="44" rx="8" fill="url(#gHost)" opacity="0.75"/>
+          <text x="100" y="167" text-anchor="middle" fill="white" font-size="12">ATT</text>
+          <rect x="175" y="140" width="125" height="44" rx="8" fill="url(#gSM)"/>
+          <text x="237" y="162" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Security</text>
+          <text x="237" y="178" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Manager</text>
+          <!-- SM side box -->
+          <rect x="320" y="80" width="280" height="108" rx="8" fill="url(#gHost)" opacity="0.18" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="6,3"/>
+          <text x="460" y="106" text-anchor="middle" fill="#0078d4" font-size="12" font-weight="700">SM 负责的功能</text>
+          <text x="460" y="125" text-anchor="middle" fill="#334155" font-size="11">🔐 Pairing &amp; Bonding</text>
+          <text x="460" y="143" text-anchor="middle" fill="#334155" font-size="11">🔑 Key Generation &amp; Distribution</text>
+          <text x="460" y="161" text-anchor="middle" fill="#334155" font-size="11">📍 Private Address Resolution</text>
+          <text x="460" y="179" text-anchor="middle" fill="#334155" font-size="11">🛡️ Authentication &amp; Encryption</text>
+          <!-- HCI -->
+          <rect x="40" y="210" width="560" height="36" rx="6" fill="url(#gHCI)" opacity="0.85"/>
+          <text x="320" y="233" text-anchor="middle" fill="white" font-size="13" font-weight="bold">HCI — Host Controller Interface</text>
+          <!-- Controller -->
+          <rect x="40" y="262" width="560" height="44" rx="8" fill="url(#gCtrl)" opacity="0.9"/>
+          <text x="320" y="289" text-anchor="middle" fill="white" font-size="14" font-weight="bold">LE Controller (Link Layer · Physical Layer)</text>
+          <!-- Arrow SM -> HCI -->
+          <line x1="237" y1="184" x2="237" y2="210" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+          <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><polygon points="0,0 8,4 0,8" fill="#94a3b8"/></marker></defs>
+        </svg>
+      </div>
+
+      <div id="scope" class="sec" style="margin-top:32px">
+        <h3 class="sub-title"><span class="num">1.1</span> Scope — 范围</h3>
+        <p class="desc">安全管理器规范定义了以下三类内容：</p>
+        <div class="grid-3">
+          <div class="card card-blue">
+            <div style="font-size:24px;margin-bottom:8px">🔗</div>
+            <strong style="font-size:13px;color:#1e3a5f">配对方法</strong>
+            <p style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6">Just Works、数字比较、Passkey Entry、OOB 四种关联模型</p>
+          </div>
+          <div class="card card-green">
+            <div style="font-size:24px;margin-bottom:8px">📡</div>
+            <strong style="font-size:13px;color:#1e3a5f">配对协议</strong>
+            <p style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6">Security Manager Protocol (SMP)，运行于 L2CAP 之上，使用固定通道 0x0006</p>
+          </div>
+          <div class="card card-purple">
+            <div style="font-size:24px;margin-bottom:8px">🧰</div>
+            <strong style="font-size:13px;color:#1e3a5f">密码学工具箱</strong>
+            <p style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.6">e、ah、c1、s1、f4-f6、g2、h6、h7 等密码学函数</p>
+          </div>
+        </div>
+        <p class="desc">规范描述了 <strong>Central（中心设备）</strong> 和 <strong>Peripheral（外围设备）</strong> 的协议角色，与 LE 设备角色或 BR/EDR 设备角色对应。</p>
+      </div>
+
+      <div id="conventions" class="sec" style="margin-top:28px">
+        <h3 class="sub-title"><span class="num">1.2</span> Conventions — 约定</h3>
+        <div id="bit-order">
+          <h4 class="subsub-title">1.2.1 位与字节顺序约定</h4>
+          <p class="desc">规范对多字节字段有明确的排列约定：</p>
+          <div class="diagram-wrap">
+            <div class="diagram-title">字节顺序约定示意图</div>
+            <svg width="580" height="160" viewBox="0 0 580 160">
+              <!-- Single octet bit order -->
+              <text x="10" y="22" font-size="12" font-weight="700" fill="#1e3a5f">单字节中位的顺序</text>
+              <text x="10" y="40" font-size="10" fill="#64748b">← 低位在左 (LSb)，高位在右 (MSb) →</text>
+              <rect x="10" y="50" width="560" height="36" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+              <text x="16" y="55" font-size="9" fill="#94a3b8">bit 0</text>
+              <text x="86" y="55" font-size="9" fill="#94a3b8">bit 1</text>
+              <text x="156" y="55" font-size="9" fill="#94a3b8">bit 2</text>
+              <text x="226" y="55" font-size="9" fill="#94a3b8">bit 3</text>
+              <text x="296" y="55" font-size="9" fill="#94a3b8">bit 4</text>
+              <text x="366" y="55" font-size="9" fill="#94a3b8">bit 5</text>
+              <text x="436" y="55" font-size="9" fill="#94a3b8">bit 6</text>
+              <text x="506" y="55" font-size="9" fill="#94a3b8">bit 7</text>
+              <rect x="10" y="58" width="68" height="26" rx="2" fill="#dbeafe" stroke="#93c5fd"/>
+              <text x="44" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">0</text>
+              <rect x="80" y="58" width="68" height="26" rx="2" fill="#dbeafe" stroke="#93c5fd"/>
+              <text x="114" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">1</text>
+              <rect x="150" y="58" width="68" height="26" rx="2" fill="#f0fdf4" stroke="#86efac"/>
+              <text x="184" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">0</text>
+              <rect x="220" y="58" width="68" height="26" rx="2" fill="#f0fdf4" stroke="#86efac"/>
+              <text x="254" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#16a34a">1</text>
+              <rect x="290" y="58" width="68" height="26" rx="2" fill="#fef3c7" stroke="#fcd34d"/>
+              <text x="324" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">1</text>
+              <rect x="360" y="58" width="68" height="26" rx="2" fill="#fef3c7" stroke="#fcd34d"/>
+              <text x="394" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#d97706">0</text>
+              <rect x="430" y="58" width="68" height="26" rx="2" fill="#fdf2f8" stroke="#f0abfc"/>
+              <text x="464" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#7e22ce">0</text>
+              <rect x="500" y="58" width="68" height="26" rx="2" fill="#fdf2f8" stroke="#f0abfc"/>
+              <text x="534" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#7e22ce">1</text>
+              <!-- Multi-octet -->
+              <text x="10" y="115" font-size="12" font-weight="700" fill="#1e3a5f">多字节字段传输顺序</text>
+              <text x="10" y="133" font-size="10" fill="#64748b">最低有效字节 (LSO) 先传输 · 十六进制写法 0x1234 表示高字节0x12先、低字节0x34后</text>
+              <rect x="10" y="140" width="100" height="16" rx="3" fill="#dbeafe" stroke="#93c5fd"/>
+              <text x="60" y="152" text-anchor="middle" font-size="10" font-weight="700" fill="#1d4ed8">LSO — 先传</text>
+              <rect x="120" y="140" width="100" height="16" rx="3" fill="#e0e7ff" stroke="#a5b4fc"/>
+              <text x="170" y="152" text-anchor="middle" font-size="10" fill="#4338ca">Octet 1</text>
+              <rect x="230" y="140" width="100" height="16" rx="3" fill="#ede9fe" stroke="#c4b5fd"/>
+              <text x="280" y="152" text-anchor="middle" font-size="10" fill="#5b21b6">Octet 2</text>
+              <rect x="340" y="140" width="100" height="16" rx="3" fill="#fdf2f8" stroke="#f0abfc"/>
+              <text x="390" y="152" text-anchor="middle" font-size="10" fill="#7e22ce">MSO — 最后</text>
+              <text x="460" y="152" font-size="10" fill="#94a3b8">→ 传输方向</text>
+            </svg>
+          </div>
+        </div>
+        <div id="random-num">
+          <h4 class="subsub-title">1.2.2 随机数</h4>
+          <p class="desc">规范中"随机数"包括<strong>伪随机数</strong>。随机数生成器应符合 <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">[Vol 2] Part H, Section 2</code> 的要求。高质量的随机数对密码学安全性至关重要——弱随机数是实现 SM 时最常见的安全漏洞。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 2 ==================== -->
+    <div class="sec" id="sm">
+      <div class="sec-badge">Section 2</div>
+      <h2 class="sec-title">2. Security Manager — 安全管理器</h2>
+
+      <div id="sm-intro">
+        <h3 class="sub-title"><span class="num">2.1</span> 简介 — 配对三阶段流程</h3>
+        <p class="desc">SM 采用<strong>密钥分发</strong>方式实现身份验证与加密：每台设备独立生成并控制其分发的密钥，其他设备无法干预该密钥的生成过程。密钥强度取决于分发设备内部实现的算法质量。</p>
+        <p class="desc">配对 (Pairing) 是建立密钥的过程，分为固定的三个阶段：</p>
+
+        <div class="phases-bar">
+          <div class="phase-item" style="background:#0078d4;flex:1.2">Phase 1<br><span style="font-size:10px;font-weight:400">功能交换</span></div>
+          <div class="phase-item" style="background:#0ea5e9;flex:1.5">Phase 2A<br><span style="font-size:10px;font-weight:400">Legacy STK生成</span></div>
+          <div class="phase-item" style="background:#7c3aed;flex:1.5">Phase 2B<br><span style="font-size:10px;font-weight:400">SC LTK生成</span></div>
+          <div class="phase-item" style="background:#0f766e;flex:1.2">Phase 3<br><span style="font-size:10px;font-weight:400">密钥分发(可选)</span></div>
+        </div>
+
+        <div class="diagram-wrap">
+          <div class="diagram-title">图 2.1 — LE 配对阶段总览</div>
+          <svg width="620" height="300" viewBox="0 0 620 300">
+            <defs>
+              <marker id="marr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0,10 3.5,0 7" fill="#64748b"/>
+              </marker>
+              <marker id="marrb" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0,10 3.5,0 7" fill="#0078d4"/>
+              </marker>
+            </defs>
+            <!-- Central -->
+            <rect x="30" y="20" width="140" height="36" rx="8" fill="#0078d4"/>
+            <text x="100" y="43" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Central</text>
+            <line x1="100" y1="56" x2="100" y2="280" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <!-- Peripheral -->
+            <rect x="450" y="20" width="140" height="36" rx="8" fill="#7c3aed"/>
+            <text x="520" y="43" text-anchor="middle" fill="white" font-size="14" font-weight="bold">Peripheral</text>
+            <line x1="520" y1="56" x2="520" y2="280" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+            <!-- Phase 1 box -->
+            <rect x="180" y="65" width="260" height="28" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+            <text x="310" y="84" text-anchor="middle" font-size="12" font-weight="700" fill="#1d4ed8">Phase 1: Pairing Feature Exchange</text>
+            <!-- P1 arrows -->
+            <line x1="100" y1="75" x2="180" y2="79" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <line x1="440" y1="79" x2="520" y2="75" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marr)"/>
+            <text x="140" y="72" text-anchor="middle" font-size="10" fill="#0078d4">Pairing Req</text>
+            <text x="484" y="72" text-anchor="middle" font-size="10" fill="#7c3aed">Pairing Resp</text>
+
+            <!-- Phase 2 box -->
+            <rect x="180" y="115" width="260" height="62" rx="6" fill="#ede9fe" stroke="#c4b5fd"/>
+            <text x="310" y="133" text-anchor="middle" font-size="12" font-weight="700" fill="#5b21b6">Phase 2: Key Generation</text>
+            <text x="310" y="150" text-anchor="middle" font-size="10" fill="#6d28d9">Legacy: STK via e()</text>
+            <text x="310" y="167" text-anchor="middle" font-size="10" fill="#6d28d9">Secure Connections: LTK via f4/f5/f6/g2</text>
+            <line x1="100" y1="146" x2="180" y2="146" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <line x1="440" y1="146" x2="520" y2="146" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marr)"/>
+
+            <!-- Phase 3 box -->
+            <rect x="180" y="200" width="260" height="38" rx="6" fill="#d1fae5" stroke="#6ee7b7"/>
+            <text x="310" y="216" text-anchor="middle" font-size="12" font-weight="700" fill="#065f46">Phase 3: Key Distribution (Optional)</text>
+            <text x="310" y="232" text-anchor="middle" font-size="10" fill="#047857">LTK / IRK / CSRK / Identity Address</text>
+            <line x1="100" y1="219" x2="180" y2="219" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <line x1="440" y1="219" x2="520" y2="219" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marr)"/>
+
+            <!-- Lock icon after phase 2 -->
+            <text x="310" y="198" text-anchor="middle" font-size="11" fill="#7c3aed">🔒 链路加密后才可进行 Phase 3</text>
+          </svg>
+        </div>
+
+        <div class="card card-blue">
+          <strong>Phase 2 关联模式选择：</strong>在 Phase 1 的功能交换后，根据设备的 IO 能力与认证需求，系统会自动选择以下配对方法之一：
+          <div class="grid-2" style="margin-top:12px">
+            <div style="font-size:13px;padding:8px 12px;background:#f8fafc;border-radius:6px"><strong>Just Works</strong> — 无用户交互，无认证保护，存在 MITM 风险</div>
+            <div style="font-size:13px;padding:8px 12px;background:#f8fafc;border-radius:6px"><strong>Numeric Comparison</strong> — 双方显示 6 位数，用户确认（仅 SC）</div>
+            <div style="font-size:13px;padding:8px 12px;background:#f8fafc;border-radius:6px"><strong>Passkey Entry</strong> — 用户在一或两台设备上输入 6 位 PIN 码</div>
+            <div style="font-size:13px;padding:8px 12px;background:#f8fafc;border-radius:6px"><strong>Out Of Band (OOB)</strong> — 通过 NFC 等带外信道传输数据</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 2.2 Crypto Toolbox ===== -->
+      <div id="crypto">
+        <h3 class="sub-title"><span class="num">2.2</span> Cryptographic Toolbox — 密码学工具箱</h3>
+        <p class="desc">SM 提供一套密码学函数工具箱，用于支持随机地址、配对过程和其他操作。</p>
+
+        <div class="diagram-wrap">
+          <div class="diagram-title">密码学函数全局关系图</div>
+          <svg width="620" height="250" viewBox="0 0 620 250">
+            <!-- Building blocks -->
+            <rect x="30" y="180" width="130" height="44" rx="8" fill="#1e3a5f"/>
+            <text x="95" y="198" text-anchor="middle" fill="white" font-size="12" font-weight="bold">AES-128 (e)</text>
+            <text x="95" y="214" text-anchor="middle" fill="#94a3b8" font-size="10">基础加密函数</text>
+
+            <rect x="220" y="180" width="160" height="44" rx="8" fill="#1e3a5f"/>
+            <text x="300" y="198" text-anchor="middle" fill="white" font-size="12" font-weight="bold">AES-CMAC</text>
+            <text x="300" y="214" text-anchor="middle" fill="#94a3b8" font-size="10">消息认证码函数</text>
+
+            <!-- Legacy functions -->
+            <rect x="20" y="80" width="80" height="72" rx="6" fill="#0078d4" opacity="0.9"/>
+            <text x="60" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">ah</text>
+            <text x="60" y="120" text-anchor="middle" fill="#bfdbfe" font-size="9">地址哈希</text>
+            <text x="60" y="134" text-anchor="middle" fill="#bfdbfe" font-size="9">私有地址</text>
+            <text x="60" y="148" text-anchor="middle" fill="#bfdbfe" font-size="9">解析</text>
+            <line x1="60" y1="152" x2="95" y2="180" stroke="#0078d4" stroke-width="1.5"/>
+
+            <rect x="110" y="80" width="80" height="72" rx="6" fill="#0ea5e9" opacity="0.9"/>
+            <text x="150" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">c1</text>
+            <text x="150" y="120" text-anchor="middle" fill="white" font-size="9">Legacy</text>
+            <text x="150" y="134" text-anchor="middle" fill="white" font-size="9">确认值</text>
+            <text x="150" y="148" text-anchor="middle" fill="white" font-size="9">生成</text>
+            <line x1="150" y1="152" x2="95" y2="180" stroke="#0ea5e9" stroke-width="1.5"/>
+
+            <rect x="200" y="80" width="80" height="72" rx="6" fill="#0ea5e9" opacity="0.9"/>
+            <text x="240" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">s1</text>
+            <text x="240" y="120" text-anchor="middle" fill="white" font-size="9">Legacy</text>
+            <text x="240" y="134" text-anchor="middle" fill="white" font-size="9">STK</text>
+            <text x="240" y="148" text-anchor="middle" fill="white" font-size="9">生成</text>
+            <line x1="240" y1="152" x2="95" y2="180" stroke="#0ea5e9" stroke-width="1.5"/>
+
+            <!-- SC functions -->
+            <rect x="290" y="80" width="60" height="72" rx="6" fill="#7c3aed" opacity="0.9"/>
+            <text x="320" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">f4</text>
+            <text x="320" y="120" text-anchor="middle" fill="#ddd6fe" font-size="9">SC确认</text>
+            <text x="320" y="134" text-anchor="middle" fill="#ddd6fe" font-size="9">值生成</text>
+            <line x1="320" y1="152" x2="300" y2="180" stroke="#7c3aed" stroke-width="1.5"/>
+
+            <rect x="358" y="80" width="60" height="72" rx="6" fill="#7c3aed" opacity="0.9"/>
+            <text x="388" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">f5</text>
+            <text x="388" y="120" text-anchor="middle" fill="#ddd6fe" font-size="9">LTK&amp;</text>
+            <text x="388" y="134" text-anchor="middle" fill="#ddd6fe" font-size="9">MacKey</text>
+            <line x1="388" y1="152" x2="300" y2="180" stroke="#7c3aed" stroke-width="1.5"/>
+
+            <rect x="426" y="80" width="60" height="72" rx="6" fill="#7c3aed" opacity="0.9"/>
+            <text x="456" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">f6</text>
+            <text x="456" y="120" text-anchor="middle" fill="#ddd6fe" font-size="9">SC校验</text>
+            <text x="456" y="134" text-anchor="middle" fill="#ddd6fe" font-size="9">值生成</text>
+            <line x1="456" y1="152" x2="300" y2="180" stroke="#7c3aed" stroke-width="1.5"/>
+
+            <rect x="494" y="80" width="60" height="72" rx="6" fill="#7c3aed" opacity="0.9"/>
+            <text x="524" y="103" text-anchor="middle" fill="white" font-size="12" font-weight="bold">g2</text>
+            <text x="524" y="120" text-anchor="middle" fill="#ddd6fe" font-size="9">数字比较</text>
+            <text x="524" y="134" text-anchor="middle" fill="#ddd6fe" font-size="9">6位数</text>
+            <line x1="524" y1="152" x2="380" y2="180" stroke="#7c3aed" stroke-width="1.5"/>
+
+            <!-- Labels -->
+            <text x="150" y="30" text-anchor="middle" fill="#0ea5e9" font-size="11" font-weight="700">LE Legacy Pairing 函数</text>
+            <text x="430" y="30" text-anchor="middle" fill="#a78bfa" font-size="11" font-weight="700">LE Secure Connections 函数</text>
+            <rect x="10" y="38" width="260" height="3" rx="2" fill="#0ea5e9" opacity="0.4"/>
+            <rect x="275" y="38" width="340" height="3" rx="2" fill="#7c3aed" opacity="0.4"/>
+            <text x="10" y="72" fill="#64748b" font-size="10">ah 也属此列</text>
+          </svg>
+        </div>
+
+        <!-- 2.2.1 fn-e -->
+        <div id="fn-e">
+          <h4 class="subsub-title">2.2.1 安全函数 e — AES-128 加密</h4>
+          <p class="desc">函数 <strong>e</strong> 是整个 LE Legacy 密码学体系的基础构建块，使用 AES-128 分组密码（符合 FIPS-197），将 128 位密钥和 128 位明文生成 128 位密文。</p>
+          <div class="formula">encryptedData = e(key, plaintextData)</div>
+          <p class="desc">其中 key[0] 对应密钥的最高有效字节，in[0] 对应明文的最高有效字节，out[0] 对应密文的最高有效字节。</p>
+          <div class="note-box"><span class="icon">💡</span>函数 e 既可在 Host 中以软件实现，也可通过 HCI_LE_Encrypt 命令委托 Controller 的硬件实现，以节省 Host 的计算资源。</div>
+        </div>
+
+        <!-- 2.2.2 fn-ah -->
+        <div id="fn-ah">
+          <h4 class="subsub-title">2.2.2 随机地址哈希函数 ah</h4>
+          <p class="desc">函数 <strong>ah</strong> 生成用于<strong>可解析私有地址（RPA）</strong>的 24 位哈希值。蓝牙设备使用 RPA 隐藏真实 MAC 地址，防止被跟踪。只有拥有对应 IRK（身份解析密钥）的设备才能解析 RPA。</p>
+          <div class="formula">ah(k, r) = e(k, r') mod 2²⁴</div>
+          <div class="card card-green">
+            <strong style="font-size:13px">计算步骤：</strong>
+            <ol style="font-size:13px;color:#475569;line-height:2;margin-top:8px;padding-left:20px">
+              <li>将 24 位随机数 r 与 104 位零填充拼接为 r'（128 位）</li>
+              <li>以 IRK (k) 为密钥，对 r' 进行 AES-128 加密</li>
+              <li>取加密结果的最低 24 位作为哈希值 hash</li>
+              <li>RPA = prand[22:0] || hash（共 48 位）</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- 2.2.3 fn-c1 -->
+        <div id="fn-c1">
+          <h4 class="subsub-title">2.2.3 确认值生成函数 c1（LE Legacy Pairing）</h4>
+          <p class="desc">在 Legacy 配对过程中，Central 和 Peripheral 互相交换确认值 (Confirm) 来防止 MITM 攻击。函数 <strong>c1</strong> 基于配对请求/响应报文、设备地址及随机数生成该确认值。</p>
+          <div class="formula">c1(k, r, preq, pres, iat, rat, ia, ra) = e(k, e(k, r ⊕ p1) ⊕ p2)</div>
+          <div class="diagram-wrap">
+            <div class="diagram-title">c1 函数计算流程</div>
+            <svg width="580" height="180" viewBox="0 0 580 180">
+              <rect x="10" y="10" width="120" height="38" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+              <text x="70" y="28" text-anchor="middle" font-size="11" font-weight="700" fill="#1d4ed8">pres || preq || rat' || iat'</text>
+              <text x="70" y="44" text-anchor="middle" font-size="10" fill="#3b82f6">= p1 (128-bit)</text>
+              <rect x="10" y="72" width="120" height="38" rx="6" fill="#d1fae5" stroke="#6ee7b7"/>
+              <text x="70" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#065f46">padding || ia || ra</text>
+              <text x="70" y="106" text-anchor="middle" font-size="10" fill="#047857">= p2 (128-bit)</text>
+              <!-- XOR 1 -->
+              <rect x="175" y="22" width="60" height="26" rx="20" fill="#f59e0b"/>
+              <text x="205" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="white">⊕</text>
+              <rect x="175" y="55" width="60" height="16" rx="4" fill="#fef3c7"/>
+              <text x="205" y="67" text-anchor="middle" font-size="9" fill="#92400e">r ⊕ p1</text>
+              <line x1="130" y1="29" x2="175" y2="35" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#marr)"/>
+              <!-- e() 1 -->
+              <rect x="268" y="18" width="64" height="34" rx="8" fill="#1e3a5f"/>
+              <text x="300" y="40" text-anchor="middle" font-size="14" font-weight="bold" fill="#f59e0b">e()</text>
+              <line x1="235" y1="35" x2="268" y2="35" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#marr)"/>
+              <!-- XOR 2 -->
+              <rect x="366" y="22" width="60" height="26" rx="20" fill="#f59e0b"/>
+              <text x="396" y="40" text-anchor="middle" font-size="16" font-weight="bold" fill="white">⊕</text>
+              <rect x="366" y="55" width="60" height="16" rx="4" fill="#fef3c7"/>
+              <text x="396" y="67" text-anchor="middle" font-size="9" fill="#92400e">⊕ p2</text>
+              <line x1="332" y1="35" x2="366" y2="35" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#marr)"/>
+              <line x1="130" y1="91" x2="396" y2="68" stroke="#047857" stroke-width="1.5" marker-end="url(#marr)"/>
+              <!-- e() 2 -->
+              <rect x="460" y="18" width="64" height="34" rx="8" fill="#1e3a5f"/>
+              <text x="492" y="40" text-anchor="middle" font-size="14" font-weight="bold" fill="#f59e0b">e()</text>
+              <line x1="426" y1="35" x2="460" y2="35" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#marr)"/>
+              <!-- Output -->
+              <rect x="430" y="110" width="140" height="34" rx="8" fill="#1d4ed8"/>
+              <text x="500" y="128" text-anchor="middle" font-size="13" font-weight="bold" fill="white">Confirm Value</text>
+              <text x="500" y="142" text-anchor="middle" font-size="10" fill="#93c5fd">(128-bit)</text>
+              <line x1="492" y1="52" x2="492" y2="110" stroke="#0078d4" stroke-width="2" marker-end="url(#marr)"/>
+              <!-- key label -->
+              <text x="300" y="80" text-anchor="middle" font-size="10" fill="#475569">key k 用于两次 e() 调用</text>
+              <text x="300" y="95" text-anchor="middle" font-size="10" fill="#475569">（128-bit Temporary Key）</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 2.2.4 fn-s1 -->
+        <div id="fn-s1">
+          <h4 class="subsub-title">2.2.4 密钥生成函数 s1（LE Legacy Pairing）</h4>
+          <p class="desc">函数 <strong>s1</strong> 在 LE Legacy 配对中用于生成<strong>短期密钥 STK (Short Term Key)</strong>，STK 用于加密配对阶段的链路。注意 STK 仅用于配对过程，配对完成后应换用 LTK。</p>
+          <div class="formula">s1(k, r1, r2) = e(k, r1'[63:0] || r2'[63:0])</div>
+          <p class="desc">取 r1 和 r2 各自的低 64 位拼接为 128 位输入，再以临时密钥 k 加密，生成 128 位 STK。</p>
+        </div>
+
+        <!-- 2.2.5 AES-CMAC -->
+        <div id="fn-aescmac">
+          <h4 class="subsub-title">2.2.5 AES-CMAC 函数</h4>
+          <p class="desc">AES-CMAC（基于 AES-128 的消息认证码，定义于 RFC 4493）是 LE Secure Connections 中所有高级密码学函数（f4/f5/f6/g2/h6/h7）的共同基础构建块。</p>
+          <div class="formula">MAC = AES-CMACₖ(m)</div>
+          <p class="desc">输入：128 位密钥 k、可变长度数据 m；输出：128 位 MAC 值。与函数 e 类似，可在 Host 软件实现或通过 HCI_LE_Encrypt 委托 Controller。</p>
+        </div>
+
+        <!-- 2.2.6 f4 -->
+        <div id="fn-f4">
+          <h4 class="subsub-title">2.2.6 确认值生成函数 f4（LE Secure Connections）</h4>
+          <p class="desc">SC 配对中用于生成确认值 (Commit)，防止 MITM 攻击。以设备的 ECDH 公钥坐标 (U, V)、随机数 X 和标志位 Z 为输入。</p>
+          <div class="formula">f4(U, V, X, Z) = AES-CMACₓ(U || V || Z)</div>
+          <table class="spec-table">
+            <tr><th>参数</th><th>位宽</th><th>说明</th></tr>
+            <tr><td><code>U</code></td><td>256 bit</td><td>公钥 PKa 的 x 坐标</td></tr>
+            <tr><td><code>V</code></td><td>256 bit</td><td>公钥 PKb 的 x 坐标</td></tr>
+            <tr><td><code>X</code></td><td>128 bit</td><td>用作 AES-CMAC 密钥的随机数（nonce）</td></tr>
+            <tr><td><code>Z</code></td><td>8 bit</td><td>Numeric Comparison/OOB 时为 0x00；Passkey 时 MSb=1，LSb=passkey 当前位</td></tr>
+          </table>
+        </div>
+
+        <!-- 2.2.7 f5 -->
+        <div id="fn-f5">
+          <h4 class="subsub-title">2.2.7 密钥生成函数 f5（LE Secure Connections）</h4>
+          <p class="desc">SC 配对中用于从 ECDH 共享密钥 DHKey 派生出 <strong>LTK</strong> 和 <strong>MacKey</strong>。MacKey 用于后续的 f6 校验，LTK 用于链路加密。</p>
+          <div class="formula">MacKey || LTK = f5(DHKey, Na, Nb, BD_ADDR_C, BD_ADDR_P)</div>
+          <div class="card card-purple">
+            <strong style="font-size:13px">f5 内部两步计算：</strong>
+            <div class="code-block">
+<span class="cm">// Step 1: 使用固定 SALT 和 DHKey 派生中间密钥 T</span>
+<span class="kw">T</span> = AES-CMAC<span class="fn">_SALT</span>(<span class="val">W</span>)
+<span class="cm">// SALT = 0x6C888391_AAF5A538_60370BDB_5A6083BE</span>
+
+<span class="cm">// Step 2: 两次 AES-CMAC 生成 MacKey (Counter=0) 和 LTK (Counter=1)</span>
+<span class="kw">MacKey</span> = AES-CMAC<span class="fn">_T</span>(<span class="val">0</span> || keyID || N1 || N2 || A1 || A2 || 256)
+<span class="kw">LTK</span>    = AES-CMAC<span class="fn">_T</span>(<span class="val">1</span> || keyID || N1 || N2 || A1 || A2 || 256)
+<span class="cm">// keyID = "btle" = 0x62746C65</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2.2.8 f6 -->
+        <div id="fn-f6">
+          <h4 class="subsub-title">2.2.8 校验值生成函数 f6（LE Secure Connections）</h4>
+          <p class="desc">SC 配对 <strong>认证阶段 2</strong> 中，双方互换 DHKey Check 值，验证对方确实拥有相同的 DHKey。函数 f6 以 MacKey 为密钥生成该校验值。</p>
+          <div class="formula">f6(W, N1, N2, R, IOcap, A1, A2) = AES-CMACᵥᵥ(N1 || N2 || R || IOcap || A1 || A2)</div>
+        </div>
+
+        <!-- 2.2.9 g2 -->
+        <div id="fn-g2">
+          <h4 class="subsub-title">2.2.9 数字比较函数 g2（LE Secure Connections）</h4>
+          <p class="desc">SC 的 <strong>Numeric Comparison</strong> 模式中，双方各自计算一个相同的 6 位数字展示给用户，用户目视确认两台设备显示的数字是否相同。</p>
+          <div class="formula">g2(U, V, X, Y) = AES-CMACₓ(U || V || Y) mod 10⁶</div>
+          <p class="desc">取 AES-CMAC 输出的最低 32 位，对 10⁶ 取模，得到 000000–999999 范围内的 6 位数字。</p>
+        </div>
+
+        <!-- 2.2.10 h6 -->
+        <div id="fn-h6">
+          <h4 class="subsub-title">2.2.10 密钥转换函数 h6</h4>
+          <p class="desc">用于在 LE LTK 与 BR/EDR Link Key 之间进行<strong>跨传输密钥派生 (Cross-Transport Key Derivation)</strong>。允许 LE Secure Connections 配对生成的密钥直接用于 BR/EDR 连接（反之亦然），无需重新配对。</p>
+          <div class="formula">h6(W, keyID) = AES-CMACᵥᵥ(keyID)</div>
+        </div>
+
+        <!-- 2.2.11 h7 -->
+        <div id="fn-h7">
+          <h4 class="subsub-title">2.2.11 密钥转换函数 h7</h4>
+          <p class="desc">与 h6 配合使用的中间密钥转换函数，在跨传输密钥派生流程中生成中间密钥。h7 使用固定 SALT（0x746D7031 或 0x6F77634B）作为 AES-CMAC 密钥。</p>
+          <div class="formula">h7(SALT, W) = AES-CMACsalt(W)</div>
+        </div>
+      </div>
+
+      <!-- ===== 2.3 Pairing ===== -->
+      <div id="pairing">
+        <h3 class="sub-title"><span class="num">2.3</span> Pairing Algorithms — 配对算法详解</h3>
+
+        <div id="phase1">
+          <h4 class="subsub-title">2.3.1 Phase 1 — Pairing Feature Exchange（功能交换）</h4>
+          <p class="desc">配对的第一阶段。Central 发送 <strong>Pairing Request</strong>，Peripheral 回复 <strong>Pairing Response</strong>，双方交换以下关键信息以确定配对方法：</p>
+          <table class="spec-table">
+            <tr><th>字段</th><th>说明</th><th>影响</th></tr>
+            <tr><td><code>IO Capability</code></td><td>设备的输入/输出能力</td><td>决定关联模型</td></tr>
+            <tr><td><code>OOB Data Flag</code></td><td>是否有 OOB 数据</td><td>是否使用 OOB</td></tr>
+            <tr><td><code>Auth Requirements</code></td><td>MITM、Bonding、SC、Keypress 标志</td><td>决定 Legacy 还是 SC</td></tr>
+            <tr><td><code>Max Encryption Key Size</code></td><td>7–16 字节</td><td>协商密钥长度</td></tr>
+            <tr><td><code>Initiator/Responder Key Distribution</code></td><td>LTK/IRK/CSRK 分发意愿</td><td>Phase 3 内容</td></tr>
+          </table>
+          <div class="diagram-wrap">
+            <div class="diagram-title">IO Capability 与关联模型映射</div>
+            <svg width="580" height="220" viewBox="0 0 580 220">
+              <text x="10" y="20" font-size="11" font-weight="700" fill="#475569">Initiator IO Capability →</text>
+              <!-- Column headers -->
+              <text x="120" y="40" text-anchor="middle" font-size="10" fill="#0078d4">DisplayOnly</text>
+              <text x="210" y="40" text-anchor="middle" font-size="10" fill="#0078d4">DisplayYesNo</text>
+              <text x="310" y="40" text-anchor="middle" font-size="10" fill="#0078d4">KeyboardOnly</text>
+              <text x="410" y="40" text-anchor="middle" font-size="10" fill="#0078d4">NoInputNoOutput</text>
+              <text x="510" y="40" text-anchor="middle" font-size="10" fill="#0078d4">KeyboardDisplay</text>
+              <!-- Row headers -->
+              <text x="55" y="70" text-anchor="middle" font-size="10" fill="#7c3aed">DisplayOnly</text>
+              <text x="55" y="100" text-anchor="middle" font-size="10" fill="#7c3aed">DisplayYesNo</text>
+              <text x="55" y="130" text-anchor="middle" font-size="10" fill="#7c3aed">KeyboardOnly</text>
+              <text x="55" y="160" text-anchor="middle" font-size="10" fill="#7c3aed">NoInputNoOutput</text>
+              <text x="55" y="190" text-anchor="middle" font-size="10" fill="#7c3aed">KeyboardDisplay</text>
+              <text x="55" y="208" text-anchor="middle" font-size="9" fill="#94a3b8">← Responder IO</text>
+              <!-- Grid cells -->
+              <rect x="85" y="55" width="68" height="24" rx="4" fill="#fef3c7"/><text x="119" y="72" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="165" y="55" width="78" height="24" rx="4" fill="#fef3c7"/><text x="204" y="72" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="265" y="55" width="78" height="24" rx="4" fill="#d1fae5"/><text x="304" y="72" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="365" y="55" width="88" height="24" rx="4" fill="#fef3c7"/><text x="409" y="72" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="465" y="55" width="88" height="24" rx="4" fill="#d1fae5"/><text x="509" y="72" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+
+              <rect x="85" y="85" width="68" height="24" rx="4" fill="#fef3c7"/><text x="119" y="102" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="165" y="85" width="78" height="24" rx="4" fill="#e0e7ff"/><text x="204" y="102" text-anchor="middle" font-size="9" fill="#3730a3">NumComp(SC)</text>
+              <rect x="265" y="85" width="78" height="24" rx="4" fill="#d1fae5"/><text x="304" y="102" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="365" y="85" width="88" height="24" rx="4" fill="#fef3c7"/><text x="409" y="102" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="465" y="85" width="88" height="24" rx="4" fill="#e0e7ff"/><text x="509" y="102" text-anchor="middle" font-size="9" fill="#3730a3">NumComp(SC)</text>
+
+              <rect x="85" y="115" width="68" height="24" rx="4" fill="#d1fae5"/><text x="119" y="132" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="165" y="115" width="78" height="24" rx="4" fill="#d1fae5"/><text x="204" y="132" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="265" y="115" width="78" height="24" rx="4" fill="#d1fae5"/><text x="304" y="132" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="365" y="115" width="88" height="24" rx="4" fill="#fef3c7"/><text x="409" y="132" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="465" y="115" width="88" height="24" rx="4" fill="#d1fae5"/><text x="509" y="132" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+
+              <rect x="85" y="145" width="68" height="24" rx="4" fill="#fef3c7"/><text x="119" y="162" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="165" y="145" width="78" height="24" rx="4" fill="#fef3c7"/><text x="204" y="162" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="265" y="145" width="78" height="24" rx="4" fill="#fef3c7"/><text x="304" y="162" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="365" y="145" width="88" height="24" rx="4" fill="#fef3c7"/><text x="409" y="162" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="465" y="145" width="88" height="24" rx="4" fill="#fef3c7"/><text x="509" y="162" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+
+              <rect x="85" y="175" width="68" height="24" rx="4" fill="#d1fae5"/><text x="119" y="192" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="165" y="175" width="78" height="24" rx="4" fill="#e0e7ff"/><text x="204" y="192" text-anchor="middle" font-size="9" fill="#3730a3">NumComp(SC)</text>
+              <rect x="265" y="175" width="78" height="24" rx="4" fill="#d1fae5"/><text x="304" y="192" text-anchor="middle" font-size="9" fill="#065f46">Passkey</text>
+              <rect x="365" y="175" width="88" height="24" rx="4" fill="#fef3c7"/><text x="409" y="192" text-anchor="middle" font-size="9" fill="#92400e">JW</text>
+              <rect x="465" y="175" width="88" height="24" rx="4" fill="#e0e7ff"/><text x="509" y="192" text-anchor="middle" font-size="9" fill="#3730a3">NumComp(SC)</text>
+
+              <!-- Legend -->
+              <rect x="85" y="208" width="14" height="10" rx="2" fill="#fef3c7"/>
+              <text x="102" y="218" font-size="9" fill="#475569">JW = Just Works</text>
+              <rect x="185" y="208" width="14" height="10" rx="2" fill="#d1fae5"/>
+              <text x="202" y="218" font-size="9" fill="#475569">Passkey Entry</text>
+              <rect x="275" y="208" width="14" height="10" rx="2" fill="#e0e7ff"/>
+              <text x="292" y="218" font-size="9" fill="#475569">Numeric Comparison (SC only)</text>
+            </svg>
+          </div>
+        </div>
+
+        <div id="phase2-legacy">
+          <h4 class="subsub-title">2.3.2 Phase 2 — LE Legacy Pairing（短期密钥生成）</h4>
+          <p class="desc">Legacy 配对使用临时密钥 TK（通过用户交互或 OOB 获取）和双方的随机数生成 STK，用于加密链路。Legacy 配对不提供前向保密性。</p>
+          <ul class="step-list">
+            <li><span class="step-num">1</span><span class="step-content"><strong>TK 交换：</strong>根据关联模型确定 TK（Just Works: TK=0；Passkey: TK=6位数；OOB: TK来自带外数据）</span></li>
+            <li><span class="step-num">2</span><span class="step-content"><strong>Confirm 值交换：</strong>Central 生成随机数 Mrand，用 c1() 计算 Mconfirm 并发送。Peripheral 同样生成 Srand、Sconfirm。</span></li>
+            <li><span class="step-num">3</span><span class="step-content"><strong>随机数交换与验证：</strong>双方互换随机数，重新计算对方的 Confirm，与收到的比较，不一致则发送 Pairing Failed。</span></li>
+            <li><span class="step-num">4</span><span class="step-content"><strong>STK 生成：</strong>两侧均执行 STK = s1(TK, Srand, Mrand)，得到相同的 STK，用于链路层加密。</span></li>
+          </ul>
+        </div>
+
+        <div id="phase2-sc">
+          <h4 class="subsub-title">2.3.3 Phase 2 — LE Secure Connections（长期密钥生成）</h4>
+          <p class="desc">SC 配对基于 <strong>ECDH（椭圆曲线 Diffie-Hellman，P-256 曲线）</strong> 密钥交换，提供前向保密性，是更安全的配对方式。</p>
+          <div class="diagram-wrap">
+            <div class="diagram-title">SC 配对阶段 2 流程（以 Numeric Comparison 为例）</div>
+            <svg width="580" height="310" viewBox="0 0 580 310">
+              <defs>
+                <marker id="marrg" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <polygon points="0,0 8,4 0,8" fill="#0f766e"/>
+                </marker>
+                <marker id="marrp" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                  <polygon points="0,0 8,4 0,8" fill="#7c3aed"/>
+                </marker>
+              </defs>
+              <text x="120" y="25" text-anchor="middle" fill="#0078d4" font-size="13" font-weight="700">Central (A)</text>
+              <line x1="120" y1="32" x2="120" y2="300" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="4,3"/>
+              <text x="460" y="25" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="700">Peripheral (B)</text>
+              <line x1="460" y1="32" x2="460" y2="300" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+              <!-- Step 1: Public Key -->
+              <rect x="155" y="38" width="270" height="22" rx="5" fill="#dbeafe"/>
+              <text x="290" y="53" text-anchor="middle" font-size="10" font-weight="700" fill="#1d4ed8">① 公钥交换 Public Key Exchange (PKa, PKb)</text>
+              <line x1="120" y1="49" x2="155" y2="49" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+              <line x1="425" y1="49" x2="460" y2="49" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marr)"/>
+              <!-- ECDH -->
+              <text x="290" y="82" text-anchor="middle" font-size="10" fill="#0f766e" font-weight="700">↕ 双方各自计算 DHKey = ECDH(私钥, 对方公钥)</text>
+
+              <!-- Step 2: Auth Stage 1 -->
+              <rect x="155" y="92" width="270" height="22" rx="5" fill="#e0e7ff"/>
+              <text x="290" y="107" text-anchor="middle" font-size="10" font-weight="700" fill="#3730a3">② 认证阶段1：随机数+确认值交换</text>
+              <text x="145" y="128" text-anchor="end" font-size="9" fill="#475569">生成 Na, Ca=f4(PKax,PKbx,Na,0)</text>
+              <line x1="145" y1="132" x2="425" y2="132" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+              <text x="430" y="128" font-size="9" fill="#475569">Ca →</text>
+              <text x="435" y="152" font-size="9" fill="#7c3aed">← Cb</text>
+              <line x1="425" y1="148" x2="145" y2="148" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+              <line x1="145" y1="166" x2="425" y2="166" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+              <text x="290" y="163" text-anchor="middle" font-size="9" fill="#0078d4">Na →</text>
+              <line x1="425" y1="182" x2="145" y2="182" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+              <text x="290" y="179" text-anchor="middle" font-size="9" fill="#7c3aed">← Nb</text>
+
+              <!-- g2 -->
+              <text x="290" y="200" text-anchor="middle" font-size="10" fill="#d97706" font-weight="700">双方各自计算 V = g2(PKax,PKbx,Na,Nb) → 6位数字 用户确认</text>
+
+              <!-- Step 3: LTK -->
+              <rect x="155" y="208" width="270" height="22" rx="5" fill="#d1fae5"/>
+              <text x="290" y="223" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">③ 密钥派生 MacKey||LTK = f5(DHKey, Na, Nb, A, B)</text>
+
+              <!-- Step 4: DHKey Check -->
+              <rect x="155" y="238" width="270" height="22" rx="5" fill="#fef3c7"/>
+              <text x="290" y="253" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">④ 认证阶段2：DHKey Check</text>
+              <line x1="145" y1="272" x2="425" y2="272" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+              <text x="290" y="270" text-anchor="middle" font-size="9" fill="#0078d4">Ea = f6(MacKey,Na,Nb,rb,IOcap,A,B) →</text>
+              <line x1="425" y1="288" x2="145" y2="288" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+              <text x="290" y="286" text-anchor="middle" font-size="9" fill="#7c3aed">← Eb = f6(MacKey,Nb,Na,ra,IOcap,B,A)</text>
+              <text x="290" y="305" text-anchor="middle" font-size="10" fill="#0f766e" font-weight="700">✅ 验证通过 → 链路加密 (使用 LTK)</text>
+            </svg>
+          </div>
+        </div>
+
+        <div id="phase3">
+          <h4 class="subsub-title">2.3.4 Phase 3 — Transport Specific Key Distribution（密钥分发）</h4>
+          <p class="desc">在链路加密后（使用 STK 或 LTK），双方可按 Phase 1 协商的结果分发长期使用的密钥：</p>
+          <div class="grid-2">
+            <div class="card card-blue">
+              <span class="tag tag-blue" style="margin-bottom:8px;display:inline-block">LTK</span>
+              <p style="font-size:13px;color:#475569;line-height:1.6"><strong>Long Term Key</strong>：128 位，用于未来重连时直接加密链路，无需重新配对。</p>
+            </div>
+            <div class="card card-green">
+              <span class="tag tag-green" style="margin-bottom:8px;display:inline-block">IRK</span>
+              <p style="font-size:13px;color:#475569;line-height:1.6"><strong>Identity Resolving Key</strong>：128 位，用于解析对方的可解析私有地址 (RPA)。</p>
+            </div>
+            <div class="card card-orange">
+              <span class="tag tag-orange" style="margin-bottom:8px;display:inline-block">CSRK</span>
+              <p style="font-size:13px;color:#475569;line-height:1.6"><strong>Connection Signature Resolving Key</strong>：128 位，用于验证未加密连接上的已签名数据。</p>
+            </div>
+            <div class="card" style="border-left:4px solid #94a3b8">
+              <span class="tag" style="background:#f1f5f9;color:#475569;margin-bottom:8px;display:inline-block">Identity Address</span>
+              <p style="font-size:13px;color:#475569;line-height:1.6">设备的<strong>公共地址或静态随机地址</strong>，与 IRK 配合用于稳定标识设备。</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="assoc">
+          <h4 class="subsub-title">2.3.5 关联模型（Association Models）</h4>
+          <p class="desc">关联模型决定 Phase 2 中的安全等级与用户交互方式。共有四种模型：</p>
+          <table class="spec-table">
+            <tr><th>模型</th><th>MITM 防护</th><th>用户交互</th><th>适用场景</th><th>Legacy/SC</th></tr>
+            <tr>
+              <td><strong>Just Works</strong></td>
+              <td><span class="tag tag-red">无</span></td>
+              <td>无需交互</td>
+              <td>耳机、键盘等无屏幕设备</td>
+              <td><span class="tag tag-blue">两者均可</span></td>
+            </tr>
+            <tr>
+              <td><strong>Numeric Comparison</strong></td>
+              <td><span class="tag tag-green">有</span></td>
+              <td>双方显示6位数，用户比较确认</td>
+              <td>两台设备均有显示屏</td>
+              <td><span class="tag tag-purple">仅 SC</span></td>
+            </tr>
+            <tr>
+              <td><strong>Passkey Entry</strong></td>
+              <td><span class="tag tag-green">有</span></td>
+              <td>在一台或两台设备上输入6位PIN</td>
+              <td>键盘+显示屏设备组合</td>
+              <td><span class="tag tag-blue">两者均可</span></td>
+            </tr>
+            <tr>
+              <td><strong>Out Of Band (OOB)</strong></td>
+              <td><span class="tag tag-green">有（取决于OOB信道）</span></td>
+              <td>依赖 NFC 等带外信道</td>
+              <td>NFC 触碰配对</td>
+              <td><span class="tag tag-blue">两者均可</span></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- 2.4 Key Distribution -->
+      <div id="key-dist">
+        <h3 class="sub-title"><span class="num">2.4</span> 密钥分发策略</h3>
+        <p class="desc">密钥分发遵循以下原则：每台设备仅生成并控制自己分发的密钥；安全架构设计使<strong>响应设备（Responder/Peripheral）</strong>的内存与计算需求低于<strong>发起设备（Initiator/Central）</strong>。</p>
+        <div class="note-box"><span class="icon">⚠️</span>Phase 3 密钥分发必须在加密链路上进行（使用 Phase 2 生成的 STK 或 LTK 加密）。在非加密链路上分发密钥会导致严重安全漏洞。</div>
+      </div>
+
+      <!-- 2.5 Key Size -->
+      <div id="key-size">
+        <h3 class="sub-title"><span class="num">2.5</span> 密钥大小协商</h3>
+        <p class="desc">在 Pairing Feature Exchange 中双方协商最大加密密钥大小，范围为 <strong>7–16 字节（56–128 位）</strong>。实际密钥大小取双方支持的最小值。若协商结果不满足任一方要求，配对失败并返回 "Encryption Key Size" 错误。</p>
+        <div class="card card-red">
+          <strong style="color:#991b1b">安全警告：</strong>短密钥（如 7 字节）在理论上可被暴力破解。建议所有实现要求至少 16 字节（128 位）密钥。
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 3 ==================== -->
+    <div class="sec" id="smp">
+      <div class="sec-badge">Section 3</div>
+      <h2 class="sec-title">3. Security Manager Protocol (SMP)</h2>
+      <p class="desc">SMP 是安全管理器的协议层，运行于 L2CAP 之上，使用固定信道 CID <strong>0x0006</strong>（LE）或 <strong>0x0007</strong>（BR/EDR）。所有 SMP PDU 均以 1 字节命令码开头，后跟参数。</p>
+
+      <div id="smp-commands">
+        <h3 class="sub-title"><span class="num">3.1</span> SMP 命令列表</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">SMP 协议数据单元 (PDU) 汇总</div>
+          <svg width="580" height="340" viewBox="0 0 580 340">
+            <!-- Header -->
+            <rect x="10" y="10" width="560" height="28" rx="6" fill="#1e3a5f"/>
+            <text x="45" y="29" font-size="11" font-weight="700" fill="white">Code</text>
+            <text x="140" y="29" font-size="11" font-weight="700" fill="white">命令名称</text>
+            <text x="350" y="29" font-size="11" font-weight="700" fill="white">方向</text>
+            <text x="460" y="29" font-size="11" font-weight="700" fill="white">阶段</text>
+            <!-- Rows -->
+            <rect x="10" y="38" width="560" height="22" rx="0" fill="#f8fafc"/>
+            <text x="45" y="53" font-size="10" fill="#1d4ed8" font-family="monospace">0x01</text>
+            <text x="140" y="53" font-size="10" fill="#334155">Pairing Request</text>
+            <text x="350" y="53" font-size="10" fill="#475569">Central → Peripheral</text>
+            <text x="460" y="53" font-size="10" fill="#0078d4">Phase 1</text>
+
+            <rect x="10" y="60" width="560" height="22" fill="#fff"/>
+            <text x="45" y="75" font-size="10" fill="#1d4ed8" font-family="monospace">0x02</text>
+            <text x="140" y="75" font-size="10" fill="#334155">Pairing Response</text>
+            <text x="350" y="75" font-size="10" fill="#475569">Peripheral → Central</text>
+            <text x="460" y="75" font-size="10" fill="#0078d4">Phase 1</text>
+
+            <rect x="10" y="82" width="560" height="22" fill="#f8fafc"/>
+            <text x="45" y="97" font-size="10" fill="#1d4ed8" font-family="monospace">0x03</text>
+            <text x="140" y="97" font-size="10" fill="#334155">Pairing Confirm</text>
+            <text x="350" y="97" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="97" font-size="10" fill="#7c3aed">Phase 2</text>
+
+            <rect x="10" y="104" width="560" height="22" fill="#fff"/>
+            <text x="45" y="119" font-size="10" fill="#1d4ed8" font-family="monospace">0x04</text>
+            <text x="140" y="119" font-size="10" fill="#334155">Pairing Random</text>
+            <text x="350" y="119" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="119" font-size="10" fill="#7c3aed">Phase 2</text>
+
+            <rect x="10" y="126" width="560" height="22" fill="#f8fafc"/>
+            <text x="45" y="141" font-size="10" fill="#1d4ed8" font-family="monospace">0x05</text>
+            <text x="140" y="141" font-size="10" fill="#334155">Pairing Failed</text>
+            <text x="350" y="141" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="141" font-size="10" fill="#ef4444">错误处理</text>
+
+            <rect x="10" y="148" width="560" height="22" fill="#fff"/>
+            <text x="45" y="163" font-size="10" fill="#1d4ed8" font-family="monospace">0x06</text>
+            <text x="140" y="163" font-size="10" fill="#334155">Encryption Information (LTK)</text>
+            <text x="350" y="163" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="163" font-size="10" fill="#0f766e">Phase 3</text>
+
+            <rect x="10" y="170" width="560" height="22" fill="#f8fafc"/>
+            <text x="45" y="185" font-size="10" fill="#1d4ed8" font-family="monospace">0x07</text>
+            <text x="140" y="185" font-size="10" fill="#334155">Central Identification (EDIV, Rand)</text>
+            <text x="350" y="185" font-size="10" fill="#475569">Central → Peripheral</text>
+            <text x="460" y="185" font-size="10" fill="#0f766e">Phase 3</text>
+
+            <rect x="10" y="192" width="560" height="22" fill="#fff"/>
+            <text x="45" y="207" font-size="10" fill="#1d4ed8" font-family="monospace">0x08</text>
+            <text x="140" y="207" font-size="10" fill="#334155">Identity Information (IRK)</text>
+            <text x="350" y="207" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="207" font-size="10" fill="#0f766e">Phase 3</text>
+
+            <rect x="10" y="214" width="560" height="22" fill="#f8fafc"/>
+            <text x="45" y="229" font-size="10" fill="#1d4ed8" font-family="monospace">0x09</text>
+            <text x="140" y="229" font-size="10" fill="#334155">Identity Address Information</text>
+            <text x="350" y="229" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="229" font-size="10" fill="#0f766e">Phase 3</text>
+
+            <rect x="10" y="236" width="560" height="22" fill="#fff"/>
+            <text x="45" y="251" font-size="10" fill="#1d4ed8" font-family="monospace">0x0A</text>
+            <text x="140" y="251" font-size="10" fill="#334155">Signing Information (CSRK)</text>
+            <text x="350" y="251" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="251" font-size="10" fill="#0f766e">Phase 3</text>
+
+            <rect x="10" y="258" width="560" height="22" fill="#f8fafc"/>
+            <text x="45" y="273" font-size="10" fill="#1d4ed8" font-family="monospace">0x0B</text>
+            <text x="140" y="273" font-size="10" fill="#334155">Security Request</text>
+            <text x="350" y="273" font-size="10" fill="#475569">Peripheral → Central</text>
+            <text x="460" y="273" font-size="10" fill="#f59e0b">独立命令</text>
+
+            <rect x="10" y="280" width="560" height="22" fill="#fff"/>
+            <text x="45" y="295" font-size="10" fill="#1d4ed8" font-family="monospace">0x0C</text>
+            <text x="140" y="295" font-size="10" fill="#334155">Pairing Public Key (SC)</text>
+            <text x="350" y="295" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="295" font-size="10" fill="#7c3aed">SC Phase 2</text>
+
+            <rect x="10" y="302" width="560" height="22" fill="#f8fafc"/>
+            <text x="45" y="317" font-size="10" fill="#1d4ed8" font-family="monospace">0x0D</text>
+            <text x="140" y="317" font-size="10" fill="#334155">Pairing DHKey Check (SC)</text>
+            <text x="350" y="317" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="317" font-size="10" fill="#7c3aed">SC Phase 2</text>
+
+            <rect x="10" y="324" width="560" height="22" fill="#fff"/>
+            <text x="45" y="339" font-size="10" fill="#1d4ed8" font-family="monospace">0x0E</text>
+            <text x="140" y="339" font-size="10" fill="#334155">Pairing Keypress Notification</text>
+            <text x="350" y="339" font-size="10" fill="#475569">双向</text>
+            <text x="460" y="339" font-size="10" fill="#7c3aed">SC Phase 2</text>
+          </svg>
+        </div>
+      </div>
+
+      <div id="pairing-req">
+        <h3 class="sub-title"><span class="num">3.2</span> Pairing Request / Response 格式</h3>
+        <p class="desc">Pairing Request (0x01) 和 Pairing Response (0x02) 的 PDU 结构相同（6 字节参数），用于交换双方能力：</p>
+        <div class="diagram-wrap">
+          <div class="diagram-title">Pairing Request / Response PDU 结构</div>
+          <svg width="580" height="110" viewBox="0 0 580 110">
+            <rect x="10" y="10" width="64" height="44" rx="6" fill="#1e3a5f"/>
+            <text x="42" y="30" text-anchor="middle" fill="white" font-size="10" font-weight="700">Code</text>
+            <text x="42" y="46" text-anchor="middle" fill="#94a3b8" font-size="9">0x01/0x02</text>
+            <text x="42" y="66" text-anchor="middle" fill="#94a3b8" font-size="9">1 octet</text>
+
+            <rect x="84" y="10" width="80" height="44" rx="6" fill="#0078d4"/>
+            <text x="124" y="30" text-anchor="middle" fill="white" font-size="10" font-weight="700">IO</text>
+            <text x="124" y="44" text-anchor="middle" fill="#bfdbfe" font-size="9">Capability</text>
+            <text x="124" y="66" text-anchor="middle" fill="#93c5fd" font-size="9">1 octet</text>
+
+            <rect x="174" y="10" width="70" height="44" rx="6" fill="#0078d4"/>
+            <text x="209" y="30" text-anchor="middle" fill="white" font-size="10" font-weight="700">OOB</text>
+            <text x="209" y="44" text-anchor="middle" fill="#bfdbfe" font-size="9">Data Flag</text>
+            <text x="209" y="66" text-anchor="middle" fill="#93c5fd" font-size="9">1 octet</text>
+
+            <rect x="254" y="10" width="80" height="44" rx="6" fill="#7c3aed"/>
+            <text x="294" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="700">Auth</text>
+            <text x="294" y="42" text-anchor="middle" fill="#ddd6fe" font-size="9">Requirements</text>
+            <text x="294" y="66" text-anchor="middle" fill="#c4b5fd" font-size="9">1 octet</text>
+
+            <rect x="344" y="10" width="80" height="44" rx="6" fill="#0f766e"/>
+            <text x="384" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="700">Max Key</text>
+            <text x="384" y="42" text-anchor="middle" fill="#6ee7b7" font-size="9">Size (7-16)</text>
+            <text x="384" y="66" text-anchor="middle" fill="#6ee7b7" font-size="9">1 octet</text>
+
+            <rect x="434" y="10" width="64" height="44" rx="6" fill="#d97706"/>
+            <text x="466" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="700">Init</text>
+            <text x="466" y="42" text-anchor="middle" fill="#fef3c7" font-size="9">Key Dist</text>
+            <text x="466" y="66" text-anchor="middle" fill="#fef3c7" font-size="9">1 octet</text>
+
+            <rect x="508" y="10" width="64" height="44" rx="6" fill="#d97706"/>
+            <text x="540" y="28" text-anchor="middle" fill="white" font-size="10" font-weight="700">Resp</text>
+            <text x="540" y="42" text-anchor="middle" fill="#fef3c7" font-size="9">Key Dist</text>
+            <text x="540" y="66" text-anchor="middle" fill="#fef3c7" font-size="9">1 octet</text>
+
+            <!-- Auth Requirements bits -->
+            <text x="294" y="85" text-anchor="middle" font-size="9" fill="#475569">Bonding[1:0] | MITM | SC | Keypress | CT2 | RFU</text>
+          </svg>
+        </div>
+      </div>
+
+      <div id="confirm-random">
+        <h3 class="sub-title"><span class="num">3.3</span> Pairing Confirm & Pairing Random</h3>
+        <p class="desc"><strong>Pairing Confirm (0x03)</strong>：携带 128 位确认值（Legacy 用 c1() 计算，SC 用 f4() 计算）。交换顺序：Confirm 先交换，Random 后交换，防止一方在看到对方随机数后作弊。</p>
+        <p class="desc"><strong>Pairing Random (0x04)</strong>：携带 128 位随机数（Legacy: Mrand/Srand，SC: Na/Nb）。接收方可用随机数重新计算对方的 Confirm 值并验证。</p>
+      </div>
+
+      <div id="dhkey">
+        <h3 class="sub-title"><span class="num">3.4</span> Public Key & DHKey Check（SC 专用）</h3>
+        <p class="desc"><strong>Pairing Public Key (0x0C)</strong>：携带 512 位 P-256 椭圆曲线公钥（256 位 x 坐标 + 256 位 y 坐标）。双方各自发送，用于 ECDH 计算。</p>
+        <p class="desc"><strong>Pairing DHKey Check (0x0D)</strong>：携带 128 位 DHKey Check 值（由 f6() 计算），用于认证阶段 2 的相互验证，确认双方拥有相同的 DHKey 和 MacKey。</p>
+      </div>
+
+      <div id="pairing-failed">
+        <h3 class="sub-title"><span class="num">3.5</span> Pairing Failed 错误码</h3>
+        <table class="spec-table">
+          <tr><th>Code</th><th>错误原因</th><th>说明</th></tr>
+          <tr><td><code>0x01</code></td><td>Passkey Entry Failed</td><td>用户未在规定时间内输入正确的 Passkey</td></tr>
+          <tr><td><code>0x02</code></td><td>OOB Not Available</td><td>对端要求 OOB 但本端没有 OOB 数据</td></tr>
+          <tr><td><code>0x03</code></td><td>Authentication Requirements</td><td>认证需求不匹配（如一端要求 MITM，另一端不支持）</td></tr>
+          <tr><td><code>0x04</code></td><td>Confirm Value Failed</td><td>Confirm 值验证失败（可能存在 MITM 攻击）</td></tr>
+          <tr><td><code>0x05</code></td><td>Pairing Not Supported</td><td>设备不支持配对</td></tr>
+          <tr><td><code>0x06</code></td><td>Encryption Key Size</td><td>密钥大小协商失败</td></tr>
+          <tr><td><code>0x07</code></td><td>Command Not Supported</td><td>不支持该 SMP 命令</td></tr>
+          <tr><td><code>0x08</code></td><td>Unspecified Reason</td><td>未指明的失败原因</td></tr>
+          <tr><td><code>0x09</code></td><td>Repeated Attempts</td><td>配对尝试过于频繁（防暴力破解）</td></tr>
+          <tr><td><code>0x0A</code></td><td>Invalid Parameters</td><td>命令参数无效</td></tr>
+          <tr><td><code>0x0B</code></td><td>DHKey Check Failed</td><td>SC DHKey Check 验证失败</td></tr>
+          <tr><td><code>0x0C</code></td><td>Numeric Comparison Failed</td><td>用户确认数字不匹配</td></tr>
+          <tr><td><code>0x0D</code></td><td>BR/EDR Pairing in Progress</td><td>BR/EDR 配对正在进行中</td></tr>
+          <tr><td><code>0x0E</code></td><td>CT Key Missing</td><td>跨传输密钥派生缺少必要密钥</td></tr>
+        </table>
+      </div>
+
+      <div id="key-exchange">
+        <h3 class="sub-title"><span class="num">3.6</span> 密钥交换命令（Phase 3）</h3>
+        <p class="desc">Phase 3 密钥分发在加密链路上依次进行，顺序严格按照 Pairing Request/Response 中协商的 Key Distribution 字段。Initiator 先分发（如果需要），然后 Responder 分发。</p>
+        <div class="note-box"><span class="icon">🔑</span>密钥分发顺序建议：Encryption Information → Central Identification → Identity Information → Identity Address → Signing Information</div>
+      </div>
+
+      <div id="sec-req">
+        <h3 class="sub-title"><span class="num">3.7</span> Security Request（外围设备主动请求）</h3>
+        <p class="desc"><strong>Peripheral</strong> 可通过发送 Security Request (0x0B) 命令，请求 Central 发起加密或配对流程。这不是配对流程的一部分，而是独立命令。Central 可选择响应（发起配对或加密）或忽略。</p>
+        <p class="desc">Security Request 包含 Auth Requirements 字段，告知 Central 外围设备所需的最低安全级别。</p>
+      </div>
+
+      <div id="keypress">
+        <h3 class="sub-title"><span class="num">3.8</span> Keypress Notification（按键通知）</h3>
+        <p class="desc">仅用于 SC Passkey Entry 模式，用于在用户输入 Passkey 期间向对端发送输入进度通知，改善用户体验。包含以下通知类型：</p>
+        <div class="grid-2">
+          <div style="font-size:13px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0"><strong>0</strong> — Passkey entry started（开始输入）</div>
+          <div style="font-size:13px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0"><strong>1</strong> — Passkey digit entered（输入一位）</div>
+          <div style="font-size:13px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0"><strong>2</strong> — Passkey digit erased（删除一位）</div>
+          <div style="font-size:13px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0"><strong>3</strong> — Passkey cleared（清空输入）</div>
+          <div style="font-size:13px;padding:10px 14px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0"><strong>4</strong> — Passkey entry completed（完成输入）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SECTION 4 ==================== -->
+    <div class="sec" id="security-modes">
+      <div class="sec-badge">Section 4</div>
+      <h2 class="sec-title">4. Security Modes — 安全模式</h2>
+      <p class="desc">蓝牙规范定义了多个安全模式，用于描述设备的安全能力和服务访问控制策略。GAP 和各 Profile 可依据安全模式要求对连接设备进行授权。</p>
+
+      <div id="le-security">
+        <h3 class="sub-title"><span class="num">4.1</span> LE 安全模式</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">LE 安全模式层级</div>
+          <svg width="580" height="260" viewBox="0 0 580 260">
+            <!-- Mode 1 -->
+            <rect x="10" y="10" width="270" height="240" rx="10" fill="#f0f9ff" stroke="#bae6fd" stroke-width="1.5"/>
+            <text x="145" y="32" text-anchor="middle" fill="#0c4a6e" font-size="13" font-weight="700">LE Security Mode 1</text>
+            <text x="145" y="48" text-anchor="middle" fill="#0369a1" font-size="10">加密为基础</text>
+
+            <rect x="22" y="58" width="246" height="40" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+            <text x="145" y="75" text-anchor="middle" fill="#1d4ed8" font-size="11" font-weight="700">Level 1 — No Security</text>
+            <text x="145" y="91" text-anchor="middle" fill="#3b82f6" font-size="9">无安全要求，不加密不认证</text>
+
+            <rect x="22" y="108" width="246" height="40" rx="6" fill="#bfdbfe" stroke="#60a5fa"/>
+            <text x="145" y="124" text-anchor="middle" fill="#1d4ed8" font-size="11" font-weight="700">Level 2 — Unauthenticated Pairing + Enc</text>
+            <text x="145" y="140" text-anchor="middle" fill="#2563eb" font-size="9">Just Works 配对 + 链路加密（无 MITM 防护）</text>
+
+            <rect x="22" y="158" width="246" height="40" rx="6" fill="#93c5fd" stroke="#3b82f6"/>
+            <text x="145" y="174" text-anchor="middle" fill="#1e3a5f" font-size="11" font-weight="700">Level 3 — Authenticated Pairing + Enc</text>
+            <text x="145" y="190" text-anchor="middle" fill="#1e3a5f" font-size="9">有 MITM 防护的配对 + 链路加密</text>
+
+            <rect x="22" y="208" width="246" height="36" rx="6" fill="#1d4ed8" stroke="#1e40af"/>
+            <text x="145" y="224" text-anchor="middle" fill="white" font-size="11" font-weight="700">Level 4 — SC Authenticated + Enc</text>
+            <text x="145" y="238" text-anchor="middle" fill="#bfdbfe" font-size="9">SC 认证配对 + 128bit 密钥加密（最高级）</text>
+
+            <!-- Mode 2 -->
+            <rect x="300" y="10" width="270" height="240" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
+            <text x="435" y="32" text-anchor="middle" fill="#14532d" font-size="13" font-weight="700">LE Security Mode 2</text>
+            <text x="435" y="48" text-anchor="middle" fill="#15803d" font-size="10">数据签名为基础（无加密要求）</text>
+
+            <rect x="312" y="58" width="246" height="40" rx="6" fill="#dcfce7" stroke="#6ee7b7"/>
+            <text x="435" y="75" text-anchor="middle" fill="#065f46" font-size="11" font-weight="700">Level 1 — Unauth Pairing + Signing</text>
+            <text x="435" y="91" text-anchor="middle" fill="#047857" font-size="9">Just Works 配对 + CSRK 签名（无 MITM）</text>
+
+            <rect x="312" y="108" width="246" height="40" rx="6" fill="#6ee7b7" stroke="#10b981"/>
+            <text x="435" y="124" text-anchor="middle" fill="#064e3b" font-size="11" font-weight="700">Level 2 — Auth Pairing + Signing</text>
+            <text x="435" y="140" text-anchor="middle" fill="#064e3b" font-size="9">有 MITM 防护配对 + CSRK 签名</text>
+
+            <!-- Note -->
+            <rect x="312" y="168" width="246" height="72" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-dasharray="4,3"/>
+            <text x="435" y="188" text-anchor="middle" fill="#047857" font-size="10" font-weight="700">⚠️ Mode 2 适用场景</text>
+            <text x="435" y="206" text-anchor="middle" fill="#064e3b" font-size="9">在非加密 Bearer 上传输</text>
+            <text x="435" y="220" text-anchor="middle" fill="#064e3b" font-size="9">已签名 ATT/GATT 数据</text>
+            <text x="435" y="234" text-anchor="middle" fill="#064e3b" font-size="9">现代实现中已少见，Mode 1 更普遍</text>
+          </svg>
+        </div>
+      </div>
+
+      <div id="bredr-security">
+        <h3 class="sub-title"><span class="num">4.2</span> BR/EDR 安全模式与跨传输</h3>
+        <p class="desc">BR/EDR 设备同样有安全模式定义（Security Mode 1–4）。当设备同时支持 BR/EDR 和 LE 时，可通过<strong>跨传输密钥派生（CTKD, Cross-Transport Key Derivation）</strong>在 LE 配对后自动生成 BR/EDR Link Key（或反之），避免用户在两种连接上各自配对一次。</p>
+        <div class="card card-purple">
+          <strong>跨传输密钥派生流程：</strong>
+          <ul style="font-size:13px;color:#475569;line-height:2;margin-top:8px;padding-left:20px">
+            <li><strong>LE LTK → BR/EDR Link Key：</strong>h7(SALT="tmp1") 得中间密钥，再 h6(key,"lebr") 得 Link Key</li>
+            <li><strong>BR/EDR Link Key → LE LTK：</strong>h7(SALT="owcK") 得中间密钥，再 h6(key,"brle") 得 LTK</li>
+            <li>CT2 标志位（Auth Requirements 的 bit 6）控制是否使用 CT2（h7）方式或旧方式（直接 h6）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== APPENDIX C ==================== -->
+    <div class="sec" id="appendix-c">
+      <div class="sec-badge">Appendix C</div>
+      <h2 class="sec-title">附录 C — Message Sequence Charts (MSC) 消息序列图</h2>
+      <p class="desc">附录 C 以消息序列图的形式展示典型的配对场景，直观说明各 SMP 命令的发送时序。</p>
+
+      <div id="msc-legacy">
+        <h3 class="sub-title"><span class="num">C.1</span> Legacy Pairing 完整流程（Just Works / Passkey）</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">C.1 LE Legacy Pairing 完整消息序列</div>
+          <svg width="580" height="400" viewBox="0 0 580 400">
+            <text x="110" y="22" text-anchor="middle" fill="#0078d4" font-size="13" font-weight="700">Central</text>
+            <line x1="110" y1="28" x2="110" y2="390" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <text x="470" y="22" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="700">Peripheral</text>
+            <line x1="470" y1="28" x2="470" y2="390" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+            <!-- Phase 1 label -->
+            <rect x="195" y="32" width="190" height="18" rx="4" fill="#dbeafe"/>
+            <text x="290" y="45" text-anchor="middle" font-size="10" font-weight="700" fill="#1d4ed8">Phase 1: Feature Exchange</text>
+
+            <line x1="110" y1="62" x2="465" y2="62" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="58" text-anchor="middle" fill="#0078d4" font-size="10">Pairing Request (0x01)</text>
+
+            <line x1="465" y1="82" x2="115" y2="82" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="78" text-anchor="middle" fill="#7c3aed" font-size="10">Pairing Response (0x02)</text>
+
+            <!-- Phase 2 label -->
+            <rect x="195" y="96" width="190" height="18" rx="4" fill="#ede9fe"/>
+            <text x="290" y="109" text-anchor="middle" font-size="10" font-weight="700" fill="#5b21b6">Phase 2: STK Generation</text>
+
+            <!-- TK -->
+            <text x="110" y="130" text-anchor="middle" fill="#475569" font-size="9">Generate Mrand</text>
+            <text x="110" y="143" text-anchor="middle" fill="#475569" font-size="9">Mconfirm=c1(TK,Mrand,...)</text>
+            <line x1="110" y1="155" x2="465" y2="155" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="151" text-anchor="middle" fill="#0078d4" font-size="10">Pairing Confirm (Mconfirm)</text>
+
+            <text x="470" y="170" text-anchor="middle" fill="#475569" font-size="9">Generate Srand</text>
+            <text x="470" y="182" text-anchor="middle" fill="#475569" font-size="9">Sconfirm=c1(TK,Srand,...)</text>
+            <line x1="465" y1="194" x2="115" y2="194" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="190" text-anchor="middle" fill="#7c3aed" font-size="10">Pairing Confirm (Sconfirm)</text>
+
+            <line x1="110" y1="214" x2="465" y2="214" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="210" text-anchor="middle" fill="#0078d4" font-size="10">Pairing Random (Mrand)</text>
+            <text x="470" y="228" text-anchor="middle" fill="#475569" font-size="9">验证 c1(TK,Mrand,...)==Mconfirm ✅</text>
+
+            <line x1="465" y1="242" x2="115" y2="242" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="238" text-anchor="middle" fill="#7c3aed" font-size="10">Pairing Random (Srand)</text>
+            <text x="110" y="256" text-anchor="middle" fill="#475569" font-size="9">验证 c1(TK,Srand,...)==Sconfirm ✅</text>
+
+            <!-- STK -->
+            <text x="290" y="275" text-anchor="middle" fill="#0f766e" font-size="10" font-weight="700">双方各自计算 STK = s1(TK, Srand, Mrand)</text>
+            <rect x="195" y="280" width="190" height="20" rx="4" fill="#d1fae5"/>
+            <text x="290" y="294" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">🔒 LL Encryption Start (STK)</text>
+
+            <!-- Phase 3 label -->
+            <rect x="195" y="310" width="190" height="18" rx="4" fill="#d1fae5"/>
+            <text x="290" y="323" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">Phase 3: Key Distribution</text>
+
+            <line x1="110" y1="342" x2="465" y2="342" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="338" text-anchor="middle" fill="#0078d4" font-size="10">Enc Info + Central ID (LTK, EDIV, Rand)</text>
+            <line x1="465" y1="362" x2="115" y2="362" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="358" text-anchor="middle" fill="#7c3aed" font-size="10">Identity Info + Addr Info (IRK, Address)</text>
+
+            <rect x="195" y="374" width="190" height="18" rx="4" fill="#0078d4"/>
+            <text x="290" y="387" text-anchor="middle" font-size="10" font-weight="700" fill="white">✅ 配对完成 — Bonded</text>
+          </svg>
+        </div>
+      </div>
+
+      <div id="msc-sc">
+        <h3 class="sub-title"><span class="num">C.2</span> LE Secure Connections 完整流程</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">C.2 LE SC 完整配对消息序列（Numeric Comparison）</div>
+          <svg width="580" height="480" viewBox="0 0 580 480">
+            <text x="110" y="22" text-anchor="middle" fill="#0078d4" font-size="13" font-weight="700">Central</text>
+            <line x1="110" y1="28" x2="110" y2="470" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="4,3"/>
+            <text x="470" y="22" text-anchor="middle" fill="#7c3aed" font-size="13" font-weight="700">Peripheral</text>
+            <line x1="470" y1="28" x2="470" y2="470" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+            <rect x="195" y="32" width="190" height="18" rx="4" fill="#dbeafe"/>
+            <text x="290" y="45" text-anchor="middle" font-size="10" font-weight="700" fill="#1d4ed8">Phase 1</text>
+            <line x1="110" y1="62" x2="465" y2="62" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="58" text-anchor="middle" fill="#0078d4" font-size="10">Pairing Request (SC bit=1)</text>
+            <line x1="465" y1="78" x2="115" y2="78" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="74" text-anchor="middle" fill="#7c3aed" font-size="10">Pairing Response (SC bit=1)</text>
+
+            <rect x="195" y="92" width="190" height="18" rx="4" fill="#ede9fe"/>
+            <text x="290" y="105" text-anchor="middle" font-size="10" font-weight="700" fill="#5b21b6">Phase 2A: 公钥交换</text>
+            <line x1="110" y1="122" x2="465" y2="122" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="118" text-anchor="middle" fill="#0078d4" font-size="10">Public Key (PKa: 512bit)</text>
+            <line x1="465" y1="138" x2="115" y2="138" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="134" text-anchor="middle" fill="#7c3aed" font-size="10">Public Key (PKb: 512bit)</text>
+            <text x="290" y="155" text-anchor="middle" fill="#0f766e" font-size="9">各自计算 DHKey = ECDH(私钥, 对方公钥) [P-256]</text>
+
+            <rect x="195" y="162" width="190" height="18" rx="4" fill="#fef3c7"/>
+            <text x="290" y="175" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">Phase 2B: 认证阶段1 (Commit)</text>
+            <text x="110" y="192" text-anchor="middle" fill="#475569" font-size="9">生成 Na, Ca=f4(PKax,PKbx,Na,0)</text>
+            <line x1="110" y1="200" x2="465" y2="200" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="196" text-anchor="middle" fill="#0078d4" font-size="10">Pairing Confirm (Ca)</text>
+            <text x="470" y="215" text-anchor="middle" fill="#475569" font-size="9">生成 Nb, Cb=f4(PKbx,PKax,Nb,0)</text>
+            <line x1="465" y1="222" x2="115" y2="222" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="218" text-anchor="middle" fill="#7c3aed" font-size="10">Pairing Confirm (Cb)</text>
+            <line x1="110" y1="240" x2="465" y2="240" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="236" text-anchor="middle" fill="#0078d4" font-size="10">Pairing Random (Na)</text>
+            <text x="470" y="255" text-anchor="middle" fill="#475569" font-size="9">验证 Ca ✅</text>
+            <line x1="465" y1="262" x2="115" y2="262" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="258" text-anchor="middle" fill="#7c3aed" font-size="10">Pairing Random (Nb)</text>
+            <text x="110" y="278" text-anchor="middle" fill="#475569" font-size="9">验证 Cb ✅</text>
+
+            <text x="290" y="295" text-anchor="middle" fill="#d97706" font-size="10" font-weight="700">双方各自计算 V=g2(PKax,PKbx,Na,Nb)→6位数，用户比较</text>
+
+            <rect x="195" y="302" width="190" height="18" rx="4" fill="#d1fae5"/>
+            <text x="290" y="315" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">LTK 派生: MacKey||LTK = f5(DHKey,...)</text>
+
+            <rect x="195" y="325" width="190" height="18" rx="4" fill="#fef3c7"/>
+            <text x="290" y="338" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">Phase 2C: 认证阶段2 (DHKey Check)</text>
+            <line x1="110" y1="355" x2="465" y2="355" stroke="#0078d4" stroke-width="1.5" marker-end="url(#marrb)"/>
+            <text x="290" y="351" text-anchor="middle" fill="#0078d4" font-size="10">DHKey Check Ea=f6(MacKey,Na,Nb,0,IOcap,A,B)</text>
+            <text x="470" y="370" text-anchor="middle" fill="#475569" font-size="9">验证 Ea ✅</text>
+            <line x1="465" y1="377" x2="115" y2="377" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#marrp)"/>
+            <text x="290" y="373" text-anchor="middle" fill="#7c3aed" font-size="10">DHKey Check Eb=f6(MacKey,Nb,Na,0,IOcap,B,A)</text>
+            <text x="110" y="393" text-anchor="middle" fill="#475569" font-size="9">验证 Eb ✅</text>
+
+            <rect x="185" y="400" width="210" height="22" rx="6" fill="#0078d4"/>
+            <text x="290" y="416" text-anchor="middle" font-size="11" font-weight="700" fill="white">🔒 LL Encryption (LTK)</text>
+
+            <rect x="185" y="430" width="210" height="18" rx="4" fill="#d1fae5"/>
+            <text x="290" y="443" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">Phase 3: 密钥分发 (IRK, CSRK, ...)</text>
+
+            <rect x="185" y="455" width="210" height="18" rx="4" fill="#1d4ed8"/>
+            <text x="290" y="468" text-anchor="middle" font-size="10" font-weight="700" fill="white">✅ SC 配对完成</text>
+          </svg>
+        </div>
+      </div>
+
+      <div id="msc-fail">
+        <h3 class="sub-title"><span class="num">C.5</span> 失败场景</h3>
+        <p class="desc">规范附录 C.5 描述了多种典型失败场景：</p>
+        <div class="grid-2">
+          <div class="card card-red">
+            <strong style="font-size:13px;color:#991b1b">Pairing Not Supported</strong>
+            <p style="font-size:12px;color:#475569;margin-top:6px;line-height:1.6">Peripheral 不支持配对时，向 Central 的 Pairing Request 回应 Pairing Failed (0x05)。</p>
+          </div>
+          <div class="card card-red">
+            <strong style="font-size:13px;color:#991b1b">Key Size Rejected</strong>
+            <p style="font-size:12px;color:#475569;margin-top:6px;line-height:1.6">Phase 1 协商的密钥大小不可接受，任一方发送 Pairing Failed (0x06)。</p>
+          </div>
+          <div class="card card-red">
+            <strong style="font-size:13px;color:#991b1b">Confirm Value Failed</strong>
+            <p style="font-size:12px;color:#475569;margin-top:6px;line-height:1.6">Confirm 值验证失败（存在 MITM 或输入错误 Passkey），发送 Pairing Failed (0x04)，须等待随机退避时间后才可重试。</p>
+          </div>
+          <div class="card card-red">
+            <strong style="font-size:13px;color:#991b1b">Numeric Comparison Failed</strong>
+            <p style="font-size:12px;color:#475569;margin-top:6px;line-height:1.6">用户确认数字不匹配，发送 Pairing Failed (0x0C)，终止 SC 配对流程。</p>
+          </div>
+          <div class="card card-red">
+            <strong style="font-size:13px;color:#991b1b">DHKey Check Failed</strong>
+            <p style="font-size:12px;color:#475569;margin-top:6px;line-height:1.6">SC 认证阶段 2 的 f6() 校验值不匹配，可能遭受中间人攻击，发送 Pairing Failed (0x0B)。</p>
+          </div>
+          <div class="card card-red">
+            <strong style="font-size:13px;color:#991b1b">Repeated Attempts</strong>
+            <p style="font-size:12px;color:#475569;margin-top:6px;line-height:1.6">连续配对失败后触发，设备必须拒绝新的配对请求并进入退避状态，防止暴力破解。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== APPENDIX D ==================== -->
+    <div class="sec" id="appendix-d">
+      <div class="sec-badge">Appendix D</div>
+      <h2 class="sec-title">附录 D — Sample Data（测试向量）</h2>
+      <p class="desc">附录 D 提供了各密码学函数的完整测试向量，用于验证实现的正确性。所有字节从左到右按从高位到低位排列。</p>
+
+      <div class="grid-2">
+        <div class="card card-blue">
+          <strong style="font-size:13px">D.1 AES-CMAC (RFC4493 测试向量)</strong>
+          <div class="code-block" style="margin-top:10px;font-size:11px">
+K:   2b7e1516 28aed2a6 abf71588 09cf4f3c
+<span class="cm">-- Len=0 --</span>
+M:   &lt;empty&gt;
+MAC: bb1d6929 e9593728 7fa37d12 9b756746
+
+<span class="cm">-- Len=16 --</span>
+M:   6bc1bee2 2e409f96 e93d7e11 7393172a
+MAC: 070a16b4 6b4d4144 f79bdd9d d04a287c
+          </div>
+        </div>
+        <div class="card card-purple">
+          <strong style="font-size:13px">D.2 f4 LE SC 确认值测试向量</strong>
+          <div class="code-block" style="margin-top:10px;font-size:11px">
+U: 20b003d2 f297be2c 5e2c83a7 e9f9a5b9
+   eff49111 acf4fddb cc030148 0e359de6
+V: 55188b3d 32f6bb9a 900afcfb eed4e72a
+   59cb9ac2 f19d7cfb 6b4fdd49 f47fc5fd
+X: d5cb8454 d177733e ffffb2ec 712baeab
+Z: 0x00
+<span class="kw">f4</span>: f2c916f1 07a9bd1c f1eda1be a974872d
+          </div>
+        </div>
+        <div class="card card-green">
+          <strong style="font-size:13px">D.3 f5 LTK & MacKey 测试向量</strong>
+          <div class="code-block" style="margin-top:10px;font-size:11px">
+DHKey: ec0234a3 57c8ad05 341010a6 0a397d9b
+       99796b13 b4f866f1 868d34f3 73bfa698
+<span class="kw">LTK</span>:    69867911 69d7cd23 980522b5 94750a38
+<span class="kw">MacKey</span>: 2965f176 a1084a02 fd3f6a20 ce636e20
+          </div>
+        </div>
+        <div class="card card-orange">
+          <strong style="font-size:13px">D.4–D.8 其他函数测试向量</strong>
+          <div class="code-block" style="margin-top:10px;font-size:11px">
+<span class="cm">-- f6 DHKey Check --</span>
+<span class="kw">f6</span>: e3c47398 9cd0e8c5 d26c0b09 da958f61
+
+<span class="cm">-- g2 数字比较 --</span>
+<span class="kw">g2</span>: 0x2f9ed5ba → <span class="val">用户看到: 794330</span>
+
+<span class="cm">-- ah 地址哈希 --</span>
+IRK: ec0234a3 ... prand: 708194
+<span class="kw">ah</span>:  0x0dfbaa
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:20px;border-left:4px solid #0f766e">
+        <strong style="font-size:13px">D.9–D.12 跨传输密钥派生测试向量</strong>
+        <div class="grid-2" style="margin-top:12px">
+          <div>
+            <p style="font-size:12px;font-weight:700;color:#0f766e;margin-bottom:6px">CT2=1：LTK → Link Key</p>
+            <div class="code-block" style="font-size:11px">
+LTK:      368df9bc e3264b58
+          bd066c33 334fbf64
+Link Key: 287ad379 dca40253
+          0a39f1f4 3047b835
+            </div>
+          </div>
+          <div>
+            <p style="font-size:12px;font-weight:700;color:#0f766e;margin-bottom:6px">CT2=1：Link Key → LTK</p>
+            <div class="code-block" style="font-size:11px">
+Link Key: 05040302 01000908
+          07060504 03020100
+LTK:      e85e09eb 5eccb3e2
+          69418a13 3211bc79
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary chart -->
+      <div class="diagram-wrap" style="margin-top:24px">
+        <div class="diagram-title">蓝牙安全管理器整体知识图谱</div>
+        <svg width="580" height="320" viewBox="0 0 580 320">
+          <!-- Center node -->
+          <ellipse cx="290" cy="160" rx="70" ry="38" fill="#0078d4"/>
+          <text x="290" y="156" text-anchor="middle" fill="white" font-size="13" font-weight="700">Security</text>
+          <text x="290" y="172" text-anchor="middle" fill="white" font-size="13" font-weight="700">Manager</text>
+
+          <!-- Nodes -->
+          <ellipse cx="80" cy="60" rx="60" ry="28" fill="#7c3aed" opacity="0.9"/>
+          <text x="80" y="55" text-anchor="middle" fill="white" font-size="10" font-weight="700">Pairing</text>
+          <text x="80" y="70" text-anchor="middle" fill="white" font-size="9">3-Phase Flow</text>
+
+          <ellipse cx="290" cy="46" rx="65" ry="28" fill="#0f766e" opacity="0.9"/>
+          <text x="290" y="40" text-anchor="middle" fill="white" font-size="10" font-weight="700">Crypto Toolbox</text>
+          <text x="290" y="57" text-anchor="middle" fill="white" font-size="9">e,c1,s1,f4-f6,g2,h6,h7</text>
+
+          <ellipse cx="500" cy="60" rx="65" ry="28" fill="#d97706" opacity="0.9"/>
+          <text x="500" y="55" text-anchor="middle" fill="white" font-size="10" font-weight="700">SMP Protocol</text>
+          <text x="500" y="70" text-anchor="middle" fill="white" font-size="9">L2CAP CID 0x0006</text>
+
+          <ellipse cx="80" cy="260" rx="65" ry="28" fill="#0ea5e9" opacity="0.9"/>
+          <text x="80" y="255" text-anchor="middle" fill="white" font-size="10" font-weight="700">Key Distribution</text>
+          <text x="80" y="270" text-anchor="middle" fill="white" font-size="9">LTK/IRK/CSRK</text>
+
+          <ellipse cx="290" cy="278" rx="65" ry="28" fill="#ef4444" opacity="0.9"/>
+          <text x="290" y="272" text-anchor="middle" fill="white" font-size="10" font-weight="700">Security Modes</text>
+          <text x="290" y="288" text-anchor="middle" fill="white" font-size="9">Mode1 L1-4 / Mode2 L1-2</text>
+
+          <ellipse cx="500" cy="260" rx="65" ry="28" fill="#0f766e" opacity="0.8"/>
+          <text x="500" y="255" text-anchor="middle" fill="white" font-size="10" font-weight="700">Cross-Transport</text>
+          <text x="500" y="270" text-anchor="middle" fill="white" font-size="9">h6/h7 LE↔BR/EDR</text>
+
+          <!-- Lines -->
+          <line x1="135" y1="74" x2="226" y2="138" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="290" y1="74" x2="290" y2="122" stroke="#0f766e" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="443" y1="74" x2="354" y2="138" stroke="#d97706" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="135" y1="248" x2="224" y2="182" stroke="#0ea5e9" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="290" y1="250" x2="290" y2="198" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="443" y1="248" x2="356" y2="182" stroke="#0f766e" stroke-width="1.5" stroke-dasharray="5,3"/>
+        </svg>
+      </div>
+    </div>
+
+  </div><!-- /content-wrap -->
+</main>
+
+<script>
+  // ===== Smooth scroll to section =====
+  function goTo(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      if (window.btScrollToEl) window.btScrollToEl(el, 20);
+      else el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+    // Update active nav item
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) {
+        n.classList.add('active');
+      }
+    });
+  }
+
+  // ===== Nav search filter =====
+  function filterNav(val) {
+    const q = val.toLowerCase();
+    document.querySelectorAll('.nav-item').forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.style.display = (!q || text.includes(q)) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.nav-group-title').forEach(g => {
+      g.style.display = q ? 'none' : 'block';
+    });
+  }
+
+  // ===== Scrollspy =====
+  const sections = [
+    'intro','scope','conventions','bit-order','random-num',
+    'sm','sm-intro','crypto','fn-e','fn-ah','fn-c1','fn-s1','fn-aescmac',
+    'fn-f4','fn-f5','fn-f6','fn-g2','fn-h6','fn-h7',
+    'pairing','phase1','phase2-legacy','phase2-sc','phase3','assoc',
+    'key-dist','key-size',
+    'smp','smp-commands','pairing-req','confirm-random','dhkey','pairing-failed',
+    'key-exchange','sec-req','keypress',
+    'security-modes','le-security','bredr-security',
+    'appendix-c','msc-legacy','msc-sc','msc-fail',
+    'appendix-d'
+  ];
+
+  const mainEl = document.getElementById('main');
+  mainEl.addEventListener('scroll', () => {
+    const scrollTop = mainEl.scrollTop + 80;
+    let current = sections[0];
+    for (const id of sections) {
+      const el = document.getElementById(id);
+      if (el && el.offsetTop <= scrollTop) current = id;
+    }
+    document.querySelectorAll('.nav-item').forEach(n => {
+      n.classList.remove('active');
+      if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + current + "'")) {
+        n.classList.add('active');
+        // Scroll nav item into view
+        n.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  });
+
+  // Default active
+  document.querySelector('.nav-item').classList.add('active');
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+
+</body>
+</html>

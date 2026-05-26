@@ -1,0 +1,2728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙 BR/EDR 基带规范 (Core 6.0 Part B) 详解</title>
+<style>
+  :root {
+    --blue: #0057A8;
+    --blue-light: #1a7fd4;
+    --blue-dark: #003d78;
+    --accent: #00AEEF;
+    --accent2: #00C97A;
+    --warn: #FF6B35;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #1a2340;
+    --text2: #4a5568;
+    --border: #d0dce8;
+    --code-bg: #e8f0f9;
+    --sidebar-w: 280px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ===== SIDEBAR ===== */
+  #sidebar {
+    width: var(--sidebar-w);
+    height: 100vh;
+    max-height: 100vh;
+    background: linear-gradient(180deg, var(--blue-dark) 0%, #001f4d 100%);
+    color: #c8d8ea;
+    position: fixed;
+    top: 0; left: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+    transition: transform 0.3s;
+  }
+
+  #sidebar-logo {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .bt-icon {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 900; color: #fff;
+    flex-shrink: 0;
+  }
+
+  #sidebar-logo h1 {
+    font-size: 13px; font-weight: 700; color: #fff; line-height: 1.3;
+  }
+  #sidebar-logo p { font-size: 11px; color: #7aa8cc; }
+
+  #sidebar-nav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding: 10px 0 16px;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.35) rgba(255, 255, 255, 0.08);
+  }
+
+  .nav-section {
+    padding: 8px 16px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #5a86a8;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 7px 16px 7px 20px;
+    font-size: 12.5px;
+    color: #aac4dd;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .nav-link:hover, .nav-link.active {
+    color: #fff;
+    background: rgba(0,174,239,0.15);
+    border-left-color: var(--accent);
+  }
+
+  .nav-link.sub { padding-left: 30px; font-size: 11.5px; color: #7aa8cc; }
+  .nav-link.sub:hover, .nav-link.sub.active { color: #d0eaff; border-left-color: var(--accent2); }
+
+  /* ===== MAIN ===== */
+  #main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-height: 100vh;
+  }
+
+  #topbar {
+    background: var(--blue);
+    color: #fff;
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 2px 8px rgba(0,0,70,0.2);
+  }
+
+  #topbar h2 { font-size: 15px; font-weight: 600; }
+  #topbar span { font-size: 12px; background: rgba(255,255,255,0.18); padding: 3px 10px; border-radius: 20px; }
+
+  #menu-toggle {
+    display: none;
+    background: none; border: none; color: #fff; font-size: 22px; cursor: pointer;
+  }
+
+  #content {
+    padding: 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ===== SECTION ===== */
+  .section {
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+  .section.visible { display: block; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+  .section-hero {
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    color: #fff;
+    margin-bottom: 28px;
+  }
+
+  .section-hero .section-num {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .section-hero h2 { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+  .section-hero p { font-size: 14px; line-height: 1.7; opacity: 0.9; max-width: 780px; }
+
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,80,0.07);
+    padding: 24px;
+    margin-bottom: 22px;
+    border: 1px solid var(--border);
+  }
+
+  .card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .card h3 .icon { font-size: 18px; }
+
+  .card p { font-size: 13.5px; line-height: 1.8; color: var(--text2); margin-bottom: 10px; }
+  .card p:last-child { margin-bottom: 0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 22px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+
+  @media(max-width:800px) { .grid2, .grid3 { grid-template-columns:1fr; } }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 2px 3px 2px 0;
+  }
+
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-green { background: #d1fae5; color: #065f46; }
+  .tag-yellow { background: #fef3c7; color: #92400e; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+  .tag-purple { background: #ede9fe; color: #5b21b6; }
+
+  /* ===== SVG DIAGRAMS ===== */
+  .diagram-wrap {
+    background: #f7faff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 16px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  .diagram-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  svg { max-width: 100%; height: auto; }
+
+  /* ===== TABLE ===== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0;
+  }
+
+  th {
+    background: var(--blue);
+    color: #fff;
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  tr:nth-child(even) td { background: #f0f5fc; }
+
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--blue-dark);
+  }
+
+  .info-box {
+    border-left: 4px solid var(--accent);
+    background: #e8f7ff;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #003d60;
+    line-height: 1.7;
+  }
+
+  .warn-box {
+    border-left: 4px solid var(--warn);
+    background: #fff4ef;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 13px;
+    color: #7a2a00;
+    line-height: 1.7;
+  }
+
+  .metric-row {
+    display: flex; flex-wrap: wrap; gap: 14px; margin: 14px 0;
+  }
+
+  .metric {
+    background: linear-gradient(135deg, #f0f6ff, #e0edff);
+    border: 1px solid #b0c8e8;
+    border-radius: 10px;
+    padding: 14px 20px;
+    min-width: 130px;
+    text-align: center;
+    flex: 1;
+  }
+
+  .metric .val {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--blue);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .metric .lbl {
+    font-size: 11px;
+    color: var(--text2);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  ul.spec-list {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+
+  ul.spec-list li {
+    padding: 6px 0 6px 22px;
+    position: relative;
+    font-size: 13px;
+    color: var(--text2);
+    border-bottom: 1px solid #eef2f8;
+    line-height: 1.6;
+  }
+
+  ul.spec-list li:last-child { border-bottom: none; }
+
+  ul.spec-list li::before {
+    content: "▶";
+    position: absolute; left: 0;
+    color: var(--accent);
+    font-size: 9px;
+    top: 9px;
+  }
+
+  /* ===== PROGRESS FLOW ===== */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 16px 0;
+  }
+
+  .flow-step {
+    background: var(--blue);
+    color: #fff;
+    padding: 9px 16px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: center;
+    min-width: 90px;
+    position: relative;
+  }
+
+  .flow-step.alt { background: var(--accent2); }
+  .flow-step.warn { background: var(--warn); }
+  .flow-step.purple { background: #7c3aed; }
+  .flow-step.gray { background: #64748b; }
+
+  .flow-arrow {
+    font-size: 18px;
+    color: var(--blue);
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  /* ===== STATE MACHINE ===== */
+  .state-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 14px 0;
+  }
+
+  .state-box {
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    border: 2px solid transparent;
+  }
+
+  .state-box .state-name { font-size: 13px; margin-bottom: 4px; }
+  .state-box .state-desc { font-size: 11px; font-weight: 400; opacity: 0.85; }
+
+  .state-standby { background: #f1f5f9; border-color: #94a3b8; color: #475569; }
+  .state-inquiry { background: #fef3c7; border-color: #d97706; color: #92400e; }
+  .state-page { background: #dbeafe; border-color: #2563eb; color: #1e3a8a; }
+  .state-conn { background: #d1fae5; border-color: #059669; color: #064e3b; }
+  .state-hold { background: #ede9fe; border-color: #7c3aed; color: #4c1d95; }
+  .state-sniff { background: #fce7f3; border-color: #db2777; color: #831843; }
+  .state-park { background: #fee2e2; border-color: #dc2626; color: #7f1d1d; }
+
+  /* responsive sidebar toggle */
+  @media(max-width:900px){
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.open { transform: translateX(0); }
+    #main { margin-left: 0; }
+    #menu-toggle { display: block; }
+    #content { padding: 20px 16px; }
+    .grid2, .grid3 { grid-template-columns:1fr; }
+  }
+
+  /* ===== CANVAS FOR INTERACTIVE ===== */
+  canvas { border-radius: 8px; display: block; margin: 0 auto; }
+
+  /* 侧栏导航滚动条 */
+  #sidebar-nav::-webkit-scrollbar { width: 8px; }
+  #sidebar-nav::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    margin: 4px 0;
+  }
+  #sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  #sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+    background-clip: padding-box;
+  }
+
+  /* Timer bars */
+  .timer-bar-wrap { margin: 8px 0; }
+  .timer-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text2); margin-bottom: 3px; }
+  .timer-bar-bg { height: 14px; background: #e2eaf5; border-radius: 7px; overflow: hidden; }
+  .timer-bar-fill { height: 100%; border-radius: 7px; transition: width 1s; }
+
+  .section-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div id="sidebar-logo">
+    <div class="bt-icon">B</div>
+    <div>
+      <h1>BR/EDR 基带规范</h1>
+      <p>Core 6.0 · Part B</p>
+    </div>
+  </div>
+  <nav id="sidebar-nav">
+    <div class="nav-section">总览</div>
+    <a class="nav-link active" onclick="show('s0')">📋 规范概述</a>
+
+    <div class="nav-section">第1章</div>
+    <a class="nav-link" onclick="show('s1')">1. 总体描述</a>
+    <a class="nav-link sub" onclick="show('s1_1')">1.1 蓝牙时钟</a>
+    <a class="nav-link sub" onclick="show('s1_2')">1.2 设备地址 BD_ADDR</a>
+    <a class="nav-link sub" onclick="show('s1_3')">1.3 接入码</a>
+
+    <div class="nav-section">第2章</div>
+    <a class="nav-link" onclick="show('s2')">2. 物理信道</a>
+    <a class="nav-link sub" onclick="show('s2_2')">2.2 基础微网信道</a>
+    <a class="nav-link sub" onclick="show('s2_3')">2.3 自适应跳频信道</a>
+    <a class="nav-link sub" onclick="show('s2_6')">2.6 跳频选择</a>
+
+    <div class="nav-section">第3章</div>
+    <a class="nav-link" onclick="show('s3')">3. 物理链路</a>
+
+    <div class="nav-section">第4章</div>
+    <a class="nav-link" onclick="show('s4')">4. 逻辑传输</a>
+
+    <div class="nav-section">第5章</div>
+    <a class="nav-link" onclick="show('s5')">5. 逻辑链路</a>
+
+    <div class="nav-section">第6章</div>
+    <a class="nav-link" onclick="show('s6')">6. 数据包格式</a>
+    <a class="nav-link sub" onclick="show('s6_2')">6.2 分组头</a>
+    <a class="nav-link sub" onclick="show('s6_4')">6.4 数据包类型</a>
+
+    <div class="nav-section">第7章</div>
+    <a class="nav-link" onclick="show('s7')">7. 差错校正</a>
+
+    <div class="nav-section">第8章</div>
+    <a class="nav-link" onclick="show('s8')">8. 控制器状态机</a>
+    <a class="nav-link sub" onclick="show('s8_3')">8.3 查询子状态</a>
+    <a class="nav-link sub" onclick="show('s8_4')">8.4 寻呼子状态</a>
+    <a class="nav-link sub" onclick="show('s8_5')">8.5 连接状态</a>
+    <a class="nav-link sub" onclick="show('s8_6')">8.6 省电模式</a>
+
+    <div class="nav-section">第9章</div>
+    <a class="nav-link" onclick="show('s9')">9. 音频传输</a>
+
+    <div class="nav-section">附录</div>
+    <a class="nav-link" onclick="show('sA')">附录A 音频建议</a>
+    <a class="nav-link" onclick="show('sB')">附录B 定时器</a>
+    <a class="nav-link" onclick="show('sC')">附录C AFH操作建议</a>
+  </nav>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <button type="button" id="menu-toggle" class="menu-btn" aria-label="菜单">☰</button>
+    <h2>蓝牙 BR/EDR 基带规范 (Core 6.0 Part B) 图解</h2>
+    <span>Bluetooth SIG · vAtlanta r00</span>
+  </div>
+
+  <div id="content">
+
+    <!-- ===================== SECTION 0: 规范概述 ===================== -->
+    <div id="s0" class="section visible">
+      <div class="section-hero">
+        <div class="section-num">Overview</div>
+        <h2>📶 蓝牙 BR/EDR 基带规范概述</h2>
+        <p>本页完整对照 Bluetooth Core 6.0 Part B（Baseband Specification），按原始章节顺序逐节解读，配以 SVG/Canvas 图表帮助理解。BR/EDR（Basic Rate / Enhanced Data Rate）是经典蓝牙的核心物理层与链路层协议。</p>
+      </div>
+
+      <div class="grid3">
+        <div class="card">
+          <h3><span class="icon">📡</span>物理层</h3>
+          <p>运行在 2.4 GHz ISM 频段，采用伪随机跳频（FHSS）技术，最多 79 个 RF 信道。</p>
+          <span class="tag tag-blue">BR: 1 Mb/s</span>
+          <span class="tag tag-green">EDR: 2/3 Mb/s</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🔗</span>微网拓扑</h3>
+          <p>1个 Central + 最多7个 Peripheral 组成 Piconet，多个 Piconet 共享设备构成 Scatternet。</p>
+          <span class="tag tag-purple">点对点</span>
+          <span class="tag tag-yellow">点对多点</span>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🕐</span>时分复用</h3>
+          <p>625 μs 时隙，TDD（时分双工），Central 和 Peripheral 交替收发，最多跨 5 个时隙。</p>
+          <span class="tag tag-blue">TDD</span>
+          <span class="tag tag-green">TDMA</span>
+        </div>
+      </div>
+
+      <!-- 章节结构图 -->
+      <div class="card">
+        <h3><span class="icon">📑</span>规范章节结构</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">Part B 章节架构图</div>
+          <svg viewBox="0 0 800 380" width="800" height="380" xmlns="http://www.w3.org/2000/svg">
+            <!-- Background -->
+            <rect width="800" height="380" fill="#f7faff" rx="10"/>
+            
+            <!-- Root -->
+            <rect x="300" y="20" width="200" height="44" rx="8" fill="#0057A8"/>
+            <text x="400" y="38" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">Part B 基带规范</text>
+            <text x="400" y="56" text-anchor="middle" fill="#9ac8f0" font-size="11">Baseband Specification</text>
+
+            <!-- Connectors from root -->
+            <line x1="400" y1="64" x2="400" y2="85" stroke="#0057A8" stroke-width="2"/>
+            <line x1="100" y1="85" x2="700" y2="85" stroke="#0057A8" stroke-width="2"/>
+
+            <!-- Chapter boxes -->
+            <!-- Ch1 -->
+            <line x1="100" y1="85" x2="100" y2="105" stroke="#0057A8" stroke-width="2"/>
+            <rect x="40" y="105" width="120" height="50" rx="7" fill="#1a7fd4"/>
+            <text x="100" y="124" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§1 总体描述</text>
+            <text x="100" y="141" text-anchor="middle" fill="#c8e0f4" font-size="10">时钟/地址/接入码</text>
+
+            <!-- Ch2 -->
+            <line x1="230" y1="85" x2="230" y2="105" stroke="#0057A8" stroke-width="2"/>
+            <rect x="170" y="105" width="120" height="50" rx="7" fill="#1a7fd4"/>
+            <text x="230" y="124" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§2 物理信道</text>
+            <text x="230" y="141" text-anchor="middle" fill="#c8e0f4" font-size="10">跳频/时隙/同步</text>
+
+            <!-- Ch3 -->
+            <line x1="360" y1="85" x2="360" y2="105" stroke="#0057A8" stroke-width="2"/>
+            <rect x="300" y="105" width="120" height="50" rx="7" fill="#1a7fd4"/>
+            <text x="360" y="124" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§3 物理链路</text>
+            <text x="360" y="141" text-anchor="middle" fill="#c8e0f4" font-size="10">SCO/eSCO/ACL</text>
+
+            <!-- Ch4 -->
+            <line x1="490" y1="85" x2="490" y2="105" stroke="#0057A8" stroke-width="2"/>
+            <rect x="430" y="105" width="120" height="50" rx="7" fill="#1a7fd4"/>
+            <text x="490" y="124" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§4 逻辑传输</text>
+            <text x="490" y="141" text-anchor="middle" fill="#c8e0f4" font-size="10">LT_ADDR/类型</text>
+
+            <!-- Ch5 -->
+            <line x1="620" y1="85" x2="620" y2="105" stroke="#0057A8" stroke-width="2"/>
+            <rect x="560" y="105" width="120" height="50" rx="7" fill="#1a7fd4"/>
+            <text x="620" y="124" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§5 逻辑链路</text>
+            <text x="620" y="141" text-anchor="middle" fill="#c8e0f4" font-size="10">ACL-C/U/SCO等</text>
+
+            <!-- Second row -->
+            <line x1="400" y1="155" x2="400" y2="200" stroke="#0057A8" stroke-width="2"/>
+            <line x1="100" y1="200" x2="700" y2="200" stroke="#0057A8" stroke-width="2"/>
+
+            <!-- Ch6 -->
+            <line x1="100" y1="200" x2="100" y2="220" stroke="#0057A8" stroke-width="2"/>
+            <rect x="40" y="220" width="120" height="50" rx="7" fill="#00AEEF"/>
+            <text x="100" y="239" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§6 数据包格式</text>
+            <text x="100" y="256" text-anchor="middle" fill="#cef3ff" font-size="10">接入码/头/负载</text>
+
+            <!-- Ch7 -->
+            <line x1="230" y1="200" x2="230" y2="220" stroke="#0057A8" stroke-width="2"/>
+            <rect x="170" y="220" width="120" height="50" rx="7" fill="#00AEEF"/>
+            <text x="230" y="239" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§7 差错校正</text>
+            <text x="230" y="256" text-anchor="middle" fill="#cef3ff" font-size="10">FEC/ARQ/CRC</text>
+
+            <!-- Ch8 -->
+            <line x1="400" y1="200" x2="400" y2="220" stroke="#0057A8" stroke-width="2"/>
+            <rect x="310" y="220" width="180" height="50" rx="7" fill="#00C97A"/>
+            <text x="400" y="239" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§8 控制器状态机</text>
+            <text x="400" y="256" text-anchor="middle" fill="#ccffe8" font-size="10">Standby/Inquiry/Page/Connected</text>
+
+            <!-- Ch9 -->
+            <line x1="580" y1="200" x2="580" y2="220" stroke="#0057A8" stroke-width="2"/>
+            <rect x="520" y="220" width="120" height="50" rx="7" fill="#00AEEF"/>
+            <text x="580" y="239" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">§9 音频传输</text>
+            <text x="580" y="256" text-anchor="middle" fill="#cef3ff" font-size="10">PCM/CVSD编解码</text>
+
+            <!-- App row -->
+            <line x1="400" y1="270" x2="400" y2="305" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <line x1="170" y1="305" x2="630" y2="305" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3"/>
+
+            <line x1="270" y1="305" x2="270" y2="320" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <rect x="170" y="320" width="200" height="40" rx="7" fill="#e2e8f0"/>
+            <text x="270" y="338" text-anchor="middle" fill="#475569" font-weight="700" font-size="12">附录A 音频建议</text>
+            <text x="270" y="352" text-anchor="middle" fill="#64748b" font-size="10">SLR/RLR/频率掩码</text>
+
+            <line x1="400" y1="305" x2="400" y2="320" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <rect x="320" y="320" width="160" height="40" rx="7" fill="#e2e8f0"/>
+            <text x="400" y="338" text-anchor="middle" fill="#475569" font-weight="700" font-size="12">附录B 定时器</text>
+            <text x="400" y="352" text-anchor="middle" fill="#64748b" font-size="10">各类超时参数</text>
+
+            <line x1="530" y1="305" x2="530" y2="320" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <rect x="430" y="320" width="200" height="40" rx="7" fill="#e2e8f0"/>
+            <text x="530" y="338" text-anchor="middle" fill="#475569" font-weight="700" font-size="12">附录C AFH操作建议</text>
+            <text x="530" y="352" text-anchor="middle" fill="#64748b" font-size="10">Hold/Sniff/CPB模式</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 协议层次 -->
+      <div class="card">
+        <h3><span class="icon">🏗️</span>蓝牙协议栈层次（基带位置）</h3>
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 600 280" width="600" height="280">
+            <rect width="600" height="280" fill="#f7faff" rx="10"/>
+            <!-- Layers -->
+            <rect x="50" y="20" width="500" height="40" rx="6" fill="#94a3b8"/>
+            <text x="300" y="46" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">应用层 / 配置文件 (Profiles)</text>
+
+            <rect x="50" y="70" width="500" height="40" rx="6" fill="#64748b"/>
+            <text x="300" y="96" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">L2CAP / SDP / RFCOMM</text>
+
+            <rect x="50" y="120" width="500" height="40" rx="6" fill="#1a7fd4"/>
+            <text x="300" y="146" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">链路管理协议 LMP</text>
+
+            <rect x="50" y="170" width="500" height="50" rx="6" fill="#0057A8" stroke="#00AEEF" stroke-width="3"/>
+            <text x="300" y="193" text-anchor="middle" fill="#fff" font-weight="800" font-size="14">★ 基带层 Baseband (Part B) ★</text>
+            <text x="300" y="212" text-anchor="middle" fill="#9ad8ff" font-size="11">物理信道 · 数据包 · 状态机 · 跳频 · 差错控制 · 音频</text>
+
+            <rect x="50" y="230" width="500" height="36" rx="6" fill="#00AEEF"/>
+            <text x="300" y="254" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">RF物理层 (2.4 GHz ISM · GFSK / π/4-DQPSK · 8DPSK)</text>
+
+            <!-- Arrow -->
+            <polygon points="30,148 10,138 10,158" fill="#0057A8"/>
+            <line x1="30" y1="148" x2="50" y2="148" stroke="#0057A8" stroke-width="2"/>
+            <text x="5" y="172" text-anchor="middle" fill="#0057A8" font-size="10" transform="rotate(-90,5,172)">数据流</text>
+          </svg>
+        </div>
+        <p>基带层（Baseband）是 BR/EDR 控制器的核心，负责处理所有物理信道操作、数据包封装、跳频同步和链路控制状态机。它直接位于 RF 物理层之上，向上为 LMP 和 HCI 提供服务。</p>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 1: 总体描述 ===================== -->
+    <div id="s1" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 1</div>
+        <h2>1. 总体描述 (General Description)</h2>
+        <p>介绍蓝牙网络拓扑结构（Piconet/Scatternet）、数据速率，以及 BR 和 EDR 两种模式下的数据包格式总览。</p>
+      </div>
+
+      <!-- Piconet / Scatternet -->
+      <div class="card">
+        <h3><span class="icon">📡</span>网络拓扑：Piconet 与 Scatternet</h3>
+        <p>蓝牙 BR/EDR 支持点对点和点对多点连接。共享同一物理信道的设备群组称为 <strong>Piconet（微网）</strong>。其中一台设备是 Central，其余是 Peripheral，最多 7 个 Peripheral 同时处于活跃状态。多个共享设备的 Piconet 构成 <strong>Scatternet（散网）</strong>。</p>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图1.1 微网与散网拓扑</div>
+          <svg viewBox="0 0 750 220" width="750" height="220">
+            <rect width="750" height="220" fill="#f0f5ff" rx="8"/>
+
+            <!-- (a) Single Peripheral -->
+            <text x="125" y="20" text-anchor="middle" fill="#0057A8" font-weight="700" font-size="13">(a) 点对点 Piconet</text>
+            <circle cx="125" cy="100" r="28" fill="#0057A8" stroke="#003d78" stroke-width="2"/>
+            <text x="125" y="104" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">Central</text>
+            <line x1="153" y1="100" x2="197" y2="100" stroke="#0057A8" stroke-width="2" stroke-dasharray="6,3"/>
+            <circle cx="210" cy="100" r="22" fill="#00AEEF" stroke="#007ab8" stroke-width="2"/>
+            <text x="210" y="104" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P1</text>
+            <text x="125" y="148" text-anchor="middle" fill="#64748b" font-size="10">1个Peripheral</text>
+
+            <!-- Divider -->
+            <line x1="260" y1="20" x2="260" y2="200" stroke="#d0dce8" stroke-width="1" stroke-dasharray="4,4"/>
+
+            <!-- (b) Multi Peripheral -->
+            <text x="450" y="20" text-anchor="middle" fill="#0057A8" font-weight="700" font-size="13">(b) 点对多点 Piconet (最多7个Peripheral)</text>
+            <circle cx="450" cy="100" r="28" fill="#0057A8" stroke="#003d78" stroke-width="2"/>
+            <text x="450" y="104" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">Central</text>
+            <!-- 7 peripherals in circle -->
+            <g id="peripherals">
+              <circle cx="510" cy="70" r="20" fill="#00AEEF" stroke="#007ab8" stroke-width="2"/>
+              <text x="510" y="74" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P1</text>
+              <line x1="470" y1="84" x2="493" y2="76" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+
+              <circle cx="530" cy="110" r="20" fill="#00AEEF" stroke="#007ab8" stroke-width="2"/>
+              <text x="530" y="114" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P2</text>
+              <line x1="478" y1="104" x2="511" y2="108" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+
+              <circle cx="510" cy="150" r="20" fill="#00AEEF" stroke="#007ab8" stroke-width="2"/>
+              <text x="510" y="154" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P3</text>
+              <line x1="466" y1="118" x2="494" y2="135" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+
+              <circle cx="450" cy="168" r="20" fill="#00AEEF" stroke="#007ab8" stroke-width="2"/>
+              <text x="450" y="172" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P4</text>
+              <line x1="450" y1="128" x2="450" y2="148" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+
+              <circle cx="390" cy="150" r="20" fill="#00C97A" stroke="#047857" stroke-width="2"/>
+              <text x="390" y="154" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P5</text>
+              <line x1="432" y1="120" x2="407" y2="136" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+
+              <circle cx="368" cy="110" r="20" fill="#00C97A" stroke="#047857" stroke-width="2"/>
+              <text x="368" y="114" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P6</text>
+              <line x1="422" y1="104" x2="388" y2="108" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+
+              <circle cx="390" cy="70" r="20" fill="#00C97A" stroke="#047857" stroke-width="2"/>
+              <text x="390" y="74" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">P7</text>
+              <line x1="427" y1="83" x2="408" y2="76" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="5,2"/>
+            </g>
+
+            <!-- Legend -->
+            <circle cx="285" cy="185" r="7" fill="#0057A8"/>
+            <text x="296" y="189" fill="#475569" font-size="11">Central</text>
+            <circle cx="340" cy="185" r="7" fill="#00AEEF"/>
+            <text x="351" y="189" fill="#475569" font-size="11">Peripheral</text>
+            <circle cx="410" cy="185" r="7" fill="#00C97A"/>
+            <text x="421" y="189" fill="#475569" font-size="11">双归属设备(Scatternet)</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Data rates -->
+      <div class="card">
+        <h3><span class="icon">⚡</span>数据速率与调制方式</h3>
+        <div class="metric-row">
+          <div class="metric"><div class="val">1 Mb/s</div><div class="lbl">Basic Rate (BR)<br>GFSK调制</div></div>
+          <div class="metric"><div class="val">2 Mb/s</div><div class="lbl">EDR 主模式<br>π/4-DQPSK</div></div>
+          <div class="metric"><div class="val">3 Mb/s</div><div class="lbl">EDR 次模式<br>8DPSK</div></div>
+          <div class="metric"><div class="val">1 Msym/s</div><div class="lbl">所有模式<br>符号速率</div></div>
+        </div>
+      </div>
+
+      <!-- Packet format comparison -->
+      <div class="card">
+        <h3><span class="icon">📦</span>数据包格式对比（BR vs EDR）</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图1.2/1.3 BR与EDR数据包格式</div>
+          <svg viewBox="0 0 700 180" width="700" height="180">
+            <rect width="700" height="180" fill="#f7faff" rx="8"/>
+
+            <!-- BR Packet -->
+            <text x="14" y="30" fill="#0057A8" font-weight="700" font-size="12">BR 基础速率包</text>
+            <rect x="14" y="38" width="110" height="36" rx="5" fill="#0057A8"/>
+            <text x="69" y="62" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">接入码 (72位)</text>
+            <rect x="130" y="38" width="90" height="36" rx="5" fill="#1a7fd4"/>
+            <text x="175" y="62" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">分组头 (54位)</text>
+            <rect x="226" y="38" width="200" height="36" rx="5" fill="#00AEEF"/>
+            <text x="326" y="62" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">有效载荷 Payload (0~2745位)</text>
+
+            <!-- Bracket -->
+            <line x1="14" y1="82" x2="426" y2="82" stroke="#0057A8" stroke-width="1.5"/>
+            <line x1="14" y1="78" x2="14" y2="82" stroke="#0057A8" stroke-width="1.5"/>
+            <line x1="426" y1="78" x2="426" y2="82" stroke="#0057A8" stroke-width="1.5"/>
+            <text x="220" y="95" text-anchor="middle" fill="#0057A8" font-size="11">最大帧长: 3 个字段</text>
+
+            <!-- EDR Packet -->
+            <text x="14" y="120" fill="#00854d" font-weight="700" font-size="12">EDR 增强数据速率包</text>
+            <rect x="14" y="128" width="80" height="34" rx="5" fill="#0057A8"/>
+            <text x="54" y="150" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">接入码</text>
+            <rect x="100" y="128" width="66" height="34" rx="5" fill="#1a7fd4"/>
+            <text x="133" y="150" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">分组头</text>
+            <rect x="172" y="128" width="60" height="34" rx="5" fill="#94a3b8"/>
+            <text x="202" y="150" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">保护期</text>
+            <rect x="238" y="128" width="72" height="34" rx="5" fill="#7c3aed"/>
+            <text x="274" y="150" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">同步序列</text>
+            <rect x="316" y="128" width="160" height="34" rx="5" fill="#00C97A"/>
+            <text x="396" y="150" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">EDR有效载荷</text>
+            <rect x="482" y="128" width="52" height="34" rx="5" fill="#FF6B35"/>
+            <text x="508" y="150" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">尾部</text>
+
+            <!-- EDR modulation note -->
+            <rect x="172" y="167" width="362" height="10" rx="3" fill="#d1fae5"/>
+            <text x="353" y="175" text-anchor="middle" fill="#065f46" font-size="9">↑ 此部分使用EDR调制模式</text>
+            <line x1="172" y1="162" x2="172" y2="167" stroke="#059669" stroke-width="1.5"/>
+            <line x1="534" y1="162" x2="534" y2="167" stroke="#059669" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 1.1: Bluetooth Clock ===================== -->
+    <div id="s1_1" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 1.1</div>
+        <h2>1.1 蓝牙时钟 (Bluetooth Clock)</h2>
+        <p>每个蓝牙设备都有一个本地时钟，该时钟决定了信道跳频、时隙调度等所有关键时序事件。时钟本质是一个 28 位计数器，以 312.5 μs 为最小单位递增。</p>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3><span class="icon">⏱️</span>时钟参数</h3>
+          <div class="metric-row">
+            <div class="metric"><div class="val">28 bit</div><div class="lbl">计数器位宽</div></div>
+            <div class="metric"><div class="val">312.5 μs</div><div class="lbl">最小时钟单位(LSB)</div></div>
+            <div class="metric"><div class="val">3.2 kHz</div><div class="lbl">时钟速率</div></div>
+            <div class="metric"><div class="val">~23.3h</div><div class="lbl">时钟周期(约1天)</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="icon">🎯</span>时钟精度要求</h3>
+          <table>
+            <tr><th>状态/模式</th><th>精度要求</th></tr>
+            <tr><td>Standby / Hold / Sniff / CPB</td><td>±250 ppm</td></tr>
+            <tr><td>其他所有状态</td><td>±20 ppm</td></tr>
+            <tr><td>Central（时钟调整时）</td><td>±20 ppm</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Clock hierarchy -->
+      <div class="card">
+        <h3><span class="icon">🔀</span>时钟层次结构</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图1.4 蓝牙时钟体系</div>
+          <svg viewBox="0 0 700 260" width="700" height="260">
+            <rect width="700" height="260" fill="#f7faff" rx="8"/>
+
+            <!-- CLKR -->
+            <rect x="280" y="20" width="140" height="46" rx="8" fill="#64748b"/>
+            <text x="350" y="40" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">CLKR</text>
+            <text x="350" y="56" text-anchor="middle" fill="#cbd5e1" font-size="11">参考时钟（自由振荡）</text>
+
+            <!-- CLKN -->
+            <line x1="350" y1="66" x2="350" y2="95" stroke="#64748b" stroke-width="2"/>
+            <rect x="250" y="95" width="200" height="46" rx="8" fill="#1a7fd4"/>
+            <text x="350" y="115" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">CLKN</text>
+            <text x="350" y="131" text-anchor="middle" fill="#c8e4ff" font-size="11">本地时钟 = CLKR + time_base_offset</text>
+
+            <!-- CLK left (Central) -->
+            <line x1="295" y1="141" x2="200" y2="175" stroke="#1a7fd4" stroke-width="2"/>
+            <rect x="100" y="175" width="200" height="46" rx="8" fill="#0057A8"/>
+            <text x="200" y="196" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">CLK (Central)</text>
+            <text x="200" y="211" text-anchor="middle" fill="#aac8ef" font-size="10">= CLKN (offset=0)</text>
+
+            <!-- CLK right (Peripheral) -->
+            <line x1="405" y1="141" x2="500" y2="175" stroke="#1a7fd4" stroke-width="2"/>
+            <rect x="400" y="175" width="230" height="46" rx="8" fill="#00854d"/>
+            <text x="515" y="196" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">CLK (Peripheral)</text>
+            <text x="515" y="211" text-anchor="middle" fill="#a0e8c6" font-size="10">= CLKN + peripheral_clock_offset</text>
+
+            <!-- CLKE -->
+            <rect x="280" y="236" width="140" height="20" rx="5" fill="#d97706"/>
+            <text x="350" y="251" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">CLKE：估计时钟（寻呼用）</text>
+
+            <!-- Bit labels -->
+            <rect x="520" y="15" width="170" height="100" rx="8" fill="#fff" stroke="#d0dce8" stroke-width="1"/>
+            <text x="605" y="34" text-anchor="middle" fill="#0057A8" font-weight="700" font-size="11">关键时钟位</text>
+            <text x="535" y="52" fill="#475569" font-size="11">CLK0 → 312.5 μs</text>
+            <text x="535" y="68" fill="#475569" font-size="11">CLK1 → 625 μs (时隙)</text>
+            <text x="535" y="84" fill="#475569" font-size="11">CLK2 → 1.25 ms</text>
+            <text x="535" y="100" fill="#475569" font-size="11">CLK12 → 1.28 s</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 1.2: BD_ADDR ===================== -->
+    <div id="s1_2" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 1.2</div>
+        <h2>1.2 蓝牙设备地址 BD_ADDR</h2>
+        <p>每个蓝牙设备都有唯一的 48 位地址（BD_ADDR），格式符合 IEEE 802 EUI-48 标准。该地址用于生成跳频序列、接入码等，是设备身份的核心标识。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🏷️</span>BD_ADDR 地址格式</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图1.5 BD_ADDR 字段映射（48位 EUI-48）</div>
+          <svg viewBox="0 0 680 160" width="680" height="160">
+            <rect width="680" height="160" fill="#f7faff" rx="8"/>
+
+            <!-- Bit field header -->
+            <text x="20" y="22" fill="#64748b" font-size="11">位位置</text>
+            <text x="20" y="40" fill="#64748b" font-size="11">字段</text>
+            <text x="20" y="60" fill="#64748b" font-size="11">位宽</text>
+            <text x="20" y="80" fill="#64748b" font-size="11">用途</text>
+
+            <!-- NAP -->
+            <rect x="100" y="10" width="130" height="24" rx="4" fill="#7c3aed"/>
+            <text x="165" y="27" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">NAP</text>
+            <text x="165" y="51" text-anchor="middle" fill="#7c3aed" font-weight="700" font-size="11">非重要地址部分</text>
+            <text x="165" y="67" text-anchor="middle" fill="#475569" font-size="11">16 位</text>
+            <rect x="100" y="75" width="130" height="40" rx="4" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
+            <text x="165" y="92" text-anchor="middle" fill="#5b21b6" font-size="10">公司标识高位</text>
+            <text x="165" y="108" text-anchor="middle" fill="#5b21b6" font-size="10">(IEEE分配)</text>
+
+            <!-- UAP -->
+            <rect x="238" y="10" width="100" height="24" rx="4" fill="#0057A8"/>
+            <text x="288" y="27" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">UAP</text>
+            <text x="288" y="51" text-anchor="middle" fill="#0057A8" font-weight="700" font-size="11">高位地址部分</text>
+            <text x="288" y="67" text-anchor="middle" fill="#475569" font-size="11">8 位</text>
+            <rect x="238" y="75" width="100" height="40" rx="4" fill="#dbeafe" stroke="#0057A8" stroke-width="1"/>
+            <text x="288" y="92" text-anchor="middle" fill="#1e3a8a" font-size="10">公司标识低位</text>
+            <text x="288" y="108" text-anchor="middle" fill="#1e3a8a" font-size="10">(用于FEC/跳频)</text>
+
+            <!-- LAP -->
+            <rect x="346" y="10" width="200" height="24" rx="4" fill="#059669"/>
+            <text x="446" y="27" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">LAP</text>
+            <text x="446" y="51" text-anchor="middle" fill="#059669" font-weight="700" font-size="11">低位地址部分</text>
+            <text x="446" y="67" text-anchor="middle" fill="#475569" font-size="11">24 位</text>
+            <rect x="346" y="75" width="200" height="40" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="1"/>
+            <text x="446" y="92" text-anchor="middle" fill="#064e3b" font-size="10">设备序列号（公司分配）</text>
+            <text x="446" y="108" text-anchor="middle" fill="#064e3b" font-size="10">用于接入码生成 / 跳频序列</text>
+
+            <!-- Reserved LAP note -->
+            <rect x="555" y="10" width="120" height="24" rx="4" fill="#dc2626"/>
+            <text x="615" y="27" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">保留LAP</text>
+            <rect x="555" y="40" width="120" height="70" rx="4" fill="#fee2e2" stroke="#dc2626" stroke-width="1"/>
+            <text x="615" y="58" text-anchor="middle" fill="#991b1b" font-size="10">0x9E8B00~0x9E8B3F</text>
+            <text x="615" y="74" text-anchor="middle" fill="#991b1b" font-size="10">共64个LAP</text>
+            <text x="615" y="90" text-anchor="middle" fill="#991b1b" font-size="10">用于查询操作</text>
+            <text x="615" y="106" text-anchor="middle" fill="#991b1b" font-size="10">不可用作用户地址</text>
+          </svg>
+        </div>
+        <div class="info-box">
+          <strong>📌 关键用途：</strong> LAP 用于生成接入码（Access Code）和跳频序列；UAP 用于 HEC/CRC 的 LFSR 初始化以及部分跳频计算；NAP 是公司标识的高位部分，用于设备识别。
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 1.3: Access Codes ===================== -->
+    <div id="s1_3" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 1.3</div>
+        <h2>1.3 接入码 (Access Codes)</h2>
+        <p>所有蓝牙物理信道传输都以接入码开头。接入码用于标识数据包到达、时序同步和偏移补偿，接收端通过对整个同步字进行相关运算来实现稳健信令。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔑</span>三种接入码类型</h3>
+        <div class="grid3">
+          <div style="background:#dbeafe;border-radius:10px;padding:18px;border:2px solid #2563eb;">
+            <div style="font-size:14px;font-weight:800;color:#1e3a8a;margin-bottom:6px;">DAC</div>
+            <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:8px;">设备接入码</div>
+            <div style="font-size:12px;color:#374151;line-height:1.6;">使用场景：Page、Page Scan、Central/Peripheral Page Response 子状态。由被寻呼设备的 BD_ADDR 派生。</div>
+          </div>
+          <div style="background:#d1fae5;border-radius:10px;padding:18px;border:2px solid #059669;">
+            <div style="font-size:14px;font-weight:800;color:#064e3b;margin-bottom:6px;">CAC</div>
+            <div style="font-size:13px;font-weight:700;color:#047857;margin-bottom:8px;">信道接入码</div>
+            <div style="font-size:12px;color:#374151;line-height:1.6;">使用场景：Connection 状态及同步列车/扫描子状态。Piconet 内所有数据包的起始。由 Central 的 LAP 派生。</div>
+          </div>
+          <div style="background:#fef3c7;border-radius:10px;padding:18px;border:2px solid #d97706;">
+            <div style="font-size:14px;font-weight:800;color:#78350f;margin-bottom:6px;">IAC</div>
+            <div style="font-size:13px;font-weight:700;color:#b45309;margin-bottom:8px;">查询接入码</div>
+            <div style="font-size:12px;color:#374151;line-height:1.6;">使用场景：Inquiry 子状态。GIAC（通用查询）1个，DIAC（专用查询）63个，共64个。</div>
+          </div>
+        </div>
+
+        <div class="diagram-wrap" style="margin-top:16px;">
+          <div class="diagram-title">接入码结构（72位）</div>
+          <svg viewBox="0 0 660 80" width="660" height="80">
+            <rect width="660" height="80" fill="#f7faff" rx="8"/>
+            <!-- Preamble -->
+            <rect x="10" y="15" width="60" height="40" rx="5" fill="#64748b"/>
+            <text x="40" y="32" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">前导码</text>
+            <text x="40" y="47" text-anchor="middle" fill="#cbd5e1" font-size="10">4 bit</text>
+            <!-- Sync word -->
+            <rect x="76" y="15" width="420" height="40" rx="5" fill="#0057A8"/>
+            <text x="286" y="32" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">同步字 (Synchronization Word)</text>
+            <text x="286" y="47" text-anchor="middle" fill="#9ad4ff" font-size="10">64 bit — 由 LAP 通过 LFSR 生成，用于相关检测和时序同步</text>
+            <!-- Trailer -->
+            <rect x="502" y="15" width="60" height="40" rx="5" fill="#64748b"/>
+            <text x="532" y="32" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">尾码</text>
+            <text x="532" y="47" text-anchor="middle" fill="#cbd5e1" font-size="10">4 bit</text>
+            <!-- Total -->
+            <text x="286" y="70" text-anchor="middle" fill="#0057A8" font-weight="700" font-size="11">总计: 72 bit</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 2: Physical Channels ===================== -->
+    <div id="s2" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 2</div>
+        <h2>2. 物理信道 (Physical Channels)</h2>
+        <p>物理信道是蓝牙系统的最低架构层，由伪随机跳频序列、时隙时序和接入码共同定义。不同类型的物理信道针对不同用途进行了优化。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">📻</span>五种物理信道</h3>
+        <div class="grid2">
+          <div>
+            <table>
+              <tr><th>物理信道</th><th>用途</th><th>跳频速率</th></tr>
+              <tr><td><strong>基础微网信道</strong></td><td>已连接设备间通信（默认）</td><td>1600 跳/s</td></tr>
+              <tr><td><strong>自适应微网信道</strong></td><td>已连接设备（AFH避开干扰）</td><td>1600 跳/s</td></tr>
+              <tr><td><strong>寻呼扫描信道</strong></td><td>允许其他设备发起连接</td><td>3200 跳/s</td></tr>
+              <tr><td><strong>查询扫描信道</strong></td><td>设备可发现（Discoverable）</td><td>3200 跳/s</td></tr>
+              <tr><td><strong>同步扫描信道</strong></td><td>获取 CPB 时序/时钟恢复</td><td>固定RF信道</td></tr>
+            </table>
+          </div>
+          <div>
+            <div class="diagram-wrap">
+              <div class="diagram-title">RF信道跳频示意</div>
+              <canvas id="hopCanvas" width="300" height="160"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        <strong>🔑 核心原理：</strong>蓝牙在 2.402~2.480 GHz 频段内的 79 个 RF 信道（间隔 1 MHz）中伪随机跳频。跳频序列由 Central 的 BD_ADDR 和蓝牙时钟共同决定，所有 Piconet 成员同步于相同的跳频序列。
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 2.2: Basic Piconet Channel ===================== -->
+    <div id="s2_2" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 2.2</div>
+        <h2>2.2 基础微网物理信道</h2>
+        <p>Connection 状态下默认使用的物理信道，采用 TDD（时分双工）方案，每个时隙 625 μs，Central 在偶数时隙发送，Peripheral 在奇数时隙发送。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">⏲️</span>时隙与 TDD 传输方案</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图2.1 多时隙数据包传输（TDD方案）</div>
+          <svg viewBox="0 0 700 200" width="700" height="200">
+            <rect width="700" height="200" fill="#f7faff" rx="8"/>
+
+            <!-- Slot labels -->
+            <text x="10" y="30" fill="#64748b" font-size="11" font-weight="700">时隙 k:</text>
+            <text x="10" y="110" fill="#0057A8" font-size="11" font-weight="700">Central TX:</text>
+            <text x="10" y="160" fill="#059669" font-size="11" font-weight="700">Peripheral TX:</text>
+
+            <!-- Slot markers -->
+            <line x1="80" y1="18" x2="80" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="160" y1="18" x2="160" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="240" y1="18" x2="240" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="320" y1="18" x2="320" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="400" y1="18" x2="400" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="480" y1="18" x2="480" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="560" y1="18" x2="560" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="640" y1="18" x2="640" y2="185" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+
+            <!-- Slot numbers -->
+            <text x="120" y="30" text-anchor="middle" fill="#475569" font-size="11">k (偶)</text>
+            <text x="200" y="30" text-anchor="middle" fill="#475569" font-size="11">k+1 (奇)</text>
+            <text x="280" y="30" text-anchor="middle" fill="#475569" font-size="11">k+2 (偶)</text>
+            <text x="360" y="30" text-anchor="middle" fill="#475569" font-size="11">k+3 (奇)</text>
+            <text x="440" y="30" text-anchor="middle" fill="#475569" font-size="11">k+4 (偶)</text>
+            <text x="520" y="30" text-anchor="middle" fill="#475569" font-size="11">k+5 (奇)</text>
+            <text x="600" y="30" text-anchor="middle" fill="#475569" font-size="11">k+6 (偶)</text>
+
+            <!-- Central TX: 1-slot packet -->
+            <rect x="82" y="85" width="76" height="30" rx="4" fill="#0057A8"/>
+            <text x="120" y="105" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">DM1 (1时隙)</text>
+
+            <!-- Central TX: 3-slot packet -->
+            <rect x="322" y="85" width="236" height="30" rx="4" fill="#0057A8"/>
+            <text x="440" y="105" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">DH3 / DM3（3时隙）</text>
+
+            <!-- Peripheral TX: 1-slot -->
+            <rect x="162" y="135" width="76" height="30" rx="4" fill="#059669"/>
+            <text x="200" y="155" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">HV1 (1时隙)</text>
+
+            <!-- Peripheral TX: 3-slot -->
+            <rect x="562" y="135" width="76" height="30" rx="4" fill="#059669"/>
+            <text x="600" y="155" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">DM1 (1时隙)</text>
+
+            <!-- 625us label -->
+            <line x1="80" y1="185" x2="160" y2="185" stroke="#d97706" stroke-width="2"/>
+            <line x1="80" y1="181" x2="80" y2="189" stroke="#d97706" stroke-width="2"/>
+            <line x1="160" y1="181" x2="160" y2="189" stroke="#d97706" stroke-width="2"/>
+            <text x="120" y="198" text-anchor="middle" fill="#d97706" font-size="10" font-weight="700">625 μs</text>
+
+            <!-- Frequency label -->
+            <text x="10" y="75" fill="#94a3b8" font-size="10">频率 f(k)</text>
+            <text x="120" y="75" text-anchor="middle" fill="#0057A8" font-size="10">f(k)</text>
+            <text x="200" y="75" text-anchor="middle" fill="#059669" font-size="10">f(k+1)</text>
+            <text x="280" y="75" text-anchor="middle" fill="#0057A8" font-size="10">f(k+2)</text>
+            <text x="360" y="75" text-anchor="middle" fill="#059669" font-size="10">f(k+3)</text>
+            <text x="440" y="75" text-anchor="middle" fill="#0057A8" font-size="10">f(k+4)</text>
+            <text x="520" y="75" text-anchor="middle" fill="#059669" font-size="10">f(k+5)</text>
+            <text x="600" y="75" text-anchor="middle" fill="#0057A8" font-size="10">f(k+6)</text>
+          </svg>
+        </div>
+        <ul class="spec-list">
+          <li>每个时隙长度为 625 μs，时隙号由 Central 时钟的 CLK27-1 确定</li>
+          <li>Central 始终在偶数时隙（CLK1=0）开始发送</li>
+          <li>Peripheral 始终在奇数时隙（CLK1=1）开始发送</li>
+          <li>数据包最多可跨越 5 个连续时隙（1/3/5 时隙包）</li>
+          <li>每次接收/发送时，由跳频内核选择 RF 信道</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 2.3: AFH ===================== -->
+    <div id="s2_3" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 2.3</div>
+        <h2>2.3 自适应跳频信道 (AFH)</h2>
+        <p>自适应跳频（Adaptive Frequency Hopping）是基础微网信道的变体，通过 AFH_channel_map 屏蔽质量差的 RF 信道（如被 Wi-Fi 占用的信道），从而降低干扰，提高链路质量。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🛡️</span>AFH 工作原理</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">AFH 信道映射示意（79个RF信道）</div>
+          <canvas id="afhCanvas" width="650" height="140"></canvas>
+        </div>
+        <div class="grid2">
+          <div>
+            <ul class="spec-list">
+              <li>最少使用 20 个信道（避免信道过少导致碰撞率过高）</li>
+              <li>AFH_channel_map 由 Central 通过 LMP 通知 Peripheral</li>
+              <li>信道分类：Good（使用）/ Bad（屏蔽）</li>
+              <li>屏蔽的信道用其他好信道替代，保持均匀分布</li>
+            </ul>
+          </div>
+          <div>
+            <div class="info-box">
+              <strong>与 Wi-Fi 共存：</strong> 蓝牙 AFH 可有效规避 802.11b/g/n 的 2.4 GHz 频段占用，是蓝牙与 Wi-Fi 共存的关键机制。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 2.6: Hop Selection ===================== -->
+    <div id="s2_6" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 2.6</div>
+        <h2>2.6 跳频选择 (Hop Selection)</h2>
+        <p>跳频内核（Hop Selection Kernel）根据蓝牙时钟和 BD_ADDR 计算当前时隙应使用的 RF 信道。不同的物理信道（基础微网、寻呼、查询）使用不同的跳频序列算法。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🎲</span>跳频序列类型</h3>
+        <table>
+          <tr><th>序列类型</th><th>使用场景</th><th>信道数</th><th>跳频速率</th></tr>
+          <tr><td>基础信道跳频序列</td><td>微网连接状态</td><td>79</td><td>1600 跳/s</td></tr>
+          <tr><td>自适应跳频序列(AHS)</td><td>AFH启用时</td><td>20~79</td><td>1600 跳/s</td></tr>
+          <tr><td>寻呼跳频序列</td><td>Page/PageScan 子状态</td><td>32</td><td>3200 跳/s</td></tr>
+          <tr><td>查询跳频序列</td><td>Inquiry/InquiryScan 子状态</td><td>32</td><td>3200 跳/s</td></tr>
+          <tr><td>唤醒跳频序列</td><td>Hold/Sniff 期间</td><td>79</td><td>—</td></tr>
+        </table>
+        <div class="info-box" style="margin-top:14px;">
+          <strong>跳频公式：</strong> f = hop(CLKN, BD_ADDR_Central) — 信道频率由 Central 的本地时钟和地址共同计算，所有已同步的设备均能预测下一个跳频信道。
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 3: Physical Links ===================== -->
+    <div id="s3" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 3</div>
+        <h2>3. 物理链路 (Physical Links)</h2>
+        <p>物理链路建立在物理信道之上，代表两台设备之间的实际连接关系。不同类型的物理链路提供不同的 QoS 特性，主要分为同步链路（语音）和异步链路（数据）。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔗</span>物理链路类型</h3>
+        <div class="grid2">
+          <div style="background:#dbeafe;border-radius:10px;padding:16px;border:2px solid #2563eb;">
+            <h4 style="color:#1e3a8a;font-size:14px;margin-bottom:8px;">ACL — 异步无连接链路</h4>
+            <p style="font-size:13px;color:#374151;line-height:1.6;">用于数据传输。Central 控制时隙分配，采用 ARQ 重传机制保证数据完整性。支持对称/非对称、广播。</p>
+            <div style="margin-top:8px;"><span class="tag tag-blue">数据</span><span class="tag tag-blue">重传</span><span class="tag tag-blue">点对点/广播</span></div>
+          </div>
+          <div style="background:#d1fae5;border-radius:10px;padding:16px;border:2px solid #059669;">
+            <h4 style="color:#064e3b;font-size:14px;margin-bottom:8px;">SCO — 同步面向连接链路</h4>
+            <p style="font-size:13px;color:#374151;line-height:1.6;">用于语音传输。固定时隙间隔，延迟确定，不支持重传。速率 64 kb/s（HV1/HV2/HV3）。</p>
+            <div style="margin-top:8px;"><span class="tag tag-green">语音</span><span class="tag tag-green">固定时延</span><span class="tag tag-green">64 kb/s</span></div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:16px;">
+          <div style="background:#fef3c7;border-radius:10px;padding:16px;border:2px solid #d97706;">
+            <h4 style="color:#78350f;font-size:14px;margin-bottom:8px;">eSCO — 扩展同步链路</h4>
+            <p style="font-size:13px;color:#374151;line-height:1.6;">SCO 的增强版，支持重传窗口（EV3/EV4/EV5），提供更高质量语音和数据。</p>
+            <div style="margin-top:8px;"><span class="tag tag-yellow">增强语音</span><span class="tag tag-yellow">可重传</span></div>
+          </div>
+          <div style="background:#ede9fe;border-radius:10px;padding:16px;border:2px solid #7c3aed;">
+            <h4 style="color:#4c1d95;font-size:14px;margin-bottom:8px;">CPB — 无连接外设广播</h4>
+            <p style="font-size:13px;color:#374151;line-height:1.6;">Central 向无限数量 Peripheral 广播数据，无需建立双向连接。</p>
+            <div style="margin-top:8px;"><span class="tag tag-purple">广播</span><span class="tag tag-purple">无连接</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 4: Logical Transports ===================== -->
+    <div id="s4" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 4</div>
+        <h2>4. 逻辑传输 (Logical Transports)</h2>
+        <p>逻辑传输是物理链路上的多路复用传输通道，通过 LT_ADDR（3位逻辑传输地址）来区分不同的传输流。每个活跃 Peripheral 最多占用一个 LT_ADDR。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🧩</span>逻辑传输类型与地址</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">LT_ADDR 分配与逻辑传输</div>
+          <svg viewBox="0 0 680 180" width="680" height="180">
+            <rect width="680" height="180" fill="#f7faff" rx="8"/>
+
+            <!-- Physical Link -->
+            <rect x="10" y="10" width="660" height="30" rx="6" fill="#1a7fd4"/>
+            <text x="340" y="32" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">物理链路 (Physical Link)</text>
+
+            <!-- Connectors -->
+            <line x1="90" y1="40" x2="90" y2="65" stroke="#1a7fd4" stroke-width="1.5"/>
+            <line x1="200" y1="40" x2="200" y2="65" stroke="#1a7fd4" stroke-width="1.5"/>
+            <line x1="330" y1="40" x2="330" y2="65" stroke="#1a7fd4" stroke-width="1.5"/>
+            <line x1="460" y1="40" x2="460" y2="65" stroke="#1a7fd4" stroke-width="1.5"/>
+            <line x1="580" y1="40" x2="580" y2="65" stroke="#1a7fd4" stroke-width="1.5"/>
+
+            <!-- Logical Transports -->
+            <rect x="20" y="65" width="140" height="50" rx="6" fill="#0057A8"/>
+            <text x="90" y="85" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">ACL</text>
+            <text x="90" y="101" text-anchor="middle" fill="#aac8ef" font-size="10">异步无连接</text>
+            <text x="90" y="115" text-anchor="middle" fill="#7aa8d0" font-size="9">LT_ADDR 0 = 广播</text>
+
+            <rect x="170" y="65" width="120" height="50" rx="6" fill="#059669"/>
+            <text x="230" y="85" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">SCO</text>
+            <text x="230" y="101" text-anchor="middle" fill="#a0e8c6" font-size="10">同步面向连接</text>
+            <text x="230" y="115" text-anchor="middle" fill="#6dd4b0" font-size="9">固定时隙间隔</text>
+
+            <rect x="300" y="65" width="120" height="50" rx="6" fill="#d97706"/>
+            <text x="360" y="85" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">eSCO</text>
+            <text x="360" y="101" text-anchor="middle" fill="#fde68a" font-size="10">扩展同步</text>
+            <text x="360" y="115" text-anchor="middle" fill="#fde68a" font-size="9">支持重传窗口</text>
+
+            <rect x="430" y="65" width="120" height="50" rx="6" fill="#7c3aed"/>
+            <text x="490" y="85" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">ASB</text>
+            <text x="490" y="101" text-anchor="middle" fill="#ddd6fe" font-size="10">活跃从广播</text>
+            <text x="490" y="115" text-anchor="middle" fill="#c4b5fd" font-size="9">LT_ADDR = 0</text>
+
+            <rect x="560" y="65" width="110" height="50" rx="6" fill="#dc2626"/>
+            <text x="615" y="85" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">PSB</text>
+            <text x="615" y="101" text-anchor="middle" fill="#fecaca" font-size="10">驻留从广播</text>
+            <text x="615" y="115" text-anchor="middle" fill="#fecaca" font-size="9">无连接广播</text>
+
+            <!-- LT_ADDR explanation -->
+            <rect x="10" y="130" width="660" height="40" rx="6" fill="#f1f5f9" stroke="#d0dce8"/>
+            <text x="340" y="148" text-anchor="middle" fill="#374151" font-size="12" font-weight="700">LT_ADDR（3位）= 0b000(广播) | 0b001~0b111（7个活跃Peripheral 各占一个）</text>
+            <text x="340" y="164" text-anchor="middle" fill="#64748b" font-size="11">0b000 保留用于广播（Active Slave Broadcast），Peripheral 收到后均处理</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 5: Logical Links ===================== -->
+    <div id="s5" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 5</div>
+        <h2>5. 逻辑链路 (Logical Links)</h2>
+        <p>逻辑链路在逻辑传输之上提供进一步的多路复用，通过 LLID 字段区分不同类型的数据流（L2CAP 片段、LMP 消息等）。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔀</span>逻辑链路类型</h3>
+        <table>
+          <tr><th>逻辑链路</th><th>承载传输</th><th>LLID</th><th>用途</th></tr>
+          <tr><td>ACL-C</td><td>ACL</td><td>0b11</td><td>LMP 控制消息</td></tr>
+          <tr><td>ACL-U</td><td>ACL</td><td>0b01/0b10</td><td>L2CAP 用户数据（分片/完整）</td></tr>
+          <tr><td>SCO</td><td>SCO/eSCO</td><td>—</td><td>语音数据（PCM/CVSD）</td></tr>
+          <tr><td>PA</td><td>ACL</td><td>0b11</td><td>配置文件广播</td></tr>
+        </table>
+        <div class="diagram-wrap" style="margin-top:14px;">
+          <div class="diagram-title">分层关系：信道 → 链路 → 传输 → 逻辑</div>
+          <svg viewBox="0 0 600 80" width="600" height="80">
+            <rect width="600" height="80" fill="#f7faff" rx="8"/>
+            <rect x="10" y="20" width="120" height="40" rx="6" fill="#0057A8"/>
+            <text x="70" y="45" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">物理信道</text>
+            <polygon points="135,40 145,34 145,46" fill="#1a7fd4"/>
+            <line x1="130" y1="40" x2="145" y2="40" stroke="#1a7fd4" stroke-width="2"/>
+            <rect x="148" y="20" width="110" height="40" rx="6" fill="#1a7fd4"/>
+            <text x="203" y="45" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">物理链路</text>
+            <polygon points="263,40 273,34 273,46" fill="#059669"/>
+            <line x1="258" y1="40" x2="273" y2="40" stroke="#059669" stroke-width="2"/>
+            <rect x="276" y="20" width="110" height="40" rx="6" fill="#059669"/>
+            <text x="331" y="45" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">逻辑传输</text>
+            <polygon points="391,40 401,34 401,46" fill="#d97706"/>
+            <line x1="386" y1="40" x2="401" y2="40" stroke="#d97706" stroke-width="2"/>
+            <rect x="404" y="20" width="110" height="40" rx="6" fill="#d97706"/>
+            <text x="459" y="45" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">逻辑链路</text>
+            <polygon points="519,40 529,34 529,46" fill="#7c3aed"/>
+            <line x1="514" y1="40" x2="529" y2="40" stroke="#7c3aed" stroke-width="2"/>
+            <rect x="532" y="20" width="60" height="40" rx="6" fill="#7c3aed"/>
+            <text x="562" y="45" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">用户数据</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 6: Packet Format ===================== -->
+    <div id="s6" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 6</div>
+        <h2>6. 数据包格式 (Packet Format)</h2>
+        <p>蓝牙数据包由三部分组成：接入码（Access Code）、分组头（Header）和有效载荷（Payload）。每种数据包类型在 FEC 保护程度和最大负载大小上有所不同。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">📦</span>完整数据包结构</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">BR/EDR 数据包详细字段</div>
+          <svg viewBox="0 0 700 200" width="700" height="200">
+            <rect width="700" height="200" fill="#f7faff" rx="8"/>
+
+            <!-- Access Code -->
+            <rect x="10" y="20" width="130" height="60" rx="6" fill="#0057A8"/>
+            <text x="75" y="44" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">接入码</text>
+            <text x="75" y="60" text-anchor="middle" fill="#aac8ef" font-size="10">72 bit</text>
+            <text x="75" y="75" text-anchor="middle" fill="#7aacdc" font-size="9">前导+同步字+尾</text>
+
+            <!-- Header -->
+            <rect x="146" y="20" width="130" height="60" rx="6" fill="#1a7fd4"/>
+            <text x="211" y="44" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">分组头</text>
+            <text x="211" y="60" text-anchor="middle" fill="#cce4ff" font-size="10">54 bit (18×3 FEC)</text>
+            <text x="211" y="75" text-anchor="middle" fill="#9ac8ef" font-size="9">AM_ADDR|TYPE|FLOW|ARQN|SEQN|HEC</text>
+
+            <!-- Payload -->
+            <rect x="282" y="20" width="410" height="60" rx="6" fill="#00AEEF"/>
+            <text x="487" y="44" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">有效载荷 (Payload)</text>
+            <text x="487" y="60" text-anchor="middle" fill="#cef3ff" font-size="10">0 ~ 2745 bit（DH5最大）</text>
+            <text x="487" y="75" text-anchor="middle" fill="#9ae6ff" font-size="9">负载头(8/16bit) + 负载体 + CRC(16bit，可选)</text>
+
+            <!-- Header field breakdown -->
+            <text x="10" y="105" fill="#0057A8" font-weight="700" font-size="11">分组头字段展开（18 bit原始内容）：</text>
+            <rect x="10" y="115" width="50" height="28" rx="3" fill="#1a7fd4"/>
+            <text x="35" y="133" text-anchor="middle" fill="#fff" font-size="9">AM_ADDR<br/>3bit</text>
+            <rect x="64" y="115" width="45" height="28" rx="3" fill="#1a7fd4"/>
+            <text x="86" y="133" text-anchor="middle" fill="#fff" font-size="9">TYPE<br/>4bit</text>
+            <rect x="113" y="115" width="38" height="28" rx="3" fill="#1a7fd4"/>
+            <text x="132" y="133" text-anchor="middle" fill="#fff" font-size="9">FLOW<br/>1bit</text>
+            <rect x="155" y="115" width="38" height="28" rx="3" fill="#1a7fd4"/>
+            <text x="174" y="133" text-anchor="middle" fill="#fff" font-size="9">ARQN<br/>1bit</text>
+            <rect x="197" y="115" width="38" height="28" rx="3" fill="#1a7fd4"/>
+            <text x="216" y="133" text-anchor="middle" fill="#fff" font-size="9">SEQN<br/>1bit</text>
+            <rect x="239" y="115" width="45" height="28" rx="3" fill="#0057A8"/>
+            <text x="261" y="133" text-anchor="middle" fill="#fff" font-size="9">HEC<br/>8bit</text>
+
+            <!-- FEC note -->
+            <rect x="10" y="154" width="540" height="24" rx="5" fill="#fef3c7" stroke="#d97706"/>
+            <text x="280" y="171" text-anchor="middle" fill="#78350f" font-size="11" font-weight="700">⚠ 分组头经过 1/3 速率 FEC 编码：18 bit → 54 bit，以提高鲁棒性</text>
+            <rect x="560" y="154" width="130" height="24" rx="5" fill="#d1fae5" stroke="#059669"/>
+            <text x="625" y="171" text-anchor="middle" fill="#064e3b" font-size="11" font-weight="700">HEC 用 UAP 初始化</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 6.2: Header ===================== -->
+    <div id="s6_2" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 6.2</div>
+        <h2>6.2 分组头 (Packet Header)</h2>
+        <p>分组头包含 18 位信息，经过 1/3 速率 FEC 编码扩展为 54 位发送。其中的 AM_ADDR 用于标识目标 Peripheral，TYPE 字段指定数据包类型，ARQN/SEQN 实现停等式 ARQ 重传机制。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🗂️</span>分组头字段详解</h3>
+        <table>
+          <tr><th>字段</th><th>位数</th><th>功能</th></tr>
+          <tr><td><code>AM_ADDR</code></td><td>3</td><td>活跃成员地址，标识目标 Peripheral（0=广播）</td></tr>
+          <tr><td><code>TYPE</code></td><td>4</td><td>数据包类型（DM1/DH1/HV1等16种）</td></tr>
+          <tr><td><code>FLOW</code></td><td>1</td><td>流控制位：0=停止发送，1=继续发送</td></tr>
+          <tr><td><code>ARQN</code></td><td>1</td><td>ARQ确认：1=ACK（上包已收到），0=NAK（请重传）</td></tr>
+          <tr><td><code>SEQN</code></td><td>1</td><td>序列号：交替0/1，检测重复包</td></tr>
+          <tr><td><code>HEC</code></td><td>8</td><td>头错误校验码（8位 LFSR，以 UAP 初始化）</td></tr>
+        </table>
+        <div class="info-box" style="margin-top:14px;">
+          <strong>ARQ 机制：</strong>蓝牙使用停等式 ARQ（Stop-and-Wait ARQ）。发送方等待收到 ACK 后才发送下一个新包。SEQN 位交替翻转，ARQN 为 1 表示确认。
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 6.4: Packet Types ===================== -->
+    <div id="s6_4" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 6.4</div>
+        <h2>6.4 数据包类型</h2>
+        <p>蓝牙 BR/EDR 定义了多种数据包类型，分别用于控制、ACL 数据和语音（SCO/eSCO）传输，每种类型有不同的 FEC 保护等级和最大负载。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">📋</span>ACL 数据包类型</h3>
+        <table>
+          <tr><th>类型</th><th>时隙</th><th>FEC</th><th>最大载荷(字节)</th><th>说明</th></tr>
+          <tr><td><code>DM1</code></td><td>1</td><td>2/3</td><td>17</td><td>最基础数据包，高可靠性</td></tr>
+          <tr><td><code>DH1</code></td><td>1</td><td>无</td><td>27</td><td>1时隙，无FEC，高吞吐</td></tr>
+          <tr><td><code>DM3</code></td><td>3</td><td>2/3</td><td>121</td><td>3时隙，中等FEC保护</td></tr>
+          <tr><td><code>DH3</code></td><td>3</td><td>无</td><td>183</td><td>3时隙，最高吞吐</td></tr>
+          <tr><td><code>DM5</code></td><td>5</td><td>2/3</td><td>224</td><td>5时隙，FEC保护</td></tr>
+          <tr><td><code>DH5</code></td><td>5</td><td>无</td><td>339</td><td>5时隙，最大吞吐量</td></tr>
+          <tr><td><code>AUX1</code></td><td>1</td><td>无</td><td>29</td><td>辅助数据，无CRC</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🎙️</span>SCO/eSCO 数据包类型</h3>
+        <table>
+          <tr><th>类型</th><th>时隙</th><th>FEC</th><th>速率</th><th>用途</th></tr>
+          <tr><td><code>HV1</code></td><td>1</td><td>1/3重复</td><td>64 kb/s</td><td>最高可靠性语音</td></tr>
+          <tr><td><code>HV2</code></td><td>1</td><td>2/3</td><td>64 kb/s</td><td>中等可靠语音</td></tr>
+          <tr><td><code>HV3</code></td><td>1</td><td>无</td><td>64 kb/s</td><td>高效率语音</td></tr>
+          <tr><td><code>DV</code></td><td>1</td><td>2/3(数据部分)</td><td>—</td><td>混合数据+语音</td></tr>
+          <tr><td><code>EV3</code></td><td>1~3</td><td>无</td><td>最大 30 kb/s</td><td>eSCO语音</td></tr>
+          <tr><td><code>EV4</code></td><td>1~3</td><td>2/3</td><td>最大 60 kb/s</td><td>eSCO增强</td></tr>
+          <tr><td><code>EV5</code></td><td>1~3</td><td>无</td><td>最大 90 kb/s</td><td>eSCO高速</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 7: Error Correction ===================== -->
+    <div id="s7" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 7</div>
+        <h2>7. 差错校正 (Error Correction)</h2>
+        <p>蓝牙基带采用多级差错控制机制：前向纠错（FEC）在发送端添加冗余位，头错误校验（HEC）验证分组头完整性，CRC 检测负载错误，ARQ 机制请求重传。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🛡️</span>差错控制层次结构</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">蓝牙差错控制机制</div>
+          <svg viewBox="0 0 680 200" width="680" height="200">
+            <rect width="680" height="200" fill="#f7faff" rx="8"/>
+
+            <!-- FEC Box -->
+            <rect x="20" y="30" width="145" height="140" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+            <text x="92" y="52" text-anchor="middle" fill="#1e3a8a" font-weight="700" font-size="13">FEC</text>
+            <text x="92" y="68" text-anchor="middle" fill="#374151" font-size="11">前向纠错</text>
+            <text x="92" y="90" text-anchor="middle" fill="#475569" font-size="10">1/3 速率：头部</text>
+            <text x="92" y="106" text-anchor="middle" fill="#475569" font-size="10">2/3 速率：部分负载</text>
+            <text x="92" y="122" text-anchor="middle" fill="#475569" font-size="10">无FEC：DH/EV5等</text>
+            <text x="92" y="150" text-anchor="middle" fill="#2563eb" font-size="10" font-weight="700">纠错（无需重传）</text>
+
+            <!-- HEC Box -->
+            <rect x="180" y="30" width="130" height="140" rx="8" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+            <text x="245" y="52" text-anchor="middle" fill="#064e3b" font-weight="700" font-size="13">HEC</text>
+            <text x="245" y="68" text-anchor="middle" fill="#374151" font-size="11">头错误校验</text>
+            <text x="245" y="90" text-anchor="middle" fill="#475569" font-size="10">8 bit LFSR校验</text>
+            <text x="245" y="106" text-anchor="middle" fill="#475569" font-size="10">以 UAP 初始化</text>
+            <text x="245" y="122" text-anchor="middle" fill="#475569" font-size="10">仅保护分组头</text>
+            <text x="245" y="150" text-anchor="middle" fill="#059669" font-size="10" font-weight="700">检错（丢弃错误包）</text>
+
+            <!-- CRC Box -->
+            <rect x="325" y="30" width="130" height="140" rx="8" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+            <text x="390" y="52" text-anchor="middle" fill="#78350f" font-weight="700" font-size="13">CRC</text>
+            <text x="390" y="68" text-anchor="middle" fill="#374151" font-size="11">循环冗余校验</text>
+            <text x="390" y="90" text-anchor="middle" fill="#475569" font-size="10">16 bit 校验码</text>
+            <text x="390" y="106" text-anchor="middle" fill="#475569" font-size="10">保护负载数据</text>
+            <text x="390" y="122" text-anchor="middle" fill="#475569" font-size="10">以 UAP 初始化</text>
+            <text x="390" y="150" text-anchor="middle" fill="#d97706" font-size="10" font-weight="700">检错（触发ARQ）</text>
+
+            <!-- ARQ Box -->
+            <rect x="470" y="30" width="190" height="140" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+            <text x="565" y="52" text-anchor="middle" fill="#4c1d95" font-weight="700" font-size="13">ARQ</text>
+            <text x="565" y="68" text-anchor="middle" fill="#374151" font-size="11">自动重传请求</text>
+            <text x="565" y="90" text-anchor="middle" fill="#475569" font-size="10">停等式 Stop-Wait</text>
+            <text x="565" y="106" text-anchor="middle" fill="#475569" font-size="10">ARQN: ACK/NAK</text>
+            <text x="565" y="122" text-anchor="middle" fill="#475569" font-size="10">SEQN: 去重检测</text>
+            <text x="565" y="150" text-anchor="middle" fill="#7c3aed" font-size="10" font-weight="700">纠错（发送方重传）</text>
+
+            <!-- Coverage bar -->
+            <rect x="20" y="180" width="145" height="10" rx="3" fill="#2563eb"/>
+            <rect x="180" y="180" width="130" height="10" rx="3" fill="#059669"/>
+            <rect x="325" y="180" width="130" height="10" rx="3" fill="#d97706"/>
+            <rect x="470" y="180" width="190" height="10" rx="3" fill="#7c3aed"/>
+          </svg>
+        </div>
+        <div class="grid2">
+          <div>
+            <h4 style="font-size:13px;color:#0057A8;margin-bottom:8px;">数据白化 (Whitening)</h4>
+            <p style="font-size:13px;color:#475569;line-height:1.7;">负载数据经过白化处理（与 LFSR 输出异或），以消除长连零/长连一序列，保持 DC 平衡。白化多项式：x⁷+x⁴+1，初始值由时隙号决定。</p>
+          </div>
+          <div>
+            <h4 style="font-size:13px;color:#0057A8;margin-bottom:8px;">加密 (Encryption)</h4>
+            <p style="font-size:13px;color:#475569;line-height:1.7;">负载内容可使用流密码加密（E0 算法或 AES-CCM）。加密密钥由配对过程协商，每次连接更新。头部不加密，ACL 控制和 SCO 可分别配置。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 8: State Machine ===================== -->
+    <div id="s8" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 8</div>
+        <h2>8. 控制器状态机 (Controller State Machine)</h2>
+        <p>蓝牙基带控制器通过一个分层状态机管理所有操作。顶层状态包括 Standby 和 Connection，每个状态下还有多个子状态（Inquiry、Page、Scan 等），设备同一时刻只能处于一种物理信道。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔄</span>控制器状态图</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">蓝牙 BR/EDR 基带状态机（简化）</div>
+          <svg viewBox="0 0 720 380" width="720" height="380">
+            <rect width="720" height="380" fill="#f7faff" rx="8"/>
+            <!-- Defs for arrowheads -->
+            <defs>
+              <marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+              </marker>
+              <marker id="ahb" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#0057A8"/>
+              </marker>
+            </defs>
+
+            <!-- STANDBY -->
+            <ellipse cx="360" cy="48" rx="70" ry="28" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2"/>
+            <text x="360" y="44" text-anchor="middle" fill="#475569" font-weight="700" font-size="13">STANDBY</text>
+            <text x="360" y="60" text-anchor="middle" fill="#64748b" font-size="10">待机状态（初始/默认）</text>
+
+            <!-- INQUIRY -->
+            <ellipse cx="120" cy="160" rx="75" ry="30" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+            <text x="120" y="156" text-anchor="middle" fill="#78350f" font-weight="700" font-size="12">INQUIRY</text>
+            <text x="120" y="172" text-anchor="middle" fill="#92400e" font-size="10">查询（发现设备）</text>
+
+            <!-- INQUIRY SCAN -->
+            <ellipse cx="120" cy="250" rx="75" ry="30" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+            <text x="120" y="246" text-anchor="middle" fill="#713f12" font-weight="700" font-size="12">INQUIRY SCAN</text>
+            <text x="120" y="262" text-anchor="middle" fill="#854d0e" font-size="10">查询扫描（可被发现）</text>
+
+            <!-- PAGE -->
+            <ellipse cx="360" cy="160" rx="70" ry="30" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+            <text x="360" y="156" text-anchor="middle" fill="#1e3a8a" font-weight="700" font-size="12">PAGE</text>
+            <text x="360" y="172" text-anchor="middle" fill="#1d4ed8" font-size="10">寻呼（发起连接）</text>
+
+            <!-- PAGE SCAN -->
+            <ellipse cx="360" cy="250" rx="70" ry="30" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+            <text x="360" y="246" text-anchor="middle" fill="#1e40af" font-weight="700" font-size="12">PAGE SCAN</text>
+            <text x="360" y="262" text-anchor="middle" fill="#2563eb" font-size="10">寻呼扫描（可连接）</text>
+
+            <!-- CONNECTED -->
+            <ellipse cx="600" cy="160" rx="80" ry="30" fill="#d1fae5" stroke="#059669" stroke-width="2.5"/>
+            <text x="600" y="156" text-anchor="middle" fill="#064e3b" font-weight="700" font-size="13">CONNECTED</text>
+            <text x="600" y="172" text-anchor="middle" fill="#065f46" font-size="10">连接状态（通信中）</text>
+
+            <!-- Power Save Modes -->
+            <ellipse cx="500" cy="290" rx="60" ry="25" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+            <text x="500" y="286" text-anchor="middle" fill="#4c1d95" font-weight="700" font-size="11">HOLD</text>
+            <text x="500" y="300" text-anchor="middle" fill="#5b21b6" font-size="9">保持模式</text>
+
+            <ellipse cx="610" cy="290" rx="58" ry="25" fill="#fce7f3" stroke="#db2777" stroke-width="1.5"/>
+            <text x="610" y="286" text-anchor="middle" fill="#831843" font-weight="700" font-size="11">SNIFF</text>
+            <text x="610" y="300" text-anchor="middle" fill="#9d174d" font-size="9">嗅探（省电）模式</text>
+
+            <!-- Arrows: Standby → Inquiry -->
+            <line x1="295" y1="62" x2="175" y2="138" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+            <text x="218" y="90" fill="#64748b" font-size="9" transform="rotate(-35,218,90)">Inquiry</text>
+
+            <!-- Standby → InquiryScan -->
+            <line x1="290" y1="72" x2="175" y2="235" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+            <text x="205" y="170" fill="#64748b" font-size="9">InquiryScan</text>
+
+            <!-- Standby → Page -->
+            <line x1="360" y1="76" x2="360" y2="128" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+            <text x="365" y="108" fill="#64748b" font-size="9">Page</text>
+
+            <!-- Standby → PageScan -->
+            <line x1="380" y1="74" x2="395" y2="225" stroke="#475569" stroke-width="1.5" marker-end="url(#ah)"/>
+            <text x="400" y="155" fill="#64748b" font-size="9">PageScan</text>
+
+            <!-- Page → Connected -->
+            <line x1="430" y1="160" x2="518" y2="160" stroke="#0057A8" stroke-width="2" marker-end="url(#ahb)"/>
+            <text x="474" y="153" text-anchor="middle" fill="#0057A8" font-size="10" font-weight="700">连接成功</text>
+
+            <!-- Connected → Hold/Sniff -->
+            <line x1="580" y1="190" x2="525" y2="267" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#ah)"/>
+            <line x1="605" y1="190" x2="608" y2="265" stroke="#db2777" stroke-width="1.5" marker-end="url(#ah)"/>
+
+            <!-- Back to Standby from Connected -->
+            <path d="M 670 155 Q 720 80 420 55" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ah)"/>
+            <text x="660" y="95" fill="#dc2626" font-size="9">断开连接</text>
+
+            <!-- Inquiry → back to Standby -->
+            <path d="M 110 130 Q 80 80 295 55" fill="none" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah)"/>
+
+            <!-- Legend -->
+            <rect x="20" y="340" width="680" height="32" rx="5" fill="#f1f5f9" stroke="#d0dce8"/>
+            <circle cx="40" cy="356" r="8" fill="#fef3c7" stroke="#d97706"/>
+            <text x="52" y="360" fill="#475569" font-size="10">查询相关</text>
+            <circle cx="120" cy="356" r="8" fill="#dbeafe" stroke="#2563eb"/>
+            <text x="132" y="360" fill="#475569" font-size="10">连接相关</text>
+            <circle cx="200" cy="356" r="8" fill="#d1fae5" stroke="#059669"/>
+            <text x="212" y="360" fill="#475569" font-size="10">连接状态</text>
+            <circle cx="280" cy="356" r="8" fill="#ede9fe" stroke="#7c3aed"/>
+            <text x="292" y="360" fill="#475569" font-size="10">省电模式</text>
+            <text x="450" y="360" fill="#64748b" font-size="10">▶ 设备同一时刻只能处于一个物理信道，通过时分复用支持多信道</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="state-grid">
+        <div class="state-box state-standby"><div class="state-name">Standby</div><div class="state-desc">初始/省电默认状态，仅保持时钟运行</div></div>
+        <div class="state-box state-inquiry"><div class="state-name">Inquiry</div><div class="state-desc">主动扫描周围蓝牙设备，广播IAC</div></div>
+        <div class="state-box state-inquiry"><div class="state-name">Inquiry Scan</div><div class="state-desc">监听查询信道，响应发现请求</div></div>
+        <div class="state-box state-page"><div class="state-name">Page</div><div class="state-desc">向目标设备发起连接，发送DAC</div></div>
+        <div class="state-box state-page"><div class="state-name">Page Scan</div><div class="state-desc">等待连接请求，处于可连接状态</div></div>
+        <div class="state-box state-conn"><div class="state-name">Connection</div><div class="state-desc">已建立连接，正在通信（ACL/SCO）</div></div>
+        <div class="state-box state-hold"><div class="state-name">Hold</div><div class="state-desc">ACL暂停，设备可执行其他扫描</div></div>
+        <div class="state-box state-sniff"><div class="state-name">Sniff</div><div class="state-desc">降低占空比，周期性唤醒检查包</div></div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 8.3: Inquiry ===================== -->
+    <div id="s8_3" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 8.3</div>
+        <h2>8.3 查询子状态 (Inquiry Substate)</h2>
+        <p>查询过程允许一台蓝牙设备（发起方）发现附近所有处于 Inquiry Scan 子状态的设备。发起方发送 ID 包（含 IAC 接入码），被发现设备响应 FHS 包（含 BD_ADDR 和时钟信息）。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔍</span>查询流程</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">Inquiry 时序流程</div>
+          <svg viewBox="0 0 680 220" width="680" height="220">
+            <rect width="680" height="220" fill="#f7faff" rx="8"/>
+            <!-- Roles -->
+            <rect x="40" y="20" width="140" height="34" rx="6" fill="#d97706"/>
+            <text x="110" y="42" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">发起方 (Inquirer)</text>
+            <rect x="500" y="20" width="150" height="34" rx="6" fill="#059669"/>
+            <text x="575" y="42" text-anchor="middle" fill="#fff" font-weight="700" font-size="13">被发现设备</text>
+
+            <!-- Timeline -->
+            <line x1="110" y1="60" x2="110" y2="210" stroke="#d97706" stroke-width="2"/>
+            <line x1="575" y1="60" x2="575" y2="210" stroke="#059669" stroke-width="2"/>
+
+            <!-- Step 1: ID Packet -->
+            <line x1="110" y1="85" x2="575" y2="85" stroke="#0057A8" stroke-width="1.5" marker-end="url(#ahb)"/>
+            <rect x="240" y="70" width="200" height="22" rx="4" fill="#dbeafe"/>
+            <text x="340" y="86" text-anchor="middle" fill="#1e3a8a" font-size="11" font-weight="700">ID包（含IAC，跳频序列）</text>
+
+            <!-- Step 2: Random backoff -->
+            <rect x="475" y="95" width="200" height="22" rx="4" fill="#fef9c3"/>
+            <text x="575" y="111" text-anchor="middle" fill="#78350f" font-size="10">随机退避（避免碰撞）</text>
+
+            <!-- Step 3: FHS Response -->
+            <line x1="575" y1="130" x2="110" y2="130" stroke="#059669" stroke-width="1.5" marker-end="url(#ah)"/>
+            <rect x="240" y="115" width="200" height="22" rx="4" fill="#d1fae5"/>
+            <text x="340" y="131" text-anchor="middle" fill="#064e3b" font-size="11" font-weight="700">FHS包（BD_ADDR + 时钟）</text>
+
+            <!-- Step 4: More ID packets -->
+            <line x1="110" y1="160" x2="575" y2="160" stroke="#0057A8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#ahb)"/>
+            <text x="340" y="153" text-anchor="middle" fill="#475569" font-size="10">继续扫描更多设备...</text>
+
+            <!-- Timer note -->
+            <rect x="20" y="180" width="160" height="30" rx="4" fill="#fef3c7"/>
+            <text x="100" y="197" text-anchor="middle" fill="#78350f" font-size="11">inquiryTO 控制总时长</text>
+          </svg>
+        </div>
+        <ul class="spec-list">
+          <li>发起方在查询跳频序列上发送 ID 包（含 GIAC 或 DIAC）</li>
+          <li>被发现设备随机等待一段时间后，在查询扫描信道响应 FHS 包</li>
+          <li>FHS 包包含：BD_ADDR、时钟（CLK27-2）、设备类别（CoD）</li>
+          <li>随机退避机制降低多设备同时响应的碰撞概率</li>
+          <li>查询持续时间由 <code>inquiryTO</code> 定时器控制</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 8.4: Paging ===================== -->
+    <div id="s8_4" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 8.4</div>
+        <h2>8.4 寻呼子状态 (Page Substate)</h2>
+        <p>寻呼过程由 Central（发起连接方）执行，用于向已知 BD_ADDR 的目标设备发起连接。寻呼使用 DAC（设备接入码），经过握手后两端建立连接。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">📞</span>寻呼握手流程</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">Page 连接建立握手时序</div>
+          <svg viewBox="0 0 680 280" width="680" height="280">
+            <rect width="680" height="280" fill="#f7faff" rx="8"/>
+            <rect x="40" y="20" width="130" height="30" rx="6" fill="#0057A8"/>
+            <text x="105" y="40" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">Central（发起方）</text>
+            <rect x="500" y="20" width="150" height="30" rx="6" fill="#059669"/>
+            <text x="575" y="40" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">Peripheral（目标）</text>
+
+            <line x1="105" y1="55" x2="105" y2="270" stroke="#0057A8" stroke-width="2"/>
+            <line x1="575" y1="55" x2="575" y2="270" stroke="#059669" stroke-width="2"/>
+
+            <!-- Step 1 -->
+            <line x1="105" y1="80" x2="575" y2="80" stroke="#0057A8" stroke-width="1.5" marker-end="url(#ahb)"/>
+            <rect x="180" y="65" width="310" height="22" rx="4" fill="#dbeafe"/>
+            <text x="335" y="81" text-anchor="middle" fill="#1e3a8a" font-size="11" font-weight="700">① ID包（含DAC = Peripheral的BD_ADDR派生接入码）</text>
+
+            <!-- Step 2 -->
+            <line x1="575" y1="115" x2="105" y2="115" stroke="#059669" stroke-width="1.5" marker-end="url(#ah)"/>
+            <rect x="180" y="100" width="310" height="22" rx="4" fill="#d1fae5"/>
+            <text x="335" y="116" text-anchor="middle" fill="#064e3b" font-size="11" font-weight="700">② ID包（应答，含DAC）</text>
+
+            <!-- Step 3 -->
+            <line x1="105" y1="150" x2="575" y2="150" stroke="#0057A8" stroke-width="1.5" marker-end="url(#ahb)"/>
+            <rect x="180" y="135" width="310" height="22" rx="4" fill="#dbeafe"/>
+            <text x="335" y="151" text-anchor="middle" fill="#1e3a8a" font-size="11" font-weight="700">③ FHS包（Central的BD_ADDR、时钟、LT_ADDR）</text>
+
+            <!-- Step 4 -->
+            <line x1="575" y1="185" x2="105" y2="185" stroke="#059669" stroke-width="1.5" marker-end="url(#ah)"/>
+            <rect x="180" y="170" width="310" height="22" rx="4" fill="#d1fae5"/>
+            <text x="335" y="186" text-anchor="middle" fill="#064e3b" font-size="11" font-weight="700">④ ID包（FHS确认应答）</text>
+
+            <!-- Step 5 -->
+            <line x1="105" y1="220" x2="575" y2="220" stroke="#0057A8" stroke-width="2" marker-end="url(#ahb)"/>
+            <rect x="180" y="205" width="310" height="22" rx="4" fill="#d1fae5" stroke="#059669" stroke-width="2"/>
+            <text x="335" y="221" text-anchor="middle" fill="#064e3b" font-size="12" font-weight="800">⑤ POLL包（连接确认，切换至连接状态）</text>
+
+            <rect x="20" y="248" width="250" height="22" rx="4" fill="#fef3c7"/>
+            <text x="145" y="264" text-anchor="middle" fill="#78350f" font-size="10">pageTO/pagerespTO 控制超时</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 8.5: Connection State ===================== -->
+    <div id="s8_5" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 8.5</div>
+        <h2>8.5 连接状态 (Connection State)</h2>
+        <p>连接建立后，Central 通过轮询机制控制 Piconet 内的流量，支持多种省电模式（Hold/Sniff）以及 SCO/eSCO 语音链路的并发管理。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔄</span>Central 轮询机制</h3>
+        <p>Central 通过在每个 Piconet 时隙发送数据包（或 POLL 包）来"轮询"各 Peripheral，给予其发送机会。Peripheral 只有在被 Central 轮询后才能发送数据。</p>
+        <div class="diagram-wrap">
+          <div class="diagram-title">多 Peripheral 轮询示意</div>
+          <svg viewBox="0 0 680 160" width="680" height="160">
+            <rect width="680" height="160" fill="#f7faff" rx="8"/>
+            <!-- Central -->
+            <text x="10" y="55" fill="#0057A8" font-weight="700" font-size="11">Central:</text>
+            <text x="10" y="115" fill="#059669" font-weight="700" font-size="11">P1:</text>
+            <text x="10" y="145" fill="#d97706" font-weight="700" font-size="11">P2:</text>
+
+            <!-- Slots -->
+            <rect x="60" y="35" width="80" height="30" rx="4" fill="#0057A8"/>
+            <text x="100" y="55" text-anchor="middle" fill="#fff" font-size="10">→P1 DM1</text>
+            <rect x="60" y="95" width="80" height="25" rx="4" fill="#059669"/>
+            <text x="100" y="112" text-anchor="middle" fill="#fff" font-size="10">P1→ DH1</text>
+
+            <rect x="155" y="35" width="80" height="30" rx="4" fill="#0057A8"/>
+            <text x="195" y="55" text-anchor="middle" fill="#fff" font-size="10">→P2 POLL</text>
+            <rect x="155" y="125" width="80" height="25" rx="4" fill="#d97706"/>
+            <text x="195" y="142" text-anchor="middle" fill="#fff" font-size="10">P2→ DH1</text>
+
+            <rect x="250" y="35" width="80" height="30" rx="4" fill="#0057A8"/>
+            <text x="290" y="55" text-anchor="middle" fill="#fff" font-size="10">→P1 DH3</text>
+            <rect x="250" y="95" width="80" height="25" rx="4" fill="#059669"/>
+            <text x="290" y="112" text-anchor="middle" fill="#fff" font-size="10">P1→ DH1</text>
+
+            <rect x="440" y="35" width="80" height="30" rx="4" fill="#0057A8"/>
+            <text x="480" y="55" text-anchor="middle" fill="#fff" font-size="10">→P2 DM1</text>
+            <rect x="440" y="125" width="80" height="25" rx="4" fill="#d97706"/>
+            <text x="480" y="142" text-anchor="middle" fill="#fff" font-size="10">P2→ NULL</text>
+
+            <!-- Dots -->
+            <text x="345" y="55" fill="#475569" font-size="18">⋯</text>
+            <text x="540" y="55" fill="#475569" font-size="18">⋯</text>
+
+            <!-- Slot boundaries -->
+            <line x1="60" y1="20" x2="60" y2="155" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="155" y1="20" x2="155" y2="155" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="250" y1="20" x2="250" y2="155" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="345" y1="20" x2="345" y2="155" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="440" y1="20" x2="440" y2="155" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="535" y1="20" x2="535" y2="155" stroke="#d0dce8" stroke-width="1" stroke-dasharray="3,3"/>
+
+            <!-- Labels -->
+            <text x="100" y="18" text-anchor="middle" fill="#475569" font-size="10">槽对 k</text>
+            <text x="195" y="18" text-anchor="middle" fill="#475569" font-size="10">槽对 k+2</text>
+            <text x="290" y="18" text-anchor="middle" fill="#475569" font-size="10">槽对 k+4</text>
+            <text x="488" y="18" text-anchor="middle" fill="#475569" font-size="10">槽对 k+n</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 8.6: Power Saving ===================== -->
+    <div id="s8_6" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 8.6</div>
+        <h2>8.6 省电模式 (Power Saving Modes)</h2>
+        <p>蓝牙定义了三种连接态下的省电模式，允许设备在不需要活跃通信时降低功耗，同时保持连接不断开。</p>
+      </div>
+
+      <div class="grid3">
+        <div class="card">
+          <h3><span class="icon">💤</span>Hold 模式</h3>
+          <p>ACL 逻辑传输暂时挂起，设备可用时间执行其他操作（扫描、寻呼、查询）。SCO 链路可保持活跃。</p>
+          <ul class="spec-list">
+            <li>Central 或 Peripheral 均可请求</li>
+            <li>协商 Hold 时长（Hold_Time）</li>
+            <li>AFH 无法在 Hold 期间更新</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="icon">😴</span>Sniff 模式</h3>
+          <p>Peripheral 以固定间隔周期性唤醒，仅在 Sniff 时隙内监听 Central 的传输，其余时间休眠。</p>
+          <ul class="spec-list">
+            <li>Sniff_Interval 和 Sniff_Attempt 可配置</li>
+            <li>降低占空比，大幅节省电量</li>
+            <li>HID/遥控器等低速设备常用</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="icon">📊</span>模式对比</h3>
+          <table style="font-size:12px;">
+            <tr><th>模式</th><th>ACL</th><th>SCO</th><th>电量节省</th></tr>
+            <tr><td>Active</td><td>活跃</td><td>活跃</td><td>无</td></tr>
+            <tr><td>Sniff</td><td>周期</td><td>活跃</td><td>中等</td></tr>
+            <tr><td>Hold</td><td>挂起</td><td>活跃</td><td>较高</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SECTION 9: Audio ===================== -->
+    <div id="s9" class="section">
+      <div class="section-hero">
+        <div class="section-num">Section 9</div>
+        <h2>9. 音频传输 (Audio)</h2>
+        <p>蓝牙支持在 SCO/eSCO 链路上传输 64 kb/s 语音，提供两种空中接口语音编码格式：对数 PCM（A-律/μ-律）和 CVSD（连续可变斜率增量调制）。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🎵</span>语音编码方案</h3>
+        <div class="grid2">
+          <div>
+            <table>
+              <tr><th>编码类型</th><th>格式</th><th>速率</th></tr>
+              <tr><td>CVSD</td><td>线性PCM输入</td><td>64 kb/s</td></tr>
+              <tr><td>Log PCM A-律</td><td>8bit/样本</td><td>64 kb/s</td></tr>
+              <tr><td>Log PCM μ-律</td><td>8bit/样本</td><td>64 kb/s</td></tr>
+            </table>
+          </div>
+          <div>
+            <div class="info-box">
+              <strong>CVSD 优势：</strong>对随机误码不敏感，每个误码仅表现为轻微背景噪声，不会造成严重的爆音等失真，因此在无线环境中比 PCM 更鲁棒。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔊</span>CVSD 编解码原理</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">CVSD 编码器框图（音节式压扩）</div>
+          <svg viewBox="0 0 700 200" width="700" height="200">
+            <rect width="700" height="200" fill="#f7faff" rx="8"/>
+
+            <!-- Input -->
+            <rect x="10" y="85" width="90" height="36" rx="5" fill="#64748b"/>
+            <text x="55" y="100" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">线性PCM输入</text>
+            <text x="55" y="114" text-anchor="middle" fill="#cbd5e1" font-size="9">x(k) 64ksps</text>
+
+            <!-- Comparator -->
+            <line x1="100" y1="103" x2="130" y2="103" stroke="#475569" stroke-width="1.5"/>
+            <circle cx="145" cy="103" r="14" fill="#1a7fd4" stroke="#0057A8" stroke-width="1.5"/>
+            <text x="145" y="107" text-anchor="middle" fill="#fff" font-weight="700" font-size="12">Σ</text>
+
+            <!-- Quantizer -->
+            <line x1="159" y1="103" x2="190" y2="103" stroke="#475569" stroke-width="1.5"/>
+            <rect x="190" y="88" width="70" height="30" rx="5" fill="#0057A8"/>
+            <text x="225" y="106" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">量化器</text>
+            <text x="225" y="117" text-anchor="middle" fill="#9ac8ef" font-size="8">sgn()</text>
+
+            <!-- Output -->
+            <line x1="260" y1="103" x2="290" y2="103" stroke="#475569" stroke-width="1.5"/>
+            <rect x="290" y="88" width="60" height="30" rx="5" fill="#059669"/>
+            <text x="320" y="106" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">b(k) 输出</text>
+
+            <!-- Step size control -->
+            <rect x="350" y="25" width="120" height="40" rx="5" fill="#d97706"/>
+            <text x="410" y="42" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">步长控制</text>
+            <text x="410" y="57" text-anchor="middle" fill="#fde68a" font-size="9">音节式压扩 α,δ(k)</text>
+
+            <!-- Accumulator -->
+            <rect x="350" y="130" width="120" height="40" rx="5" fill="#7c3aed"/>
+            <text x="410" y="148" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">积分器</text>
+            <text x="410" y="163" text-anchor="middle" fill="#ddd6fe" font-size="9">y(k) = x̂(k-1)+b(k)·δ(k)</text>
+
+            <!-- Prediction filter -->
+            <rect x="520" y="88" width="120" height="40" rx="5" fill="#dc2626"/>
+            <text x="580" y="106" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">预测滤波器</text>
+            <text x="580" y="117" text-anchor="middle" fill="#fecaca" font-size="9">x̂(k) = h·y(k)</text>
+
+            <!-- Connections -->
+            <line x1="410" y1="65" x2="410" y2="88" stroke="#d97706" stroke-width="1.5"/>
+            <line x1="410" y1="130" x2="410" y2="108" stroke="#7c3aed" stroke-width="1.5"/>
+            <line x1="320" y1="103" x2="350" y2="150" stroke="#059669" stroke-width="1.5" stroke-dasharray="4,2"/>
+            <line x1="470" y1="103" x2="520" y2="103" stroke="#475569" stroke-width="1.5"/>
+            <line x1="580" y1="128" x2="580" y2="165" stroke="#dc2626" stroke-width="1.5"/>
+            <line x1="580" y1="165" x2="145" y2="165" stroke="#dc2626" stroke-width="1.5"/>
+            <line x1="145" y1="165" x2="145" y2="117" stroke="#dc2626" stroke-width="1.5"/>
+            <text x="360" y="175" fill="#dc2626" font-size="9">反馈预测值 x̂(k-1)</text>
+          </svg>
+        </div>
+
+        <div class="grid2" style="margin-top:14px;">
+          <div>
+            <h4 style="font-size:13px;color:#0057A8;margin-bottom:8px;">CVSD 关键参数</h4>
+            <table style="font-size:12px;">
+              <tr><th>参数</th><th>值</th><th>说明</th></tr>
+              <tr><td>时钟</td><td>64 kHz</td><td>编码时钟频率</td></tr>
+              <tr><td>步长范围</td><td>δmin=10, δmax=1280</td><td>幅度台阶</td></tr>
+              <tr><td>J, K</td><td>4, 4</td><td>压扩检测窗口</td></tr>
+              <tr><td>积分器衰减</td><td>h=1-1/32</td><td>0.5ms时间常数</td></tr>
+              <tr><td>步长衰减</td><td>β=1-1/1024</td><td>16ms时间常数</td></tr>
+            </table>
+          </div>
+          <div>
+            <h4 style="font-size:13px;color:#0057A8;margin-bottom:8px;">误码处理策略</h4>
+            <ul class="spec-list">
+              <li><strong>CVSD/HV3/EV3：</strong>无 FEC，随机误码表现为轻微噪声</li>
+              <li><strong>HV1：</strong>1/3 重复 FEC，零误码泄露</li>
+              <li><strong>HV2/EV4：</strong>2/3 FEC，可纠错；不可纠时用原始 10 位</li>
+              <li><strong>丢包处理：</strong>CAC/HEC/CRC 失败时，需填补丢失的语音段（静音/外插）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== APPENDIX A: Audio Recommendations ===================== -->
+    <div id="sA" class="section">
+      <div class="section-hero">
+        <div class="section-num">Appendix A</div>
+        <h2>附录 A：音频通用建议</h2>
+        <p>本附录提供蓝牙音频接口的工程实现建议，包括响度评级（LR）计算方法、发送/接收响度评级（SLR/RLR）以及与 GSM 蜂窝系统接口时的频率掩码。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">📊</span>频率掩码（GSM 蜂窝接口建议）</h3>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图A.3 蓝牙语音频率掩码</div>
+          <canvas id="freqCanvas" width="600" height="200"></canvas>
+        </div>
+        <div class="info-box">
+          CVSD 解码器输出信号应符合上表频率掩码，以确保与 GSM 语音编解码器正确对接。频率响应应在 300~3400 Hz 语音频段内保持 ±9 dB 以内（相对最大值）。
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">🔢</span>响度评级（LR）计算</h3>
+        <table>
+          <tr><th>缩写</th><th>全称</th><th>说明</th></tr>
+          <tr><td>SLR</td><td>Send Loudness Rating</td><td>发送响度评级（话筒→空中接口）</td></tr>
+          <tr><td>RLR</td><td>Receive Loudness Rating</td><td>接收响度评级（空中接口→扬声器）</td></tr>
+          <tr><td>ERP</td><td>Ear Reference Point</td><td>耳朵参考点（耳机评测标准位置）</td></tr>
+          <tr><td>MRP</td><td>Microphone Reference Point</td><td>话筒参考点</td></tr>
+        </table>
+        <div class="warn-box">
+          蓝牙规范不规定音频设备的最大声压级（SPL），这由各制造商自行负责，以防止听力损伤。
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== APPENDIX B: Timers ===================== -->
+    <div id="sB" class="section">
+      <div class="section-hero">
+        <div class="section-num">Appendix B</div>
+        <h2>附录 B：基带定时器</h2>
+        <p>蓝牙基带定义了多种超时定时器，控制查询、寻呼、连接监控等各阶段的时间边界。所有定时器值以时隙（625 μs）为单位。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">⏰</span>定时器参数汇总</h3>
+        <table>
+          <tr><th>定时器</th><th>默认值</th><th>可配置</th><th>功能</th></tr>
+          <tr><td><code>inquiryTO</code></td><td>可变</td><td>是（HCI）</td><td>Inquiry 子状态持续时间</td></tr>
+          <tr><td><code>pageTO</code></td><td>可变</td><td>是（HCI）</td><td>Page 子状态最大等待时间</td></tr>
+          <tr><td><code>extended_pageTO</code></td><td>可变</td><td>是（HCI）</td><td>pageTO 之后的额外等待时间</td></tr>
+          <tr><td><code>pagerespTO</code></td><td>8 时隙 (5 ms)</td><td>否</td><td>Page 应答等待（FHS确认）</td></tr>
+          <tr><td><code>newconnectionTO</code></td><td>32 时隙 (20 ms)</td><td>否</td><td>新连接 POLL 包确认超时</td></tr>
+          <tr><td><code>supervisionTO</code></td><td>≈20 秒</td><td>是（HCI）</td><td>链路监督（断线检测）</td></tr>
+          <tr><td><code>CPB_supervisionTO</code></td><td>≈5.12 秒</td><td>是</td><td>无连接广播监督</td></tr>
+          <tr><td><code>synchronization_trainTO</code></td><td>120秒(CPB)/20秒(CCA)</td><td>是</td><td>同步列车广播持续时间</td></tr>
+          <tr><td><code>synchronization_scanTO</code></td><td>5.12秒(CPB)/20秒(CCA)</td><td>是</td><td>同步扫描持续时间</td></tr>
+          <tr><td><code>authenticatedPayloadTO</code></td><td>30 秒</td><td>是</td><td>MIC 包间最大间隔</td></tr>
+          <tr><td><code>CLK_adj_dragTO</code></td><td>1 秒</td><td>否</td><td>时钟拖拽暂停最小时长</td></tr>
+        </table>
+
+        <!-- Timer visualization -->
+        <h4 style="font-size:13px;color:#0057A8;margin-top:18px;margin-bottom:10px;">关键定时器时间轴对比（对数尺度）</h4>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>pagerespTO</span><span>8 时隙 = 5 ms</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:3%;background:#059669;"></div></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>newconnectionTO</span><span>32 时隙 = 20 ms</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:8%;background:#1a7fd4;"></div></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>CLK_adj_dragTO</span><span>1 秒</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:20%;background:#7c3aed;"></div></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>authenticatedPayloadTO</span><span>30 秒</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:45%;background:#d97706;"></div></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>supervisionTO</span><span>≈20 秒（默认）</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:38%;background:#dc2626;"></div></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>CPB_supervisionTO</span><span>≈5.12 秒</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:18%;background:#db2777;"></div></div>
+        </div>
+        <div class="timer-bar-wrap">
+          <div class="timer-bar-label"><span>synchronization_trainTO (CPB)</span><span>120 秒</span></div>
+          <div class="timer-bar-bg"><div class="timer-bar-fill" style="width:85%;background:#475569;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== APPENDIX C: AFH Recommendations ===================== -->
+    <div id="sC" class="section">
+      <div class="section-hero">
+        <div class="section-num">Appendix C</div>
+        <h2>附录 C：Hold/Sniff/CPB 模式下的 AFH 操作建议</h2>
+        <p>本附录描述在 Hold、Sniff 和无连接外设广播（CPB）模式下，自适应跳频（AFH）的操作建议和时序约束，帮助实现方正确处理 AFH 信道映射更新。</p>
+      </div>
+
+      <div class="card">
+        <h3><span class="icon">📡</span>AFH_Instant 时序约束</h3>
+        <p>当 Central 需要更新 AFH 信道映射时，必须在 <code>AFH_Instant</code>（更新生效时刻）之前通知所有受影响的 Peripheral（包括 Hold 和 Sniff 模式中的 Peripheral）。</p>
+        <div class="diagram-wrap">
+          <div class="diagram-title">图C.1 AFH_Instant 时序约束示意</div>
+          <svg viewBox="0 0 680 200" width="680" height="200">
+            <rect width="680" height="200" fill="#f7faff" rx="8"/>
+
+            <!-- Timeline -->
+            <line x1="30" y1="160" x2="650" y2="160" stroke="#475569" stroke-width="2" marker-end="url(#ahb)"/>
+            <text x="655" y="164" fill="#475569" font-size="10">时间</text>
+
+            <!-- AFH Instant marker -->
+            <line x1="500" y1="30" x2="500" y2="165" stroke="#dc2626" stroke-width="2" stroke-dasharray="6,3"/>
+            <text x="500" y="25" text-anchor="middle" fill="#dc2626" font-weight="700" font-size="12">AFH_Instant</text>
+
+            <!-- Active Peripheral notification -->
+            <rect x="80" y="45" width="200" height="28" rx="5" fill="#dbeafe"/>
+            <text x="180" y="64" text-anchor="middle" fill="#1e3a8a" font-size="11" font-weight="700">通知活跃 Peripheral</text>
+            <line x1="280" y1="59" x2="500" y2="59" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ahb)"/>
+
+            <!-- Hold Peripheral notification -->
+            <rect x="150" y="90" width="200" height="28" rx="5" fill="#ede9fe"/>
+            <text x="250" y="109" text-anchor="middle" fill="#4c1d95" font-size="11" font-weight="700">通知 Hold 模式 Peripheral</text>
+            <line x1="350" y1="104" x2="500" y2="104" stroke="#7c3aed" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ahb)"/>
+
+            <!-- Sniff Peripheral notification -->
+            <rect x="250" y="130" width="200" height="22" rx="5" fill="#fce7f3"/>
+            <text x="350" y="146" text-anchor="middle" fill="#831843" font-size="11" font-weight="700">通知 Sniff 模式 Peripheral</text>
+            <line x1="450" y1="141" x2="500" y2="141" stroke="#db2777" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#ahb)"/>
+
+            <!-- Before instant -->
+            <text x="280" y="180" text-anchor="middle" fill="#475569" font-size="11" font-weight="700">← 必须在此时刻前完成所有通知 →</text>
+            <line x1="30" y1="175" x2="500" y2="175" stroke="#d97706" stroke-width="2"/>
+            <line x1="30" y1="170" x2="30" y2="180" stroke="#d97706" stroke-width="2"/>
+            <line x1="500" y1="170" x2="500" y2="180" stroke="#d97706" stroke-width="2"/>
+          </svg>
+        </div>
+
+        <div class="grid2">
+          <div>
+            <h4 style="font-size:13px;color:#0057A8;margin-bottom:8px;">Sniff 模式下的 AFH</h4>
+            <ul class="spec-list">
+              <li>Peripheral 处于 Sniff 模式时，Central 可周期性更新 AHS</li>
+              <li>无需退出 Sniff 模式即可完成更新</li>
+              <li>必须在 Peripheral 的 Sniff 唤醒时隙内通知</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="font-size:13px;color:#0057A8;margin-bottom:8px;">CPB 广播下的 AFH</h4>
+            <ul class="spec-list">
+              <li>AFH 映射变更后，Central 应重启同步列车（Synchronization Train）</li>
+              <li>Receiver 监控接收质量下降时，重新扫描同步列车获取新映射</li>
+              <li>两个 Peripheral 映射不交叉时，可能导致接收端失步</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ===== Navigation =====
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+  const target = document.getElementById(id);
+  if (target) { target.classList.add('visible'); }
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => {
+    if (l.getAttribute('onclick') && l.getAttribute('onclick').includes("'" + id + "'")) {
+      l.classList.add('active');
+    }
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // close sidebar on mobile
+  if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+}
+
+// ===== Canvas: Hopping Sequence (Section 2) =====
+function drawHopCanvas() {
+  const c = document.getElementById('hopCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f0f5ff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw 79 channel bars
+  const channels = [];
+  for (let i = 0; i < 79; i++) {
+    // Simulate pseudo-random hopping - some simple PRNG
+    channels.push(Math.floor(Math.random() * 79));
+  }
+
+  const barW = W / 79;
+  // Draw all channels first (light gray = available)
+  for (let i = 0; i < 79; i++) {
+    ctx.fillStyle = '#d0e8f0';
+    ctx.fillRect(i * barW, H - 80, barW - 1, 70);
+  }
+
+  // Animate hopping
+  let step = 0;
+  const seq = [];
+  for (let i = 0; i < 30; i++) seq.push(Math.floor(Math.random() * 79));
+
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#f0f5ff';
+    ctx.fillRect(0, 0, W, H);
+
+    // All channel bars
+    for (let i = 0; i < 79; i++) {
+      ctx.fillStyle = '#d0e8f0';
+      ctx.fillRect(i * barW, H - 85, barW - 1, 70);
+    }
+
+    // History (fading)
+    for (let j = Math.max(0, step - 5); j < step; j++) {
+      const ch = seq[j % seq.length];
+      const alpha = (j - (step - 5)) / 5 * 0.5;
+      ctx.fillStyle = `rgba(26,127,212,${alpha})`;
+      ctx.fillRect(ch * barW, H - 85, barW - 1, 70);
+    }
+
+    // Current hop
+    const cur = seq[step % seq.length];
+    ctx.fillStyle = '#00AEEF';
+    ctx.fillRect(cur * barW, H - 90, barW - 1, 75);
+
+    // Labels
+    ctx.fillStyle = '#0057A8';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText('2402 MHz', 2, H - 92);
+    ctx.fillText('2480 MHz', W - 58, H - 92);
+    ctx.fillStyle = '#475569';
+    ctx.font = '10px sans-serif';
+    ctx.fillText('← 79个RF信道（1 MHz间隔） →', W/2 - 80, H - 10);
+    ctx.fillStyle = '#0057A8';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`当前信道: ${2402 + cur} MHz`, 8, 20);
+    ctx.fillText(`时隙: k=${step}`, 8, 36);
+
+    step++;
+    setTimeout(animate, 320);
+  }
+  animate();
+}
+
+// ===== Canvas: AFH Channel Map =====
+function drawAFHCanvas() {
+  const c = document.getElementById('afhCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f0f5ff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Simulate AFH: some channels blocked by WiFi
+  const wifiBlocked = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,  // WiFi ch1
+                       37,38,39,40,41,42,43,44,45,46,47,48,   // WiFi ch6
+                       63,64,65,66,67,68,69,70,71,72,73];     // WiFi ch11
+
+  const barW = W / 79;
+
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillStyle = '#0057A8';
+  ctx.fillText('自适应跳频 (AFH) 信道映射示意', 10, 20);
+
+  for (let i = 0; i < 79; i++) {
+    const blocked = wifiBlocked.includes(i);
+    if (blocked) {
+      ctx.fillStyle = '#fca5a5';
+      ctx.fillRect(i * barW + 1, 35, barW - 2, 60);
+    } else {
+      ctx.fillStyle = '#34d399';
+      ctx.fillRect(i * barW + 1, 35, barW - 2, 60);
+    }
+  }
+
+  // WiFi region labels
+  ctx.font = '9px sans-serif';
+  ctx.fillStyle = '#dc2626';
+  ctx.fillText('WiFi CH1', 8 * barW, 110);
+  ctx.fillText('WiFi CH6', 40 * barW, 110);
+  ctx.fillText('WiFi CH11', 65 * barW, 110);
+
+  // Legend
+  ctx.fillStyle = '#34d399';
+  ctx.fillRect(10, 122, 12, 12);
+  ctx.fillStyle = '#374151';
+  ctx.font = '11px sans-serif';
+  ctx.fillText('Good信道（使用）', 26, 133);
+
+  ctx.fillStyle = '#fca5a5';
+  ctx.fillRect(160, 122, 12, 12);
+  ctx.fillStyle = '#374151';
+  ctx.fillText('Bad信道（屏蔽，Wi-Fi占用）', 176, 133);
+
+  ctx.fillStyle = '#0057A8';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('2402', 0, 32);
+  ctx.fillText('2480 MHz', W - 50, 32);
+}
+
+// ===== Canvas: Frequency Mask =====
+function drawFreqCanvas() {
+  const c = document.getElementById('freqCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f7faff';
+  ctx.fillRect(0, 0, W, H);
+
+  const padL = 60, padR = 20, padT = 20, padB = 40;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+
+  // Axes
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // Grid lines
+  const dBvals = [4, 0, -9, -12, -20];
+  const dBmin = -25, dBmax = 8;
+  function yForDB(db) {
+    return padT + plotH - ((db - dBmin) / (dBmax - dBmin)) * plotH;
+  }
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 1;
+  dBvals.forEach(db => {
+    const y = yForDB(db);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px sans-serif';
+    ctx.fillText(db + ' dB', 2, y + 4);
+  });
+  ctx.setLineDash([]);
+
+  // Frequency to X mapping (log scale from 50 to 5000 Hz)
+  const freqs = [50, 300, 1000, 2000, 3000, 3400, 4000];
+  function xForFreq(f) {
+    return padL + (Math.log10(f) - Math.log10(50)) / (Math.log10(5000) - Math.log10(50)) * plotW;
+  }
+
+  // Upper limit points
+  const upper = [[50,-20],[300,4],[1000,4],[2000,4],[3000,4],[3400,4],[4000,0],[5000,-30]];
+  const lower = [[300,-12],[1000,-9],[2000,-9],[3000,-9],[3400,-12]];
+
+  // Fill upper limit area
+  ctx.fillStyle = 'rgba(0,87,168,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(xForFreq(50), yForDB(-20));
+  upper.forEach(([f, db]) => ctx.lineTo(xForFreq(f), yForDB(db)));
+  ctx.lineTo(xForFreq(5000), padT);
+  ctx.lineTo(padL, padT);
+  ctx.closePath();
+  ctx.fill();
+
+  // Draw upper limit
+  ctx.strokeStyle = '#0057A8';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  upper.forEach(([f, db], i) => {
+    if (i === 0) ctx.moveTo(xForFreq(f), yForDB(db));
+    else ctx.lineTo(xForFreq(f), yForDB(db));
+  });
+  ctx.stroke();
+
+  // Draw lower limit
+  ctx.strokeStyle = '#059669';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 3]);
+  ctx.beginPath();
+  lower.forEach(([f, db], i) => {
+    if (i === 0) ctx.moveTo(xForFreq(f), yForDB(db));
+    else ctx.lineTo(xForFreq(f), yForDB(db));
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Freq axis labels
+  freqs.forEach(f => {
+    const x = xForFreq(f);
+    ctx.fillStyle = '#475569';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(f >= 1000 ? (f/1000) + 'k' : f, x, padT + plotH + 14);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+    ctx.setLineDash([]);
+  });
+  ctx.textAlign = 'left';
+
+  // Axis labels
+  ctx.fillStyle = '#0057A8';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.fillText('幅度 (dB)', 2, padT - 5);
+  ctx.fillStyle = '#475569';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('频率 (Hz)', padL + plotW / 2, H - 4);
+  ctx.textAlign = 'left';
+
+  // Legend
+  ctx.strokeStyle = '#0057A8';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(padL + 10, padT + 8); ctx.lineTo(padL + 40, padT + 8); ctx.stroke();
+  ctx.fillStyle = '#0057A8';
+  ctx.font = '10px sans-serif';
+  ctx.fillText('上限 (Upper Limit)', padL + 44, padT + 12);
+
+  ctx.strokeStyle = '#059669';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 3]);
+  ctx.beginPath(); ctx.moveTo(padL + 10, padT + 24); ctx.lineTo(padL + 40, padT + 24); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#059669';
+  ctx.fillText('下限 (Lower Limit)', padL + 44, padT + 28);
+}
+
+// ===== Init =====
+window.addEventListener('load', function() {
+  drawHopCanvas();
+  drawAFHCanvas();
+  drawFreqCanvas();
+});
+
+// Redraw on section change
+const origShow = show;
+window.show = function(id) {
+  origShow(id);
+  setTimeout(() => {
+    if (id === 's2' || id === 's2_3') {
+      drawHopCanvas();
+      drawAFHCanvas();
+    }
+    if (id === 'sA') drawFreqCanvas();
+  }, 100);
+};
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>

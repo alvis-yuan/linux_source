@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>经典蓝牙 (BR/EDR) 基带数据包类型全解析</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+        .section-desc {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 15px;
+            padding-left: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+        }
+        /* 各分类颜色主题 */
+        .theme-common h2 { background-color: #6c757d; }
+        .theme-common th { border-top: 3px solid #6c757d; }
+        
+        .theme-acl h2 { background-color: #28a745; }
+        .theme-acl th { border-top: 3px solid #28a745; }
+        
+        .theme-sco h2 { background-color: #fd7e14; }
+        .theme-sco th { border-top: 3px solid #fd7e14; }
+
+        .tag {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #495057;
+            margin-right: 5px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #d63031;
+        }
+        .note {
+            background-color: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 14px;
+            border-radius: 0 5px 5px 0;
+        }
+    </style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+    /* ── 左侧目录导航（misc 专题，样式同 packet）── */
+    :root {
+      --packet-nav-w: 272px;
+      --packet-hdr-h: 52px;
+    }
+    .packet-top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 400;
+      height: var(--packet-hdr-h);
+      background: linear-gradient(90deg, #0f2460 0%, #1a3fa6 55%, #1d55d4 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px 0 calc(var(--packet-nav-w) + 12px);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.22);
+    }
+    .packet-top-bar .packet-top-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .packet-ham {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      color: #fff;
+      font-size: 22px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+    }
+    .packet-sidebar {
+      position: fixed;
+      top: var(--packet-hdr-h);
+      left: 0;
+      bottom: 0;
+      width: var(--packet-nav-w);
+      background: #fff;
+      border-right: 1px solid #dde3ee;
+      overflow-y: auto;
+      overflow-x: hidden;
+      z-index: 350;
+      display: flex;
+      flex-direction: column;
+    }
+    .packet-sidebar::-webkit-scrollbar { width: 4px; }
+    .packet-sidebar::-webkit-scrollbar-thumb { background: #c5cee0; border-radius: 4px; }
+    .packet-sidebar-head {
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #edf0f7;
+      background: #f8faff;
+    }
+    .packet-sidebar-head .doc-tag {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #8898b3;
+      margin-bottom: 4px;
+    }
+    .packet-sidebar-head .doc-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a56db;
+      line-height: 1.4;
+    }
+    .packet-nav-group {
+      padding: 10px 16px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #b0b8cc;
+    }
+    .packet-nav-link {
+      display: block;
+      padding: 7px 16px 7px 20px;
+      color: #4b5875;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: background 0.15s, color 0.15s;
+      line-height: 1.4;
+    }
+    .packet-nav-link:hover {
+      background: #f4f6fb;
+      color: #1a56db;
+    }
+    .packet-nav-link.active {
+      background: #eef3fd;
+      color: #1a56db;
+      border-left-color: #1a56db;
+      font-weight: 600;
+    }
+    .packet-nav-link.doc {
+      font-size: 12px;
+      color: #5a6a85;
+    }
+    .packet-nav-link.doc:hover { color: #1a56db; }
+    .packet-nav-link.current-doc {
+      font-weight: 700;
+      color: #1a56db;
+      background: #eef3fd;
+    }
+    .packet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 340;
+    }
+    .packet-page {
+      margin-left: var(--packet-nav-w);
+      margin-top: var(--packet-hdr-h);
+      min-height: calc(100vh - var(--packet-hdr-h));
+    }
+    .packet-main.container,
+    .packet-main {
+      max-width: 1100px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    main.packet-main {
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 28px 20px 56px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+    .packet-page .hero,
+    .packet-page > header:not(.packet-top-bar),
+    .packet-page > .header {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 12px);
+    }
+    .packet-page section,
+    .packet-page .card,
+    .packet-page .scenario-card,
+    .packet-page .layer-card,
+    .packet-page .role-card,
+    .packet-page .phase-title,
+    .packet-page h2[id],
+    .packet-page .tree,
+    .packet-page .deep-dive {
+      scroll-margin-top: calc(var(--packet-hdr-h) + 16px);
+    }
+    @media (max-width: 820px) {
+      .packet-top-bar { padding-left: 16px; }
+      .packet-ham { display: flex; }
+      .packet-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: none;
+      }
+      .packet-sidebar.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.15); }
+      .packet-overlay.show { display: block; }
+      .packet-page { margin-left: 0; }
+      .bt-spec-index-link { bottom: 72px; }
+    }
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+  <header class="packet-top-bar">
+  <button type="button" class="packet-ham" id="packetHamBtn" aria-label="打开目录">☰</button>
+  <div class="packet-top-title">基带报文类型大全</div>
+</header>
+<nav class="packet-sidebar" id="packet-sidebar">
+  <div class="packet-sidebar-head">
+    <div class="doc-tag">专题 · Misc</div>
+    <div class="doc-name">基带报文类型大全</div>
+  </div>
+  <div class="packet-nav-group">本章目录</div>
+  <a class="packet-nav-link" href="#1-通用控制与链路管理包-common-packets">1. 通用控制与链路管理包 (Common Packets)</a>
+  <a class="packet-nav-link" href="#2-acl-异步连接数据包-asynchronous-data-packets">2. ACL 异步连接数据包 (Asynchronous Data Packets)</a>
+  <a class="packet-nav-link" href="#3-sco-esco-同步数据包-synchronous-audio-voice">3. SCO / eSCO 同步数据包 (Synchronous Audio/Voice)</a>
+  <div class="packet-nav-group">相关文档</div>
+  <a class="packet-nav-link doc" href="ble_ll_controller_parse.html">BLE 控制器 Link Layer 报文解析</a>
+  <a class="packet-nav-link doc" href="rf_workflow.html">射频与基带交互架构</a>
+  <a class="packet-nav-link doc" href="lmp_ssp_deepdive.html">LMP 职责与 SSP 深度剖析</a>
+  <a class="packet-nav-link doc" href="sdp_database_structure.html">SDP 数据库结构</a>
+  <a class="packet-nav-link doc" href="bt_packet_parse_flow.html">经典蓝牙报文解析流水线</a>
+  <a class="packet-nav-link doc" href="bt_bb_flow.html">基带核心职责与处理流水线</a>
+  <a class="packet-nav-link doc" href="l2cap_classic_part.html">经典 L2CAP 报文与建连</a>
+  <a class="packet-nav-link doc" href="bt_timing.html">BR/EDR 时序与时间轴</a>
+  <a class="packet-nav-link doc current-doc" href="bt_baseband_packet_types.html">基带报文类型大全</a>
+  <a class="packet-nav-link doc" href="bt_acl_create_process.html">ACL 链路建立全过程</a>
+  <a class="packet-nav-link doc" href="bluetooth_rf_flow.html">蓝牙射频 TX/RX 流程</a>
+  <a class="packet-nav-link doc" href="ble_stack_parser.html">BLE 协议栈自底向上解析</a>
+  <a class="packet-nav-link doc" href="baseband_packet_parse_flow.html">经典蓝牙底层报文分流引擎</a>
+  <a class="packet-nav-link doc" href="att_protocol.html">ATT 协议指令分类</a>
+</nav>
+<div class="packet-overlay" id="packet-overlay"></div>
+<div class="packet-page">
+<div class="packet-main container">
+    <h1>经典蓝牙 (BR/EDR) 基带数据包类型全解析</h1>
+    
+    <div class="note">
+        <strong>命名小提示：</strong> 经典蓝牙的报文命名是有规律的。<br>
+        • 字母 <strong>D</strong> 代表 Data（数据包），<strong>H</strong> 代表 High rate（高速率，无纠错码），<strong>M</strong> 代表 Medium rate（中速率，带纠错码），<strong>V</strong> 代表 Voice（语音包）。<br>
+        • 数字 <strong>1, 3, 5</strong> 代表该数据包在空中占用的时隙数量（Slots）。占用越多，传输越快，但也越容易受干扰。<br>
+        • 前缀 <strong>2- / 3-</strong> 代表这是 EDR 时代的包，使用 2Mbps 或 3Mbps 调制。
+    </div>
+
+    <!-- 1. 通用控制与链路管理包 -->
+    <div class="theme-common">
+        <h2 id="1-通用控制与链路管理包-common-packets">1. 通用控制与链路管理包 (Common Packets)</h2>
+        <p class="section-desc">这类数据包不区分具体的业务通道，主要负责底层的呼叫、寻呼、保持同步、维持连接不掉线以及底层的应答机制。</p>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 12%;">包类型</th>
+                    <th style="width: 28%;">包含内容 / 结构</th>
+                    <th style="width: 60%;">核心作用与应用场景</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="highlight">ID</span> (ID包)</td>
+                    <td><strong>仅 68 bits</strong><br>只有接入码 (Access Code)，无报文头(Header)和载荷(Payload)</td>
+                    <td><strong>寻呼与查询的“敲门砖”：</strong>用于设备发现(Inquiry)和建立连接前的寻呼(Paging)。因为非常短促，能快速唤醒或确认对方的存在。</td>
+                </tr>
+                <tr>
+                    <td><strong>NULL</strong></td>
+                    <td>仅有报文头 (Packet Header)，无数据载荷，<br>不占用重传机制</td>
+                    <td><strong>链路维持与应答反馈：</strong>用于回传 ACK(确认收妥) 或 NAK(要求重传) 标志，以及流量控制。如果收到 NULL 包，不需要给对方回复。</td>
+                </tr>
+                <tr>
+                    <td><strong>POLL</strong></td>
+                    <td>仅有报文头，无载荷<br>(类似 NULL，但带有强制属性)</td>
+                    <td><strong>轮询查岗：</strong>主设备(Master)发给从设备(Slave)，强制要求从设备必须在下一个时隙回复一个报文（即使从设备没数据也要回个NULL），用于防止链路假死和判断是否掉线。</td>
+                </tr>
+                <tr>
+                    <td><strong>FHS</strong><br>(跳频同步包)</td>
+                    <td>包含 蓝牙MAC地址、设备类(Class of Device)、时钟相位信息、寻呼扫描模式等</td>
+                    <td><strong>交换名片与对齐时钟：</strong>在寻呼响应或查询响应时发送。收到FHS包后，两台设备才能对齐跳频频率(AFH)和时钟，这是物理层建链最关键的一步。</td>
+                </tr>
+                <tr>
+                    <td><strong>DM1</strong></td>
+                    <td>带 2/3 比例的 FEC (前向纠错)，最大装载 17 字节数据，占用 1 个时隙</td>
+                    <td><strong>控制指令承载者：</strong>这是极其核心的包，我们上文讲到的 <strong>LMP 控制指令</strong>，绝大多数都是塞在 DM1 数据包的载荷里进行传输的。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 2. ACL 异步数据包 -->
+    <div class="theme-acl">
+        <h2 id="2-acl-异步连接数据包-asynchronous-data-packets">2. ACL 异步连接数据包 (Asynchronous Data Packets)</h2>
+        <p class="section-desc">负责绝大多数普通数据的传输，如 <strong>A2DP 听高音质音乐、文件传输、控制信令 (L2CAP 协议数据)</strong>。特点是支持重传 (ARQ)，保证数据绝对不会错，但对延时没有极端的强保障。</p>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">包类型</th>
+                    <th style="width: 15%;">调制方式</th>
+                    <th style="width: 25%;">特性与槽位 (Slots)</th>
+                    <th style="width: 45%;">应用场景与优缺点</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 基础速率 BR -->
+                <tr>
+                    <td><strong>DH1 / DH3 / DH5</strong></td>
+                    <td>BR (1 Mbps)<br>GFSK 调制</td>
+                    <td><span class="tag">无 FEC 纠错</span> <span class="tag">占 1, 3, 5 时隙</span></td>
+                    <td><strong>大吞吐量明文传输：</strong>去掉了前向纠错以换取更大的载荷空间。DH5 封包最大可传 339 字节，适合在没有严重干扰的情况下高速传文件。</td>
+                </tr>
+                <tr>
+                    <td><strong>DM1 / DM3 / DM5</strong></td>
+                    <td>BR (1 Mbps)</td>
+                    <td><span class="tag">带 2/3 FEC</span> <span class="tag">占 1, 3, 5 时隙</span></td>
+                    <td><strong>抗干扰传输：</strong>数据中混入了冗余纠错码。如果环境很吵（Wi-Fi干扰大），底层会自动降级使用 DM 系列包，牺牲速度来换取稳定性。</td>
+                </tr>
+                <!-- EDR 2M -->
+                <tr>
+                    <td><strong>2-DH1 / 2-DH3 / 2-DH5</strong></td>
+                    <td>EDR (2 Mbps)<br>π/4-DQPSK</td>
+                    <td><span class="tag">无 FEC</span> <span class="tag">占 1, 3, 5 时隙</span><br>最高传输 ~1.4 Mbps</td>
+                    <td><strong>主流音频传输：</strong>蓝牙 2.0 引入，速度翻倍。当前绝大多数蓝牙耳机听 SBC/AAC 音乐时，底层跑的都是 2-DH3 或 2-DH5 数据包。</td>
+                </tr>
+                <!-- EDR 3M -->
+                <tr>
+                    <td><strong>3-DH1 / 3-DH3 / 3-DH5</strong></td>
+                    <td>EDR (3 Mbps)<br>8DPSK 调制</td>
+                    <td><span class="tag">无 FEC</span> <span class="tag">占 1, 3, 5 时隙</span><br>最高传输 ~2.1 Mbps</td>
+                    <td><strong>极速/无损音频传输：</strong>利用 8 种相位承载更高数据密度。传输 LDAC、aptX HD 等高码率无损音频文件时，底层主要依靠 3-DH5 封包保障吞吐率。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3. SCO / eSCO 同步语音包 -->
+    <div class="theme-sco">
+        <h2 id="3-sco-esco-同步数据包-synchronous-audio-voice">3. SCO / eSCO 同步数据包 (Synchronous Audio/Voice)</h2>
+        <p class="section-desc">专用于 <strong>实时打电话、发微信语音 (HFP/HSP协议)</strong>。它会在信道里强行预留出固定的时间片，保证声音不卡顿。传统 SCO 不支持重传（听不清直接丢弃变杂音），较新的 eSCO 支持重传，音质大为改观。</p>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 15%;">包类型</th>
+                    <th style="width: 15%;">链路类型</th>
+                    <th style="width: 20%;">纠错与重传能力</th>
+                    <th style="width: 50%;">功能说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>HV1</strong></td>
+                    <td>传统 SCO</td>
+                    <td><span class="tag">1/3 FEC</span> <span class="tag">无重传</span></td>
+                    <td>极度嘈杂环境的语音保障。只有极少真实数据，其余全是用作修复错误的校验码。（现已极少使用）</td>
+                </tr>
+                <tr>
+                    <td><strong>HV2 / HV3</strong></td>
+                    <td>传统 SCO</td>
+                    <td><span class="tag">2/3 / 无 FEC</span> <span class="tag">无重传</span></td>
+                    <td>传统蓝牙耳机最常用的 64kbps 语音通话通道。因<strong>绝对不允许重传</strong>，如果信号差，你听到的就是破音和“滋滋滋”的杂音。</td>
+                </tr>
+                <tr>
+                    <td><strong>DV</strong></td>
+                    <td>数据/语音混合包</td>
+                    <td>载荷包含一段语音 + 一段数据</td>
+                    <td>一边打电话一边回传少量异步数据时使用，属于过渡性产物。</td>
+                </tr>
+                <tr>
+                    <td><strong>EV3 / EV4 / EV5</strong></td>
+                    <td>eSCO (扩展同步)</td>
+                    <td><span class="tag">带 FEC 或 无FEC</span> <br><strong>支持重传 (Retransmission)</strong></td>
+                    <td><strong>蓝牙 1.2 的革命：</strong>打破了传统 SCO 丢包即破音的窘境。EV 语音包预留了重传窗口期，如果错过了可以重发，大大降低了蓝牙耳机的杂音率。</td>
+                </tr>
+                <tr>
+                    <td><strong>2-EV3 / 2-EV5</strong><br><strong>3-EV3 / 3-EV5</strong></td>
+                    <td>eSCO + EDR</td>
+                    <td><strong>高带宽 + 支持重传</strong></td>
+                    <td><strong>高清通话 (HD Voice / mSBC)：</strong>得益于 EDR 技术的 2~3 Mbps 带宽，能够传输 16kHz 采样率的宽带语音包。现在我们用真无线耳机清晰打电话，底层的功臣就是它们。</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+  <script>
+
+(function () {
+  'use strict';
+  var BP = 820;
+  var sidebar = document.getElementById('packet-sidebar');
+  var overlay = document.getElementById('packet-overlay');
+  var ham = document.getElementById('packetHamBtn');
+  if (!sidebar) return;
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('show');
+  }
+  function toggleNav() {
+    sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('show');
+  }
+  if (ham) ham.addEventListener('click', toggleNav);
+  if (overlay) overlay.addEventListener('click', closeNav);
+
+  sidebar.querySelectorAll('a.packet-nav-link[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      var href = a.getAttribute('href');
+      if (!href || href.charAt(0) !== '#') return;
+      var el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        var top = el.getBoundingClientRect().top + window.scrollY - 64;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+      if (window.innerWidth <= BP) closeNav();
+    });
+  });
+
+  var links = sidebar.querySelectorAll('a.packet-nav-link[href^="#"]');
+  var sections = [];
+  links.forEach(function (a) {
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) sections.push({ el: el, a: a });
+  });
+  function onScroll() {
+    var y = window.scrollY + 80;
+    var best = null;
+    sections.forEach(function (s) {
+      if (s.el.offsetTop <= y) best = s.a;
+    });
+    links.forEach(function (l) { l.classList.remove('active'); });
+    if (best) best.classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > BP) closeNav();
+  });
+})();
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蓝牙 BLE 低功耗控制器协议详解 — Vol 6 Core 6.0</title>
+<style>
+  :root {
+    --blue: #0057a8;
+    --blue-light: #e8f0fb;
+    --teal: #00897b;
+    --teal-light: #e0f2f1;
+    --purple: #6a1b9a;
+    --purple-light: #f3e5f5;
+    --orange: #e65100;
+    --orange-light: #fff3e0;
+    --red: #c62828;
+    --red-light: #ffebee;
+    --green: #2e7d32;
+    --green-light: #e8f5e9;
+    --gray: #37474f;
+    --gray-light: #eceff1;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #dde3ec;
+    --text: #1a2333;
+    --text-muted: #5a6a7e;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --nav-w: 280px;
+    --blue-deep: #003d7a;
+    --blue-mid: #0d2150;
+    --cyan: #00b4d8;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--nav-w);
+    min-width: var(--nav-w);
+    background: linear-gradient(180deg, var(--blue-deep) 0%, var(--blue-mid) 100%);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--blue) transparent;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--blue); border-radius: 4px; }
+
+  .sidebar-header {
+    padding: 22px 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.2);
+  }
+  .sidebar-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .bt-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--blue), var(--cyan));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .sidebar-header h1 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+  .sidebar-header .version {
+    font-size: 10px;
+    color: var(--cyan);
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  #nav { flex: 1; padding: 8px 0 20px; }
+  .nav-group { margin-bottom: 2px; }
+  .nav-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 10px 18px 4px;
+  }
+  .nav-item {
+    display: block;
+    padding: 8px 18px 8px 20px;
+    color: rgba(255,255,255,0.72);
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+    border-left-color: var(--cyan);
+  }
+  .nav-item.active {
+    color: #fff;
+    background: rgba(0,87,168,0.35);
+    border-left-color: var(--cyan);
+    font-weight: 600;
+  }
+  .nav-item.sub {
+    padding-left: 32px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+  }
+  .nav-item.sub:hover, .nav-item.sub.active {
+    color: rgba(255,255,255,0.95);
+  }
+
+  /* ── Main ── */
+  #main-content {
+    flex: 1;
+    overflow-y: auto;
+    max-width: calc(100vw - var(--nav-w));
+  }
+  #main-content::-webkit-scrollbar { width: 6px; }
+  #main-content::-webkit-scrollbar-track { background: var(--bg); }
+  #main-content::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+  /* ── Header ── */
+  .site-header {
+    background: linear-gradient(135deg, #003d7a 0%, #0057a8 50%, #0077c2 100%);
+    color: #fff;
+    padding: 48px 48px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .site-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  .site-header .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .site-header h1 {
+    font-size: clamp(22px,4vw,32px);
+    font-weight: 800;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .site-header p {
+    font-size: 15px;
+    opacity: 0.85;
+    max-width: 680px;
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Layout ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 40px 64px; }
+
+  /* ── Section ── */
+  .spec-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 40px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    scroll-margin-top: 20px;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header:hover { background: #fafbff; }
+  .section-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 20px; font-weight: 700; flex: 1; }
+  .section-header .part-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 4px 10px; border-radius: 6px;
+  }
+  .chevron { font-size: 18px; color: var(--text-muted); transition: transform .3s; }
+  .spec-section.collapsed .chevron { transform: rotate(-90deg); }
+  .section-body { padding: 28px; display: block; }
+  .spec-section.collapsed .section-body { display: none; }
+
+  /* ── Subsection ── */
+  .subsection { margin-bottom: 28px; scroll-margin-top: 20px; }
+  .subsection h3 {
+    font-size: 16px; font-weight: 700; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .subsection h3 .num {
+    background: var(--blue-light); color: var(--blue);
+    font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;
+  }
+  .subsection p { color: var(--text-muted); margin-bottom: 10px; font-size: 14px; line-height: 1.8; }
+  .subsection ul { padding-left: 20px; color: var(--text-muted); font-size: 14px; }
+  .subsection ul li { margin-bottom: 4px; }
+
+  /* ── Diagrams ── */
+  .diagram { margin: 18px 0; }
+  .diagram-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-muted);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .diagram-title::before { content:''; display:inline-block; width:3px; height:14px; background:var(--blue); border-radius:2px; }
+  svg { width: 100%; height: auto; overflow: visible; }
+
+  /* ── Info boxes ── */
+  .info-box {
+    border-radius: 10px; padding: 14px 18px;
+    font-size: 13.5px; margin: 12px 0;
+    border-left: 4px solid;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .info-box .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .info-box.note { background: var(--blue-light); border-color: var(--blue); }
+  .info-box.tip { background: var(--green-light); border-color: var(--green); }
+  .info-box.warning { background: var(--orange-light); border-color: var(--orange); }
+  .info-box.key { background: var(--purple-light); border-color: var(--purple); }
+
+  /* ── Tables ── */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 14px 0; }
+  .spec-table th {
+    background: var(--blue); color: #fff;
+    padding: 9px 14px; text-align: left; font-weight: 700; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .spec-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .spec-table tr:nth-child(even) td { background: var(--gray-light); }
+  .spec-table .mono { font-family: 'Courier New', monospace; font-size: 12px; color: var(--blue); }
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+
+  /* ── Packet field display ── */
+  .packet-row {
+    display: flex; flex-wrap: wrap; gap: 2px;
+    background: #1a2333; border-radius: 10px; padding: 14px;
+    font-family: 'Courier New', monospace; font-size: 12px; margin: 14px 0;
+  }
+  .pkt-field {
+    padding: 6px 10px; border-radius: 6px; text-align: center;
+    line-height: 1.3; font-size: 11px; color: #fff; font-weight: 700;
+  }
+  .pkt-field .label { font-size: 9px; opacity: 0.75; display: block; }
+  .pkt-field .val { font-size: 12px; }
+  .f-preamble { background: #2e7d32; }
+  .f-aa { background: #1565c0; }
+  .f-pdu { background: #6a1b9a; }
+  .f-crc { background: #00695c; }
+  .f-header { background: #4527a0; }
+  .f-payload { background: #1b5e20; }
+  .f-mic { background: #b71c1c; }
+  .f-llid { background: #e65100; }
+  .f-nesn { background: #880e4f; }
+
+  /* ── State machine ── */
+  .state-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px; margin: 14px 0;
+  }
+  .state-box {
+    border-radius: 10px; padding: 14px 10px; text-align: center;
+    border: 2px solid; font-weight: 700; font-size: 13px;
+    cursor: default; transition: transform .15s, box-shadow .15s;
+  }
+  .state-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+  .state-box .state-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+  .state-box .state-desc { font-size: 11px; font-weight: 400; margin-top: 4px; color: var(--text-muted); }
+  .st-standby { background: #fff3e0; border-color: #e65100; color: #e65100; }
+  .st-advertising { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
+  .st-scanning { background: #e3f2fd; border-color: #1565c0; color: #1565c0; }
+  .st-initiating { background: #f3e5f5; border-color: #6a1b9a; color: #6a1b9a; }
+  .st-connected { background: #e0f2f1; border-color: #00695c; color: #00695c; }
+  .st-sync { background: #fff8e1; border-color: #f57f17; color: #f57f17; }
+  .st-isobc { background: #fce4ec; border-color: #c62828; color: #c62828; }
+
+  /* ── Timeline / Sequence chart ── */
+  .seq-container { background: #f8faff; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 14px 0; overflow-x: auto; }
+
+  /* ── Channel map ── */
+  .channel-grid { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0; }
+  .ch-cell {
+    width: 34px; height: 34px; border-radius: 6px; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid transparent;
+  }
+  .ch-adv { background: #ff7043; color: #fff; border-color: #e64a19; }
+  .ch-data { background: #42a5f5; color: #fff; border-color: #1976d2; }
+  .ch-unused { background: #eceff1; color: #90a4ae; border-color: #cfd8dc; }
+
+  /* ── Feature badges ── */
+  .feature-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .feat-tag {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    border: 1.5px solid;
+  }
+  .feat-v40 { background:#e3f2fd; color:#1565c0; border-color:#90caf9; }
+  .feat-v50 { background:#e8f5e9; color:#2e7d32; border-color:#a5d6a7; }
+  .feat-v52 { background:#f3e5f5; color:#6a1b9a; border-color:#ce93d8; }
+  .feat-v60 { background:#fff3e0; color:#e65100; border-color:#ffcc80; }
+
+  /* ── PHY bars ── */
+  .phy-bar-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+  .phy-label { width: 90px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .phy-bar-bg { flex: 1; background: var(--gray-light); border-radius: 6px; height: 22px; overflow: hidden; }
+  .phy-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #fff; font-weight: 700; transition: width 1s ease; }
+  .phy-val { width: 70px; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+
+  /* ── Encryption flow ── */
+  .enc-flow { display: flex; align-items: stretch; gap: 0; margin: 14px 0; }
+  .enc-device {
+    flex: 1; border: 2px solid var(--border); border-radius: 10px;
+    padding: 14px; text-align: center; background: #fafbff;
+  }
+  .enc-device h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .enc-arrow-col { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 90px; gap: 6px; }
+  .enc-arrow { font-size: 13px; text-align: center; padding: 4px; }
+  .enc-msg { font-size: 10px; color: var(--blue); font-weight: 700; background: var(--blue-light); border-radius: 4px; padding: 2px 6px; }
+
+  /* ── Scroll to top ── */
+  .back-top {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--blue); color: #fff; border: none; border-radius: 50%;
+    width: 44px; height: 44px; font-size: 20px; cursor: pointer;
+    box-shadow: var(--shadow-lg); display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .3s;
+    z-index: 200;
+  }
+  .back-top.show { opacity: 1; }
+
+  /* ── Colors per Part ── */
+  .part-a .section-header { border-left: 5px solid #1565c0; }
+  .part-b .section-header { border-left: 5px solid #00695c; }
+  .part-d .section-header { border-left: 5px solid #6a1b9a; }
+  .part-e .section-header { border-left: 5px solid #c62828; }
+
+  /* responsive */
+  @media (max-width: 768px) {
+    .site-header { padding: 32px 24px; }
+    .container { padding: 24px 20px 48px; }
+  }
+  @media (max-width: 640px) {
+    .section-header { padding: 16px 16px; }
+    .section-body { padding: 18px 16px; }
+    .enc-flow { flex-direction: column; }
+    .enc-arrow-col { flex-direction: row; width: 100%; justify-content: center; }
+  }
+</style>
+<style>
+.bt-spec-index-link {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #0a1628, #0d2150);
+  color: #e8eaf6;
+  text-decoration: none;
+  font: 600 12px/1.2 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  border-radius: 999px;
+  border: 1px solid rgba(66,165,245,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.bt-spec-index-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  color: #fff;
+}
+</style>
+<style>
+/* ── 移动端目录（内联，单文件可独立打开）── */
+/**
+ * 移动端左侧目录：与 architecture_overview.html 一致的收起/展开体验
+ * 在宽度 ≤820px 时侧栏滑入，遮罩点击关闭
+ */
+.bt-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 250;
+}
+.bt-nav-overlay.show,
+#overlay.show {
+  display: block;
+}
+
+/* 无页内菜单按钮时使用的固定汉堡键 */
+#btHamBtn.bt-ham {
+  display: none;
+  position: fixed;
+  top: 11px;
+  left: 12px;
+  z-index: 350;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: rgba(15, 36, 96, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 820px) {
+  #btHamBtn.bt-ham {
+    display: flex;
+  }
+
+  body.bt-mobile-nav-enabled {
+    overflow-x: hidden;
+  }
+
+  /* smp 等 flex 全屏布局 */
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.bt-mobile-nav-enabled.bt-layout-flex #main,
+  body.bt-mobile-nav-enabled.bt-layout-flex .main-content {
+    flex: none;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  body.bt-mobile-nav-enabled.bt-layout-flex {
+    overflow-y: auto;
+  }
+
+  /* 侧栏：默认滑出视口 */
+  body.bt-mobile-nav-enabled #sidebar,
+  body.bt-mobile-nav-enabled nav#sidebar,
+  body.bt-mobile-nav-enabled aside#sidebar,
+  body.bt-mobile-nav-enabled .layout > nav,
+  body.bt-mobile-nav-enabled .layout > aside,
+  body.bt-mobile-nav-enabled .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: min(280px, 86vw) !important;
+    min-width: 0 !important;
+    max-width: 86vw !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 300 !important;
+    display: flex !important;
+    flex-direction: column;
+    flex-shrink: 0;
+    margin: 0 !important;
+  }
+
+  body.bt-mobile-nav-enabled #sidebar.open,
+  body.bt-mobile-nav-enabled nav#sidebar.open,
+  body.bt-mobile-nav-enabled aside#sidebar.open,
+  body.bt-mobile-nav-enabled .layout > nav.open,
+  body.bt-mobile-nav-enabled .layout > aside.open,
+  body.bt-mobile-nav-enabled .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+
+  /* 主内容区占满宽度 */
+  body.bt-mobile-nav-enabled #main,
+  body.bt-mobile-nav-enabled main,
+  body.bt-mobile-nav-enabled .main,
+  body.bt-mobile-nav-enabled .main-content,
+  body.bt-mobile-nav-enabled .content-wrap,
+  body.bt-mobile-nav-enabled .content-body,
+  body.bt-mobile-nav-enabled #content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body.bt-mobile-nav-enabled footer {
+    margin-left: 0 !important;
+  }
+
+  /* 页内已有顶栏菜单按钮时隐藏浮动汉堡 */
+  body.bt-mobile-nav-has-header-btn #btHamBtn.bt-ham {
+    display: none !important;
+  }
+
+  body.bt-mobile-nav-has-header-btn header .ham,
+  body.bt-mobile-nav-has-header-btn header .menu-btn,
+  body.bt-mobile-nav-has-header-btn .top-bar .ham,
+  body.bt-mobile-nav-has-header-btn .topbar .topbar-ham,
+  body.bt-mobile-nav-has-header-btn .topbar .menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-btn,
+  body.bt-mobile-nav-has-header-btn #menu-toggle,
+  body.bt-mobile-nav-has-header-btn #hamBtn,
+  body.bt-mobile-nav-has-header-btn .menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+<a href="../index.html" class="bt-spec-index-link" title="返回 Bluetooth Core 6.0 文档索引">← 文档索引</a>
+
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <div class="bt-icon">📶</div>
+      <div>
+        <h1>LE Controller</h1>
+        <div class="version">Core Spec 6.0 · Vol 6</div>
+      </div>
+    </div>
+  </div>
+  <nav id="nav">
+    <div class="nav-group">
+      <div class="nav-group-label">Part A</div>
+      <a class="nav-item active" data-target="part-a">物理层 Physical Layer</a>
+      <a class="nav-item sub" data-target="part-a-1">1. 概述</a>
+      <a class="nav-item sub" data-target="part-a-2">2. RF 信道分配</a>
+      <a class="nav-item sub" data-target="part-a-3">3. 调制与编码</a>
+      <a class="nav-item sub" data-target="part-a-4">4. 发射功率</a>
+      <a class="nav-item sub" data-target="part-a-5">5. 时序参数</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Part B</div>
+      <a class="nav-item" data-target="part-b">链路层 Link Layer</a>
+      <a class="nav-item sub" data-target="part-b-1">1. 概述</a>
+      <a class="nav-item sub" data-target="part-b-2">2. 链路层状态机</a>
+      <a class="nav-item sub" data-target="part-b-3">3. 数据包格式</a>
+      <a class="nav-item sub" data-target="part-b-4">4. 广播</a>
+      <a class="nav-item sub" data-target="part-b-5">5. 连接建立与管理</a>
+      <a class="nav-item sub" data-target="part-b-6">6. 跳频算法</a>
+      <a class="nav-item sub" data-target="part-b-7">7. 流控与 ARQ</a>
+      <a class="nav-item sub" data-target="part-b-8">8. 链路层控制过程</a>
+      <a class="nav-item sub" data-target="part-b-9">9. 等时信道</a>
+      <a class="nav-item sub" data-target="part-b-10">10. 信道测音/测距</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Part D</div>
+      <a class="nav-item" data-target="part-d">消息序列图 Message Sequence</a>
+      <a class="nav-item sub" data-target="part-d-1">1. 概述</a>
+      <a class="nav-item sub" data-target="part-d-2">2. 连接建立序列图</a>
+      <a class="nav-item sub" data-target="part-d-3">3. 加密启动序列图</a>
+      <a class="nav-item sub" data-target="part-d-4">4. 断开连接序列图</a>
+      <a class="nav-item sub" data-target="part-d-5">5. 连接参数更新</a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">Part E</div>
+      <a class="nav-item" data-target="part-e">安全规范 Security</a>
+      <a class="nav-item sub" data-target="part-e-1">1. 概述</a>
+      <a class="nav-item sub" data-target="part-e-2">2. 安全架构</a>
+      <a class="nav-item sub" data-target="part-e-3">3. AES-CCM 加密</a>
+      <a class="nav-item sub" data-target="part-e-4">4. 包计数器与 Nonce</a>
+      <a class="nav-item sub" data-target="part-e-5">5. 密码工具箱</a>
+      <a class="nav-item sub" data-target="part-e-6">6. 配对与安全等级</a>
+      <a class="nav-item sub" data-target="part-e-7">7. 链路层隐私</a>
+      <a class="nav-item sub" data-target="part-e-8">8. 加密示例数据</a>
+    </div>
+  </nav>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main id="main-content">
+
+<!-- ══════════════ HEADER ══════════════ -->
+<header class="site-header">
+  <div class="badge">Bluetooth Core Specification 6.0</div>
+  <h1>📶 低功耗控制器协议详解</h1>
+  <p>Vol 6 · Low Energy Controller — Part A / B / D / E<br>
+  严格遵循官方规范章节顺序，配图表解析每一节的核心机制</p>
+</header>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════
+     PART A — Physical Layer
+════════════════════════════════════════ -->
+<section class="spec-section part-a" id="part-a">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-icon" style="background:#e3f2fd;">📡</div>
+    <div>
+      <span class="part-label" style="background:#e3f2fd;color:#1565c0;">Part A</span>
+      <h2>物理层规范 Physical Layer Specification</h2>
+    </div>
+    <span class="chevron">▾</span>
+  </div>
+  <div class="section-body">
+
+    <!-- A.1 General -->
+    <div class="subsection" id="part-a-1">
+      <h3><span class="num">1</span> 概述 (General)</h3>
+      <p>物理层（PHY）是 BLE 协议栈的最底层，规定了无线信号的调制方式、频率范围、发射功率及时序参数，是所有上层通信的物理基础。BLE 工作在 <strong>2.4 GHz ISM 频段</strong>（2400–2483.5 MHz），采用 FHSS 跳频技术规避干扰。</p>
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <div>BLE 物理层与经典蓝牙（BR/EDR）完全独立设计，二者互不兼容，但可共存于同一芯片。</div>
+      </div>
+
+      <div class="diagram">
+        <div class="diagram-title">BLE 协议栈层次结构</div>
+        <svg viewBox="0 0 700 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gA" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#1565c0"/>
+              <stop offset="100%" stop-color="#42a5f5"/>
+            </linearGradient>
+          </defs>
+          <!-- Stack layers -->
+          <rect x="80" y="10" width="540" height="44" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.5"/>
+          <text x="350" y="28" text-anchor="middle" font-size="13" font-weight="bold" fill="#6a1b9a">应用层 / GATT / GAP</text>
+          <text x="350" y="46" text-anchor="middle" font-size="11" fill="#9c27b0">应用程序逻辑与服务</text>
+
+          <rect x="80" y="62" width="540" height="44" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="350" y="80" text-anchor="middle" font-size="13" font-weight="bold" fill="#2e7d32">安全管理 SMP / 属性协议 ATT</text>
+          <text x="350" y="98" text-anchor="middle" font-size="11" fill="#388e3c">配对 · 加密 · 数据读写</text>
+
+          <rect x="80" y="114" width="540" height="44" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+          <text x="350" y="132" text-anchor="middle" font-size="13" font-weight="bold" fill="#e65100">逻辑链路控制 L2CAP</text>
+          <text x="350" y="150" text-anchor="middle" font-size="11" fill="#ef6c00">协议复用 · 分包重组</text>
+
+          <rect x="80" y="166" width="540" height="44" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="350" y="184" text-anchor="middle" font-size="13" font-weight="bold" fill="#1565c0">HCI — 主机控制器接口</text>
+          <text x="350" y="202" text-anchor="middle" font-size="11" fill="#1976d2">Host ↔ Controller 命令/事件通道</text>
+
+          <rect x="80" y="218" width="540" height="44" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.5"/>
+          <text x="350" y="236" text-anchor="middle" font-size="13" font-weight="bold" fill="#00695c">链路层 Link Layer (LL)</text>
+          <text x="350" y="254" text-anchor="middle" font-size="11" fill="#00796b">状态机 · 调度 · 数据包格式</text>
+
+          <rect x="80" y="270" width="540" height="44" rx="8" fill="url(#gA)" stroke="#1565c0" stroke-width="2"/>
+          <text x="350" y="288" text-anchor="middle" font-size="14" font-weight="bold" fill="white">▶ 物理层 Physical Layer (PHY)</text>
+          <text x="350" y="307" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.85)">射频信号 · 调制 · 信道 · 功率</text>
+
+          <!-- arrows -->
+          <line x1="350" y1="54" x2="350" y2="62" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="350" y1="106" x2="350" y2="114" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="350" y1="158" x2="350" y2="166" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="350" y1="210" x2="350" y2="218" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="350" y1="262" x2="350" y2="270" stroke="#aaa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <defs>
+            <marker id="arr" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#aaa"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- A.2 RF Channels -->
+    <div class="subsection" id="part-a-2">
+      <h3><span class="num">2</span> RF 信道分配 (Radio Frequency Channels)</h3>
+      <p>BLE 将 2.4 GHz 频段划分为 <strong>40 个信道</strong>，编号 0–39，间隔 2 MHz。其中 3 个为广播信道（Advertising），37 个为数据信道（Data）。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">40 个 BLE 信道分布图（橙色=广播信道，蓝色=数据信道）</div>
+        <div class="channel-grid">
+          <!-- ch 37 = 2402, ch 0 = 2404, ... ch 10 = 2424, ch 38 = 2426, ch 11..36 = 2428..2478, ch 39 = 2480 -->
+          <!-- We'll render 0–39 with coloring -->
+        </div>
+        <svg viewBox="0 0 700 130" xmlns="http://www.w3.org/2000/svg">
+          <!-- frequency axis -->
+          <line x1="30" y1="100" x2="680" y2="100" stroke="#ccc" stroke-width="2"/>
+          <!-- MHz labels -->
+          <text x="30" y="120" text-anchor="middle" font-size="10" fill="#888">2402</text>
+          <text x="190" y="120" text-anchor="middle" font-size="10" fill="#888">2420</text>
+          <text x="350" y="120" text-anchor="middle" font-size="10" fill="#888">2440</text>
+          <text x="510" y="120" text-anchor="middle" font-size="10" fill="#888">2460</text>
+          <text x="670" y="120" text-anchor="middle" font-size="10" fill="#888">2480</text>
+
+          <!-- channels: 40 bars, each 2MHz wide => 80MHz total, width = 650px -->
+          <!-- ch 37 at index 0 (2402), then ch 0..10 (2404..2424), ch 38 (2426), ch 11..36 (2428..2478), ch 39 (2480) -->
+          <!-- x = 30 + idx * (650/40), width = 650/40 - 2 = 14.25 -->
+          <script type="text/javascript">/* rendered via JS below */</script>
+        </svg>
+        <script>
+        (function(){
+          const svg = document.querySelector('#part-a svg:last-of-type');
+          const W=650, startX=30, n=40;
+          const bw = W/n;
+          // map: rfIndex → channel number and type
+          // RF index 0 = 2402 MHz = ch37(adv), rf1=2404=ch0, rf2=2406=ch1,...rf11=2424=ch10
+          // rf12=2426=ch38(adv), rf13=2428=ch11,...rf38=2478=ch36, rf39=2480=ch39(adv)
+          const advSet = new Set([37,38,39]);
+          const rfOrder = [37,0,1,2,3,4,5,6,7,8,9,10,38,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,39];
+          rfOrder.forEach((ch,i)=>{
+            const x = startX + i*bw;
+            const isAdv = advSet.has(ch);
+            const fill = isAdv ? '#ff7043' : '#42a5f5';
+            const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+            rect.setAttribute('x', x+1); rect.setAttribute('y', isAdv?20:40);
+            rect.setAttribute('width', bw-2); rect.setAttribute('height', isAdv?80:60);
+            rect.setAttribute('rx','3'); rect.setAttribute('fill', fill);
+            rect.setAttribute('opacity','0.85');
+            svg.insertBefore(rect, svg.querySelector('script'));
+            const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+            txt.setAttribute('x', x+bw/2); txt.setAttribute('y', isAdv?16:36);
+            txt.setAttribute('text-anchor','middle'); txt.setAttribute('font-size','9');
+            txt.setAttribute('fill', isAdv?'#bf360c':'#0d47a1'); txt.setAttribute('font-weight','bold');
+            txt.textContent = ch;
+            svg.insertBefore(txt, svg.querySelector('script'));
+          });
+        })();
+        </script>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>信道类型</th><th>数量</th><th>编号</th><th>中心频率</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td>广播信道</td><td>3</td><td>37, 38, 39</td><td>2402 / 2426 / 2480 MHz</td><td>设备发现、广播、连接建立</td></tr>
+            <tr><td>数据信道</td><td>37</td><td>0–36</td><td>2404–2478 MHz（偶数）</td><td>已建立连接后的数据传输</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div>广播信道选在 2402/2426/2480 MHz 是为了避开 Wi-Fi 常用的 1、6、11 信道（2412/2437/2462 MHz），最大限度减少干扰。</div>
+      </div>
+    </div>
+
+    <!-- A.3 Modulation -->
+    <div class="subsection" id="part-a-3">
+      <h3><span class="num">3</span> 调制与编码 (Modulation & Coding Scheme)</h3>
+      <p>BLE 使用 <strong>GFSK（高斯频移键控）</strong>调制，对比特 0/1 分别对应不同的频偏。Core 5.0 引入了 LE 2M PHY 和 Coded PHY，大幅提升速率或距离。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">各 PHY 速率 vs 范围对比</div>
+        <div style="padding: 8px 0;">
+          <div class="phy-bar-row">
+            <span class="phy-label">LE 1M PHY</span>
+            <div class="phy-bar-bg"><div class="phy-bar-fill" style="width:50%;background:#1565c0;">1 Mbps</div></div>
+            <span class="phy-val">~100m</span>
+          </div>
+          <div class="phy-bar-row">
+            <span class="phy-label">LE 2M PHY</span>
+            <div class="phy-bar-bg"><div class="phy-bar-fill" style="width:100%;background:#2e7d32;">2 Mbps</div></div>
+            <span class="phy-val">~80m</span>
+          </div>
+          <div class="phy-bar-row">
+            <span class="phy-label">Coded S=2</span>
+            <div class="phy-bar-bg"><div class="phy-bar-fill" style="width:25%;background:#e65100;">500 kbps</div></div>
+            <span class="phy-val">~200m</span>
+          </div>
+          <div class="phy-bar-row">
+            <span class="phy-label">Coded S=8</span>
+            <div class="phy-bar-bg"><div class="phy-bar-fill" style="width:12%;background:#c62828;">125 kbps</div></div>
+            <span class="phy-val">~400m+</span>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">* 速率越高越省功耗，Coded PHY 牺牲速率换取更远传输距离</p>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>PHY 类型</th><th>调制</th><th>速率</th><th>FEC 编码</th><th>引入版本</th></tr></thead>
+          <tbody>
+            <tr><td>LE 1M</td><td>GFSK (BT=0.5)</td><td>1 Mb/s</td><td>无</td><td>BT 4.0</td></tr>
+            <tr><td>LE 2M</td><td>GFSK (BT=0.5)</td><td>2 Mb/s</td><td>无</td><td>BT 5.0</td></tr>
+            <tr><td>LE Coded (S=2)</td><td>GFSK + FEC</td><td>500 kb/s</td><td>FEC r=1/2</td><td>BT 5.0</td></tr>
+            <tr><td>LE Coded (S=8)</td><td>GFSK + FEC</td><td>125 kb/s</td><td>FEC r=1/8</td><td>BT 5.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- A.4 TX Power -->
+    <div class="subsection" id="part-a-4">
+      <h3><span class="num">4</span> 发射功率 (Transmitter Power)</h3>
+      <p>规范定义了最小发射功率 <strong>-20 dBm</strong> 以上，最大不超过 <strong>+20 dBm</strong>（100 mW）。实际实现通常支持 -20 dBm 到 +10 dBm 的功率分级，可通过 LE Power Control（BT 5.2+）动态调整。</p>
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div>各国监管机构对最大 EIRP 有严格限制（欧盟 ETSI：+20 dBm，美国 FCC：+30 dBm），产品需取两者较低值。</div>
+      </div>
+    </div>
+
+    <!-- A.5 Timing -->
+    <div class="subsection" id="part-a-5">
+      <h3><span class="num">5</span> 时序参数 (Timing Parameters)</h3>
+      <p>BLE 规范严格定义了收发切换时间、IFS 帧间间隔等时序，保证多设备共存时的有序工作。</p>
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>参数</th><th>符号</th><th>值</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>帧间间隔</td><td class="mono">T_IFS</td><td>150 µs</td><td>同一信道连续包之间的最小间隔</td></tr>
+            <tr><td>收发切换</td><td class="mono">T_SW</td><td>≤2 µs</td><td>接收→发射的切换时间</td></tr>
+            <tr><td>广播事件间隔</td><td class="mono">advInterval</td><td>20ms–10.24s</td><td>两次广播事件之间的时间</td></tr>
+            <tr><td>连接事件间隔</td><td class="mono">connInterval</td><td>7.5ms–4s</td><td>主从设备交换数据的间隔</td></tr>
+            <tr><td>睡眠时钟精度</td><td class="mono">SCA</td><td>±500 ppm</td><td>最大允许的时钟漂移量</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /section-body -->
+</section>
+
+
+<!-- ════════════════════════════════════════
+     PART B — Link Layer
+════════════════════════════════════════ -->
+<section class="spec-section part-b" id="part-b">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-icon" style="background:#e0f2f1;">🔗</div>
+    <div>
+      <span class="part-label" style="background:#e0f2f1;color:#00695c;">Part B</span>
+      <h2>链路层规范 Link Layer Specification</h2>
+    </div>
+    <span class="chevron">▾</span>
+  </div>
+  <div class="section-body">
+
+    <!-- B.1 General -->
+    <div class="subsection" id="part-b-1">
+      <h3><span class="num">1</span> 概述 (General)</h3>
+      <p>链路层（LL）是 BLE 控制器的核心，负责定义空中接口的数据包格式、状态机、流控机制、跳频算法、加密等。链路层运行在控制器端，向上通过 HCI 接口与主机通信。</p>
+
+      <div class="feature-grid">
+        <span class="feat-tag feat-v40">BT 4.0 基础</span>
+        <span class="feat-tag feat-v40">广播 / 扫描 / 连接</span>
+        <span class="feat-tag feat-v50">BT 5.0 扩展广播</span>
+        <span class="feat-tag feat-v50">长程 Coded PHY</span>
+        <span class="feat-tag feat-v52">BT 5.2 等时信道 CIS/BIS</span>
+        <span class="feat-tag feat-v60">BT 6.0 Channel Sounding</span>
+        <span class="feat-tag feat-v60">DBAF 决策广播过滤</span>
+      </div>
+    </div>
+
+    <!-- B.2 State Machine -->
+    <div class="subsection" id="part-b-2">
+      <h3><span class="num">2</span> 链路层状态机 (LL State Machine)</h3>
+      <p>链路层维护一个状态机，设备在各状态间根据事件（HCI命令/空中包）进行转换。</p>
+
+      <div class="state-grid">
+        <div class="state-box st-standby">
+          <span class="state-icon">⏸️</span>Standby
+          <div class="state-desc">待机，不收发无线包</div>
+        </div>
+        <div class="state-box st-advertising">
+          <span class="state-icon">📢</span>Advertising
+          <div class="state-desc">在广播信道发送 ADV 包</div>
+        </div>
+        <div class="state-box st-scanning">
+          <span class="state-icon">🔍</span>Scanning
+          <div class="state-desc">监听广播信道的 ADV 包</div>
+        </div>
+        <div class="state-box st-initiating">
+          <span class="state-icon">🤝</span>Initiating
+          <div class="state-desc">发送 CONNECT_IND 建立连接</div>
+        </div>
+        <div class="state-box st-connected">
+          <span class="state-icon">✅</span>Connection
+          <div class="state-desc">Central/Peripheral 数据交换</div>
+        </div>
+        <div class="state-box st-sync">
+          <span class="state-icon">🔄</span>Sync
+          <div class="state-desc">同步周期广播（BT 5.0+）</div>
+        </div>
+        <div class="state-box st-isobc">
+          <span class="state-icon">🎵</span>ISO BC
+          <div class="state-desc">等时广播发送（BT 5.2+）</div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <div class="diagram-title">状态转换示意图</div>
+        <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+          <!-- Standby center -->
+          <ellipse cx="350" cy="130" rx="60" ry="30" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+          <text x="350" y="126" text-anchor="middle" font-size="12" font-weight="bold" fill="#e65100">Standby</text>
+          <text x="350" y="142" text-anchor="middle" font-size="10" fill="#e65100">待机</text>
+
+          <!-- Advertising -->
+          <ellipse cx="120" cy="60" rx="65" ry="28" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+          <text x="120" y="56" text-anchor="middle" font-size="12" font-weight="bold" fill="#2e7d32">Advertising</text>
+          <text x="120" y="72" text-anchor="middle" font-size="10" fill="#2e7d32">广播</text>
+
+          <!-- Scanning -->
+          <ellipse cx="580" cy="60" rx="65" ry="28" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+          <text x="580" y="56" text-anchor="middle" font-size="12" font-weight="bold" fill="#1565c0">Scanning</text>
+          <text x="580" y="72" text-anchor="middle" font-size="10" fill="#1565c0">扫描</text>
+
+          <!-- Initiating -->
+          <ellipse cx="580" cy="200" rx="65" ry="28" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="2"/>
+          <text x="580" y="196" text-anchor="middle" font-size="12" font-weight="bold" fill="#6a1b9a">Initiating</text>
+          <text x="580" y="212" text-anchor="middle" font-size="10" fill="#6a1b9a">发起连接</text>
+
+          <!-- Connection -->
+          <ellipse cx="120" cy="200" rx="65" ry="28" fill="#e0f2f1" stroke="#00695c" stroke-width="2"/>
+          <text x="120" y="196" text-anchor="middle" font-size="12" font-weight="bold" fill="#00695c">Connection</text>
+          <text x="120" y="212" text-anchor="middle" font-size="10" fill="#00695c">已连接</text>
+
+          <!-- arrows: Standby ↔ all states -->
+          <line x1="295" y1="110" x2="185" y2="78" stroke="#aaa" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <text x="220" y="82" font-size="10" fill="#888" transform="rotate(-26,220,82)">LE_Set_Adv_Enable</text>
+
+          <line x1="405" y1="110" x2="515" y2="78" stroke="#aaa" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <text x="440" y="80" font-size="10" fill="#888" transform="rotate(22,440,80)">LE_Set_Scan_Enable</text>
+
+          <line x1="405" y1="150" x2="515" y2="182" stroke="#aaa" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <text x="448" y="185" font-size="10" fill="#888" transform="rotate(-18,448,185)">LE_Create_Connection</text>
+
+          <line x1="295" y1="150" x2="185" y2="182" stroke="#aaa" stroke-width="1.5" marker-end="url(#ar2)"/>
+          <text x="195" y="158" font-size="10" fill="#888">CONNECT_IND</text>
+
+          <!-- Initiating → Connection -->
+          <path d="M515 200 Q 350 240 185 210" fill="none" stroke="#6a1b9a" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#ar3)"/>
+          <text x="350" y="248" text-anchor="middle" font-size="10" fill="#6a1b9a">连接成功</text>
+
+          <defs>
+            <marker id="ar2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#aaa"/>
+            </marker>
+            <marker id="ar3" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#6a1b9a"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <!-- B.2.3 Packet Format -->
+    <div class="subsection" id="part-b-3">
+      <h3><span class="num">3</span> 数据包格式 (Packet Format)</h3>
+      <p>所有 BLE 空中数据包均遵循统一结构：前导码 → 接入地址 → PDU → CRC，Coded PHY 还额外增加 CI 与 TERM 字段。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">BLE 通用数据包结构（LE 1M / 2M PHY）</div>
+        <div class="packet-row">
+          <div class="pkt-field f-preamble">
+            <span class="label">Preamble</span>
+            <span class="val">1–2 Bytes</span>
+          </div>
+          <div class="pkt-field f-aa">
+            <span class="label">Access Address</span>
+            <span class="val">4 Bytes</span>
+          </div>
+          <div class="pkt-field f-pdu" style="flex:3;">
+            <span class="label">PDU (Protocol Data Unit)</span>
+            <span class="val">2–258 Bytes</span>
+          </div>
+          <div class="pkt-field f-crc">
+            <span class="label">CRC</span>
+            <span class="val">3 Bytes</span>
+          </div>
+        </div>
+
+        <div class="diagram-title" style="margin-top:16px;">PDU 内部结构（数据信道）</div>
+        <div class="packet-row">
+          <div class="pkt-field f-llid">
+            <span class="label">LLID</span>
+            <span class="val">2 bit</span>
+          </div>
+          <div class="pkt-field f-nesn">
+            <span class="label">NESN</span>
+            <span class="val">1 bit</span>
+          </div>
+          <div class="pkt-field f-nesn" style="background:#880e4f;">
+            <span class="label">SN</span>
+            <span class="val">1 bit</span>
+          </div>
+          <div class="pkt-field f-aa" style="background:#1976d2;">
+            <span class="label">MD</span>
+            <span class="val">1 bit</span>
+          </div>
+          <div class="pkt-field f-aa" style="background:#283593;">
+            <span class="label">RFU</span>
+            <span class="val">3 bit</span>
+          </div>
+          <div class="pkt-field f-header" style="background:#37474f;">
+            <span class="label">Length</span>
+            <span class="val">8 bit</span>
+          </div>
+          <div class="pkt-field f-payload" style="flex:4;">
+            <span class="label">Payload</span>
+            <span class="val">0–251 Bytes</span>
+          </div>
+          <div class="pkt-field f-mic">
+            <span class="label">MIC (可选)</span>
+            <span class="val">4 Bytes</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:14px;">
+        <table class="spec-table">
+          <thead><tr><th>字段</th><th>长度</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>Preamble（前导码）</td><td>1 Byte (1M) / 2 Bytes (2M)</td><td>用于接收端同步时钟与频偏校正</td></tr>
+            <tr><td>Access Address（接入地址）</td><td>4 Bytes</td><td>广播固定值 0x8E89BED6；连接使用随机生成的唯一值</td></tr>
+            <tr><td>PDU Header</td><td>2 Bytes</td><td>包含 LLID、SN/NESN、Length 等控制字段</td></tr>
+            <tr><td>Payload（有效载荷）</td><td>0–251 Bytes</td><td>实际承载数据或控制 PDU</td></tr>
+            <tr><td>MIC（消息完整性码）</td><td>4 Bytes（可选）</td><td>加密模式下对 Payload 的 AES-CCM 认证标签</td></tr>
+            <tr><td>CRC</td><td>3 Bytes</td><td>CRC-24 校验，保护整个 PDU（不含 Preamble）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <div><strong>LLID 含义：</strong>00=保留，01=续包（LL Data PDU continuation），10=首包/完整包，11=LL Control PDU</div>
+      </div>
+    </div>
+
+    <!-- B.2.4 Advertising -->
+    <div class="subsection" id="part-b-4">
+      <h3><span class="num">4</span> 广播 (Advertising)</h3>
+      <p>广播是 BLE 发现机制的核心。Advertiser 按固定间隔在 37/38/39 信道依次发送广播包；Scanner 在其中一个或多个信道监听。BT 5.0 引入扩展广播，支持更大载荷（255 字节）和更灵活的广播配置。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">广播事件时序</div>
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- time axis -->
+          <line x1="20" y1="160" x2="680" y2="160" stroke="#ccc" stroke-width="2"/>
+          <text x="680" y="175" font-size="11" fill="#888">时间 →</text>
+
+          <!-- Event 1 -->
+          <rect x="40" y="100" width="60" height="55" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="70" y="122" text-anchor="middle" font-size="10" font-weight="bold" fill="#2e7d32">ADV</text>
+          <text x="70" y="136" text-anchor="middle" font-size="9" fill="#2e7d32">Ch 37</text>
+          <text x="70" y="149" text-anchor="middle" font-size="9" fill="#2e7d32">ADV_IND</text>
+
+          <rect x="112" y="115" width="40" height="40" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="132" y="131" text-anchor="middle" font-size="9" font-weight="bold" fill="#2e7d32">ADV</text>
+          <text x="132" y="144" text-anchor="middle" font-size="9" fill="#2e7d32">Ch 38</text>
+
+          <rect x="164" y="115" width="40" height="40" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="184" y="131" text-anchor="middle" font-size="9" font-weight="bold" fill="#2e7d32">ADV</text>
+          <text x="184" y="144" text-anchor="middle" font-size="9" fill="#2e7d32">Ch 39</text>
+
+          <!-- SCAN_REQ / SCAN_RSP -->
+          <rect x="220" y="120" width="60" height="35" rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="250" y="134" text-anchor="middle" font-size="9" font-weight="bold" fill="#1565c0">SCAN_REQ</text>
+          <text x="250" y="147" text-anchor="middle" font-size="9" fill="#1565c0">Scanner→</text>
+
+          <rect x="292" y="120" width="60" height="35" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+          <text x="322" y="134" text-anchor="middle" font-size="9" font-weight="bold" fill="#e65100">SCAN_RSP</text>
+          <text x="322" y="147" text-anchor="middle" font-size="9" fill="#e65100">←Adv</text>
+
+          <!-- interval -->
+          <line x1="40" y1="80" x2="400" y2="80" stroke="#42a5f5" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="40" y1="75" x2="40" y2="85" stroke="#42a5f5" stroke-width="2"/>
+          <line x1="400" y1="75" x2="400" y2="85" stroke="#42a5f5" stroke-width="2"/>
+          <text x="220" y="72" text-anchor="middle" font-size="11" fill="#1565c0">广播事件间隔 advInterval (20ms–10.24s)</text>
+
+          <!-- Event 2 -->
+          <rect x="400" y="100" width="60" height="55" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="430" y="122" text-anchor="middle" font-size="10" font-weight="bold" fill="#2e7d32">ADV</text>
+          <text x="430" y="136" text-anchor="middle" font-size="9" fill="#2e7d32">Ch 37</text>
+          <text x="430" y="149" text-anchor="middle" font-size="9" fill="#2e7d32">ADV_IND</text>
+
+          <rect x="472" y="115" width="40" height="40" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="492" y="131" text-anchor="middle" font-size="9" font-weight="bold" fill="#2e7d32">ADV</text>
+          <text x="492" y="144" text-anchor="middle" font-size="9" fill="#2e7d32">Ch 38</text>
+
+          <rect x="524" y="115" width="40" height="40" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="544" y="131" text-anchor="middle" font-size="9" font-weight="bold" fill="#2e7d32">ADV</text>
+          <text x="544" y="144" text-anchor="middle" font-size="9" fill="#2e7d32">Ch 39</text>
+
+          <!-- labels on axis -->
+          <text x="40" y="175" text-anchor="middle" font-size="10" fill="#888">T₀</text>
+          <text x="400" y="175" text-anchor="middle" font-size="10" fill="#888">T₁</text>
+        </svg>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>广播类型</th><th>PDU 类型</th><th>可连接</th><th>可扫描</th><th>定向</th></tr></thead>
+          <tbody>
+            <tr><td>通用可发现</td><td class="mono">ADV_IND</td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td>定向可连接（高占空比）</td><td class="mono">ADV_DIRECT_IND</td><td>✅</td><td>❌</td><td>✅</td></tr>
+            <tr><td>不可连接广播</td><td class="mono">ADV_NONCONN_IND</td><td>❌</td><td>❌</td><td>❌</td></tr>
+            <tr><td>可扫描广播</td><td class="mono">ADV_SCAN_IND</td><td>❌</td><td>✅</td><td>❌</td></tr>
+            <tr><td>扩展广播（5.0+）</td><td class="mono">ADV_EXT_IND</td><td>可选</td><td>可选</td><td>可选</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- B.2.5 Connection -->
+    <div class="subsection" id="part-b-5">
+      <h3><span class="num">5</span> 连接建立与管理 (Connection Establishment)</h3>
+      <p>当 Initiator 发现目标 Advertiser 后，向其发送 <code>CONNECT_IND</code> 包（包含连接参数），双方随即切换到数据信道，采用 FHSS 跳频通信，Initiator 成为 Central，Advertiser 成为 Peripheral。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">连接建立三阶段</div>
+        <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr4" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0 0,8 4,0 8" fill="#1565c0"/>
+            </marker>
+            <marker id="arr5" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0 0,8 4,0 8" fill="#2e7d32"/>
+            </marker>
+          </defs>
+          <!-- Timeline columns -->
+          <line x1="130" y1="20" x2="130" y2="210" stroke="#e0e0e0" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <line x1="570" y1="20" x2="570" y2="210" stroke="#e0e0e0" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+          <!-- Labels -->
+          <rect x="60" y="5" width="140" height="30" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.5"/>
+          <text x="130" y="25" text-anchor="middle" font-size="13" font-weight="bold" fill="#6a1b9a">Initiator (Central)</text>
+
+          <rect x="500" y="5" width="140" height="30" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="570" y="25" text-anchor="middle" font-size="13" font-weight="bold" fill="#2e7d32">Advertiser (Peripheral)</text>
+
+          <!-- Phase 1: Discovery -->
+          <text x="350" y="58" text-anchor="middle" font-size="11" fill="#888" font-style="italic">① 发现阶段（广播信道）</text>
+          <line x1="570" y1="70" x2="130" y2="70" stroke="#2e7d32" stroke-width="2" marker-end="url(#arr5)"/>
+          <rect x="270" y="56" width="160" height="20" rx="4" fill="white"/>
+          <text x="350" y="71" text-anchor="middle" font-size="11" font-weight="bold" fill="#2e7d32">ADV_IND (Ch37/38/39)</text>
+
+          <!-- Phase 2: Connect -->
+          <text x="350" y="108" text-anchor="middle" font-size="11" fill="#888" font-style="italic">② 连接请求（广播信道）</text>
+          <line x1="130" y1="120" x2="570" y2="120" stroke="#1565c0" stroke-width="2" marker-end="url(#arr4)"/>
+          <rect x="250" y="106" width="200" height="20" rx="4" fill="white"/>
+          <text x="350" y="121" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">CONNECT_IND (含连接参数)</text>
+
+          <!-- Phase 3: Data -->
+          <text x="350" y="158" text-anchor="middle" font-size="11" fill="#888" font-style="italic">③ 数据交换（数据信道，FHSS）</text>
+          <line x1="130" y1="170" x2="570" y2="170" stroke="#00695c" stroke-width="2" marker-end="url(#arr4)"/>
+          <rect x="260" y="156" width="180" height="20" rx="4" fill="white"/>
+          <text x="350" y="171" text-anchor="middle" font-size="11" font-weight="bold" fill="#00695c">LL Data PDU (Central→Peripheral)</text>
+
+          <line x1="570" y1="190" x2="130" y2="190" stroke="#00695c" stroke-width="2" marker-end="url(#arr5)"/>
+          <rect x="260" y="176" width="180" height="20" rx="4" fill="white"/>
+          <text x="350" y="191" text-anchor="middle" font-size="11" font-weight="bold" fill="#00695c">LL Data PDU (Peripheral→Central)</text>
+        </svg>
+      </div>
+
+      <div class="info-box key">
+        <span class="icon">🔑</span>
+        <div><strong>CONNECT_IND 包含的关键参数：</strong>AccessAddress（连接标识）、CRCInit（CRC初值）、Interval（连接间隔）、Latency（从端延迟）、Timeout（超时时间）、ChM（信道映射）、Hop（跳频增量）</div>
+      </div>
+    </div>
+
+    <!-- B.2.6 Channel Hopping -->
+    <div class="subsection" id="part-b-6">
+      <h3><span class="num">6</span> 跳频算法 (Channel Selection Algorithm)</h3>
+      <p>BLE 定义了两种信道选择算法（CSA），CSA#1（BT 4.0）和 CSA#2（BT 5.0）。CSA#2 使用更均匀的伪随机算法，在信道条件差时抗干扰能力更强。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">CSA#1 跳频示意（hop = 7, 初始 ch = 0）</div>
+        <svg viewBox="0 0 700 110" xmlns="http://www.w3.org/2000/svg">
+          <!-- Simulate: next = (current + hop) mod 37, skip unmapped -->
+          <!-- hop=7: 0→7→14→21→28→35→5→12→... -->
+          <defs>
+            <marker id="harr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <polygon points="0 0,6 3,0 6" fill="#1565c0"/>
+            </marker>
+          </defs>
+          <!-- boxes -->
+          <script>
+          (function(){
+            const svg = document.querySelectorAll('#part-b svg')[3];
+            if(!svg) return;
+            const channels = [0,7,14,21,28,35,5,12,19,26,33];
+            const colors = ['#1565c0','#1976d2','#1e88e5','#2196f3','#42a5f5','#64b5f6','#0d47a1','#1565c0','#1976d2','#1e88e5','#2196f3'];
+            channels.forEach((ch,i)=>{
+              const x = 20 + i*62;
+              const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+              rect.setAttribute('x',x); rect.setAttribute('y',35);
+              rect.setAttribute('width',50); rect.setAttribute('height',55);
+              rect.setAttribute('rx',8); rect.setAttribute('fill',colors[i]); rect.setAttribute('opacity','0.85');
+              svg.appendChild(rect);
+              const t1 = document.createElementNS('http://www.w3.org/2000/svg','text');
+              t1.setAttribute('x',x+25); t1.setAttribute('y',58); t1.setAttribute('text-anchor','middle');
+              t1.setAttribute('font-size','11'); t1.setAttribute('fill','white'); t1.setAttribute('font-weight','bold');
+              t1.textContent = 'Ch'+ch; svg.appendChild(t1);
+              const t2 = document.createElementNS('http://www.w3.org/2000/svg','text');
+              t2.setAttribute('x',x+25); t2.setAttribute('y',77); t2.setAttribute('text-anchor','middle');
+              t2.setAttribute('font-size','9'); t2.setAttribute('fill','rgba(255,255,255,0.8)');
+              t2.textContent = '#'+(i+1); svg.appendChild(t2);
+              if(i < channels.length-1){
+                const arr = document.createElementNS('http://www.w3.org/2000/svg','line');
+                arr.setAttribute('x1',x+50); arr.setAttribute('y1',62);
+                arr.setAttribute('x2',x+62); arr.setAttribute('y2',62);
+                arr.setAttribute('stroke','#aaa'); arr.setAttribute('stroke-width','1.5');
+                arr.setAttribute('marker-end','url(#harr)');
+                svg.appendChild(arr);
+              }
+              const tord = document.createElementNS('http://www.w3.org/2000/svg','text');
+              tord.setAttribute('x',x+25); tord.setAttribute('y',105); tord.setAttribute('text-anchor','middle');
+              tord.setAttribute('font-size','9'); tord.setAttribute('fill','#888');
+              tord.textContent = '连接事件'+(i+1);
+              svg.appendChild(tord);
+            });
+          })();
+          </script>
+        </svg>
+      </div>
+    </div>
+
+    <!-- B.2.7 Flow Control -->
+    <div class="subsection" id="part-b-7">
+      <h3><span class="num">7</span> 流控与 ARQ (Flow Control & ARQ)</h3>
+      <p>链路层使用 <strong>Stop-and-Wait ARQ</strong>机制，每个数据包携带序列号（SN）和期望序列号（NESN）。接收方通过设置 NESN 来表示期望的下一个序列号，实现可靠传输。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">SN/NESN 停等ARQ 流程</div>
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar6" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0 0,8 4,0 8" fill="#1565c0"/>
+            </marker>
+            <marker id="ar7" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <polygon points="0 0,8 4,0 8" fill="#2e7d32"/>
+            </marker>
+          </defs>
+          <line x1="130" y1="15" x2="130" y2="195" stroke="#e0e0e0" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <line x1="570" y1="15" x2="570" y2="195" stroke="#e0e0e0" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="130" y="13" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Central</text>
+          <text x="570" y="13" text-anchor="middle" font-size="11" font-weight="bold" fill="#2e7d32">Peripheral</text>
+
+          <!-- Tx -->
+          <line x1="130" y1="45" x2="570" y2="45" stroke="#1565c0" stroke-width="2" marker-end="url(#ar6)"/>
+          <text x="350" y="40" text-anchor="middle" font-size="10" fill="#1565c0" font-weight="bold">Data(SN=0, NESN=0)</text>
+
+          <line x1="570" y1="80" x2="130" y2="80" stroke="#2e7d32" stroke-width="2" marker-end="url(#ar7)"/>
+          <text x="350" y="75" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Empty(SN=0, NESN=1) ← ACK</text>
+
+          <line x1="130" y1="115" x2="570" y2="115" stroke="#1565c0" stroke-width="2" marker-end="url(#ar6)"/>
+          <text x="350" y="110" text-anchor="middle" font-size="10" fill="#1565c0" font-weight="bold">Data(SN=1, NESN=0)</text>
+
+          <line x1="570" y1="150" x2="130" y2="150" stroke="#2e7d32" stroke-width="2" marker-end="url(#ar7)"/>
+          <text x="350" y="145" text-anchor="middle" font-size="10" fill="#2e7d32" font-weight="bold">Data(SN=1, NESN=0) ← 重传请求</text>
+
+          <line x1="130" y1="185" x2="570" y2="185" stroke="#c62828" stroke-width="2" marker-end="url(#ar6)" stroke-dasharray="5,3"/>
+          <text x="350" y="180" text-anchor="middle" font-size="10" fill="#c62828" font-weight="bold">Data(SN=1, NESN=0) ← 重传</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- B.2.8 LL Control -->
+    <div class="subsection" id="part-b-8">
+      <h3><span class="num">8</span> 链路层控制过程 (LL Control Procedures)</h3>
+      <p>链路层定义了一系列控制 PDU（LL Control PDU），用于协商连接参数、加密、版本信息交换、终止连接等管理操作，不依赖 L2CAP 层直接在 LL 层执行。</p>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>控制过程</th><th>相关 PDU</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>连接参数更新</td><td class="mono">LL_CONNECTION_UPDATE_IND</td><td>更新 Interval / Latency / Timeout</td></tr>
+            <tr><td>信道映射更新</td><td class="mono">LL_CHANNEL_MAP_IND</td><td>修改可用数据信道集合</td></tr>
+            <tr><td>加密启动</td><td class="mono">LL_ENC_REQ / RSP / START_ENC</td><td>协商会话密钥，启动 AES-CCM 加密</td></tr>
+            <tr><td>特性交换</td><td class="mono">LL_FEATURE_REQ / RSP</td><td>双方声明支持的 LL 功能集</td></tr>
+            <tr><td>版本信息</td><td class="mono">LL_VERSION_IND</td><td>交换控制器版本号</td></tr>
+            <tr><td>数据长度更新</td><td class="mono">LL_LENGTH_REQ / RSP</td><td>协商最大 PDU 长度（最大 251 字节）</td></tr>
+            <tr><td>PHY 更新</td><td class="mono">LL_PHY_REQ / RSP / UPDATE_IND</td><td>切换至 2M 或 Coded PHY</td></tr>
+            <tr><td>连接终止</td><td class="mono">LL_TERMINATE_IND</td><td>通知对端断开连接及原因码</td></tr>
+            <tr><td>功率控制</td><td class="mono">LL_POWER_CONTROL_REQ / RSP</td><td>动态调整发射功率（BT 5.2+）</td></tr>
+            <tr><td>Channel Sounding</td><td class="mono">LL_CS_REQ / RSP / IND</td><td>测距过程控制（BT 6.0+）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- B.2.9 Isochronous Channels -->
+    <div class="subsection" id="part-b-9">
+      <h3><span class="num">9</span> 等时信道 (Isochronous Channels, BT 5.2+)</h3>
+      <p>等时信道（ISO）专为音频等低延迟实时流媒体设计，分为两种：<strong>CIS</strong>（Connected Isochronous Stream，点对点连接内等时流）和 <strong>BIS</strong>（Broadcast Isochronous Stream，广播等时流）。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">CIS vs BIS 架构对比</div>
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <!-- CIS -->
+          <rect x="20" y="20" width="310" height="170" rx="12" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+          <text x="175" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="#1565c0">CIS — 连接等时流</text>
+
+          <rect x="40" y="58" width="80" height="40" rx="8" fill="#1565c0"/>
+          <text x="80" y="84" text-anchor="middle" font-size="12" fill="white" font-weight="bold">Central</text>
+
+          <rect x="210" y="58" width="100" height="40" rx="8" fill="#0d47a1"/>
+          <text x="260" y="84" text-anchor="middle" font-size="12" fill="white" font-weight="bold">Peripheral</text>
+
+          <line x1="120" y1="78" x2="210" y2="78" stroke="#1565c0" stroke-width="2.5" marker-end="url(#ar6)"/>
+          <line x1="210" y1="88" x2="120" y2="88" stroke="#0d47a1" stroke-width="2.5" marker-end="url(#ar7)"/>
+
+          <text x="175" y="145" text-anchor="middle" font-size="11" fill="#1565c0">双向点对点</text>
+          <text x="175" y="163" text-anchor="middle" font-size="10" fill="#1976d2">耳机 / 助听器 / LE Audio</text>
+
+          <!-- BIS -->
+          <rect x="370" y="20" width="310" height="170" rx="12" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+          <text x="525" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="#2e7d32">BIS — 广播等时流</text>
+
+          <rect x="480" y="58" width="80" height="40" rx="8" fill="#2e7d32"/>
+          <text x="520" y="84" text-anchor="middle" font-size="12" fill="white" font-weight="bold">Source</text>
+
+          <rect x="390" y="130" width="70" height="36" rx="8" fill="#1b5e20"/>
+          <text x="425" y="153" text-anchor="middle" font-size="11" fill="white">Sink 1</text>
+          <rect x="490" y="130" width="70" height="36" rx="8" fill="#1b5e20"/>
+          <text x="525" y="153" text-anchor="middle" font-size="11" fill="white">Sink 2</text>
+          <rect x="590" y="130" width="70" height="36" rx="8" fill="#1b5e20"/>
+          <text x="625" y="153" text-anchor="middle" font-size="11" fill="white">Sink N</text>
+
+          <line x1="510" y1="98" x2="425" y2="130" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr5)"/>
+          <line x1="520" y1="98" x2="525" y2="130" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr5)"/>
+          <line x1="530" y1="98" x2="625" y2="130" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr5)"/>
+
+          <text x="525" y="185" text-anchor="middle" font-size="10" fill="#388e3c">广播扬声器 / 多人助听</text>
+
+          <defs>
+            <marker id="arr5" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#2e7d32"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="info-box tip">
+        <span class="icon">🎵</span>
+        <div>BIS 是 LE Audio（LC3 编解码器）的基础，支持超低延迟同步音频广播，一个发送端可同时对无限个接收端提供同步音频流。</div>
+      </div>
+    </div>
+
+    <!-- B.2.10 Channel Sounding -->
+    <div class="subsection" id="part-b-10">
+      <h3><span class="num">10</span> 信道测音/测距 (Channel Sounding, BT 6.0)</h3>
+      <p>Channel Sounding（CS）是蓝牙 6.0 的核心新特性，提供厘米级测距能力，支持两种测量方法：<strong>PBR</strong>（相位法测距）和 <strong>RTT</strong>（往返时间法）。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">Channel Sounding 测距原理</div>
+        <svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arcs" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#e65100"/>
+            </marker>
+          </defs>
+          <!-- Device A -->
+          <rect x="30" y="60" width="100" height="60" rx="10" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+          <text x="80" y="87" text-anchor="middle" font-size="13" font-weight="bold" fill="#e65100">设备 A</text>
+          <text x="80" y="104" text-anchor="middle" font-size="11" fill="#ef6c00">Initiator</text>
+
+          <!-- Device B -->
+          <rect x="570" y="60" width="100" height="60" rx="10" fill="#fff3e0" stroke="#e65100" stroke-width="2"/>
+          <text x="620" y="87" text-anchor="middle" font-size="13" font-weight="bold" fill="#e65100">设备 B</text>
+          <text x="620" y="104" text-anchor="middle" font-size="11" fill="#ef6c00">Reflector</text>
+
+          <!-- RTT arrows -->
+          <line x1="130" y1="75" x2="570" y2="75" stroke="#e65100" stroke-width="2" marker-end="url(#arcs)"/>
+          <text x="350" y="68" text-anchor="middle" font-size="11" fill="#e65100" font-weight="bold">① Tone 发射 (T₁)</text>
+
+          <line x1="570" y1="105" x2="130" y2="105" stroke="#1565c0" stroke-width="2" marker-end="url(#ar6)"/>
+          <text x="350" y="120" text-anchor="middle" font-size="11" fill="#1565c0" font-weight="bold">② 反射回波 (T₂)</text>
+
+          <!-- Distance -->
+          <line x1="130" y1="150" x2="570" y2="150" stroke="#ccc" stroke-width="1" stroke-dasharray="5,3"/>
+          <line x1="130" y1="145" x2="130" y2="155" stroke="#ccc" stroke-width="2"/>
+          <line x1="570" y1="145" x2="570" y2="155" stroke="#ccc" stroke-width="2"/>
+          <text x="350" y="168" text-anchor="middle" font-size="12" fill="#888">距离 d = (T₂ − T₁) × c / 2</text>
+
+          <!-- PBR label -->
+          <rect x="280" y="130" width="140" height="22" rx="6" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1"/>
+          <text x="350" y="145" text-anchor="middle" font-size="10" fill="#6a1b9a" font-weight="bold">PBR: 相位差 Δφ = 4πfd/c</text>
+        </svg>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>方法</th><th>原理</th><th>精度</th><th>适用场景</th></tr></thead>
+          <tbody>
+            <tr><td>RTT（往返时间）</td><td>测量信号往返时间，d = t·c/2</td><td>~1m</td><td>门禁、汽车钥匙</td></tr>
+            <tr><td>PBR（相位法）</td><td>多频点相位差计算距离</td><td>~10cm</td><td>精密资产追踪</td></tr>
+            <tr><td>RTT+PBR 联合</td><td>两种方法融合</td><td>厘米级</td><td>UWB替代方案</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /section-body -->
+</section>
+
+
+<!-- ════════════════════════════════════════
+     PART D — Message Sequence Charts
+════════════════════════════════════════ -->
+<section class="spec-section part-d" id="part-d">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-icon" style="background:#f3e5f5;">📊</div>
+    <div>
+      <span class="part-label" style="background:#f3e5f5;color:#6a1b9a;">Part D</span>
+      <h2>消息序列图 Message Sequence Charts</h2>
+    </div>
+    <span class="chevron">▾</span>
+  </div>
+  <div class="section-body">
+
+    <div class="subsection" id="part-d-1">
+      <h3><span class="num">1</span> 概述 (General)</h3>
+      <p>Part D 提供了一系列消息序列图（MSC），展示典型 BLE 操作场景中 Host、Controller（Central/Peripheral）之间的完整交互流程，是理解协议动态行为的参考材料。</p>
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <div>MSC 图使用标准 ITU-T Z.120 消息序列图符号，展示时间维度上的消息顺序关系，箭头方向代表消息流向。</div>
+      </div>
+    </div>
+
+    <!-- MSC 1: Connection -->
+    <div class="subsection" id="part-d-2">
+      <h3><span class="num">2</span> 连接建立序列图</h3>
+      <p>下图展示从 HCI 命令触发到 BLE 连接完全建立的完整消息序列，涵盖主机侧 HCI 命令与控制器侧空中接口事件。</p>
+
+      <div class="seq-container">
+        <svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="msc1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#1565c0"/>
+            </marker>
+            <marker id="msc2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#2e7d32"/>
+            </marker>
+            <marker id="msc3" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#e65100"/>
+            </marker>
+          </defs>
+
+          <!-- 4 actors -->
+          <rect x="10" y="10" width="120" height="32" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="70" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Host (App)</text>
+
+          <rect x="180" y="10" width="130" height="32" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="245" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="#2e7d32">Controller Central</text>
+
+          <rect x="400" y="10" width="130" height="32" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+          <text x="465" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="#e65100">Controller Perph</text>
+
+          <rect x="580" y="10" width="130" height="32" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.5"/>
+          <text x="645" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="#6a1b9a">Host (App) Perph</text>
+
+          <!-- lifelines -->
+          <line x1="70" y1="42" x2="70" y2="375" stroke="#1565c0" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="245" y1="42" x2="245" y2="375" stroke="#2e7d32" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="465" y1="42" x2="465" y2="375" stroke="#e65100" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="645" y1="42" x2="645" y2="375" stroke="#6a1b9a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+          <!-- Messages -->
+          <!-- 1 -->
+          <line x1="70" y1="70" x2="245" y2="70" stroke="#1565c0" stroke-width="1.5" marker-end="url(#msc1)"/>
+          <text x="157" y="64" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Set_Scan_Parameters</text>
+
+          <!-- 2 -->
+          <line x1="70" y1="95" x2="245" y2="95" stroke="#1565c0" stroke-width="1.5" marker-end="url(#msc1)"/>
+          <text x="157" y="89" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Set_Scan_Enable(ON)</text>
+
+          <!-- Perph: start advertising -->
+          <line x1="645" y1="120" x2="465" y2="120" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#msc3)"/>
+          <text x="555" y="114" text-anchor="middle" font-size="9" fill="#6a1b9a" font-weight="bold">HCI_LE_Set_Adv_Enable(ON)</text>
+
+          <!-- Air: ADV_IND -->
+          <line x1="465" y1="145" x2="245" y2="145" stroke="#e65100" stroke-width="2" marker-end="url(#msc1)" stroke-dasharray="6,3"/>
+          <text x="355" y="139" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">ADV_IND [Air]</text>
+
+          <!-- Central scans, reports to host -->
+          <line x1="245" y1="170" x2="70" y2="170" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#msc2)"/>
+          <text x="157" y="164" text-anchor="middle" font-size="9" fill="#2e7d32" font-weight="bold">HCI_LE_Advertising_Report_Event</text>
+
+          <!-- Host: Create Connection -->
+          <line x1="70" y1="200" x2="245" y2="200" stroke="#1565c0" stroke-width="1.5" marker-end="url(#msc1)"/>
+          <text x="157" y="194" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Create_Connection</text>
+
+          <!-- Air: CONNECT_IND -->
+          <line x1="245" y1="225" x2="465" y2="225" stroke="#1565c0" stroke-width="2" marker-end="url(#msc3)" stroke-dasharray="6,3"/>
+          <text x="355" y="219" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">CONNECT_IND [Air]</text>
+
+          <!-- Perph reports to host -->
+          <line x1="465" y1="255" x2="645" y2="255" stroke="#e65100" stroke-width="1.5" marker-end="url(#msc2)"/>
+          <text x="555" y="249" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">HCI_LE_Connection_Complete_Event</text>
+
+          <!-- Central reports to host -->
+          <line x1="245" y1="280" x2="70" y2="280" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#msc2)"/>
+          <text x="157" y="274" text-anchor="middle" font-size="9" fill="#2e7d32" font-weight="bold">HCI_LE_Connection_Complete_Event</text>
+
+          <!-- Data exchange -->
+          <line x1="245" y1="315" x2="465" y2="315" stroke="#00695c" stroke-width="2" marker-end="url(#msc3)" stroke-dasharray="6,3"/>
+          <text x="355" y="309" text-anchor="middle" font-size="9" fill="#00695c" font-weight="bold">LL Data PDU [Air, FHSS]</text>
+
+          <line x1="465" y1="345" x2="245" y2="345" stroke="#00695c" stroke-width="2" marker-end="url(#msc1)" stroke-dasharray="6,3"/>
+          <text x="355" y="339" text-anchor="middle" font-size="9" fill="#00695c" font-weight="bold">LL Data PDU [Air, FHSS]</text>
+
+          <!-- legend -->
+          <line x1="18" y1="370" x2="48" y2="370" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="52" y="374" font-size="9" fill="#888">HCI命令/事件</text>
+          <line x1="130" y1="370" x2="160" y2="370" stroke="#e65100" stroke-width="2" stroke-dasharray="5,3"/>
+          <text x="164" y="374" font-size="9" fill="#888">空中接口</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- MSC 2: Encryption -->
+    <div class="subsection" id="part-d-3">
+      <h3><span class="num">3</span> 加密启动序列图</h3>
+      <p>展示在已建立连接的基础上，Central 发起加密协商的完整流程，涉及 <code>LL_ENC_REQ</code>、<code>LL_ENC_RSP</code>、<code>LL_START_ENC_REQ</code>、<code>LL_START_ENC_RSP</code> 四个控制 PDU。</p>
+
+      <div class="seq-container">
+        <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="em1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#1565c0"/>
+            </marker>
+            <marker id="em2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#c62828"/>
+            </marker>
+          </defs>
+
+          <rect x="20" y="10" width="130" height="30" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="85" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Host / Central</text>
+
+          <rect x="290" y="10" width="140" height="30" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.5"/>
+          <text x="360" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#e65100">Central Controller</text>
+
+          <rect x="490" y="10" width="140" height="30" rx="8" fill="#ffebee" stroke="#c62828" stroke-width="1.5"/>
+          <text x="560" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#c62828">Peripheral Controller</text>
+
+          <line x1="85" y1="40" x2="85" y2="295" stroke="#1565c0" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="360" y1="40" x2="360" y2="295" stroke="#e65100" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="560" y1="40" x2="560" y2="295" stroke="#c62828" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+          <!-- 1. Host triggers -->
+          <line x1="85" y1="62" x2="360" y2="62" stroke="#1565c0" stroke-width="1.5" marker-end="url(#em1)"/>
+          <text x="222" y="56" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Start_Encryption(Rand, EDIV, LTK)</text>
+
+          <!-- 2. LL_ENC_REQ -->
+          <line x1="360" y1="90" x2="560" y2="90" stroke="#e65100" stroke-width="2" marker-end="url(#em2)" stroke-dasharray="5,3"/>
+          <text x="460" y="84" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">LL_ENC_REQ (Rand,EDIV,SKD_C,IV_C) [Air]</text>
+
+          <!-- 3. LL_ENC_RSP -->
+          <line x1="560" y1="120" x2="360" y2="120" stroke="#c62828" stroke-width="2" marker-end="url(#em1)" stroke-dasharray="5,3"/>
+          <text x="460" y="114" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">LL_ENC_RSP (SKD_P, IV_P) [Air]</text>
+
+          <!-- 4. Host LTK request -->
+          <line x1="360" y1="150" x2="85" y2="150" stroke="#e65100" stroke-width="1.5" marker-end="url(#em1)"/>
+          <text x="222" y="144" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">HCI_LE_Long_Term_Key_Request_Event</text>
+
+          <!-- 5. LTK reply -->
+          <line x1="85" y1="178" x2="360" y2="178" stroke="#1565c0" stroke-width="1.5" marker-end="url(#em1)"/>
+          <text x="222" y="172" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Long_Term_Key_Request_Reply(LTK)</text>
+
+          <!-- 6. LL_START_ENC_REQ -->
+          <line x1="360" y1="208" x2="560" y2="208" stroke="#e65100" stroke-width="2" marker-end="url(#em2)" stroke-dasharray="5,3"/>
+          <text x="460" y="202" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">LL_START_ENC_REQ [Air, encrypted]</text>
+
+          <!-- 7. LL_START_ENC_RSP -->
+          <line x1="560" y1="238" x2="360" y2="238" stroke="#c62828" stroke-width="2" marker-end="url(#em1)" stroke-dasharray="5,3"/>
+          <text x="460" y="232" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">LL_START_ENC_RSP [Air, encrypted]</text>
+
+          <!-- 8. Complete event -->
+          <line x1="360" y1="268" x2="85" y2="268" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#em1)"/>
+          <text x="222" y="262" text-anchor="middle" font-size="9" fill="#2e7d32" font-weight="bold">HCI_Encryption_Change_Event(Enabled)</text>
+
+          <!-- Lock symbol -->
+          <text x="635" y="250" font-size="24" fill="#c62828">🔒</text>
+          <text x="635" y="268" text-anchor="middle" font-size="9" fill="#c62828">加密启动</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- MSC 3: Disconnection -->
+    <div class="subsection" id="part-d-4">
+      <h3><span class="num">4</span> 断开连接序列图</h3>
+      <p>正常断开连接时，发起方通过 <code>LL_TERMINATE_IND</code> 通知对端，对端确认后双方均上报 HCI 断连事件。</p>
+
+      <div class="seq-container">
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="dm1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#1565c0"/>
+            </marker>
+            <marker id="dm2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#c62828"/>
+            </marker>
+          </defs>
+          <rect x="20" y="10" width="130" height="30" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="85" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Central Host</text>
+          <rect x="230" y="10" width="130" height="30" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.5"/>
+          <text x="295" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#2e7d32">Central Ctrl</text>
+          <rect x="430" y="10" width="130" height="30" rx="8" fill="#ffebee" stroke="#c62828" stroke-width="1.5"/>
+          <text x="495" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#c62828">Peripheral Ctrl</text>
+
+          <line x1="85" y1="40" x2="85" y2="195" stroke="#1565c0" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="295" y1="40" x2="295" y2="195" stroke="#2e7d32" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="495" y1="40" x2="495" y2="195" stroke="#c62828" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+          <line x1="85" y1="65" x2="295" y2="65" stroke="#1565c0" stroke-width="1.5" marker-end="url(#dm1)"/>
+          <text x="190" y="59" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_Disconnect(reason=0x13)</text>
+
+          <line x1="295" y1="95" x2="495" y2="95" stroke="#2e7d32" stroke-width="2" marker-end="url(#dm2)" stroke-dasharray="5,3"/>
+          <text x="395" y="89" text-anchor="middle" font-size="9" fill="#2e7d32" font-weight="bold">LL_TERMINATE_IND [Air]</text>
+
+          <line x1="495" y1="125" x2="295" y2="125" stroke="#c62828" stroke-width="2" marker-end="url(#dm1)" stroke-dasharray="5,3"/>
+          <text x="395" y="119" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">LL_TERMINATE_IND (ack) [Air]</text>
+
+          <line x1="295" y1="160" x2="85" y2="160" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#dm1)"/>
+          <text x="190" y="154" text-anchor="middle" font-size="9" fill="#2e7d32" font-weight="bold">HCI_Disconnection_Complete_Event</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- MSC 4: Conn Param Update -->
+    <div class="subsection" id="part-d-5">
+      <h3><span class="num">5</span> 连接参数更新序列图</h3>
+      <p>Peripheral 可通过 L2CAP 信令或 LL Control PDU 请求更新连接参数（Interval / Latency / Timeout）。Central 控制器最终执行参数切换并向 Host 上报事件。</p>
+
+      <div class="seq-container">
+        <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="cu1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#6a1b9a"/>
+            </marker>
+            <marker id="cu2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#1565c0"/>
+            </marker>
+          </defs>
+          <rect x="20" y="10" width="130" height="30" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.5"/>
+          <text x="85" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#6a1b9a">Peripheral Ctrl</text>
+          <rect x="250" y="10" width="130" height="30" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="315" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Central Ctrl</text>
+          <rect x="480" y="10" width="130" height="30" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="545" y="30" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Central Host</text>
+
+          <line x1="85" y1="40" x2="85" y2="195" stroke="#6a1b9a" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="315" y1="40" x2="315" y2="195" stroke="#1565c0" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <line x1="545" y1="40" x2="545" y2="195" stroke="#1565c0" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+          <line x1="85" y1="65" x2="315" y2="65" stroke="#6a1b9a" stroke-width="2" marker-end="url(#cu2)" stroke-dasharray="5,3"/>
+          <text x="200" y="59" text-anchor="middle" font-size="9" fill="#6a1b9a" font-weight="bold">LL_CONNECTION_PARAM_REQ [Air]</text>
+
+          <line x1="315" y1="95" x2="545" y2="95" stroke="#1565c0" stroke-width="1.5" marker-end="url(#cu2)"/>
+          <text x="430" y="89" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Remote_Conn_Param_Req_Event</text>
+
+          <line x1="545" y1="125" x2="315" y2="125" stroke="#1565c0" stroke-width="1.5" marker-end="url(#cu2)"/>
+          <text x="430" y="119" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Remote_Conn_Param_Req_Reply</text>
+
+          <line x1="315" y1="155" x2="85" y2="155" stroke="#1565c0" stroke-width="2" marker-end="url(#cu1)" stroke-dasharray="5,3"/>
+          <text x="200" y="149" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">LL_CONNECTION_UPDATE_IND [Air]</text>
+
+          <line x1="315" y1="180" x2="545" y2="180" stroke="#1565c0" stroke-width="1.5" marker-end="url(#cu2)"/>
+          <text x="430" y="174" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">HCI_LE_Connection_Update_Complete_Event</text>
+        </svg>
+      </div>
+    </div>
+
+  </div><!-- /section-body -->
+</section>
+
+
+<!-- ════════════════════════════════════════
+     PART E — Low Energy Security
+════════════════════════════════════════ -->
+<section class="spec-section part-e" id="part-e">
+  <div class="section-header" onclick="toggleSection(this)">
+    <div class="section-icon" style="background:#ffebee;">🔐</div>
+    <div>
+      <span class="part-label" style="background:#ffebee;color:#c62828;">Part E</span>
+      <h2>低功耗安全规范 Low Energy Security Specification</h2>
+    </div>
+    <span class="chevron">▾</span>
+  </div>
+  <div class="section-body">
+
+    <!-- E.1 General -->
+    <div class="subsection" id="part-e-1">
+      <h3><span class="num">1</span> 概述 (General)</h3>
+      <p>Part E 规定了 BLE 链路层安全的密码学基础，包括密钥生成、加密算法、认证标签生成和计数器管理，为链路层加密（LL 加密）提供底层支撑。所有加密操作基于 <strong>AES-128</strong> 算法，确保符合 FIPS-197 标准。</p>
+      <div class="info-box key">
+        <span class="icon">🔑</span>
+        <div>BLE 安全分为两层：<strong>链路层加密（LL）</strong>由 Part E 定义（机密性+完整性），<strong>配对与密钥分发（SMP）</strong>由 Vol 3 Part H 定义（LE Legacy / LE Secure Connections 两种配对模式）。</div>
+      </div>
+    </div>
+
+    <!-- E.2 Architecture -->
+    <div class="subsection" id="part-e-2">
+      <h3><span class="num">2</span> 安全架构 (Security Architecture)</h3>
+      <p>BLE 安全架构由以下要素组成，每个连接建立独立的加密会话：</p>
+
+      <div class="diagram">
+        <div class="diagram-title">链路层加密密钥体系</div>
+        <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg">
+          <!-- LTK -->
+          <rect x="280" y="10" width="140" height="45" rx="10" fill="#c62828" opacity="0.9"/>
+          <text x="350" y="30" text-anchor="middle" font-size="13" font-weight="bold" fill="white">LTK</text>
+          <text x="350" y="48" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Long Term Key (128-bit)</text>
+
+          <!-- SKD -->
+          <rect x="100" y="100" width="140" height="45" rx="10" fill="#6a1b9a" opacity="0.9"/>
+          <text x="170" y="120" text-anchor="middle" font-size="12" font-weight="bold" fill="white">SKD</text>
+          <text x="170" y="137" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Session Key Diversifier</text>
+
+          <!-- IV -->
+          <rect x="460" y="100" width="140" height="45" rx="10" fill="#1565c0" opacity="0.9"/>
+          <text x="530" y="120" text-anchor="middle" font-size="12" font-weight="bold" fill="white">IV</text>
+          <text x="530" y="137" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Initialization Vector (64-bit)</text>
+
+          <!-- SK -->
+          <rect x="220" y="190" width="140" height="45" rx="10" fill="#00695c" opacity="0.9"/>
+          <text x="290" y="210" text-anchor="middle" font-size="12" font-weight="bold" fill="white">SK</text>
+          <text x="290" y="227" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">Session Key (AES E)</text>
+
+          <!-- CCM Nonce -->
+          <rect x="400" y="190" width="140" height="45" rx="10" fill="#e65100" opacity="0.9"/>
+          <text x="470" y="210" text-anchor="middle" font-size="12" font-weight="bold" fill="white">Nonce</text>
+          <text x="470" y="227" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.85)">IV + Packet Counter</text>
+
+          <!-- arrows -->
+          <line x1="280" y1="55" x2="195" y2="100" stroke="#aaa" stroke-width="1.5" marker-end="url(#aarr)"/>
+          <line x1="420" y1="55" x2="505" y2="100" stroke="#aaa" stroke-width="1.5" marker-end="url(#aarr)"/>
+          <line x1="170" y1="145" x2="260" y2="190" stroke="#aaa" stroke-width="1.5" marker-end="url(#aarr)"/>
+          <text x="165" y="172" font-size="9" fill="#888">AES-128(LTK, SKD)</text>
+          <line x1="530" y1="145" x2="450" y2="190" stroke="#aaa" stroke-width="1.5" marker-end="url(#aarr)"/>
+          <text x="440" y="178" font-size="9" fill="#888">IV||packetCount</text>
+
+          <defs>
+            <marker id="aarr" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#aaa"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>密钥/参数</th><th>长度</th><th>来源</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>LTK (Long Term Key)</td><td>128 bit</td><td>SMP 配对生成</td><td>主密钥，用于派生会话密钥</td></tr>
+            <tr><td>EDIV (Encrypted Diversifier)</td><td>16 bit</td><td>SMP Legacy</td><td>用于标识 LTK（Legacy Pairing）</td></tr>
+            <tr><td>Rand</td><td>64 bit</td><td>SMP Legacy</td><td>与 EDIV 一起用于查找 LTK</td></tr>
+            <tr><td>SKD (Session Key Diversifier)</td><td>128 bit</td><td>LL 加密握手</td><td>SKD_C||SKD_P，各64位由两端分别生成</td></tr>
+            <tr><td>SK (Session Key)</td><td>128 bit</td><td>AES-128(LTK, SKD)</td><td>实际用于 AES-CCM 的会话密钥</td></tr>
+            <tr><td>IV (Init Vector)</td><td>64 bit</td><td>LL 加密握手</td><td>IV_C||IV_P，各32位，用于构造 Nonce</td></tr>
+            <tr><td>Nonce</td><td>128 bit</td><td>IV + PacketCounter + Dir</td><td>AES-CCM 输入，每包唯一</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- E.3 CCM Encryption -->
+    <div class="subsection" id="part-e-3">
+      <h3><span class="num">3</span> AES-CCM 加密算法 (AES-CCM Encryption)</h3>
+      <p>BLE 链路层使用 <strong>AES-128-CCM</strong>（Counter with CBC-MAC）模式对数据包 Payload 进行加密和完整性保护。每个数据包携带 4 字节 <strong>MIC</strong>（Message Integrity Code）用于验证数据完整性。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">AES-CCM 加密/解密流程</div>
+        <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+          <!-- Encrypt -->
+          <rect x="20" y="10" width="310" height="200" rx="12" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+          <text x="175" y="35" text-anchor="middle" font-size="12" font-weight="bold" fill="#2e7d32">🔒 发送端加密</text>
+
+          <rect x="40" y="50" width="80" height="30" rx="6" fill="#2e7d32"/>
+          <text x="80" y="70" text-anchor="middle" font-size="11" fill="white" font-weight="bold">明文 PDU</text>
+
+          <rect x="40" y="95" width="80" height="30" rx="6" fill="#1565c0"/>
+          <text x="80" y="115" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Nonce</text>
+
+          <rect x="40" y="140" width="80" height="30" rx="6" fill="#6a1b9a"/>
+          <text x="80" y="160" text-anchor="middle" font-size="11" fill="white" font-weight="bold">SK</text>
+
+          <!-- AES box -->
+          <rect x="165" y="80" width="100" height="80" rx="10" fill="#00695c"/>
+          <text x="215" y="117" text-anchor="middle" font-size="13" font-weight="bold" fill="white">AES-CCM</text>
+          <text x="215" y="133" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.8)">(128-bit)</text>
+
+          <line x1="120" y1="65" x2="165" y2="105" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#ea1)"/>
+          <line x1="120" y1="110" x2="165" y2="118" stroke="#1565c0" stroke-width="1.5" marker-end="url(#ea1)"/>
+          <line x1="120" y1="155" x2="165" y2="135" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#ea1)"/>
+
+          <line x1="265" y1="108" x2="295" y2="108" stroke="#c62828" stroke-width="2" marker-end="url(#ea2)"/>
+          <text x="288" y="100" font-size="9" fill="#c62828" font-weight="bold">密文</text>
+          <text x="288" y="125" font-size="9" fill="#c62828">+MIC</text>
+
+          <!-- Decrypt -->
+          <rect x="370" y="10" width="310" height="200" rx="12" fill="#ffebee" stroke="#c62828" stroke-width="2"/>
+          <text x="525" y="35" text-anchor="middle" font-size="12" font-weight="bold" fill="#c62828">🔓 接收端解密</text>
+
+          <rect x="390" y="50" width="80" height="30" rx="6" fill="#c62828"/>
+          <text x="430" y="70" text-anchor="middle" font-size="11" fill="white" font-weight="bold">密文+MIC</text>
+
+          <rect x="390" y="95" width="80" height="30" rx="6" fill="#1565c0"/>
+          <text x="430" y="115" text-anchor="middle" font-size="11" fill="white" font-weight="bold">Nonce</text>
+
+          <rect x="390" y="140" width="80" height="30" rx="6" fill="#6a1b9a"/>
+          <text x="430" y="160" text-anchor="middle" font-size="11" fill="white" font-weight="bold">SK</text>
+
+          <rect x="515" y="80" width="100" height="80" rx="10" fill="#b71c1c"/>
+          <text x="565" y="117" text-anchor="middle" font-size="13" font-weight="bold" fill="white">AES-CCM</text>
+          <text x="565" y="133" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.8)">(验证MIC)</text>
+
+          <line x1="470" y1="65" x2="515" y2="105" stroke="#c62828" stroke-width="1.5" marker-end="url(#ea1)"/>
+          <line x1="470" y1="110" x2="515" y2="118" stroke="#1565c0" stroke-width="1.5" marker-end="url(#ea1)"/>
+          <line x1="470" y1="155" x2="515" y2="135" stroke="#6a1b9a" stroke-width="1.5" marker-end="url(#ea1)"/>
+
+          <line x1="615" y1="108" x2="665" y2="108" stroke="#2e7d32" stroke-width="2" marker-end="url(#ea3)"/>
+          <text x="660" y="100" font-size="9" fill="#2e7d32" font-weight="bold">明文</text>
+          <text x="658" y="122" font-size="9" fill="#2e7d32">✓ 完整</text>
+
+          <defs>
+            <marker id="ea1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#aaa"/>
+            </marker>
+            <marker id="ea2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#c62828"/>
+            </marker>
+            <marker id="ea3" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#2e7d32"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="info-box warning">
+        <span class="icon">⚠️</span>
+        <div>MIC 校验失败时，接收方必须立即丢弃该数据包并上报 MIC_Failure 错误，控制器随后执行连接终止（发送 LL_TERMINATE_IND，ErrorCode=0x06）。</div>
+      </div>
+    </div>
+
+    <!-- E.4 Packet Counter -->
+    <div class="subsection" id="part-e-4">
+      <h3><span class="num">4</span> 包计数器与 Nonce 构造 (Packet Counter & Nonce)</h3>
+      <p>为防止重放攻击，每个方向的发送包维护独立的 39 位包计数器，计数器单调递增。Nonce 由 IV、包计数器和方向位构成，保证每个包的加密上下文唯一。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">Nonce 构造 (128-bit = IV[63:0] || PacketCounter[38:0] || Dir[0])</div>
+        <div class="packet-row">
+          <div class="pkt-field f-aa" style="flex:4;">
+            <span class="label">IV (64 bit)</span>
+            <span class="val">IV_C[31:0] || IV_P[31:0]</span>
+          </div>
+          <div class="pkt-field f-pdu" style="flex:3;">
+            <span class="label">PacketCounter (39 bit)</span>
+            <span class="val">单调递增，不可回绕</span>
+          </div>
+          <div class="pkt-field f-mic" style="flex:1;">
+            <span class="label">Dir (1 bit)</span>
+            <span class="val">0=M→S 1=S→M</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div>包计数器为 39 位，最大值约 5490 亿，在合理使用寿命内不会溢出，规范要求计数器溢出时必须终止连接。</div>
+      </div>
+    </div>
+
+    <!-- E.5 Key Generation Functions -->
+    <div class="subsection" id="part-e-5">
+      <h3><span class="num">5</span> 密钥生成与密码函数 (Cryptographic Toolbox)</h3>
+      <p>BLE 安全规范定义了一套基于 AES-128 的密码函数工具箱，用于 SMP 配对和 LL 加密的各阶段密钥派生与验证。</p>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>函数</th><th>输入</th><th>输出</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">e(k, r)</td><td>密钥 k, 明文 r</td><td>密文 outData</td><td>基础 AES-128 加密，用于SK派生</td></tr>
+            <tr><td class="mono">ah(k, r)</td><td>IRK, prand</td><td>hash (24-bit)</td><td>私有地址解析（RPA 验证）</td></tr>
+            <tr><td class="mono">c1(k, r, preq, pres...)</td><td>TK, Rand, 配对请求</td><td>Confirm value</td><td>Legacy Pairing 配对确认值</td></tr>
+            <tr><td class="mono">s1(k, r1, r2)</td><td>TK, Rand1, Rand2</td><td>STK (128-bit)</td><td>Legacy Pairing 短期密钥生成</td></tr>
+            <tr><td class="mono">f4(U, V, X, Z)</td><td>DHKey, Nonce...</td><td>Confirm value</td><td>LE SC 配对确认值（基于CMAC）</td></tr>
+            <tr><td class="mono">f5(W, N1, N2, A1, A2)</td><td>DHKey, Nonces...</td><td>MacKey + LTK</td><td>LE SC 密钥派生（HKDF 变体）</td></tr>
+            <tr><td class="mono">g2(U, V, X, Y)</td><td>ECDH公钥, Nonces</td><td>Numeric Value</td><td>数字比较配对验证码（6位）</td></tr>
+            <tr><td class="mono">h6(W, keyID)</td><td>CMAC Key, 标识符</td><td>128-bit key</td><td>跨传输密钥派生（BR/EDR↔LE）</td></tr>
+            <tr><td class="mono">h7(SALT, W)</td><td>固定盐值, 密钥</td><td>128-bit key</td><td>跨传输密钥派生（LE SC）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- E.6 Pairing Modes -->
+    <div class="subsection" id="part-e-6">
+      <h3><span class="num">6</span> 配对模式与安全等级 (Pairing &amp; Security Levels)</h3>
+      <p>BLE 定义两大配对模式，安全等级从低到高分为四级：</p>
+
+      <div class="diagram">
+        <div class="diagram-title">LE Secure Connections (LESC) 配对流程</div>
+        <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="pm1" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#1565c0"/>
+            </marker>
+            <marker id="pm2" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+              <polygon points="0 0,7 3.5,0 7" fill="#c62828"/>
+            </marker>
+          </defs>
+          <rect x="20" y="10" width="120" height="32" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.5"/>
+          <text x="80" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="#1565c0">Initiator</text>
+          <rect x="560" y="10" width="120" height="32" rx="8" fill="#ffebee" stroke="#c62828" stroke-width="1.5"/>
+          <text x="620" y="31" text-anchor="middle" font-size="11" font-weight="bold" fill="#c62828">Responder</text>
+
+          <line x1="80" y1="42" x2="80" y2="255" stroke="#1565c0" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+          <line x1="620" y1="42" x2="620" y2="255" stroke="#c62828" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+
+          <!-- Phase labels -->
+          <text x="350" y="62" text-anchor="middle" font-size="10" fill="#888">① Phase 1 — 特性交换</text>
+          <line x1="80" y1="70" x2="620" y2="70" stroke="#1565c0" stroke-width="1.5" marker-end="url(#pm1)"/>
+          <text x="350" y="64" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">Pairing Request (IO Cap, OOB, AuthReq, KeyDist)</text>
+          <line x1="620" y1="90" x2="80" y2="90" stroke="#c62828" stroke-width="1.5" marker-end="url(#pm2)"/>
+          <text x="350" y="84" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">Pairing Response</text>
+
+          <text x="350" y="113" text-anchor="middle" font-size="10" fill="#888">② Phase 2 — ECDH 密钥交换 + 认证</text>
+          <line x1="80" y1="120" x2="620" y2="120" stroke="#1565c0" stroke-width="1.5" marker-end="url(#pm1)"/>
+          <text x="350" y="114" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">Public Key (PKa)</text>
+          <line x1="620" y1="138" x2="80" y2="138" stroke="#c62828" stroke-width="1.5" marker-end="url(#pm2)"/>
+          <text x="350" y="132" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">Public Key (PKb)</text>
+          <text x="350" y="150" text-anchor="middle" font-size="9" fill="#6a1b9a">→ DHKey = ECDH(SKa, PKb) = ECDH(SKb, PKa)</text>
+          <line x1="80" y1="162" x2="620" y2="162" stroke="#1565c0" stroke-width="1.5" marker-end="url(#pm1)"/>
+          <text x="350" y="156" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">Pairing Confirm (Ca, based on f4)</text>
+          <line x1="620" y1="178" x2="80" y2="178" stroke="#c62828" stroke-width="1.5" marker-end="url(#pm2)"/>
+          <text x="350" y="172" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">Pairing Confirm (Cb)</text>
+          <line x1="80" y1="194" x2="620" y2="194" stroke="#1565c0" stroke-width="1.5" marker-end="url(#pm1)"/>
+          <text x="350" y="188" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">Pairing Random (Na)</text>
+          <line x1="620" y1="210" x2="80" y2="210" stroke="#c62828" stroke-width="1.5" marker-end="url(#pm2)"/>
+          <text x="350" y="204" text-anchor="middle" font-size="9" fill="#c62828" font-weight="bold">Pairing Random (Nb)</text>
+
+          <text x="350" y="232" text-anchor="middle" font-size="10" fill="#888">③ Phase 3 — 密钥分发</text>
+          <line x1="80" y1="240" x2="620" y2="240" stroke="#1565c0" stroke-width="1.5" marker-end="url(#pm1)"/>
+          <text x="350" y="234" text-anchor="middle" font-size="9" fill="#1565c0" font-weight="bold">DHKey Check (Ea, via f6) → Eb 验证</text>
+
+          <!-- LTK derived label -->
+          <rect x="210" y="248" width="280" height="18" rx="6" fill="#e0f2f1" stroke="#00695c" stroke-width="1"/>
+          <text x="350" y="261" text-anchor="middle" font-size="9" fill="#00695c" font-weight="bold">LTK = f5(DHKey, Na, Nb, A1, A2)[127:0] — 安全地派生</text>
+        </svg>
+      </div>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>安全等级</th><th>描述</th><th>条件</th></tr></thead>
+          <tbody>
+            <tr><td>Level 1</td><td>无安全要求</td><td>不加密，不认证</td></tr>
+            <tr><td>Level 2</td><td>未认证加密</td><td>Just Works 配对，加密但无 MITM 保护</td></tr>
+            <tr><td>Level 3</td><td>已认证加密</td><td>Passkey / OOB 配对，有 MITM 保护</td></tr>
+            <tr><td>Level 4</td><td>已认证 LE SC 加密</td><td>LE Secure Connections + FIPS 兼容</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- E.7 Privacy -->
+    <div class="subsection" id="part-e-7">
+      <h3><span class="num">7</span> 链路层隐私 (LL Privacy)</h3>
+      <p>为防止第三方通过设备地址追踪 BLE 设备，BLE 4.2 引入链路层隐私（LL Privacy），使用 <strong>可解析私有地址（RPA）</strong>定期更换设备地址，只有持有 IRK 的对端才能解析真实身份。</p>
+
+      <div class="diagram">
+        <div class="diagram-title">RPA 生成与解析</div>
+        <svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg">
+          <!-- Generation -->
+          <rect x="20" y="20" width="300" height="130" rx="12" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2"/>
+          <text x="170" y="42" text-anchor="middle" font-size="12" font-weight="bold" fill="#2e7d32">🔄 RPA 生成</text>
+
+          <rect x="35" y="55" width="80" height="28" rx="6" fill="#2e7d32"/>
+          <text x="75" y="74" text-anchor="middle" font-size="10" fill="white">IRK (128-bit)</text>
+
+          <rect x="130" y="55" width="80" height="28" rx="6" fill="#1565c0"/>
+          <text x="170" y="74" text-anchor="middle" font-size="10" fill="white">prand (24-bit)</text>
+
+          <rect x="65" y="100" width="180" height="35" rx="8" fill="#00695c"/>
+          <text x="155" y="115" text-anchor="middle" font-size="11" font-weight="bold" fill="white">RPA = prand || ah(IRK, prand)</text>
+          <text x="155" y="128" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.8)">低24位 = AES hash(IRK, prand)</text>
+
+          <line x1="75" y1="83" x2="100" y2="100" stroke="#aaa" stroke-width="1.5"/>
+          <line x1="170" y1="83" x2="155" y2="100" stroke="#aaa" stroke-width="1.5"/>
+
+          <!-- Resolution -->
+          <rect x="380" y="20" width="300" height="130" rx="12" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+          <text x="530" y="42" text-anchor="middle" font-size="12" font-weight="bold" fill="#1565c0">✅ RPA 解析验证</text>
+          <text x="530" y="68" text-anchor="middle" font-size="11" fill="#1565c0">已知 RPA = prand || hash</text>
+          <text x="530" y="88" text-anchor="middle" font-size="11" fill="#1565c0">计算 ah(IRK, prand)</text>
+          <text x="530" y="108" text-anchor="middle" font-size="11" fill="#1565c0">若 == hash → 身份确认 ✓</text>
+          <text x="530" y="128" text-anchor="middle" font-size="11" fill="#1565c0">否则 → 不是已知设备 ✗</text>
+
+          <!-- Arrow between -->
+          <line x1="320" y1="85" x2="380" y2="85" stroke="#aaa" stroke-width="2" marker-end="url(#aarr)"/>
+          <text x="350" y="79" text-anchor="middle" font-size="9" fill="#888">广播发送</text>
+        </svg>
+      </div>
+
+      <div class="info-box tip">
+        <span class="icon">💡</span>
+        <div>RPA 的刷新周期（RPATimeout）默认为 15 分钟，可由 Host 配置。刷新时 prand 重新随机生成，使地址不可关联，保护用户隐私。</div>
+      </div>
+    </div>
+
+    <!-- E.8 Sample Data -->
+    <div class="subsection" id="part-e-8">
+      <h3><span class="num">8</span> 加密示例数据 (Sample Encryption Data)</h3>
+      <p>规范中提供了完整的加密验证向量，供实现者验证加密算法正确性。以下为 LL 加密握手及数据包加密的典型示例。</p>
+
+      <div class="table-wrap">
+        <table class="spec-table">
+          <thead><tr><th>字段</th><th>值（十六进制）</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>LTK</td><td class="mono">4C 68 38 41 39 F5 74 D8 36 BC F3 45 5F FE A8 64</td><td>长期密钥</td></tr>
+            <tr><td>Rand (LL_ENC_REQ)</td><td class="mono">90 78 56 34 12 EF CD AB</td><td>Central 随机数</td></tr>
+            <tr><td>EDIV</td><td class="mono">74 24</td><td>加密多样化器</td></tr>
+            <tr><td>SKD_C</td><td class="mono">13 02 F1 E0 DF CE BD AC</td><td>Central SKD 分量</td></tr>
+            <tr><td>SKD_P</td><td class="mono">79 68 57 46 35 24 13 02</td><td>Peripheral SKD 分量</td></tr>
+            <tr><td>SK（派生）</td><td class="mono">66 C6 C2 27 8E 3B 8E 05 3E 7E A3 26 52 1B AD 99</td><td>会话密钥 = AES(LTK, SKD)</td></tr>
+            <tr><td>MIC（示例包）</td><td class="mono">F7 5A 6D 33</td><td>数据包完整性验证码</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info-box note">
+        <span class="icon">ℹ️</span>
+        <div>规范中所有字节以 LSO（最低有效字节）优先顺序列出，与在空中实际传输的字节序一致。MIC 则以 MSO（最高有效字节）优先传输。</div>
+      </div>
+    </div>
+
+  </div><!-- /section-body -->
+</section>
+
+<!-- ── Summary card ── -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow);">
+  <h2 style="font-size:18px;font-weight:800;margin-bottom:16px;color:var(--blue);">📋 Vol 6 各章节速查</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;">
+    <div style="border-left:4px solid #1565c0;padding:12px 16px;background:#e3f2fd;border-radius:8px;">
+      <div style="font-weight:700;color:#1565c0;margin-bottom:6px;">Part A · 物理层</div>
+      <div style="font-size:13px;color:#555;">2.4GHz信道 · GFSK调制 · 4种PHY · 发射功率 · 时序参数</div>
+    </div>
+    <div style="border-left:4px solid #00695c;padding:12px 16px;background:#e0f2f1;border-radius:8px;">
+      <div style="font-weight:700;color:#00695c;margin-bottom:6px;">Part B · 链路层</div>
+      <div style="font-size:13px;color:#555;">状态机 · 包格式 · 广播 · 连接 · 跳频 · ARQ · 控制过程 · ISO · CS</div>
+    </div>
+    <div style="border-left:4px solid #6a1b9a;padding:12px 16px;background:#f3e5f5;border-radius:8px;">
+      <div style="font-weight:700;color:#6a1b9a;margin-bottom:6px;">Part D · 消息序列图</div>
+      <div style="font-size:13px;color:#555;">连接建立 · 加密启动 · 断开 · 连接参数更新的 MSC 参考图</div>
+    </div>
+    <div style="border-left:4px solid #c62828;padding:12px 16px;background:#ffebee;border-radius:8px;">
+      <div style="font-weight:700;color:#c62828;margin-bottom:6px;">Part E · 安全规范</div>
+      <div style="font-size:13px;color:#555;">AES-CCM · 密钥体系 · Nonce · 密码工具箱 · 配对模式 · LL隐私/RPA</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+</main><!-- /main-content -->
+
+<!-- Back to top -->
+<button class="back-top" id="backTop" onclick="document.getElementById('main-content').scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+// ── Toggle section collapse ──
+function toggleSection(header) {
+  const section = header.closest('.spec-section');
+  section.classList.toggle('collapsed');
+}
+
+// ── Sidebar nav & scroll spy ──
+const mainContent = document.getElementById('main-content');
+const navItems = document.querySelectorAll('.nav-item[data-target]');
+const scrollTargets = document.querySelectorAll('.spec-section, .subsection[id]');
+
+function setActive(id) {
+  navItems.forEach(item => {
+    item.classList.toggle('active', item.getAttribute('data-target') === id);
+  });
+}
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const target = document.getElementById(item.getAttribute('data-target'));
+    if (target) {
+      if (window.btScrollToEl) window.btScrollToEl(target, 16);
+      else target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActive(item.getAttribute('data-target'));
+    }
+    if (window.innerWidth <= 820 && window.btCloseNav) window.btCloseNav();
+  });
+});
+
+mainContent.addEventListener('scroll', () => {
+  let current = '';
+  const scrollTop = mainContent.scrollTop;
+
+  scrollTargets.forEach(section => {
+    const top = section.offsetTop - mainContent.offsetTop;
+    if (scrollTop >= top - 60) current = section.id;
+  });
+
+  if (current) setActive(current);
+  document.getElementById('backTop').classList.toggle('show', scrollTop > 400);
+});
+
+document.getElementById('backTop').onclick = () => {
+  mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+setActive('part-a');
+
+// ── Animate PHY bars on scroll ──
+const phyBars = document.querySelectorAll('.phy-bar-fill');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.width = e.target.getAttribute('data-w') || e.target.style.width;
+    }
+  });
+}, { threshold: 0.3 });
+phyBars.forEach(b => {
+  b.setAttribute('data-w', b.style.width);
+  b.style.width = '0';
+  setTimeout(() => { io.observe(b); }, 100);
+});
+</script>
+<script>
+/* ── 移动端目录（内联）── */
+/**
+ * 统一移动端左侧目录展开/收起（对齐 architecture_overview.html）
+ */
+(function () {
+  'use strict';
+  var BP = 820;
+
+  function findSidebar() {
+    return (
+      document.getElementById('sidebar') ||
+      document.querySelector('.sidebar') ||
+      document.querySelector('.layout > nav') ||
+      document.querySelector('.layout > aside')
+    );
+  }
+
+  var sidebar = findSidebar();
+  if (!sidebar) return;
+
+  if (!sidebar.id) sidebar.id = 'sidebar';
+  document.body.classList.add('bt-mobile-nav-enabled');
+
+  var overlay =
+    document.getElementById('btNavOverlay') ||
+    document.getElementById('overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'btNavOverlay';
+    overlay.className = 'bt-nav-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(overlay);
+  } else if (!overlay.classList.contains('bt-nav-overlay')) {
+    overlay.classList.add('bt-nav-overlay');
+  }
+
+  function isMobile() {
+    return window.innerWidth <= BP;
+  }
+
+  function closeNav() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('bt-nav-open');
+  }
+
+  function toggleNav() {
+    var open = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.classList.toggle('bt-nav-open', open);
+  }
+
+  overlay.addEventListener('click', closeNav);
+
+  var hamSelectors =
+    '#hamBtn, .ham, .menu-btn, #menu-btn, #menu-toggle, #menuBtn, .topbar-ham';
+  var buttons = Array.prototype.slice.call(
+    document.querySelectorAll(hamSelectors)
+  );
+
+  var headerBtn = buttons.find(function (btn) {
+    return btn.closest('header, .top-bar, .topbar, #main > .topbar');
+  });
+  if (headerBtn) {
+    document.body.classList.add('bt-mobile-nav-has-header-btn');
+  } else if (!buttons.length) {
+    var ham = document.createElement('button');
+    ham.id = 'btHamBtn';
+    ham.className = 'bt-ham';
+    ham.type = 'button';
+    ham.setAttribute('aria-label', '打开目录');
+    ham.textContent = '\u2630';
+    document.body.appendChild(ham);
+    buttons = [ham];
+  }
+
+  buttons = buttons.filter(function (btn) {
+    return !btn.getAttribute('onclick');
+  });
+
+  buttons.forEach(function (btn) {
+    if (btn.dataset.btNavWired) return;
+    btn.dataset.btNavWired = '1';
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleNav();
+    });
+  });
+
+  sidebar.addEventListener('click', function (e) {
+    if (!isMobile()) return;
+    if (
+      e.target.closest(
+        'a[href^="#"], .nav-item, .nav-link, .nav-sub, [onclick]'
+      )
+    ) {
+      setTimeout(closeNav, 80);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (!isMobile()) closeNav();
+  });
+
+
+  function btGetScrollRoot() {
+    var main = document.getElementById('main-content') || document.getElementById('main');
+    if (!main) return null;
+    if (window.innerWidth <= 820) {
+      if (document.body.classList.contains('bt-layout-flex')) return null;
+      var oy = window.getComputedStyle(main).overflowY;
+      if (oy === 'visible' || oy === 'clip') return null;
+    }
+    if (main.scrollHeight > main.clientHeight + 2) return main;
+    return null;
+  }
+
+  window.btScrollToEl = function (el, offset) {
+    if (!el) return;
+    offset = offset == null ? 20 : offset;
+    var root = btGetScrollRoot();
+    if (!root) {
+      var top = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    } else {
+      var top =
+        el.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        offset;
+      root.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }
+  };
+  window.btGetScrollRoot = btGetScrollRoot;
+
+  window.btToggleNav = toggleNav;
+  window.btCloseNav = closeNav;
+})();
+</script>
+</body>
+</html>
