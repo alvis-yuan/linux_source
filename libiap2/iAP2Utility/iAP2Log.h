@@ -71,6 +71,17 @@ typedef enum {
 
 } iAP2LogType_t;
 
+enum {
+	LOG_LEVEL_FATAL=0,
+	LOG_LEVEL_ERROR,
+	LOG_LEVEL_WARN,
+	LOG_LEVEL_INFO,
+	LOG_LEVEL_DEBUG,
+	LOG_LEVEL_VERBOSE = 100,
+};
+void LogWrite(char loglevel,const char *file,int line,const char *func,const char *fmt,...);
+#define _LogWrite(n,fmt,args...) LogWrite(n,__FILE__,__LINE__,__func__,fmt,##args)
+
 /*
 ******************************************************************
 **
@@ -331,6 +342,7 @@ void iAP2LogPureNL(const char *format, ...);
 */
 void iAP2LogVNL(const char *format, va_list args);
 
+#if 0
 /*
 ****************************************************************
 **
@@ -397,7 +409,11 @@ void iAP2LogDbgNL(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogDbgPureNL(const char *format, ...);
-
+#else
+#define iAP2LogDbgNL(fmt, args...) _LogWrite(LOG_LEVEL_DEBUG,fmt,##args)
+#define iAP2LogDbg(fmt, args...) _LogWrite(LOG_LEVEL_DEBUG,fmt,##args)
+#define iAP2LogDbgPureNL(fmt, args...) _LogWrite(LOG_LEVEL_DEBUG,fmt,##args)
+#endif
 /*
 ****************************************************************
 **
@@ -420,6 +436,7 @@ void iAP2LogDbgPureNL(const char *format, ...);
 */
 void iAP2LogDbgVNL(const char *format, va_list args);
 
+#if 0
 /*
 ****************************************************************
 **
@@ -486,7 +503,11 @@ void iAP2LogErrorNL(const char *format, ...);
 ****************************************************************
 */
 void iAP2LogErrorPureNL(const char *format, ...);
-
+#else
+#define iAP2LogErrorNL(fmt, args...) _LogWrite(LOG_LEVEL_ERROR,fmt,##args)
+#define iAP2LogError(fmt, args...) _LogWrite(LOG_LEVEL_ERROR,fmt,##args)
+#define iAP2LogErrorPureNL(fmt, args...) _LogWrite(LOG_LEVEL_ERROR,fmt,##args)
+#endif
 /*
 ****************************************************************
 **

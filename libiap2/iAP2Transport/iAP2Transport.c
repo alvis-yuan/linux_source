@@ -259,7 +259,7 @@ iAP2Transport_t *iAP2TransportCreate(const iAP2TransportConfig_t *config)
     synParam.maxOutstandingPackets = transport->config.maxOutstanding;
     synParam.maxPacketSize = transport->config.maxPacketSize;
     synParam.retransmitTimeout = transport->config.retransmitTimeout;
-    synParam.cumAckTimeout = kiAP2LinkSynValCumAckTimeoutMin;
+    synParam.cumAckTimeout = kiAP2LinkSynValCumAckTimeoutMin * transport->config.maxPacketSize;
     synParam.maxRetransmissions = kiAP2LinkSynDefaultMaxRetransmit;
     synParam.maxCumAck = kiAP2LinkSynDefaultMaxCumAck;
     synParam.numSessionInfo = 0;  /* 初始为0，由Session层注册 */
@@ -432,8 +432,8 @@ uint32_t iAP2TransportReceiveData(iAP2Transport_t *transport,
                               NULL,
                               NULL
                           );
-        iAP2LogDbg("[Transport] bDetect=%d, Parsed %u bytes (remaining %u)\n", bDetect,
-                   parsed, remaining - parsed);
+        //iAP2LogDbg("[Transport] bDetect=%d, Parsed %u bytes (remaining %u)\n", bDetect,
+        //                   parsed, remaining - parsed);
 
         if (parsed == 0) {
             break;

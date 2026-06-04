@@ -253,6 +253,27 @@ static inline int iAP2SessionRegCtrl(iAP2PacketSYNData_t *p_syn_data)
  */
 int iAP2SessionRegEA(uint16_t eaSessionID, void *context);
 
+/*
+ * iAP2SessionUnregEA
+ * 注销EA数据会话
+ *
+ * Input:
+ *   context: 会话上下文
+ */
+void iAP2SessionUnregEA(void *context);
+
+/*
+ * iAP2SessionGetEAID
+ * 获取EA会话ID
+ *
+ * Input:
+ *   context: 会话上下文
+ *
+ * Return:
+ *   EA会话ID
+ */
+uint16_t iAP2SessionGetEAID(void *context);
+
 #ifdef __cplusplus
 }
 #endif

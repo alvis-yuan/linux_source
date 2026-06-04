@@ -60,7 +60,7 @@ static BOOL _SendAuthCertificate(const uint8_t *certData, uint16_t certLen)
         return FALSE;
     }
 
-    iAP2LogDbg("[Auth] Sending certificate: %u bytes\n", certLen);
+    iAP2LogDbg("[Auth] [ID=%04x] Sending certificate: %u bytes\n", kiAP2AuthMsgAuthCert, certLen);
     /* 使用ControlCodec构建消息 */
     ctrlSessBuilder builder;
     ctrlSess_BuilderInit(&builder, g_authContext.msgBuffer,
@@ -95,7 +95,7 @@ static BOOL _SendAuthSerialNumber(const uint8_t *serialNumber,
         return FALSE;
     }
 
-    iAP2LogDbg("[Auth] Sending certificate serial number\n");
+    iAP2LogDbg("[Auth] [ID=%04x] Sending certificate serial number\n", kiAP2AuthMsgAuthSerial);
     ctrlSessBuilder builder;
     ctrlSess_BuilderInit(&builder, g_authContext.msgBuffer,
                          sizeof(g_authContext.msgBuffer),
@@ -126,7 +126,7 @@ static BOOL _SendAuthResponse(const uint8_t *responseData, uint16_t responseLen)
         return FALSE;
     }
 
-    iAP2LogDbg("[Auth] Sending response: %u bytes\n", responseLen);
+    iAP2LogDbg("[Auth] [ID=%04x] Sending response: %u bytes\n", kiAP2AuthMsgAuthResponse, responseLen);
     ctrlSessBuilder builder;
     ctrlSess_BuilderInit(&builder, g_authContext.msgBuffer,
                          sizeof(g_authContext.msgBuffer),

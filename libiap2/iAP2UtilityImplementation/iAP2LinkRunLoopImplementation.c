@@ -1,4 +1,6 @@
 #include "iAP2LinkRunLoop.h"
+#include "iAP2Packet.h"
+#include <iAP2Log.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,12 +9,17 @@
 
 //#include "iAP2LinkRunLoop.h"
 
+#define IAP2_RL_PACKET_QUEUE_SIZE 64
+
 /* 定义存储在 otherData 中的私有上下文结构 */
 typedef struct {
     pthread_mutex_t mutex;
     pthread_cond_t  cond;
     BOOL            isSignaled; /* 用于处理虚假唤醒和信号状态 */
-    void           *pendingPacket; /* 待处理的数据包 */
+    void           *packetQueue[IAP2_RL_PACKET_QUEUE_SIZE];
+    uint8_t         queueHead;
+    uint8_t         queueTail;
+    uint8_t         queueCount;
 } LinuxRLContext_t;
 
 /*
@@ -57,7 +64,9 @@ void iAP2LinkRunLoopInitImplementation(iAP2LinkRunLoop_t *linkRunLoop)
     }
 
     ctx->isSignaled = FALSE;
-    ctx->pendingPacket = NULL;
+    ctx->queueHead = 0;
+    ctx->queueTail = 0;
+    ctx->queueCount = 0;
     /* 将私有上下文挂载到 otherData */
     linkRunLoop->otherData = ctx;
 }
@@ -72,6 +81,17 @@ void iAP2LinkRunLoopCleanupImplementation(iAP2LinkRunLoop_t *linkRunLoop)
 {
     if (linkRunLoop && linkRunLoop->otherData) {
         LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
+        uint8_t i;
+
+        for (i = 0; i < ctx->queueCount; i++) {
+            uint8_t index = (ctx->queueHead + i) % IAP2_RL_PACKET_QUEUE_SIZE;
+
+            if (ctx->packetQueue[index]) {
+                iAP2PacketDelete((iAP2Packet_t *)ctx->packetQueue[index]);
+                ctx->packetQueue[index] = NULL;
+            }
+        }
+
         pthread_mutex_destroy(&ctx->mutex);
         pthread_cond_destroy(&ctx->cond);
         free(ctx);
@@ -127,9 +147,15 @@ void iAP2LinkRunLoopSignal(iAP2LinkRunLoop_t *linkRunLoop, void *arg)
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     pthread_mutex_lock(&ctx->mutex);
 
-    /* 保存待处理的数据包 */
     if (arg != NULL) {
-        ctx->pendingPacket = arg;
+        if (ctx->queueCount >= IAP2_RL_PACKET_QUEUE_SIZE) {
+            iAP2LogError("[RunLoop] Packet queue full, dropping incoming packet");
+            iAP2PacketDelete((iAP2Packet_t *)arg);
+        } else {
+            ctx->packetQueue[ctx->queueTail] = arg;
+            ctx->queueTail = (ctx->queueTail + 1) % IAP2_RL_PACKET_QUEUE_SIZE;
+            ctx->queueCount++;
+        }
     }
 
     /* 设置谓词状态 */
@@ -218,8 +244,17 @@ void *iAP2LinkRunLoopGetPendingPacket(iAP2LinkRunLoop_t *linkRunLoop)
     LinuxRLContext_t *ctx = (LinuxRLContext_t *)linkRunLoop->otherData;
     void *packet = NULL;
     pthread_mutex_lock(&ctx->mutex);
-    packet = ctx->pendingPacket;
-    ctx->pendingPacket = NULL;  /* 清除，避免重复处理 */
+    if (ctx->queueCount > 0) {
+        packet = ctx->packetQueue[ctx->queueHead];
+        ctx->packetQueue[ctx->queueHead] = NULL;
+        ctx->queueHead = (ctx->queueHead + 1) % IAP2_RL_PACKET_QUEUE_SIZE;
+        ctx->queueCount--;
+
+        if (ctx->queueCount > 0) {
+            ctx->isSignaled = TRUE;
+        }
+    }
+
     pthread_mutex_unlock(&ctx->mutex);
     return packet;
 }

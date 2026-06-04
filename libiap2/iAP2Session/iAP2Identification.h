@@ -169,9 +169,6 @@ BOOL iAP2IdIsSuccess(void);
  * 必须在 iAP2IdInit() 之后、识别开始之前调用
  *
  * Input:
- *   name: 配件名称（NULL表示不修改）
- *   modelId: 型号标识（NULL表示不修改）
- *   manufacturer: 制造商（NULL表示不修改）
  *   serialNumber: 序列号（NULL表示不修改）
  *   fwVersion: 固件版本（NULL表示不修改）
  *   hwVersion: 硬件版本（NULL表示不修改）
@@ -179,8 +176,7 @@ BOOL iAP2IdIsSuccess(void);
  * Return:
  *   成功返回0，失败返回-1
  */
-int iAP2IdSetAccessoryInfo(const char *name, const char *modelId,
-                           const char *manufacturer, const char *serialNumber,
+int iAP2IdSetAccessoryInfo(const char *serialNumber,
                            const char *fwVersion, const char *hwVersion);
 
 /*

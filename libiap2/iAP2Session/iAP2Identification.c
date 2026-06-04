@@ -13,6 +13,7 @@
 #include "iAP2Identification.h"
 #include "iAP2ControlMessage.h"
 #include "iAP2ControlCodec.h"
+#include "iniparser.h"
 #include <iAP2Log.h>
 #include <iAP2Transport.h>
 
@@ -32,14 +33,19 @@ static BOOL g_initialized = FALSE;
  */
 
 /* PPID (utf8) : 16字符 */
-static const char *g_PPID = "0123456789ABCDEF";
-#define g_eaProtocalName "com.sunmi.iap2"
+#define IAP2_INFO_INI_FILE "/home/SYS/iap2_info.ini"
+
+static char g_PPID[64] = "97335857ed5b44a7";
+static char g_eaProtocalName[128] = "com.sunmi.cloud.printer";
+static char g_accessoryName[64] = "Cloud POS Printer";
+static char g_modelIdentifier[64] = "NT311";
+static char g_manufacturer[128] = "Shanghai Sunmi Technology Co., Ltd.";
 
 /* 配件基本信息 */
 static iAP2AccessoryInfo_t g_accessoryInfo = {
-    .name = "CloudPrinter",
-    .modelIdentifier = "NT311",
-    .manufacturer = "SUNMI",
+    .name = g_accessoryName,
+    .modelIdentifier = g_modelIdentifier,
+    .manufacturer = g_manufacturer,
     .serialNumber = "SN123456789",
     .firmwareVersion = "1.0.0",
     .hardwareVersion = "1.0",
@@ -85,13 +91,13 @@ static uint16_t g_messagesSent[] = {
 
     /* App Launch */
     0xEA02,  /* RequestAppLaunch */
-#endif
     /* App Discovery */
     0xAD00,  /* StartAppDiscoveryUpdates */
     0xAD02,  /* StopAppDiscoveryUpdates */
 
     /* External Accessory Protocol */
     0xEA03   /* EAPSessionStatus */
+#endif
 };
 
 /* 消息能力声明 - 配件接收的消息 */
@@ -107,14 +113,27 @@ static uint16_t g_messagesReceived[] = {
     0x1D00,  /* StartIdentification */
     0x1D02,  /* IdentificationAccepted */
     0x1D03,  /* IdentificationRejected */
-#endif
     /* App Discovery */
     0xAD01,  /* AppDiscoveryUpdate */
+#endif
 
     /* External Accessory Protocol */
     0xEA00,  /* EAPStartSession */
     0xEA01   /* EAPStopSession */
 };
+
+static void _LoadBuiltinConfigFromIni(void)
+{
+    ini_get_value(IAP2_INFO_INI_FILE, "name", g_accessoryName,
+                  sizeof(g_accessoryName));
+    ini_get_value(IAP2_INFO_INI_FILE, "modelId", g_modelIdentifier,
+                  sizeof(g_modelIdentifier));
+    ini_get_value(IAP2_INFO_INI_FILE, "manufacturer", g_manufacturer,
+                  sizeof(g_manufacturer));
+    ini_get_value(IAP2_INFO_INI_FILE, "PPID", g_PPID, sizeof(g_PPID));
+    ini_get_value(IAP2_INFO_INI_FILE, "eaProtocalName", g_eaProtocalName,
+                  sizeof(g_eaProtocalName));
+}
 
 /*
  ****************************************************************
@@ -225,7 +244,7 @@ static BOOL _SendIdentificationInfo(void)
 
     const iAP2AccessoryInfo_t *info = g_idConfig.accessoryInfo;
     iAP2LogDbg("[Id] ========================================");
-    iAP2LogDbg("[Id] Sending IdentificationInformation");
+    iAP2LogDbg("[Id] [ID=%04x] Sending IdentificationInformation", kiAP2IdMsgInfo);
     iAP2LogDbg("[Id] ========================================");
     iAP2LogDbg("[Id] Name: %s", info->name);
     iAP2LogDbg("[Id] ModelIdentifier: %s", info->modelIdentifier);
@@ -260,6 +279,10 @@ static BOOL _SendIdentificationInfo(void)
         ctrlSess_AddUint16Array(&builder, kiAP2IdParamMsgSent,
                                 g_idConfig.messagesSentByAccessory,
                                 g_idConfig.messagesSentCount);
+    } else {
+        ctrlSess_AddUint16Array(&builder, kiAP2IdParamMsgSent,
+                        NULL, 0);
+        iAP2LogDbg("[Id] MessagesSentByAccessory: %u messages", 0);
     }
 
     if (g_idConfig.messagesReceivedByAccessory
@@ -601,6 +624,8 @@ int iAP2IdInit(const iAP2IdConfig_t *config, uint8_t type)
         return -1;
     }
 
+    _LoadBuiltinConfigFromIni();
+
     /* 复制用户提供的回调配置 */
     memcpy(&g_idConfig, config, sizeof(iAP2IdConfig_t));
     /* 使用内置的配件信息和消息能力 */
@@ -765,8 +790,7 @@ BOOL iAP2IdIsSuccess(void)
  *
  * 注意：必须在 iAP2IdInit() 之后、识别开始之前调用
  */
-int iAP2IdSetAccessoryInfo(const char *name, const char *modelId,
-                           const char *manufacturer, const char *serialNumber,
+int iAP2IdSetAccessoryInfo(const char *serialNumber,
                            const char *fwVersion, const char *hwVersion)
 {
     if (!g_initialized) {
@@ -778,18 +802,6 @@ int iAP2IdSetAccessoryInfo(const char *name, const char *modelId,
         iAP2LogError("[Id] Cannot change accessory info in current state: %d",
                      g_idState);
         return -1;
-    }
-
-    if (name) {
-        g_accessoryInfo.name = name;
-    }
-
-    if (modelId) {
-        g_accessoryInfo.modelIdentifier = modelId;
-    }
-
-    if (manufacturer) {
-        g_accessoryInfo.manufacturer = manufacturer;
     }
 
     if (serialNumber) {

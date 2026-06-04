@@ -458,6 +458,7 @@ void iAP2LogVNL(const char *format, va_list args)
     }
 }
 
+#if 0
 /*
 ****************************************************************
 **
@@ -548,7 +549,7 @@ void iAP2LogDbgPureNL(const char *format, ...)
         va_end(args);
     }
 }
-
+#endif
 /*
 ****************************************************************
 **
@@ -576,6 +577,7 @@ void iAP2LogDbgVNL(const char *format, va_list args)
     }
 }
 
+#if 0
 /*
 ****************************************************************
 **
@@ -666,7 +668,7 @@ void iAP2LogErrorPureNL(const char *format, ...)
         va_end(args);
     }
 }
-
+#endif
 /*
 ****************************************************************
 **

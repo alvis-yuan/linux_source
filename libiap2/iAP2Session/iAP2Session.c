@@ -103,12 +103,13 @@ static BOOL _HandleTransportData(uint8_t *data, uint32_t dataLen,
         iAP2LogError("[Session] Invalid data parameters in _HandleTransportData");
         return FALSE;
     }
-
+#if 0
     for (int i = 0; i < dataLen; i++) {
         fprintf(stderr, "%02X ", data[i]);
     }
 
     fprintf(stderr, "\n");
+#endif
     /* 获取会话类型信息 */
     iAP2Link_t *link = iAP2TransportGetLink(session->transport);
     iAP2PacketSessionInfo_t *sessInfo = iAP2LinkGetSessionInfo(link, sessionID);
@@ -699,4 +700,36 @@ int iAP2SessionRegEA(uint16_t eaSessionID, void *context)
     session->EASessionID = eaSessionID;
 
     return 0;
+}
+
+/*
+ * 注销EA会话ID 
+ */
+void iAP2SessionUnregEA(void *context)
+{
+    iAP2Session_t *session = (iAP2Session_t *)context;
+
+    if (!session || !session->transport) {
+        iAP2LogError("[Session] Invalid session in iAP2SessionUnregEA");
+        return;
+    }
+
+    if (session->EASessionID != 0) {
+        iAP2LogDbg("[Session] Unregistered EA session ID: 0x%02X",
+                   session->EASessionID);
+        session->EASessionID = 0;
+    }
+
+}
+
+/* 获取EA会话ID */
+uint16_t iAP2SessionGetEAID(void *context)
+{
+    iAP2Session_t *session = (iAP2Session_t *)context;
+    if (!session || !session->transport) {
+        iAP2LogError("[Session] NULL session in iAP2SessionGetEAID");
+        return 0;
+    }
+
+    return session->EASessionID;
 }

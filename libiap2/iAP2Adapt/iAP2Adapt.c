@@ -76,6 +76,14 @@ static iAP2Session_t   *g_session = NULL;
 /* RunLoop线程 */
 static pthread_t g_runLoopThread = 0;
 
+#ifndef IAP2_ADAPT_MAX_OUTSTANDING
+#define IAP2_ADAPT_MAX_OUTSTANDING 16
+#endif
+
+#ifndef IAP2_ADAPT_MAX_PACKET_SIZE
+#define IAP2_ADAPT_MAX_PACKET_SIZE 1024
+#endif
+
 /*
  * 认证完成回调（可选）
  *
@@ -166,8 +174,8 @@ static int iAP2AdaptInit(int type, iAP2SessionDataCB_t sessionDataCB,
     transportConfig.type = type;
     transportConfig.sendDataCB = sendDataCB;
     transportConfig.userContext = context;
-    transportConfig.maxPacketSize = 128;
-    transportConfig.maxOutstanding = 1;
+    transportConfig.maxPacketSize = IAP2_ADAPT_MAX_PACKET_SIZE;
+    transportConfig.maxOutstanding = IAP2_ADAPT_MAX_OUTSTANDING;
     transportConfig.retransmitTimeout = 1000;
     g_transport = iAP2TransportCreate(&transportConfig);
 
@@ -193,9 +201,7 @@ static int iAP2AdaptInit(int type, iAP2SessionDataCB_t sessionDataCB,
         return -1;
     }
 
-    iAP2IdSetAccessoryInfo("sunmiPrinter", sys_global_var()->model,
-                           "sunmi", sys_global_var()->sn, APP0_VERSION,
-                           sys_global_var()->hw_ver);
+    iAP2IdSetAccessoryInfo(sys_global_var()->sn, APP0_VERSION, sys_global_var()->hw_ver);
 
     /* 启动会话（准备就绪，等待连接） */
     if (!iAP2SessionStart(g_session)) {
@@ -418,14 +424,15 @@ void iAP2AdaptOnDisconnected(void)
  */
 int iAP2AdaptDataHandler(unsigned char *data, unsigned int len)
 {
-    iAP2LogDbg("[iAP2] DataHandler called: len=%u", len);
+    //iAP2LogDbg("[iAP2] DataHandler called: len=%u", len);
 
     if (!g_transport) {
         iAP2LogError("[iAP2] Not initialized");
         return -1;
     }
 
-    iAP2LogDbg("[iAP2] Received %u bytes", len);
+    //iAP2LogDbg("[iAP2] Received %u bytes", len);
+	#if 0
     fprintf(stderr, "===========iAP2 Rx Raw Data: =============\n");
 
     for (int i = 0; i < len; i++) {
@@ -437,6 +444,7 @@ int iAP2AdaptDataHandler(unsigned char *data, unsigned int len)
     }
 
     fprintf(stderr, "\n");
+	#endif
     /* 将数据交给iAP2传输层处理 */
     uint32_t processed = iAP2TransportReceiveData(g_transport, data, len);
     /*
@@ -467,4 +475,40 @@ int iAP2AdaptDataHandler(unsigned char *data, unsigned int len)
      *    - 转发给业务层（print_channel_send_data）
      */
     return (int)processed;
+}
+
+/*
+ * 发送EA会话数据
+ */
+int iAP2AdaptSendSessionData(const uint8_t *data, uint32_t len)
+{
+    uint8_t buffer[IAP2_ADAPT_MAX_PACKET_SIZE];
+    uint16_t eaSessionID;
+
+    if (!g_session || !g_transport) {
+        iAP2LogError("[iAP2] Not initialized");
+        return -1;
+    }
+
+    if (!data || len == 0 || len > sizeof(buffer) - 2) {
+        iAP2LogError("[iAP2] Invalid session data: data=%p len=%u", data, len);
+        return -1;
+    }
+
+    eaSessionID = iAP2SessionGetEAID(g_session);
+    if (eaSessionID == 0) {
+        iAP2LogError("[iAP2] EA session is not ready");
+        return -1;
+    }
+
+    buffer[0] = (uint8_t)(eaSessionID >> 8);
+    buffer[1] = (uint8_t)(eaSessionID & 0xFF);
+    memcpy(buffer + 2, data, len);
+
+    if (!iAP2SessionSendData(g_session, kIAP2EASessionId, buffer, len + 2)) {
+        iAP2LogError("[iAP2] Failed to send session data len=%u", len);
+        return -1;
+    }
+
+    return (int)len;
 }

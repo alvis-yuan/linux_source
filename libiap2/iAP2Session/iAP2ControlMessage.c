@@ -327,15 +327,12 @@ static int iAP2HandleEAPStartSessionInternal(uint16_t sessionId,
     iAP2LogDbg("[CtrlMsg] Handling EAPStartSession: sessionId=%u, protocolId=%u",
                sessionId, protocolId);
 
-    // TODO 处理EAPStartSession逻辑
-    // 1. 验证协议ID是否在identification阶段声明的协议列表中
-    // 2. 注册EA会话ID
+    // 1. 注册EA会话ID
     if (iAP2SessionRegEA(sessionId, g_ctrlMsgCtx.context) != 0) {
         iAP2LogError("[CtrlMsg] Failed to register EA session");
         return -1;
     }
 
-    // 3. 如果有效，创建EAP数据会话
     return 0;
 }
 
@@ -476,6 +473,13 @@ int iAP2HandleEAPStopSession(uint16_t msgId, const uint8_t *data, uint32_t len)
 
     iAP2LogDbg("[CtrlMsg] EAPStopSession: sessionId=%u", sessionId);
     // 1. 验证会话ID是否有效
+    if (iAP2SessionGetEAID(g_ctrlMsgCtx.context) != sessionId) {
+        iAP2LogError("[CtrlMsg] Invalid session ID in EAPStopSession");
+        return -1;
+    }
+
     // 2. 清理会话状态，释放资源等
+    iAP2SessionUnregEA(g_ctrlMsgCtx.context);
+
     return 0;
 }

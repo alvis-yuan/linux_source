@@ -26,6 +26,14 @@ enum {
  */
 int iAP2AdaptDataHandler(unsigned char *data, unsigned int len);
 
+/**
+ * @brief 发送iAP2 EA会话数据
+ * @param data 会话数据指针
+ * @param len 会话数据长度
+ * @return 成功返回发送数据长度，失败返回-1
+ */
+int iAP2AdaptSendSessionData(const uint8_t *data, uint32_t len);
+
 /*
  * 会话数据回调类型
  */

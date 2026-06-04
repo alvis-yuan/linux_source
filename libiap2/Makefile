@@ -10,7 +10,7 @@ MFI_SUBDIRS := iAP2Link iAP2Session driver iAP2Utility iAP2UtilityImplementation
 OBJS += $(foreach dir, $(MFI_SUBDIRS), $(patsubst %.c,%.o,$(wildcard $(dir)/*.c)))
 CFLAGS += -I . $(foreach dir, $(MFI_SUBDIRS), -I $(dir))
 
-CFLAGS += -DDEBUG=1
+#CFLAGS += -DDEBUG=1
 CFLAGS += -Wall -ffunction-sections -O2 -mhard-float -s -mips32r2 --sysroot=$(SYS_ROOT) -fPIC
 
 
